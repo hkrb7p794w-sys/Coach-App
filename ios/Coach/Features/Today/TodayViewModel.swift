@@ -78,9 +78,10 @@ final class TodayViewModel {
       let response = try await ai.run(task: "daily_note", input: input)
       let points = CoachingNote.points(from: response.output)
       guard !points.isEmpty else { throw AIClientError.http(200, "Leere KI-Antwort") }
-      store(CachedNote(
-        day: snapshot.plan.today.iso, level: snapshot.recommendation.level, points: points,
-        source: "KI · \(response.model)"))
+      store(
+        CachedNote(
+          day: snapshot.plan.today.iso, level: snapshot.recommendation.level, points: points,
+          source: "KI · \(response.model)"))
       noteError = nil
     } catch {
       noteError = error.localizedDescription
