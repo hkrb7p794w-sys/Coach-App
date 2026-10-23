@@ -39,7 +39,5 @@ Du brauchst: iPhone mit Code-Sperre, Windows-PC (64 Bit), USB-Kabel, WLAN, Apple
 - Mit kostenloser Apple-ID laufen Apps **7 Tage**. SideStore frischt sie auf, solange LocalDevVPN verbunden
   ist. Spätestens alle 7 Tage einmal SideStore öffnen und auffrischen.
 - Höchstens **3 Apps** gleichzeitig (SideStore zählt mit) und **10 neue App-IDs pro Woche**.
-- Auf dem iPhone ist immer nur **ein VPN** aktiv. Sobald Tailscale dazukommt (Phase 2): zum Auffrischen in
-  SideStore kurz LocalDevVPN verbinden, danach wieder Tailscale.
 - Nach einem iOS-Update kann die Pairing-Datei ungültig werden. Dann in iloader neu erzeugen
   (SideStore-Doku „Pairing File“).

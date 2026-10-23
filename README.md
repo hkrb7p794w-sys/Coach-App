@@ -2,11 +2,13 @@
 
 Native iPhone-App, die Garmin-Coaching, Ernährung und Gym-Logging vereint – unabhängig von Home Assistant.
 
+Kein eigener Server nötig:
+
 ```
-iPhone (SwiftUI, SwiftData-Cache) ──HTTPS über Tailscale──► Backend auf dem Windows-Mini-PC
-                                                            ├─ Garmin-Sync (python-garminconnect)
-                                                            ├─ Regeln: Tagesampel, Wochen-Soll/Ist, Tagesziele, Progression
-                                                            └─ KI: Gemini, Ausweichstufe Groq (Keys nur hier)
+iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
+  ├─ HTTPS ─► Garmin Connect Personal API (offiziell, Key im Keychain)
+  ├─ HTTPS ─► Open Food Facts (Barcode)
+  └─ HTTPS ─► Cloudflare Worker ─► Gemini / Groq (KI-Keys nur im Worker)
 ```
 
 ## Stand
@@ -14,7 +16,7 @@ iPhone (SwiftUI, SwiftData-Cache) ──HTTPS über Tailscale──► Backend a
 | Phase | Inhalt | Status |
 |---|---|---|
 | 1 | Gerüst, CI, leere App mit HealthKit-Diagnose | in Arbeit |
-| 2 | Backend: API, Garmin-Sync, KI, Deployment auf dem Mini-PC mit Tailscale | offen |
+| 2 | Garmin-Anbindung (Personal API), lokale Datenhaltung, KI-Worker auf Cloudflare | offen |
 | 3 | Coach: Tagesempfehlung, Erholung, Wochen-Soll/Ist, Rennvorbereitung | offen |
 | 4 | Ernährung: Foto, Text, Barcode; Tagesziele nach Training; KI-Auswertung | offen |
 | 5 | Gym: Übungen, Sätze, Verlauf, Speichern in HealthKit bzw. Garmin | offen |

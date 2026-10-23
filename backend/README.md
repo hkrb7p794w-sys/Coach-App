@@ -1,9 +1,8 @@
-# Coach Backend
+# Coach Backend (Gerüst)
 
-Eigenständiger Python-Dienst für die Coach-App: Garmin-Sync, regelbasierte Auswertung und KI-Aufrufe
-(Gemini, Ausweichstufe Groq). API-Keys liegen nur hier, nie in der App.
-
-Stand Phase 1: Grundgerüst mit Health-Check. Garmin, KI und Deployment-Anleitung folgen in Phase 2.
+Stand Phase 1: Grundgerüst mit Health-Check. In Phase 2 wird daraus der Cloudflare Worker, der die KI-Aufrufe
+(Gemini, Ausweichstufe Groq) weiterreicht und die KI-Keys hält. Garmin ruft die App direkt über die offizielle
+Personal API ab (siehe `docs/decisions.md`).
 
 ## Entwicklung
 

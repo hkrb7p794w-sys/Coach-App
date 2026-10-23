@@ -1,4 +1,4 @@
-# Lint und Tests des Backends. Windows läuft mit, weil das Backend auf einem Windows-Mini-PC laufen soll.
+# Lint und Tests des Python-Teils (Phase 1: Gerüst; ab Phase 2 der KI-Worker).
 name: Backend
 
 on:
@@ -13,11 +13,7 @@ permissions:
 
 jobs:
   check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
       run:
@@ -34,7 +30,6 @@ jobs:
         run: uv sync --locked
 
       - name: ruff
-        if: runner.os == 'Linux'
         run: |
           uv run ruff check .
           uv run ruff format --check .
