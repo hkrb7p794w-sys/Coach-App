@@ -15,8 +15,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 
 | Phase | Inhalt | Status |
 |---|---|---|
-| 1 | Gerüst, CI, leere App mit HealthKit-Diagnose | in Arbeit |
-| 2 | Garmin-Anbindung (Personal API), lokale Datenhaltung, KI-Worker auf Cloudflare | offen |
+| 1 | Gerüst, CI, leere App mit HealthKit-Diagnose | fertig (PR 1) |
+| 2 | Garmin-Anbindung (Personal API), lokale Datenhaltung, KI-Worker auf Cloudflare | in Arbeit (PR 2) |
 | 3 | Coach: Tagesempfehlung, Erholung, Wochen-Soll/Ist, Rennvorbereitung | offen |
 | 4 | Ernährung: Foto, Text, Barcode; Tagesziele nach Training; KI-Auswertung | offen |
 | 5 | Gym: Übungen, Sätze, Verlauf, Speichern in HealthKit bzw. Garmin | offen |
@@ -24,6 +24,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 ## Installation auf dem iPhone
 
 Siehe [docs/sidestore.md](docs/sidestore.md). Kurz: Release-Asset `Coach.ipa` laden und in SideStore öffnen.
+
+Garmin, KI-Worker und App verbinden: [docs/einrichtung.md](docs/einrichtung.md).
 
 ## Entwicklung
 

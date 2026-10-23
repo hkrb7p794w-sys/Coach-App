@@ -2,6 +2,17 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-23 – KI-Worker in TypeScript, Prompts im Worker
+
+- Cloudflare Workers Free erlauben 10 ms CPU-Zeit je Anfrage (Warten auf `fetch` zählt nicht). Fotos werden als
+  Base64 an Gemini weitergereicht; das ist in V8 (TypeScript) billig, in Python-Workers (Pyodide) teurer.
+  Quelle: Cloudflare-Doku „Workers › Platform › Limits“. Daher TypeScript mit Biome (Lint/Format) und Vitest.
+- Prompts liegen im Worker (`worker/src/tasks.ts`), die App schickt nur Aufgabe und abgeleitete Werte. Eine
+  Prompt-Änderung braucht so nur einen Worker-Deploy, keine neue App-Version (Neuinstallation per SideStore).
+- Der Worker ist ohne `COACH_APP_TOKEN` gesperrt (503) und vergleicht das Token in konstanter Zeit.
+- Fund beim Portieren: Die Nachfolgemodell-Erkennung des Altbestands nahm einen Satzpunkt in den Modellnamen
+  auf („…models/gemini-3.6-flash.“); im Worker korrigiert und getestet.
+
 ## 2026-10-23 – Kein eigener Server: Garmin über die Personal API, KI über einen Cloudflare Worker
 
 Der Nutzer möchte keinen dauerhaft laufenden Rechner (Pi trägt Home Assistant, Mini-PC läuft nur morgens).
