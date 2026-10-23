@@ -1,0 +1,31 @@
+# Formatprüfung und Tests der plattformunabhängigen Swift-Logik auf Linux
+# (günstig im Vergleich zu macOS-Runnern). App-Code wird hier nur gelintet;
+# gebaut wird er im iOS-Build.
+name: Swift
+
+on:
+  pull_request:
+    paths: ["ios/**", ".github/workflows/swift.yml"]
+  push:
+    branches: [main]
+    paths: ["ios/**", ".github/workflows/swift.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: swift-format
+        run: >-
+          swift format lint --strict --recursive
+          --configuration ios/.swift-format
+          ios/Coach ios/CoachTests ios/Packages/CoachCore
+
+      - name: CoachCore-Tests
+        run: swift test --package-path ios/Packages/CoachCore
