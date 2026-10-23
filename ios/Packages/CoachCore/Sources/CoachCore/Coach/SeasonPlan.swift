@@ -2,7 +2,7 @@ import Foundation
 
 /// Renntermine und Testwerte der Saison – in der App änderbar, Standardwerte aus dem Altbestand
 /// (`garmin_ai_coach/plan.py`, Stand 21.10.2026).
-public struct SeasonConfig: Codable, Equatable, Sendable {
+public struct SeasonConfig: Codable, Hashable, Sendable {
   public var mainRaceName = "Challenge Almere"
   public var mainRaceDescription = "Challenge Almere-Amsterdam, Mitteldistanz (1,9 km / 94 km / 21,1 km)"
   public var mainRaceDate = CalendarDay(year: 2027, month: 9, day: 11)
