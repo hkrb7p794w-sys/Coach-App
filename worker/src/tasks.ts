@@ -5,30 +5,19 @@
  *
  * Regel aus dem Altbestand: Die Regeln entscheiden, die KI formuliert nur.
  */
+import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
+import { list, text } from "./tasks-util";
+
+export { list, text } from "./tasks-util";
 
 export interface TaskDefinition {
   json: boolean;
   allowImages: boolean;
-  build(input: Record<string, unknown>): { system?: string; prompt: string };
+  build(input: Record<string, unknown>, images: number): { system?: string; prompt: string };
 }
 
 const GERMAN = "Schreibe durchgängig in korrektem Deutsch mit echten Umlauten (ä, ö, ü, ß).";
-
-/** Eingaben begrenzen: Die App ist vertrauenswürdig, aber Prompts sollen nicht beliebig wachsen. */
-export function text(value: unknown, max = 600): string {
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+/g, " ").trim().slice(0, max);
-}
-
-export function list(value: unknown, maxItems = 12, maxLength = 300): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .slice(0, maxItems)
-    .map((item) => text(item, maxLength))
-    .filter(Boolean);
-}
 
 function object(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -108,6 +97,18 @@ export const TASKS: Record<string, TaskDefinition> = {
     json: true,
     allowImages: false,
     build: (input) => ({ prompt: dailyNotePrompt(input) }),
+  },
+  /** Mahlzeit per Foto und/oder Text in Positionen mit Nährwerten zerlegen. */
+  meal_analyze: {
+    json: true,
+    allowImages: true,
+    build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
+  },
+  /** Ernährung und Training des Tages gemeinsam auswerten. */
+  nutrition_review: {
+    json: true,
+    allowImages: false,
+    build: (input) => ({ prompt: nutritionReviewPrompt(input) }),
   },
 };
 

@@ -94,7 +94,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
   if (images.length > 0 && !task.allowImages)
     return json(400, { error: "Diese Aufgabe nimmt keine Bilder an" });
 
-  const { system, prompt } = task.build(input as Record<string, unknown>);
+  const { system, prompt } = task.build(input as Record<string, unknown>, images.length);
   try {
     const result = await generate({ system, prompt, json: task.json, images }, env, deps);
     let output: unknown = result.text;
