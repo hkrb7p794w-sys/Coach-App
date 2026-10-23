@@ -10,7 +10,7 @@ import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 export const MAX_BODY_BYTES = 8 * 1024 * 1024;
 export const MAX_IMAGES = 4;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/heic", "image/webp"]);
