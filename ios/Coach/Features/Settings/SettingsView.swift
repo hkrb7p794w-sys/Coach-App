@@ -19,6 +19,7 @@ private struct SettingsForm: View {
         aiSection
         Section("Coach") {
           NavigationLink("Saison & Ziele") { SeasonSettingsView() }
+          NavigationLink("Ernährung") { NutritionSettingsView() }
         }
         Section("Diagnose") {
           NavigationLink("Garmin-Diagnose") { GarminDiagnosticsView() }

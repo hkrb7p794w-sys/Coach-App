@@ -70,7 +70,13 @@ final class AIClient {
     return url
   }
 
-  func run(task: String, input: [String: JSONValue] = [:]) async throws -> AIResponse {
+  /// Bild für KI-Aufgaben (JPEG, bereits verkleinert).
+  struct Image {
+    let mimeType: String
+    let data: Data
+  }
+
+  func run(task: String, input: [String: JSONValue] = [:], images: [Image] = []) async throws -> AIResponse {
     guard let base = Self.normalizedURL(workerURL), let token = secrets.string(for: .aiAppToken) else {
       throw AIClientError.notConfigured
     }
@@ -78,7 +84,14 @@ final class AIClient {
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-    request.httpBody = try JSONEncoder().encode(JSONValue.object(["task": .string(task), "input": .object(input)]))
+    var body: [String: JSONValue] = ["task": .string(task), "input": .object(input)]
+    if !images.isEmpty {
+      body["images"] = .array(
+        images.map {
+          .object(["mimeType": .string($0.mimeType), "data": .string($0.data.base64EncodedString())])
+        })
+    }
+    request.httpBody = try JSONEncoder().encode(JSONValue.object(body))
 
     let result: (Data, URLResponse)
     do {

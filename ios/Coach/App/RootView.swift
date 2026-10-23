@@ -9,11 +9,7 @@ struct RootView: View {
         TodayView()
       }
       Tab("Ernährung", systemImage: "fork.knife") {
-        PlaceholderView(
-          title: "Ernährung",
-          systemImage: "fork.knife",
-          message: "Erfassung per Foto, Text und Barcode kommt in Phase 4."
-        )
+        NutritionView()
       }
       Tab("Gym", systemImage: "dumbbell") {
         PlaceholderView(

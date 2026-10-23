@@ -70,7 +70,7 @@ final class RawResponseRecord {
 
 enum CoachSchema {
   static let models: [any PersistentModel.Type] = [
-    DailyMetricsRecord.self, ActivityRecord.self, RawResponseRecord.self,
+    DailyMetricsRecord.self, ActivityRecord.self, RawResponseRecord.self, MealRecord.self, FoodRecord.self,
   ]
 
   static func makeContainer(inMemory: Bool = false) -> ModelContainer {

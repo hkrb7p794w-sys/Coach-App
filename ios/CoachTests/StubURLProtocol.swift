@@ -1,4 +1,8 @@
 import Foundation
+import Testing
+
+/// Alle Tests mit dem simulierten Netzwerk laufen nacheinander: Der Stub hat statischen Zustand.
+@Suite(.serialized) struct StubbedNetworkTests {}
 
 /// Simuliertes Netzwerk: beantwortet Anfragen über einen Handler und protokolliert sie.
 /// Statischer Zustand – Tests, die ihn nutzen, laufen in einer serialisierten Suite.
