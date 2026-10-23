@@ -80,13 +80,13 @@ final class AIClient {
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     request.httpBody = try JSONEncoder().encode(JSONValue.object(["task": .string(task), "input": .object(input)]))
 
-    let data: Data
-    let response: URLResponse
+    let result: (Data, URLResponse)
     do {
-      (data, response) = try await session.data(for: request)
+      result = try await session.data(for: request)
     } catch {
       throw AIClientError.network(error.localizedDescription)
     }
+    let (data, response) = result
     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
     guard (200..<300).contains(status) else {
       if status == 401 { throw AIClientError.unauthorized }
