@@ -132,6 +132,20 @@ extension JSONValue: Decodable {
   }
 }
 
+extension JSONValue: Encodable {
+  public func encode(to encoder: any Encoder) throws {
+    var container = encoder.singleValueContainer()
+    switch self {
+    case .object(let dictionary): try container.encode(dictionary)
+    case .array(let values): try container.encode(values)
+    case .string(let text): try container.encode(text)
+    case .number(let value): try container.encode(value)
+    case .bool(let value): try container.encode(value)
+    case .null: try container.encodeNil()
+    }
+  }
+}
+
 extension Dictionary where Key == String, Value == JSONValue {
   /// Erster vorhandener Wert unter einem der Schlüssel, auch verschachtelt.
   func first(_ keys: String...) -> JSONValue? {

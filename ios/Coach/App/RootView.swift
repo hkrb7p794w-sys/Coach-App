@@ -1,14 +1,12 @@
 import SwiftUI
 
 struct RootView: View {
+  @Environment(AppModel.self) private var model
+
   var body: some View {
     TabView {
       Tab("Heute", systemImage: "sun.max") {
-        PlaceholderView(
-          title: "Heute",
-          systemImage: "sun.max",
-          message: "Tagesempfehlung, Erholung und Wochen-Soll/Ist kommen in Phase 3."
-        )
+        TodayView()
       }
       Tab("Ernährung", systemImage: "fork.knife") {
         PlaceholderView(
@@ -24,13 +22,15 @@ struct RootView: View {
           message: "Übungen, Sätze und Verlauf kommen in Phase 5."
         )
       }
-      Tab("Diagnose", systemImage: "stethoscope") {
-        DiagnosticsView()
+      Tab("Einstellungen", systemImage: "gearshape") {
+        SettingsView()
       }
     }
+    .task { await model.syncIfDue() }
   }
 }
 
 #Preview {
   RootView()
+    .environment(AppModel(inMemory: true, secrets: InMemorySecretStore(), defaults: UserDefaults()))
 }
