@@ -50,7 +50,7 @@ final class HealthKitProbe: HealthAccessProbing {
     return .evaluate(
       isHealthDataAvailable: true,
       authorizationError: authorizationError,
-      workoutShareStatus: WorkoutShareStatus(store.authorizationStatus(for: .workoutType())),
+      workoutShareStatus: WorkoutShareStatus(store.authorizationStatus(for: HKObjectType.workoutType())),
       readableWorkouts: readableWorkouts,
       queryError: queryError
     )
