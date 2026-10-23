@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-24 – Ernährung ohne BLS-Abgleich (vorerst)
+
+- Tagesziele (`targets.py`: Mifflin-St Jeor, Kohlenhydrate je Tagestyp nach Thomas/Erdman/Burke 2016, Protein je
+  Ziel, Fett 20–35 %, DGE-Mikronährstoffe, Flüssigkeit), Mahlzeit-Analyse (`analyze.py`) und Open Food Facts
+  (`off.py`) sind portiert. Erwartungswerte der Zielberechnung sind unabhängig mit der Formel des Altbestands
+  nachgerechnet (Test).
+- Der Abgleich mit dem Bundeslebensmittelschlüssel (BLS 4.0, 14 MB, CC BY 4.0) fehlt noch: Der Download von
+  blsdb.de ist aus der Build-Umgebung gesperrt und hat einen wechselnden Link mit Bot-Sperre. Nährwerte kommen
+  daher aus der KI-Schätzung (je 100 g) bzw. von Open Food Facts; eigene, gespeicherte Lebensmittel haben
+  Vorrang vor der KI-Schätzung. Möglicher nächster Schritt: BLS-Datei einmalig bereitstellen und als SQLite im
+  App-Bundle oder im Worker (Cloudflare D1) nutzen.
+- Fotos werden vor dem Versand auf höchstens 1280 px verkleinert und neu als JPEG kodiert (EXIF/GPS fallen weg)
+  und nicht gespeichert.
+- Open Food Facts direkt aus der App (eigener User-Agent laut OFF-Doku), gefundene Produkte werden lokal
+  gemerkt; ein zweiter Scan braucht kein Netz.
+- Ernährung und Training werden gemeinsam von der KI ausgewertet (Worker-Aufgabe `nutrition_review`): Tagestyp,
+  Training, Wochenplan, Tagesampel, Ziel/Ernährungsweise und der Stand je Nährstoff.
+
 ## 2026-10-23 – Coach-Logik auf dem iPhone, Saison konfigurierbar
 
 - Tagesampel (`recommendation.py`), Saisonplan mit Phasen, Wochen-Soll und Musterwoche (`plan.py`) sowie das
