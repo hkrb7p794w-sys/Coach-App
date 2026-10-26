@@ -167,13 +167,13 @@ public enum ReminderPlanner {
     }
   }
 
-  /// Text der Mitteilung. Kurz, freundlich, ohne Druck.
-  public static func body(for reminder: TrainingReminder, companion: String? = nil) -> String {
+  /// Text der Mitteilung. Kurz, freundlich, ohne Druck; `lead` ist ein Satz des Begleiters.
+  public static func body(for reminder: TrainingReminder, lead: String? = nil) -> String {
     let base =
       reminder.canAdjust
       ? "Passt es heute nicht? Du kannst die Einheit verschieben oder diese Woche auslassen."
       : "Schau in der App, was heute ansteht."
-    guard let companion, !companion.isEmpty else { return base }
-    return "\(companion) freut sich schon. \(base)"
+    guard let lead, !lead.isEmpty else { return base }
+    return "\(lead) \(base)"
   }
 }

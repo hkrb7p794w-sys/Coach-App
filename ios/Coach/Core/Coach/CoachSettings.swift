@@ -14,6 +14,8 @@ final class CoachSettings {
   static let profileKey = "coach.profile"
   static let adjustmentsKey = "coach.planAdjustments"
   static let remindersKey = "coach.reminders"
+  static let companionKey = "coach.companion"
+  static let leagueKey = "coach.league"
 
   private let defaults: UserDefaults
 
@@ -55,6 +57,16 @@ final class CoachSettings {
     didSet { save(reminders, forKey: Self.remindersKey) }
   }
 
+  /// Optionaler Begleiter (z. B. der eigene Hund).
+  var companion: CompanionSettings {
+    didSet { save(companion, forKey: Self.companionKey) }
+  }
+
+  /// Teilnahme an einer Rangliste.
+  var league: LeagueSettings {
+    didSet { save(league, forKey: Self.leagueKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -86,6 +98,13 @@ final class CoachSettings {
     reminders =
       defaults.data(forKey: Self.remindersKey).flatMap { try? JSONDecoder().decode(ReminderSettings.self, from: $0) }
       ?? ReminderSettings()
+    companion =
+      defaults.data(forKey: Self.companionKey).flatMap { try? JSONDecoder().decode(CompanionSettings.self, from: $0) }
+      ?? CompanionSettings()
+    let storedLeague = defaults.data(forKey: Self.leagueKey).flatMap {
+      try? JSONDecoder().decode(LeagueSettings.self, from: $0)
+    }
+    league = storedLeague ?? LeagueSettings()
     var migrated = false
     if let stored = defaults.data(forKey: Self.profileKey).flatMap({
       try? JSONDecoder().decode(UserProfile.self, from: $0)
@@ -98,6 +117,8 @@ final class CoachSettings {
       migrated = existing
     }
     if migrated { save(profile, forKey: Self.profileKey) }
+    // Die Mitglieds-ID muss stabil bleiben, sonst entstehen doppelte Einträge in der Rangliste.
+    if storedLeague == nil { save(league, forKey: Self.leagueKey) }
   }
 
   /// Überträgt das Ziel des Profils auf die Ernährung (Tempo, Schutzgrenzen) und liefert die Hinweise dazu.
@@ -138,6 +159,15 @@ final class CoachSettings {
   private func save(_ value: some Encodable, forKey key: String) {
     if let data = try? JSONEncoder().encode(value) { defaults.set(data, forKey: key) }
   }
+}
+
+/// Rangliste: Code (leer = nicht dabei), eigene ID und Anzeigename. Nur Name und Punkte verlassen das iPhone.
+struct LeagueSettings: Codable, Equatable, Hashable {
+  var code = ""
+  var memberID = UUID().uuidString.lowercased()
+  var name = ""
+
+  var isJoined: Bool { LeagueCode.isValid(code) }
 }
 
 /// Erinnerung an geplante Einheiten: an oder aus und Uhrzeit.

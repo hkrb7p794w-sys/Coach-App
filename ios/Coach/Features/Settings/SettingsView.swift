@@ -33,6 +33,7 @@ private struct SettingsForm: View {
             NavigationLink("Saison & Ziele") { SeasonSettingsView() }
           }
           NavigationLink("Ernährung") { NutritionSettingsView() }
+          NavigationLink("Begleiter & Rangliste") { MotivationSettingsView() }
           NavigationLink("Wissenschaftliche Grundlagen") { EvidenceLibraryView() }
         }
         Section("Diagnose") {

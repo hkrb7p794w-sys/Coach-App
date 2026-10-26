@@ -2,6 +2,30 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Mehrere Nutzer:innen, Rangliste und Begleiter
+
+- **Kein Konto nötig:** Jede Installation ist bereits ein eigener Zugang. Profil, Garmin-Konto (Keychain),
+  Mahlzeiten und Gym-Daten liegen nur auf dem jeweiligen iPhone. Gemeinsam ist nur der Worker.
+- **Einladungslink** `coach://join?worker=…&token=…&league=…` (eigenes URL-Schema, kein Entitlement nötig). Er
+  richtet den Worker ein und tritt der Rangliste bei. Weil er das App-Token enthält, weist die App darauf hin,
+  ihn nur an vertraute Personen zu schicken.
+- **Rangliste im Worker** (`worker/src/league.ts`, KV „coach-league“): Es werden nur Name, Symbol, Punkte,
+  Serie und „x von y Einheiten“ gespeichert, keine Gesundheitswerte. Einträge verfallen nach 90 Tagen; höchstens
+  20 Mitglieder. Alles steht in den KV-Metadaten (≤ 1024 Byte), sodass ein `list()` die ganze Rangliste liefert.
+  Quelle: <https://developers.cloudflare.com/kv/api/list-keys/>
+- **Punkte:** Es zählen nur geplante Einheiten, die erledigt wurden (10 je Einheit, +20 für die ganze Woche).
+  Zusätzliches Training zählt nicht, ausgelassene Tage zählen nicht als geplant. Die Serie zählt Wochen mit
+  mindestens 80 %. Belege: Punkte und Stufen für erreichte eigene Ziele erhöhten die Aktivität in randomisierten
+  Studien, auch in Familien und mit Wettbewerb (Patel et al. 2017, doi:10.1001/jamainternmed.2017.3458; Patel
+  et al. 2019, doi:10.1001/jamainternmed.2019.3505). Die Metaanalyse von Mazeas et al. 2022
+  (doi:10.2196/26779) fand einen kleinen bis mittleren Effekt (g = 0,42), der nach Ende schwächer wird. Dass
+  nur der eigene Plan zählt, ist eine Designentscheidung: kein Anreiz zum Übertraining, Ruhetage gehören dazu.
+- **Begleiter** (Hund, Katze, Trainer:in; eigener Name und Foto): Er formuliert mit festen Sätzen, was die
+  Regeln ohnehin sagen. Bei niedriger Erholung lobt er das Ausruhen, nach einem verpassten Tag gibt es keine
+  Vorwürfe. Für die Wirkung virtueller Begleiter allein gibt es keine belastbare Evidenz. Er ist deshalb nur
+  eine freundliche Darstellung und keine eigene Empfehlung. Das Foto bleibt lokal (`PhotosPicker` braucht keine
+  Fotomediathek-Berechtigung).
+
 ## 2026-10-26 – Erinnerungen als lokale Mitteilungen, Ausnahmen nur für eine Woche
 
 - Push über APNs braucht einen Server und das Entitlement `aps-environment`, das kostenlose Konten bzw.

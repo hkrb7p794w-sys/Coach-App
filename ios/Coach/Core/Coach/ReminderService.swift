@@ -64,7 +64,7 @@ final class ReminderService: NSObject {
     for reminder in reminders(seasonSchedule: seasonSchedule, now: now) {
       let content = UNMutableNotificationContent()
       content.title = reminder.title
-      content.body = ReminderPlanner.body(for: reminder)
+      content.body = ReminderPlanner.body(for: reminder, lead: CompanionVoice.reminderLead(settings.companion))
       content.sound = .default
       content.categoryIdentifier = reminder.canAdjust ? Self.adjustableCategory : Self.plainCategory
       content.userInfo = ["day": reminder.day.iso]

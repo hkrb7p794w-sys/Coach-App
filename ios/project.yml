@@ -46,6 +46,11 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        # Einladungslink zur Rangliste: coach://join?worker=…&token=…&league=…
+        CFBundleURLTypes:
+          - CFBundleURLName: io.github.hkrb7p794w.coach.invite
+            CFBundleURLSchemes:
+              - coach
         UIBackgroundModes:
           - fetch
         BGTaskSchedulerPermittedIdentifiers:

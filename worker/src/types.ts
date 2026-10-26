@@ -5,6 +5,8 @@ export interface Env {
   COACH_APP_TOKEN?: string;
   /** Workers KV „coach-releases“: IPA und Versionsangaben für die private SideStore-Quelle. */
   RELEASES?: KVNamespace;
+  /** Workers KV „coach-league“: Ranglisten (nur Namen und Punkte). */
+  LEAGUE?: KVNamespace;
   /** Variablen aus wrangler.jsonc. */
   GEMINI_MODEL?: string;
   GEMINI_FALLBACK_MODEL?: string;
