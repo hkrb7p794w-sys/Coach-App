@@ -14,7 +14,11 @@ struct CoachApp: App {
     .modelContainer(appModel.container)
     .onChange(of: scenePhase) { _, phase in
       switch phase {
-      case .active: Task { await appModel.syncIfDue() }
+      case .active:
+        Task {
+          await appModel.syncIfDue()
+          await appModel.refreshReminders()
+        }
       case .background: appModel.scheduleBackgroundRefresh()
       default: break
       }

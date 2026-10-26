@@ -12,6 +12,8 @@ final class CoachSettings {
   static let competitionKey = "coach.competitionDecisions"
   static let testsKey = "coach.tests"
   static let profileKey = "coach.profile"
+  static let adjustmentsKey = "coach.planAdjustments"
+  static let remindersKey = "coach.reminders"
 
   private let defaults: UserDefaults
 
@@ -43,6 +45,16 @@ final class CoachSettings {
     didSet { save(profile, forKey: Self.profileKey) }
   }
 
+  /// Ausnahmen vom Wochenplan (auslassen, verschieben) für einzelne Wochen.
+  var planAdjustments: PlanAdjustments {
+    didSet { save(planAdjustments, forKey: Self.adjustmentsKey) }
+  }
+
+  /// Erinnerung an geplante Einheiten.
+  var reminders: ReminderSettings {
+    didSet { save(reminders, forKey: Self.remindersKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -66,6 +78,14 @@ final class CoachSettings {
     heartRate =
       defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
       ?? HeartRateOverrides()
+    var adjustments =
+      defaults.data(forKey: Self.adjustmentsKey).flatMap { try? JSONDecoder().decode(PlanAdjustments.self, from: $0) }
+      ?? PlanAdjustments()
+    adjustments.prune(before: CalendarDay(date: .now))
+    planAdjustments = adjustments
+    reminders =
+      defaults.data(forKey: Self.remindersKey).flatMap { try? JSONDecoder().decode(ReminderSettings.self, from: $0) }
+      ?? ReminderSettings()
     var migrated = false
     if let stored = defaults.data(forKey: Self.profileKey).flatMap({
       try? JSONDecoder().decode(UserProfile.self, from: $0)
@@ -93,6 +113,11 @@ final class CoachSettings {
     return assessment
   }
 
+  /// Wochenplan der Woche, die `day` enthält, mit Ausnahmen.
+  func schedule(inWeekOf day: CalendarDay) -> WeekSchedule {
+    planAdjustments.schedule(profile.schedule, inWeekOf: day)
+  }
+
   /// Testwert übernehmen: Saisonwerte setzen und im Verlauf festhalten.
   func record(_ kind: TestRecord.Kind, value: Double, on day: CalendarDay = CalendarDay(date: .now)) {
     switch kind {
@@ -112,6 +137,32 @@ final class CoachSettings {
 
   private func save(_ value: some Encodable, forKey key: String) {
     if let data = try? JSONEncoder().encode(value) { defaults.set(data, forKey: key) }
+  }
+}
+
+/// Erinnerung an geplante Einheiten: an oder aus und Uhrzeit.
+struct ReminderSettings: Codable, Equatable, Hashable {
+  var enabled = true
+  var hour = 7
+  var minute = 30
+
+  init() {}
+
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    enabled = (try? container.decodeIfPresent(Bool.self, forKey: .enabled)) ?? true
+    hour = min(max((try? container.decodeIfPresent(Int.self, forKey: .hour)) ?? 7, 0), 23)
+    minute = min(max((try? container.decodeIfPresent(Int.self, forKey: .minute)) ?? 30, 0), 59)
+  }
+
+  /// Uhrzeit als Datum (heute) für den DatePicker.
+  var time: Date {
+    get { Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: .now) ?? .now }
+    set {
+      let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+      hour = components.hour ?? 7
+      minute = components.minute ?? 30
+    }
   }
 }
 

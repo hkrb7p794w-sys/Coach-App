@@ -28,8 +28,15 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 10 | Disziplinen wie im HA-Dashboard: Tests und Trends (CSS, FTP, Schwelle), Pace-Check, Wettkampfläufe, Zielzeit Almere, Marathon | fertig (PR 11, Pace-Check und aerobe Kopplung PR 13) |
 | 11 | Tagesform & Leistung, Schlafanalyse, Wochenreport mit Vorschlägen, Chat, Erinnerungen | offen |
 | 12 | Garmin-Konto als Hauptquelle (Readiness, Trainingsstatus, Endurance Score, Prognosen), Personal API als Rückfall | fertig (PR 15) |
-| 13 | Personalisierung: Sportarten, Ziele, Wettkampf oder allgemeine Fitness, eigener Wochenplan mit Ruhetagen, Schutzgrenzen | in Arbeit (PR 16) |
+| 13 | Personalisierung: Sportarten, Ziele, Wettkampf oder allgemeine Fitness, eigener Wochenplan mit Ruhetagen, Schutzgrenzen | fertig (PR 16) |
 | 14 | Erzeugte Trainingspläne mit Progression (Laufen, Gym) und KI-Notiz für persönliche Profile | offen |
+| 15 | Erinnerungen an Trainingstage (Mitteilung oder Karte unter „Heute“), Einheit verschieben oder diese Woche auslassen | in Arbeit (PR 17) |
+| 16 | Begleiter (Trainer, Avatar, z. B. Hund „Daisy“), der motiviert | offen |
+| 17 | Rangliste zwischen Nutzern (Punkte für Planerfüllung, keine Gesundheitsdaten), Einladungslink | offen |
+
+Später, erst auf Zuruf und wenn alles andere läuft: Apple Watch bzw. Apple Health als weitere Quelle,
+Gym-App mit Übungsbibliothek nach Vorbild GymBook und KI-Hinweisen zur Gewichtssteigerung, technische
+Einstellungen für Mitnutzer ausblenden, Android-Version, Rezeptideen.
 
 Maßstab für 7–12 ist der Funktionsumfang des Home-Assistant-Stands (Garmin AI Coach 0.29.3, Übergabe vom
 26.10.2026).

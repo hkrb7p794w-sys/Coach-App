@@ -8,20 +8,32 @@ struct MyWeekView: View {
 
   var body: some View {
     let profile = model.settings.profile
-    let today = Weekday(day: CalendarDay(date: .now))
+    let day = CalendarDay(date: .now)
+    let today = Weekday(day: day)
+    let thisWeek = model.settings.schedule(inWeekOf: day)
+    let adjustments = model.settings.planAdjustments
     NavigationStack {
       List {
         GoalHeader(profile: profile)
 
         Section {
           ForEach(Weekday.allCases) { weekday in
-            WeekDayRow(weekday: weekday, slots: profile.schedule.slots(on: weekday), isToday: weekday == today)
+            WeekDayRow(
+              weekday: weekday, slots: thisWeek.slots(on: weekday), isToday: weekday == today,
+              note: adjustments.note(for: weekday, inWeekOf: day)
+            ) {
+              if weekday.rawValue >= today.rawValue {
+                PlanDayMenu(day: day.adding(days: weekday.rawValue - today.rawValue))
+              }
+            }
           }
         } header: {
-          Text("Meine Woche")
+          Text("Diese Woche")
         } footer: {
           if profile.schedule.isEmpty {
             Text("Noch kein Wochenplan. Tippe oben auf „Bearbeiten“.")
+          } else if !adjustments.changes(inWeekOf: day).isEmpty {
+            Text("Änderungen gelten nur für diese Woche; danach gilt wieder dein Wochenplan.")
           }
         }
 
@@ -64,10 +76,12 @@ private struct GoalHeader: View {
   }
 }
 
-private struct WeekDayRow: View {
+private struct WeekDayRow<Actions: View>: View {
   let weekday: Weekday
   let slots: [SessionSlot]
   let isToday: Bool
+  let note: String?
+  @ViewBuilder let actions: () -> Actions
 
   var body: some View {
     HStack(alignment: .top, spacing: 12) {
@@ -76,9 +90,17 @@ private struct WeekDayRow: View {
         .foregroundStyle(isToday ? Color.accentColor : Color.secondary)
         .frame(width: 28, alignment: .leading)
       if slots.isEmpty {
-        Text("Frei").foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Frei").foregroundStyle(.secondary)
+          if let note {
+            Text(note).font(.caption).foregroundStyle(.orange)
+          }
+        }
       } else {
         VStack(alignment: .leading, spacing: 10) {
+          if let note {
+            Text(note).font(.caption).foregroundStyle(.orange)
+          }
           ForEach(slots) { slot in
             HStack(alignment: .top, spacing: 10) {
               SportIcon(symbol: slot.sport.symbol, color: slot.sport.color, size: 28)
@@ -91,9 +113,52 @@ private struct WeekDayRow: View {
         }
       }
       Spacer(minLength: 0)
+      actions()
     }
     .padding(.vertical, 4)
-    .accessibilityElement(children: .combine)
+    .accessibilityElement(children: .contain)
+  }
+}
+
+/// Menü je Tag: verschieben, diese Woche auslassen, rückgängig.
+private struct PlanDayMenu: View {
+  let day: CalendarDay
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    let settings = model.settings
+    let weekday = Weekday(day: day)
+    let schedule = settings.schedule(inWeekOf: day)
+    let hasSlots = !schedule.slots(on: weekday).isEmpty
+    let note = settings.planAdjustments.note(for: weekday, inWeekOf: day)
+    let options = PlanMoveAdvisor.options(
+      for: weekday, schedule: schedule, profile: settings.profile, today: CalendarDay(date: .now), limit: 6)
+    if hasSlots || note != nil {
+      Menu {
+        if hasSlots {
+          if !options.isEmpty {
+            Section("Verschieben auf") {
+              ForEach(options) { target in
+                Button(target.long) { model.reminders.move(day, to: target) }
+              }
+            }
+          }
+          Button("Diese Woche auslassen", systemImage: "forward.end", role: .destructive) {
+            model.reminders.skip(day)
+          }
+        }
+        if note != nil {
+          Button("Rückgängig", systemImage: "arrow.uturn.backward") {
+            model.settings.planAdjustments.undo(weekday, inWeekOf: day)
+          }
+        }
+      } label: {
+        Image(systemName: "ellipsis.circle")
+          .font(.title3)
+          .frame(minWidth: 44, minHeight: 44)
+      }
+      .accessibilityLabel("\(weekday.long) anpassen")
+    }
   }
 }
 

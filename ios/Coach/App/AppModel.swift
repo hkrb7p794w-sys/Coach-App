@@ -14,6 +14,8 @@ final class AppModel {
   let sync: GarminSyncService
   let ai: AIClient
   let settings: CoachSettings
+  let reminders: ReminderService
+  @ObservationIgnored private lazy var seasonSchedule = SeasonSchedule.load()
 
   private(set) var isSyncing = false
   private(set) var lastReport: SyncReport?
@@ -25,6 +27,14 @@ final class AppModel {
     sync = GarminSyncService(client: garmin, context: container.mainContext, defaults: defaults)
     ai = AIClient(secrets: secrets, defaults: defaults)
     settings = CoachSettings(defaults: defaults)
+    // In Tests (inMemory) ohne Mitteilungszentrale.
+    reminders = ReminderService(settings: settings, center: inMemory ? nil : .current())
+  }
+
+  /// Erinnerungen der nächsten 14 Tage neu planen (nach Änderungen am Plan und beim Öffnen der App).
+  func refreshReminders() async {
+    guard settings.profile.onboardingDone else { return }
+    await reminders.refresh(seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil)
   }
 
   var lastSync: Date? {

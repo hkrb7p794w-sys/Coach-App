@@ -87,9 +87,11 @@ struct GymView: View {
 private struct PersonalGymSection: View {
   let profile: UserProfile
   let start: () -> Void
+  @Environment(AppModel.self) private var model
 
   var body: some View {
-    let today = profile.schedule.slots(on: Weekday(day: CalendarDay(date: .now))).filter { $0.sport == .strength }
+    let day = CalendarDay(date: .now)
+    let today = model.settings.schedule(inWeekOf: day).slots(on: Weekday(day: day)).filter { $0.sport == .strength }
     Section {
       if let slot = today.first {
         VStack(alignment: .leading, spacing: 4) {
