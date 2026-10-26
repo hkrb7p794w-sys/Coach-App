@@ -40,7 +40,8 @@ struct TodayPlanTests {
   ]
 
   private func cases() throws -> [Case] {
-    let url = try #require(Bundle.module.url(forResource: "today-cases", withExtension: "json", subdirectory: "Fixtures"))
+    let url = try #require(
+      Bundle.module.url(forResource: "today-cases", withExtension: "json", subdirectory: "Fixtures"))
     return try JSONDecoder().decode([Case].self, from: Data(contentsOf: url))
   }
 
@@ -90,7 +91,8 @@ struct TodayPlanTests {
         entry.d = entry.d.map(normalized)
         return entry
       }
-      let label = "\(testCase.today) \(testCase.level) \(testCase.done) gym=\(testCase.gym) zones=\(testCase.zones ?? "-")"
+      let label =
+        "\(testCase.today) \(testCase.level) \(testCase.done) gym=\(testCase.gym) zones=\(testCase.zones ?? "-")"
       if entries(plan.items, withDone: true, withChip: true, withDay: false) != expectedItems {
         failures.append("items \(label)")
       }
