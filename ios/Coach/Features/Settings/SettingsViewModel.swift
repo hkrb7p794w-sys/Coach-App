@@ -111,7 +111,8 @@ final class SettingsViewModel {
     switch state {
     case .needsCode(let method):
       awaitingCodeVia = method
-      connectStatus = method.lowercased() == "email"
+      connectStatus =
+        method.lowercased() == "email"
         ? "Garmin hat dir einen Code per E-Mail geschickt." : "Garmin hat dir einen Code geschickt (\(method))."
     case .loggedIn:
       awaitingCodeVia = nil

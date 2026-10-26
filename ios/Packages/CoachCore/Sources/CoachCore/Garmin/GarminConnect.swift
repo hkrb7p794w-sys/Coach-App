@@ -270,7 +270,10 @@ public enum ConnectEndpoint: Equatable, Sendable {
     case .enduranceScore(let day), .userSummary(_, let day):
       [GarminRequest.QueryItem(name: "calendarDate", value: day.iso)]
     case .dailySleepData(_, let day):
-      [GarminRequest.QueryItem(name: "date", value: day.iso), GarminRequest.QueryItem(name: "nonSleepBufferMinutes", value: "60")]
+      [
+        GarminRequest.QueryItem(name: "date", value: day.iso),
+        GarminRequest.QueryItem(name: "nonSleepBufferMinutes", value: "60"),
+      ]
     default:
       []
     }

@@ -310,9 +310,11 @@ private struct RacePredictionSection: View {
   }
 
   private var rows: [(String, Double, Int)] {
-    [("5 km", predictions.fiveK, 5.0), ("10 km", predictions.tenK, 10.0),
-     ("Halbmarathon", predictions.halfMarathon, 21.0975), ("Marathon", predictions.marathon, 42.195)]
-      .compactMap { label, seconds, km in seconds.map { (label, $0, Int(($0 / km).rounded())) } }
+    [
+      ("5 km", predictions.fiveK, 5.0), ("10 km", predictions.tenK, 10.0),
+      ("Halbmarathon", predictions.halfMarathon, 21.0975), ("Marathon", predictions.marathon, 42.195),
+    ]
+    .compactMap { label, seconds, km in seconds.map { (label, $0, Int(($0 / km).rounded())) } }
   }
 }
 

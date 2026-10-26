@@ -51,16 +51,19 @@ struct GarminConnectTests {
         == .needsCode(method: "sms"))
     #expect(result(200, #"{"responseStatus":{"type":"MFA_REQUIRED"}}"#) == .needsCode(method: "email"))
     #expect(result(200, #"{"responseStatus":{"type":"INVALID_USERNAME_PASSWORD"}}"#) == .invalidCredentials)
-    if case .blocked = result(200, #"{"responseStatus":{"type":"CAPTCHA_REQUIRED"}}"#) {} else {
+    if case .blocked = result(200, #"{"responseStatus":{"type":"CAPTCHA_REQUIRED"}}"#) {
+    } else {
       Issue.record("Captcha muss als Blockade gelten")
     }
     if case .blocked = result(429, "") {} else { Issue.record("429 muss als Blockade gelten") }
     if case .blocked = result(403, "<html>") {} else { Issue.record("403 muss als Blockade gelten") }
-    if case .blocked = result(200, #"{"error":{"status-code":"429"}}"#) {} else {
+    if case .blocked = result(200, #"{"error":{"status-code":"429"}}"#) {
+    } else {
       Issue.record("429 im JSON muss als Blockade gelten")
     }
     if case .unexpected = result(200, "<html>") {} else { Issue.record("HTML ist unerwartet") }
-    if case .unexpected = result(200, #"{"responseStatus":{"type":"SUCCESSFUL"}}"#) {} else {
+    if case .unexpected = result(200, #"{"responseStatus":{"type":"SUCCESSFUL"}}"#) {
+    } else {
       Issue.record("Erfolg ohne Ticket ist unerwartet")
     }
   }
@@ -115,7 +118,9 @@ struct GarminConnectTests {
     let readiness = ConnectEndpoint.trainingReadiness(day)
     let request = GarminConnect.apiRequest(
       path: readiness.path, query: readiness.query, token: token, accept: "application/json")
-    #expect(request.url.absoluteString == "https://connectapi.garmin.com/metrics-service/metrics/trainingreadiness/2026-10-26")
+    #expect(
+      request.url.absoluteString == "https://connectapi.garmin.com/metrics-service/metrics/trainingreadiness/2026-10-26"
+    )
     #expect(request.headers["Authorization"] == "Bearer abc")
     #expect(request.headers["X-Garmin-Client-Platform"] == "Android")
 
@@ -123,8 +128,10 @@ struct GarminConnectTests {
     let enduranceURL = GarminConnect.apiRequest(
       path: endurance.path, query: endurance.query, token: token, accept: "application/json"
     ).url.absoluteString
-    #expect(enduranceURL == "https://connectapi.garmin.com/metrics-service/metrics/endurancescore?calendarDate=2026-10-26")
-    #expect(ConnectEndpoint.racePredictions(displayName: "a/b").path == "/metrics-service/metrics/racepredictions/latest/ab")
+    #expect(
+      enduranceURL == "https://connectapi.garmin.com/metrics-service/metrics/endurancescore?calendarDate=2026-10-26")
+    #expect(
+      ConnectEndpoint.racePredictions(displayName: "a/b").path == "/metrics-service/metrics/racepredictions/latest/ab")
     #expect(ConnectEndpoint.userSummary(displayName: "alex", day: day).query.first?.value == "2026-10-26")
   }
 
@@ -145,7 +152,8 @@ struct GarminConnectTests {
     #expect(GarminMetricsParser.trainingStatusGerman("UNPRODUCTIVE_1") == "Unproduktiv")
     #expect(GarminMetricsParser.trainingStatusGerman("NEW_THING") == "New Thing")
 
-    #expect(GarminMetricsParser.enduranceScore(try json(#"{"overallScore":6512}"#), day: day)[day]?.enduranceScore == 6512)
+    #expect(
+      GarminMetricsParser.enduranceScore(try json(#"{"overallScore":6512}"#), day: day)[day]?.enduranceScore == 6512)
     #expect(
       GarminMetricsParser.enduranceScore(try json(#"{"enduranceScoreDTO":{"overallScore":6400}}"#), day: day)[day]?
         .enduranceScore == 6400)
