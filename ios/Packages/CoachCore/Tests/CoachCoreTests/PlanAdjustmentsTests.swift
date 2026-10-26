@@ -132,7 +132,7 @@ struct ReminderPlannerTests {
     #expect(
       days == [1, 5, 6, 8, 10, 11, 13].map { monday.adding(days: $0) })
     #expect(reminders.first?.title == "Heute: Qualitätslauf (Tempo oder Intervalle)")
-    #expect(reminders.allSatisfy(\.canAdjust))
+    #expect(reminders.allSatisfy { $0.canAdjust })
     #expect(reminders.first?.id == "coach.reminder.2026-10-27")
   }
 
