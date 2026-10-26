@@ -6,14 +6,14 @@ import Foundation
 public struct CompanionSettings: Codable, Equatable, Hashable, Sendable {
   public enum Kind: String, Codable, CaseIterable, Sendable, Identifiable {
     case dog, cat, coach
-    /// Daisy mit echten Fotos, eines je Stimmung (Asset-Katalog der App).
+    /// Gezeichnete, animierte Daisy (`DaisyGeometry`).
     case daisy
 
     public var id: String { rawValue }
 
     public var label: String {
       switch self {
-      case .daisy: "Daisy (mit Fotos)"
+      case .daisy: "Daisy (animiert)"
       case .dog: "Hund"
       case .cat: "Katze"
       case .coach: "Trainer:in"
@@ -86,16 +86,6 @@ public enum CompanionMood: String, Equatable, Sendable {
     case .resting: "moon.zzz.fill"
     case .cozy: "cup.and.saucer.fill"
     case .hopeful: "sun.max.fill"
-    }
-  }
-
-  /// Foto von Daisy zur Stimmung: Spaziergang (los geht's), Gym (geschafft), Körbchen (ausruhen), Halstuch (stolz).
-  public var daisyPhoto: String {
-    switch self {
-    case .excited, .hopeful: "daisy-walk"
-    case .happy: "daisy-gym"
-    case .resting, .cozy: "daisy-rest"
-    case .proud: "daisy-proud"
     }
   }
 }

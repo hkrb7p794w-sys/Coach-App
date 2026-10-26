@@ -114,18 +114,14 @@ struct CompanionTests {
     }
   }
 
-  @Test func daisySpeaksLikeADogAndHasAPhotoPerMood() {
-    let photoDaisy = CompanionSettings(enabled: true, kind: .daisy)
+  @Test func daisySpeaksLikeADog() {
+    let daisy = CompanionSettings(enabled: true, kind: .daisy)
     let dog = CompanionSettings(enabled: true, name: "Daisy", kind: .dog)
     #expect(
-      CompanionVoice.message(context(), companion: photoDaisy, day: monday).text
+      CompanionVoice.message(context(), companion: daisy, day: monday).text
         == CompanionVoice.message(context(), companion: dog, day: monday).text)
-    #expect(photoDaisy.displayName == "Daisy")
-    #expect(CompanionMood.happy.daisyPhoto == "daisy-gym")
-    #expect(CompanionMood.cozy.daisyPhoto == "daisy-rest")
-    #expect(CompanionMood.proud.daisyPhoto == "daisy-proud")
-    #expect(CompanionMood.excited.daisyPhoto == "daisy-walk")
-    #expect(CompanionVoice.reminderLead(photoDaisy) == "Daisy wartet schon an der Tür.")
+    #expect(daisy.displayName == "Daisy")
+    #expect(CompanionVoice.reminderLead(daisy) == "Daisy wartet schon an der Tür.")
   }
 
   @Test func defaultsAndDecoding() throws {
@@ -188,5 +184,40 @@ struct LeagueTests {
     #expect(!LeagueCode.isValid("AB"))
     #expect(!LeagueCode.isValid("team abc"))
     #expect(LeagueCode.isValid("paar-123"))
+  }
+}
+
+struct DaisyGeometryTests {
+  @Test func furHasOneCurvePerTuftAndCloses() throws {
+    let fur = DaisyGeometry.fur(center: .init(x: 100, y: 100), radiusX: 40, radiusY: 20, tufts: 12, depth: 0.2)
+    #expect(fur.curves.count == 12)
+    #expect(fur.start == .init(x: 140, y: 100))
+    let last = try #require(fur.curves.last?.end)
+    #expect(abs(last.x - 140) < 1e-9)
+    #expect(abs(last.y - 100) < 1e-9)
+    // Fellspitzen stehen über den Rand hinaus, Ansatzpunkte liegen genau auf der Ellipse.
+    for curve in fur.curves {
+      let control = pow((curve.control.x - 100) / 40, 2) + pow((curve.control.y - 100) / 20, 2)
+      let end = pow((curve.end.x - 100) / 40, 2) + pow((curve.end.y - 100) / 20, 2)
+      #expect(control > 1.1)
+      #expect(abs(end - 1) < 1e-9)
+    }
+  }
+
+  @Test func posesMatchTheMood() {
+    for time in stride(from: 0.0, to: 8, by: 0.37) {
+      #expect(DaisyGeometry.pose(mood: .resting, time: time).eyesOpen == 0)
+      #expect(DaisyGeometry.pose(mood: .happy, time: time).tongue)
+      #expect(!DaisyGeometry.pose(mood: .excited, time: time).tongue)
+      #expect(DaisyGeometry.pose(mood: .excited, time: time).bounce <= 0)
+      #expect((0...1).contains(DaisyGeometry.pose(mood: .proud, time: time).floatPhase))
+    }
+    // Blinzeln: kurz vor jeder vollen 4-Sekunden-Marke sind die Augen fast zu.
+    #expect(DaisyGeometry.pose(mood: .excited, time: 3.9).eyesOpen < 0.2)
+    #expect(DaisyGeometry.pose(mood: .excited, time: 2).eyesOpen == 1)
+    // Bewegung reduzieren: unabhängig von der Zeit.
+    #expect(
+      DaisyGeometry.pose(mood: .hopeful, time: 1.3, reduceMotion: true)
+        == DaisyGeometry.pose(mood: .hopeful, time: 7.7, reduceMotion: true))
   }
 }

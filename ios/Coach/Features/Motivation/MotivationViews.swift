@@ -86,8 +86,7 @@ struct CompanionAvatar: View {
       if let photo {
         Image(uiImage: photo).resizable().scaledToFill()
       } else if companion.kind == .daisy {
-        // Eigenes Foto je Stimmung (Asset-Katalog).
-        Image(mood.daisyPhoto).resizable().scaledToFill()
+        DaisyAvatar(mood: mood, size: size)
       } else {
         Image(systemName: companion.kind.symbol)
           .font(.system(size: size * 0.45))
@@ -202,7 +201,8 @@ struct MotivationSettingsView: View {
         Text("Begleiter")
       } footer: {
         Text(
-          "„Daisy (mit Fotos)“ zeigt je nach Stimmung ein anderes Foto: Spaziergang, Gym, Körbchen, Halstuch. "
+          "„Daisy (animiert)“ bewegt sich je nach Stimmung: Geschirr zum Losgehen, Zunge raus nach dem Training, "
+            + "„Zzz“ am Ruhetag, Halstuch, wenn die Woche geschafft ist. "
             + "Der Begleiter kommentiert deinen Tag freundlich und erinnert dich an Einheiten. Er richtet sich nach "
             + "denselben Regeln wie die Empfehlung: Bei schlechter Erholung lobt er das Ausruhen. Das Foto bleibt "
             + "auf diesem iPhone.")
