@@ -75,9 +75,10 @@ struct EvidenceLibraryView: View {
       Section {
         Text(
           "Die App entscheidet nach festen Regeln; die KI formuliert nur. Jede Regel nennt ihre Quellen. "
-            + "„Praxisregel“ heißt: vorsichtig gewählt, aber ohne direkte Studie für genau diesen Wert.")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
+            + "„Praxisregel“ heißt: vorsichtig gewählt, aber ohne direkte Studie für genau diesen Wert."
+        )
+        .font(.footnote)
+        .foregroundStyle(.secondary)
       }
       ForEach(Evidence.rules) { rule in
         Section { EvidenceRuleRow(rule: rule) }
@@ -86,8 +87,9 @@ struct EvidenceLibraryView: View {
         Text(
           "Die KI bekommt nur die Fakten der App und diese Regeln. Der Worker prüft jede Antwort: Zahlen, die nicht "
             + "in den Fakten stehen, und unbekannte Quellen werden verworfen. Ist nichts belegt, zeigt die App die "
-            + "regelbasierte Notiz.")
-          .font(.footnote)
+            + "regelbasierte Notiz."
+        )
+        .font(.footnote)
       }
     }
     .navigationTitle("Wissenschaftliche Grundlagen")
