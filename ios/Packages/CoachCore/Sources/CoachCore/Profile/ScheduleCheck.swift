@@ -92,8 +92,10 @@ public enum ScheduleCheck {
 
     // Gewählte Sportarten ohne Termin.
     for sport in profile.sports where schedule.count(of: sport) == 0 {
-      add("missing-\(sport.rawValue)", .info, "Du hast \(sport.label) gewählt, aber noch keinen Tag dafür "
-        + "eingeplant.")
+      add(
+        "missing-\(sport.rawValue)", .info,
+        "Du hast \(sport.label) gewählt, aber noch keinen Tag dafür "
+          + "eingeplant.")
     }
 
     // Krafttraining.

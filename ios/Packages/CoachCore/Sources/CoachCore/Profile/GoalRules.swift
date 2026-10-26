@@ -175,7 +175,7 @@ public enum GoalRules {
     if difference <= 7 {
       return
         "Realistisch: In Studien sank der Ruhepuls nach einem Jahr regelmäßigem "
-          + "Ausdauertraining im Schnitt um etwa 7 Schläge pro Minute."
+        + "Ausdauertraining im Schnitt um etwa 7 Schläge pro Minute."
     }
     let gap = Int(difference.rounded())
     return
