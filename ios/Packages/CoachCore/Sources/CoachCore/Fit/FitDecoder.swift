@@ -125,7 +125,7 @@ public enum FitDecoder {
     }
 
     while position < end {
-      let header = Int(try read(1).first!)
+      let header = Int(try read(1).first ?? 0)
       if header & 0x80 != 0 {
         // Komprimierter Zeitstempel: 5 Bit Versatz zum letzten vollen Zeitstempel.
         let local = (header >> 5) & 0x3
@@ -148,12 +148,13 @@ public enum FitDecoder {
         var fields: [Field] = []
         for _ in 0..<Int(fixed[4]) {
           let field = try read(3)
-          fields.append(Field(number: Int(field.first!), size: Int(field[field.startIndex + 1])))
+          fields.append(Field(number: Int(field[field.startIndex]), size: Int(field[field.startIndex + 1])))
         }
         var developerBytes = 0
         if header & 0x20 != 0 {
-          for _ in 0..<Int(try read(1).first!) {
-            developerBytes += Int(try read(3).dropFirst().first!)
+          for _ in 0..<Int(try read(1).first ?? 0) {
+            let field = try read(3)
+            developerBytes += Int(field[field.startIndex + 1])
           }
         }
         definitions[local] = Definition(

@@ -38,11 +38,20 @@ struct AnalysisTests {
       let duration: Double
       let distance: Double
       let avgPower: Double?
-      let hrTimeInZone_1: Double?
-      let hrTimeInZone_2: Double?
-      let hrTimeInZone_3: Double?
-      let hrTimeInZone_4: Double?
-      let hrTimeInZone_5: Double?
+      let zone1: Double?
+      let zone2: Double?
+      let zone3: Double?
+      let zone4: Double?
+      let zone5: Double?
+
+      enum CodingKeys: String, CodingKey {
+        case activityType, activityName, duration, distance, avgPower
+        case zone1 = "hrTimeInZone_1"
+        case zone2 = "hrTimeInZone_2"
+        case zone3 = "hrTimeInZone_3"
+        case zone4 = "hrTimeInZone_4"
+        case zone5 = "hrTimeInZone_5"
+      }
     }
     struct ClassifyCase: Decodable {
       let activity: Activity
@@ -113,7 +122,7 @@ struct AnalysisTests {
     activity.durationSeconds = raw.duration
     activity.distanceMeters = raw.distance
     activity.averagePower = raw.avgPower
-    let zones = [raw.hrTimeInZone_1, raw.hrTimeInZone_2, raw.hrTimeInZone_3, raw.hrTimeInZone_4, raw.hrTimeInZone_5]
+    let zones = [raw.zone1, raw.zone2, raw.zone3, raw.zone4, raw.zone5]
       .compactMap { $0 }
     if zones.count == 5, zones.reduce(0, +) > 0 { activity.secondsInZones = zones }
     return activity
@@ -363,7 +372,8 @@ struct AnalysisTests {
   @Test func recentAverageUsesLastFive() {
     let values = [1.0, 9.0, 3.0, 4.0, 5.0, 6.0]
     let sessions = values.enumerated().map { index, percent in
-      var analysis = ActivityAnalysis(id: Int64(index), day: CalendarDay(year: 2026, month: 10, day: index + 1), name: nil)
+      var analysis = ActivityAnalysis(
+        id: Int64(index), day: CalendarDay(year: 2026, month: 10, day: index + 1), name: nil)
       analysis.decouplingSport = .run
       analysis.decoupling = AerobicDecoupling.Result(
         percent: percent, firstHalfHeartRate: 140, secondHalfHeartRate: 145, source: .series)

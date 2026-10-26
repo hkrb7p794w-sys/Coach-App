@@ -204,7 +204,8 @@ public enum AerobicDecoupling {
   /// Wie im Altbestand: erst auf 1/100 min/km, dann auf Sekunden runden.
   static func lapPace(speed: Double) -> Int? {
     guard speed > 0 else { return nil }
-    let minutes = ((1000 / speed) / 60 * 100).rounded(.toNearestOrEven) / 100
+    // `%.2f` rundet wie Pythons `round(x, 2)` den exakten Binärwert, nicht das Produkt mit 100.
+    guard let minutes = Double(String(format: "%.2f", (1000 / speed) / 60)) else { return nil }
     return Int((minutes * 60).rounded(.toNearestOrEven))
   }
 }

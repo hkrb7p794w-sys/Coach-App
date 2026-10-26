@@ -68,7 +68,8 @@ public enum ActivityAnalysisPlanner {
 
   /// Auswertung einer Aktivität; `fit` ist `nil`, wenn keine Datei nötig war oder sie nicht lesbar war.
   public static func analyze(_ activity: GarminActivity, fit: FitActivity?, rpe: Double?) -> ActivityAnalysis {
-    var analysis = ActivityAnalysis(id: activity.id, day: activity.day ?? CalendarDay(year: 2000, month: 1, day: 1),
+    var analysis = ActivityAnalysis(
+      id: activity.id, day: activity.day ?? CalendarDay(year: 2000, month: 1, day: 1),
       name: activity.name)
     analysis.highZonePercent = AerobicDecoupling.highZoneShare(activity).map { AerobicDecoupling.round1($0 * 100) }
     analysis.rpe = rpe
@@ -120,8 +121,9 @@ public enum ActivityAnalysisPlanner {
 
   /// Nicht gewertete Läufe/Fahrten mit Grund, die letzten zehn.
   public static func skipped(_ analyses: [ActivityAnalysis]) -> [ActivityAnalysis] {
-    Array(analyses.filter { $0.decoupling == nil && $0.skipReason != nil }.sorted { ($0.day, $0.id) < ($1.day, $1.id) }
-      .suffix(10))
+    Array(
+      analyses.filter { $0.decoupling == nil && $0.skipReason != nil }.sorted { ($0.day, $0.id) < ($1.day, $1.id) }
+        .suffix(10))
   }
 
   /// Schnitt der letzten fünf Werte (`avg_recent_pct`).
