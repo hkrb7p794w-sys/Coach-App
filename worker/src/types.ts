@@ -3,6 +3,8 @@ export interface Env {
   GEMINI_API_KEY?: string;
   GROQ_API_KEY?: string;
   COACH_APP_TOKEN?: string;
+  /** Workers KV „coach-releases“: IPA und Versionsangaben für die private SideStore-Quelle. */
+  RELEASES?: KVNamespace;
   /** Variablen aus wrangler.jsonc. */
   GEMINI_MODEL?: string;
   GEMINI_FALLBACK_MODEL?: string;

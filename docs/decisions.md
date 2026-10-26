@@ -2,6 +2,18 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Repo privat, SideStore-Auslieferung über den Worker
+
+- Auf Wunsch des Nutzers ist das Repo privat (Trainingsplan und Gewichte waren öffentlich). Release-Dateien
+  privater Repos sind ohne Anmeldung nicht ladbar, SideStore kann keine Zugangsdaten mitschicken.
+- Lösung ohne neue Secrets: Der iOS-Build legt `Coach.ipa`, `icon.png` und `release.json` in Workers KV
+  (Namespace `coach-releases`, frei: 1 GB, 1.000 Schreibvorgänge/Tag, Werte bis 25 MiB; IPA ≈ 3 MB). Der
+  Worker baut daraus die Quelle unter `/sidestore/<key>/source.json`, `key` = erste 32 Hex-Zeichen von
+  SHA-256("sidestore:" + COACH_APP_TOKEN). Quelle: Cloudflare-Doku „Workers KV › Limits“.
+- Kosten: GitHub Free hat für private Repos 2.000 Actions-Minuten im Monat, macOS-Minuten zählen zehnfach
+  (GitHub-Doku „About billing for GitHub Actions“). Ein iOS-Build dauert etwa 4 Minuten, also etwa
+  40 Freiminuten, das reicht für rund 50 Builds im Monat. Linux-Läufe (Tests, Worker) zählen einfach.
+
 ## 2026-10-26 – FIT-Auswertung: aerobe Kopplung und Pace-Check
 
 - Runden und Zeitreihen liefert die Personal API nur als FIT-Datei (`/download-service/files/activity/{id}`,
