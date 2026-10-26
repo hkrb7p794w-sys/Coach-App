@@ -26,6 +26,8 @@ export interface GenerateRequest {
   json: boolean;
   images: ImageInput[];
   temperature?: number;
+  /** Längere Antworten (z. B. Wochenrezepte); Standard 4096. */
+  maxOutputTokens?: number;
 }
 
 export interface GenerateResult {

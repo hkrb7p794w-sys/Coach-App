@@ -113,7 +113,14 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
   const { system, prompt } = task.build(input as Record<string, unknown>, images.length);
   try {
     const result = await generate(
-      { system, prompt, json: task.json, images, temperature: task.temperature },
+      {
+        system,
+        prompt,
+        json: task.json,
+        images,
+        temperature: task.temperature,
+        maxOutputTokens: task.maxOutputTokens,
+      },
       env,
       deps,
     );

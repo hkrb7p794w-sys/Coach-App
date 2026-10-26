@@ -75,7 +75,7 @@ async function call(
     body: JSON.stringify({
       model,
       messages: messages(request),
-      max_completion_tokens: 4096,
+      max_completion_tokens: request.maxOutputTokens ?? 4096,
       temperature: request.temperature ?? 0.4,
       ...(request.json ? { response_format: { type: "json_object" } } : {}),
     }),

@@ -15,6 +15,7 @@ import {
 import { gymHintsPrompt } from "./gym";
 import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
+import { checkRecipes, weeklyRecipesPrompt } from "./recipes";
 import { list, text } from "./tasks-util";
 
 export { list, text } from "./tasks-util";
@@ -24,6 +25,8 @@ export interface TaskDefinition {
   allowImages: boolean;
   /** Niedrig für sachliche Texte: weniger Ausschmückung, weniger Erfundenes. */
   temperature?: number;
+  /** Mehr Platz für lange Antworten (Standard 4096 Tokens). */
+  maxOutputTokens?: number;
   build(input: Record<string, unknown>, images: number): { system?: string; prompt: string };
   /** Prüft die Antwort gegen die Anfrage (siehe grounding.ts); wirft GroundingError, wenn nichts belegt ist. */
   ground?(output: unknown, requestText: string, input: Record<string, unknown>): unknown;
@@ -137,6 +140,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: nutritionReviewPrompt(input) }),
     ground: groundedPoints,
   },
+<<<<<<< HEAD
   /** Hinweise zur Gewichtssteigerung aus den Progressionsregeln. */
   gym_hints: {
     json: true,
@@ -144,6 +148,16 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.2,
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: gymHintsPrompt(input) }),
     ground: groundedPoints,
+=======
+  /** Rezeptideen für die kommende Woche zu den Tageszielen der App. */
+  weekly_recipes: {
+    json: true,
+    allowImages: false,
+    temperature: 0.6,
+    maxOutputTokens: 16000,
+    build: (input) => ({ prompt: weeklyRecipesPrompt(input) }),
+    ground: checkRecipes,
+>>>>>>> 9b98d87 (feat: Rezeptideen für die kommende Woche mit Prüfung und Einkaufsliste)
   },
 };
 
