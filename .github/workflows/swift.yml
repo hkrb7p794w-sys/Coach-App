@@ -1,6 +1,9 @@
 # Formatprüfung und Tests der plattformunabhängigen Swift-Logik auf Linux
 # (günstig im Vergleich zu macOS-Runnern). App-Code wird hier nur gelintet;
 # gebaut wird er im iOS-Build.
+#
+# Schlägt etwas fehl, schreibt der Job „report“ in PRs einen Kommentar mit den Fehlern und – bei
+# Formatfehlern – dem Patch von `swift format`, der sich mit `git apply` übernehmen lässt.
 name: Swift
 
 on:
@@ -17,15 +20,84 @@ jobs:
   lint-test:
     runs-on: ubuntu-latest
     container: swift:6.2-noble
-    timeout-minutes: 15
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      SOURCES: ios/Coach ios/CoachTests ios/Packages/CoachCore
     steps:
       - uses: actions/checkout@v7
 
       - name: swift-format
-        run: >-
-          swift format lint --strict --recursive
-          --configuration ios/.swift-format
-          ios/Coach ios/CoachTests ios/Packages/CoachCore
+        id: lint
+        continue-on-error: true
+        run: swift format lint --strict --recursive --configuration ios/.swift-format $SOURCES 2>&1 | tee lint.log
 
       - name: CoachCore-Tests
-        run: swift test --package-path ios/Packages/CoachCore
+        id: test
+        continue-on-error: true
+        run: swift test --package-path ios/Packages/CoachCore 2>&1 | tee test.log
+
+      - name: Bericht erstellen
+        if: steps.lint.outcome == 'failure' || steps.test.outcome == 'failure'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          swift format --in-place --recursive --configuration ios/.swift-format $SOURCES || true
+          git diff > format.patch
+          mkdir -p report
+          cp lint.log test.log format.patch report/ 2>/dev/null || true
+          echo "lint=${{ steps.lint.outcome }}" > report/outcome.txt
+          echo "test=${{ steps.test.outcome }}" >> report/outcome.txt
+
+      - name: Bericht sichern
+        if: steps.lint.outcome == 'failure' || steps.test.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: swift-report
+          path: report/
+
+      - name: Ergebnis
+        if: steps.lint.outcome == 'failure' || steps.test.outcome == 'failure'
+        run: |
+          echo "Lint: ${{ steps.lint.outcome }}, Tests: ${{ steps.test.outcome }}"
+          exit 1
+
+  report:
+    needs: lint-test
+    if: failure() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: swift-report
+          path: report
+
+      - name: Kommentar schreiben
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          cd report
+          touch lint.log test.log format.patch outcome.txt
+          python3 - <<'EOF'
+          def block(title, text, lang=""):
+              text = text.strip()
+              return f"**{title}**\n\n```{lang}\n{text}\n```\n\n" if text else ""
+          outcome = open("outcome.txt").read().split()
+          lint = open("lint.log", errors="replace").read().splitlines()
+          test = open("test.log", errors="replace").read().splitlines()
+          errors = [l for l in test if "error:" in l or "failed" in l.lower() or "✘" in l]
+          body = "❌ Swift-Checks: " + ", ".join(outcome) + "\n\n"
+          if "test=failure" in outcome:
+              body += block("Test-/Compilerfehler", "\n".join(errors[:80])[:20000])
+              body += block("Test-Log (Ende)", "\n".join(test[-60:])[:12000])
+          if "lint=failure" in outcome:
+              body += block("Lint", "\n".join(lint[:60])[:8000])
+              body += block("Patch von swift format", open("format.patch").read()[:30000], "diff")
+          open("comment.md", "w").write(body[:65000])
+          EOF
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md

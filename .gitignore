@@ -29,8 +29,12 @@ __pycache__/
 *.egg-info/
 dist/
 
-# Laufzeitdaten des Backends
-backend/data/
+# Node / Cloudflare Worker
+node_modules/
+.wrangler/
+.dev.vars
+
+# Lokale Datenbanken
 *.db
 *.sqlite3
 

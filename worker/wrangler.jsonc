@@ -1,0 +1,17 @@
+// Cloudflare Worker „coach-ai“: KI-Weiterleitung für die Coach-App.
+// Secrets (GEMINI_API_KEY, GROQ_API_KEY, COACH_APP_TOKEN) setzt der Deploy-Workflow aus GitHub-Secrets.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "coach-ai",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "GEMINI_MODEL": "gemini-3.6-flash",
+    "GROQ_MODEL": "llama-3.3-70b-versatile",
+    "GROQ_VISION_MODEL": "meta-llama/llama-4-scout-17b-16e-instruct"
+  }
+}
