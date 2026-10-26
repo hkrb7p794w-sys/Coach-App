@@ -31,8 +31,10 @@ final class RecipeViewModel {
   }
 
   static var defaultURL: URL? {
-    try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-      .appending(path: "recipes.json")
+    try? FileManager.default.url(
+      for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+    )
+    .appending(path: "recipes.json")
   }
 
   /// Erster Tag der Planung: der kommende Montag (am Sonntag also morgen).
@@ -42,7 +44,8 @@ final class RecipeViewModel {
 
   /// Tagesziele und Lücken neu berechnen.
   func update(
-    settings: CoachSettings, garminProfile: GarminProfile?, meals: [MealRecord], today: CalendarDay = CalendarDay(date: .now)
+    settings: CoachSettings, garminProfile: GarminProfile?, meals: [MealRecord],
+    today: CalendarDay = CalendarDay(date: .now)
   ) {
     let start = Self.startDay(today: today)
     targets = (0..<7).map { offset in

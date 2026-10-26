@@ -21,8 +21,10 @@ private func dish(_ title: String, meal: String, _ ingredients: [JSONValue]) -> 
 }
 
 private let targets = [
-  RecipeDayTarget(day: monday, sessions: ["Lockerer Lauf"], dayType: .moderate, kcal: 2000, protein: 120, carbs: 250, fat: 60),
-  RecipeDayTarget(day: monday.adding(days: 1), sessions: [], dayType: .restDay, kcal: 1800, protein: 120, carbs: 180, fat: 60),
+  RecipeDayTarget(
+    day: monday, sessions: ["Lockerer Lauf"], dayType: .moderate, kcal: 2000, protein: 120, carbs: 250, fat: 60),
+  RecipeDayTarget(
+    day: monday.adding(days: 1), sessions: [], dayType: .restDay, kcal: 1800, protein: 120, carbs: 180, fat: 60),
 ]
 
 struct RecipeRuleTests {
@@ -52,13 +54,15 @@ struct RecipeRuleTests {
     #expect(RecipePlanner.violations("Laktosefreie Milch", diet: .omnivore, allergens: [.lactose]).isEmpty)
     #expect(RecipePlanner.violations("Bergkäse", diet: .omnivore, allergens: [.lactose]) == ["Laktose / Milch"])
     #expect(RecipePlanner.violations("Tofu natur", diet: .vegan, allergens: [.soy]) == ["Soja"])
-    #expect(RecipePlanner.violations("Garnelen", diet: .omnivore, allergens: [.shellfish]) == ["Krebstiere und Weichtiere"])
+    #expect(
+      RecipePlanner.violations("Garnelen", diet: .omnivore, allergens: [.shellfish]) == ["Krebstiere und Weichtiere"])
     #expect(RecipePlanner.violations("Tahin", diet: .vegan, allergens: [.sesame]) == ["Sesam"])
     #expect(RecipePlanner.violations("Spiegelei", diet: .omnivore, allergens: [.egg]) == ["Ei"])
   }
 
   @Test func preferencesDecodeTolerantly() throws {
-    let decoded = try JSONDecoder().decode(RecipePreferences.self, from: Data(#"{"servings":0,"allergens":["gluten"]}"#.utf8))
+    let decoded = try JSONDecoder().decode(
+      RecipePreferences.self, from: Data(#"{"servings":0,"allergens":["gluten"]}"#.utf8))
     #expect(decoded.servings == 1)
     #expect(decoded.allergens == [.gluten])
     #expect(decoded.maxMinutes == 30)
@@ -110,7 +114,8 @@ struct RecipePlanTests {
 
   @Test func rejectsEmptyOrBrokenAnswers() {
     #expect(
-      RecipePlanner.plan(output: .object([:]), targets: targets, diet: .omnivore, allergens: [], source: "", created: .now)
+      RecipePlanner.plan(
+        output: .object([:]), targets: targets, diet: .omnivore, allergens: [], source: "", created: .now)
         == nil)
     let noNutrients = dish("Leer", meal: "snack", [.object(["name": .string("Apfel"), "menge_g": .number(150)])])
     #expect(
@@ -122,12 +127,16 @@ struct RecipePlanTests {
   @Test func shoppingListSumsAcrossWeek() throws {
     let dishes = [
       dish("A", meal: "fruehstueck", [ingredient("Haferflocken", grams: 80, kcal: 370)]),
-      dish("B", meal: "snack", [ingredient("haferflocken", grams: 40, kcal: 370), ingredient("Banane", grams: 120, kcal: 90)]),
+      dish(
+        "B", meal: "snack",
+        [ingredient("haferflocken", grams: 40, kcal: 370), ingredient("Banane", grams: 120, kcal: 90)]),
     ]
     let plan = try #require(
       RecipePlanner.plan(
         output: output([(monday, dishes)]),
-        targets: [RecipeDayTarget(day: monday, sessions: [], dayType: .restDay, kcal: 552, protein: 0, carbs: 0, fat: 0)],
+        targets: [
+          RecipeDayTarget(day: monday, sessions: [], dayType: .restDay, kcal: 552, protein: 0, carbs: 0, fat: 0)
+        ],
         diet: .omnivore, allergens: [], source: "", created: .now))
     let list = RecipePlanner.shoppingList(plan, servings: 2)
     #expect(list.map(\.name) == ["Banane", "Haferflocken"])
@@ -140,13 +149,17 @@ struct RecipeInputTests {
     let targets = NutrientValues([.protein: 120, .fiber: 30, .iron: 15])
     let day = NutrientValues([.protein: 115, .fiber: 18, .iron: 14])
     #expect(RecipePlanner.gaps(dailyTotals: [day, day], targets: targets).isEmpty)
-    #expect(RecipePlanner.gaps(dailyTotals: [day, day, day], targets: targets) == ["Ballaststoffe: im Schnitt 18 von 30 g (60 %)"])
+    #expect(
+      RecipePlanner.gaps(dailyTotals: [day, day, day], targets: targets) == [
+        "Ballaststoffe: im Schnitt 18 von 30 g (60 %)"
+      ])
   }
 
   @Test func inputCarriesTargetsAndPreferences() {
     let preferences = RecipePreferences(allergens: [.peanuts], dislikes: "Pilze", maxMinutes: 20, snacks: false)
     let input = RecipePlanner.input(
-      days: targets, preferences: preferences, diet: .vegetarian, goal: "Abnehmen", gaps: ["Eisen"], favorites: ["Skyr"])
+      days: targets, preferences: preferences, diet: .vegetarian, goal: "Abnehmen", gaps: ["Eisen"], favorites: ["Skyr"]
+    )
     let first = input["days"]?.arrayValue?.first
     #expect(first?["datum"]?.stringValue == "2026-11-02")
     #expect(first?["wochentag"]?.stringValue == "Montag")

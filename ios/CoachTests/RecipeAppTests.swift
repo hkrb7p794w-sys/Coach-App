@@ -22,7 +22,8 @@ struct RecipeAppTests {
 
   @Test func targetsCoverNextWeekWithTrainingDays() throws {
     let settings = try settings()
-    let viewModel = RecipeViewModel(defaults: try #require(UserDefaults(suiteName: "r-\(UUID().uuidString)")), fileURL: nil)
+    let viewModel = RecipeViewModel(
+      defaults: try #require(UserDefaults(suiteName: "r-\(UUID().uuidString)")), fileURL: nil)
     viewModel.update(settings: settings, garminProfile: nil, meals: [], today: wednesday)
     #expect(viewModel.targets.count == 7)
     #expect(viewModel.targets.first?.day == CalendarDay(year: 2026, month: 11, day: 2))
@@ -49,7 +50,8 @@ struct RecipeAppTests {
 
   @Test func recipeCanBeLoggedAsMeal() throws {
     let container = CoachSchema.makeContainer(inMemory: true)
-    let viewModel = RecipeViewModel(defaults: try #require(UserDefaults(suiteName: "r-\(UUID().uuidString)")), fileURL: nil)
+    let viewModel = RecipeViewModel(
+      defaults: try #require(UserDefaults(suiteName: "r-\(UUID().uuidString)")), fileURL: nil)
     let recipe = Recipe(
       meal: .dinner, title: "Linsencurry", minutes: 25,
       ingredients: [MealItem(name: "Rote Linsen", grams: 120, source: .ai, per100g: NutrientValues([.kcal: 340]))],
