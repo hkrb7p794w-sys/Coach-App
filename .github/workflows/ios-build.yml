@@ -1,12 +1,19 @@
 # Baut die unsignierte .ipa für SideStore und hängt sie an ein GitHub-Release.
 #
-# Start nur bei Bedarf, weil macOS-Minuten teuer sind:
+# - Push auf main (nach jedem Merge): Release „vX.Y.<Lauf>“ plus SideStore-Quelle `source.json`.
+#   SideStore erkennt Updates an der höheren Versionsnummer und meldet sie (docs/sidestore.md).
+# - Pull Request: Label „ios-build“ setzen (wird beim Start wieder entfernt, erneutes Setzen startet
+#   einen neuen Build). Ergebnis und Fehler landen als Kommentar im PR; Release als Vorabversion.
 # - manuell: Actions › iOS Build › Run workflow
-# - in einem Pull Request: Label „ios-build“ setzen (wird beim Start wieder entfernt,
-#   erneutes Setzen startet einen neuen Build). Ergebnis und Fehler landen als Kommentar im PR.
 name: iOS Build
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios-build.yml"
+
   workflow_dispatch:
     inputs:
       run_tests:
@@ -31,7 +38,7 @@ concurrency:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'ios-build'
+    if: github.event_name != 'pull_request' || github.event.label.name == 'ios-build'
     runs-on: macos-15
     timeout-minutes: 40
     env:
@@ -67,12 +74,15 @@ jobs:
 
       - name: Version bestimmen
         run: |
-          VERSION=$(sed -n 's/^ *MARKETING_VERSION: "\(.*\)"/\1/p' ios/project.yml | head -1)
+          BASE=$(sed -n 's/^ *MARKETING_VERSION: "\(.*\)"/\1/p' ios/project.yml | head -1)
           SHORT_SHA=$(git rev-parse --short HEAD)
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            VERSION="$BASE"
             TAG="v${VERSION}-pr${PR}.${GITHUB_RUN_NUMBER}"
           else
-            TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
+            # Patch-Stelle = Laufnummer: steigt mit jedem Build, SideStore vergleicht major.minor.patch.
+            VERSION="$(echo "$BASE" | cut -d. -f1-2).${GITHUB_RUN_NUMBER}"
+            TAG="v${VERSION}"
           fi
           {
             echo "VERSION=$VERSION"
@@ -82,7 +92,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Unit-Tests (Simulator)
-        if: github.event_name == 'pull_request' || inputs.run_tests
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.run_tests)
         run: |
           UDID=$(xcrun simctl list devices available --json | python3 -c '
           import json, sys
@@ -108,7 +118,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Coach.xcarchive" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" MARKETING_VERSION="$VERSION" \
             2>&1 | tee -a "$LOG"
 
       - name: IPA packen
@@ -130,16 +140,60 @@ jobs:
           (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/Coach.ipa" Payload)
           ls -lh Coach.ipa
 
+      - name: SideStore-Quelle erzeugen
+        if: github.event_name != 'pull_request'
+        run: |
+          git log -1 --format=%B > notes.txt
+          python3 - <<'PY'
+          import datetime, json, os
+          repo = os.environ["GITHUB_REPOSITORY"]
+          version, tag = os.environ["VERSION"], os.environ["TAG"]
+          base = f"https://github.com/{repo}"
+          notes = open("notes.txt", encoding="utf-8").read().split("\nCo-Authored-By")[0].strip()
+          icon = f"https://raw.githubusercontent.com/{repo}/main/ios/Coach/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+          source = {
+              "name": "Coach (privat)",
+              "identifier": "io.github.hkrb7p794w.coach.source",
+              "sourceURL": f"{base}/releases/latest/download/source.json",
+              "iconURL": icon,
+              "apps": [{
+                  "name": "Coach",
+                  "bundleIdentifier": "io.github.hkrb7p794w.coach",
+                  "developerName": "Alex",
+                  "subtitle": "Triathlon, Ernährung, Gym",
+                  "localizedDescription": "Persönliche Coaching-App: Garmin-Werte, Tagesempfehlung, Plan, Ernährung und Gym.",
+                  "iconURL": icon,
+                  "tintColor": "1E4FA3",
+                  "category": "utilities",
+                  "versions": [{
+                      "version": version,
+                      "buildVersion": os.environ["BUILD_NUMBER"],
+                      "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                      "localizedDescription": notes[:2000],
+                      "downloadURL": f"{base}/releases/download/{tag}/Coach.ipa",
+                      "size": os.path.getsize("Coach.ipa"),
+                      "minOSVersion": "18.0",
+                  }],
+              }],
+              "news": [],
+          }
+          with open("source.json", "w", encoding="utf-8") as handle:
+              json.dump(source, handle, ensure_ascii=False, indent=2)
+          PY
+          cat source.json
+
       - name: Release anlegen
         env:
           PRERELEASE: ${{ github.event_name == 'pull_request' || inputs.prerelease }}
         run: |
           TARGET_SHA=$(git rev-parse HEAD)
           FLAGS=()
+          ASSETS=(Coach.ipa)
           if [ "$PRERELEASE" = "true" ]; then FLAGS+=(--prerelease); else FLAGS+=(--latest); fi
-          gh release create "$TAG" Coach.ipa \
+          if [ -f source.json ]; then ASSETS+=(source.json); fi
+          gh release create "$TAG" "${ASSETS[@]}" \
             --target "$TARGET_SHA" \
-            --title "Coach $VERSION ($BUILD_NUMBER)" \
+            --title "Coach $VERSION" \
             --notes "Unsignierte IPA für SideStore. Commit $SHORT_SHA, Build $BUILD_NUMBER." \
             "${FLAGS[@]}"
 

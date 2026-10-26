@@ -57,9 +57,13 @@ cd ios && xcodegen generate
   Fehlern Compiler-/Testfehler und den `swift format`-Patch als PR-Kommentar (anwendbar mit `git apply`).
 - `worker.yml` stellt den Worker nach dem Merge auf `main` bereit, sofern die Secrets gesetzt sind
   (`docs/einrichtung.md`).
-- `ios-build.yml`: **nur manuell**, weil macOS-Minuten teuer sind. Auslösen per „Run workflow“ oder per
-  PR-Label `ios-build` (Label wird beim Start entfernt). Ergebnis bzw. Fehlerauszug kommt als PR-Kommentar,
-  die `.ipa` als GitHub-Release-Asset (PR-Builds als Vorabversion).
+- `ios-build.yml`: bei jedem Push auf `main` (Release `vX.Y.<Lauf>` + SideStore-Quelle `source.json`, siehe
+  `docs/sidestore.md`), in PRs per Label `ios-build` (Label wird beim Start entfernt; Ergebnis bzw.
+  Fehlerauszug als PR-Kommentar, Release als Vorabversion) oder per „Run workflow“.
+- **PRs merged Claude selbst** (Auftrag des Nutzers vom 26.10.2026): sobald `lint-test`, `check` und der
+  iOS-Build per Label grün sind, per REST-API mergen (`PUT /repos/{owner}/{repo}/pulls/{n}/merge`,
+  Merge-Commit). Der Check „Workers Builds: ironludi“ gehört nicht zum Repo (Cloudflare-Anbindung) und zählt
+  nicht. Danach baut `main` die neue Version für SideStore.
 - Aus Claude-Code-Cloud-Sitzungen ist die Actions-API gesperrt: Builds per Label starten, Ergebnisse über
   Check-Runs (`/commits/{sha}/check-runs`), PR-Kommentare und Releases lesen.
 
