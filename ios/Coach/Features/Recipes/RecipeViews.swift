@@ -262,16 +262,23 @@ struct RecipePreferencesView: View {
               isOn: Binding(
                 get: { settings.recipes.allergens.contains(allergen) },
                 set: { on in
-                  if on { settings.recipes.allergens.insert(allergen) } else { settings.recipes.allergens.remove(allergen) }
+                  if on {
+                    settings.recipes.allergens.insert(allergen)
+                  } else {
+                    settings.recipes.allergens.remove(allergen)
+                  }
                 }))
           }
         }
         Section {
           TextField("Mag ich nicht, z. B. Pilze, Koriander", text: $settings.recipes.dislikes, axis: .vertical)
-          Stepper("Höchstens \(settings.recipes.maxMinutes) min Zubereitung", value: $settings.recipes.maxMinutes, in: 10...90, step: 5)
+          Stepper(
+            "Höchstens \(settings.recipes.maxMinutes) min Zubereitung", value: $settings.recipes.maxMinutes,
+            in: 10...90, step: 5)
           Toggle("Snack pro Tag", isOn: $settings.recipes.snacks)
           Toggle("Abends für den nächsten Mittag mitkochen", isOn: $settings.recipes.mealPrep)
-          Stepper("Einkauf für \(settings.recipes.servings) \(settings.recipes.servings == 1 ? "Person" : "Personen")", value: $settings.recipes.servings, in: 1...6)
+          let people = settings.recipes.servings == 1 ? "Person" : "Personen"
+          Stepper("Einkauf für \(settings.recipes.servings) \(people)", value: $settings.recipes.servings, in: 1...6)
         } header: {
           Text("Wünsche")
         } footer: {

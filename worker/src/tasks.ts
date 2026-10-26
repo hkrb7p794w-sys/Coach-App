@@ -140,7 +140,6 @@ export const TASKS: Record<string, TaskDefinition> = {
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: nutritionReviewPrompt(input) }),
     ground: groundedPoints,
   },
-<<<<<<< HEAD
   /** Hinweise zur Gewichtssteigerung aus den Progressionsregeln. */
   gym_hints: {
     json: true,
@@ -148,7 +147,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.2,
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: gymHintsPrompt(input) }),
     ground: groundedPoints,
-=======
+  },
   /** Rezeptideen für die kommende Woche zu den Tageszielen der App. */
   weekly_recipes: {
     json: true,
@@ -157,7 +156,6 @@ export const TASKS: Record<string, TaskDefinition> = {
     maxOutputTokens: 16000,
     build: (input) => ({ prompt: weeklyRecipesPrompt(input) }),
     ground: checkRecipes,
->>>>>>> 9b98d87 (feat: Rezeptideen für die kommende Woche mit Prüfung und Einkaufsliste)
   },
 };
 
