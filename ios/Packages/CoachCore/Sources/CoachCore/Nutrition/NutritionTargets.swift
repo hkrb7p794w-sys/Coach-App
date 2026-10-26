@@ -47,12 +47,14 @@ public enum NutritionGoal: String, CaseIterable, Codable, Sendable {
   case maintain = "halten"
   case lose = "abnehmen"
   case gain = "aufbauen"
+  case recomposition = "umformen"
 
   public var label: String {
     switch self {
     case .maintain: "Gewicht halten"
     case .lose: "Abnehmen"
     case .gain: "Aufbauen"
+    case .recomposition: "Umformen (Fett ab, Muskeln auf)"
     }
   }
 
@@ -61,6 +63,7 @@ public enum NutritionGoal: String, CaseIterable, Codable, Sendable {
     case .maintain: 0
     case .lose: -15
     case .gain: 10
+    case .recomposition: -5
     }
   }
 
@@ -70,6 +73,7 @@ public enum NutritionGoal: String, CaseIterable, Codable, Sendable {
     case .maintain: 1.8
     case .gain: 2.0
     case .lose: 2.2
+    case .recomposition: 2.0
     }
   }
 }
@@ -117,6 +121,9 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
   public var heightCentimeters: Double?
   public var age: Int?
   public var isFemale: Bool?
+  /// Gewünschte Gewichtsänderung in % des Körpergewichts pro Woche (negativ = abnehmen). Kommt aus dem Profil und
+  /// hat Vorrang vor dem festen Prozentsatz des Ziels.
+  public var weeklyWeightChangePercent: Double?
 
   public init() {}
 
@@ -130,6 +137,7 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
     heightCentimeters = try? container.decodeIfPresent(Double.self, forKey: .heightCentimeters)
     age = try? container.decodeIfPresent(Int.self, forKey: .age)
     isFemale = try? container.decodeIfPresent(Bool.self, forKey: .isFemale)
+    weeklyWeightChangePercent = try? container.decodeIfPresent(Double.self, forKey: .weeklyWeightChangePercent)
   }
 
   /// Einstellungen haben Vorrang, dann Garmin-Profil, dann Standardwerte.
@@ -268,8 +276,15 @@ public enum NutritionPlanner {
       let minutes = (activity.durationSeconds ?? 0) / 60
       return sum + max(0, (activity.calories ?? 0) - bmr / 1440 * minutes)
     }
-    let goalPercent = settings.goal.adjustPercent * dayType.goalScale
-    var energy = (baseKcal + exerciseKcal) * (1 + goalPercent / 100)
+    let dayEnergy = baseKcal + exerciseKcal
+    var adjustPercent = settings.goal.adjustPercent
+    if let weekly = settings.weeklyWeightChangePercent, dayEnergy > 0 {
+      // 7.700 kcal je kg Körpergewicht; Grenzen: höchstens 25 % Defizit bzw. 15 % Überschuss.
+      let dailyKilocalories = weekly / 100 * weight * 7_700 / 7
+      adjustPercent = max(-25, min(15, dailyKilocalories / dayEnergy * 100))
+    }
+    let goalPercent = adjustPercent * dayType.goalScale
+    var energy = dayEnergy * (1 + goalPercent / 100)
 
     // Energieverfügbarkeit bei Defizit nicht unter 30 kcal/kg fettfreie Masse (IOC-Konsensus REDs 2023).
     let bodyFat = settings.bodyFatPercent ?? (profile.isFemale ? 25 : 15)

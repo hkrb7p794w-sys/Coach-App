@@ -31,6 +31,10 @@ Altbestand (nur lesen, Logik übernehmen, keine HA-/MQTT-Teile): `hkrb7p794w-sys
 - **HealthKit ist optional.** SideStore mit kostenloser Apple-ID kann das Entitlement entfernen; beim Nutzer
   funktioniert es (Stand 26.10.2026, siehe `docs/decisions.md`). Jede HealthKit-Funktion prüft Verfügbarkeit bzw.
   Berechtigung und hat einen Weg ohne.
+- **Die App passt sich der Person an** (`UserProfile` in `CoachCore/Profile`): `mode == .season` ist der bisherige
+  Almere-Saisonplan, `.personal` alles andere. Neue Funktionen müssen beide Modi bedenken und dürfen keine
+  Werte des Saisonplans (FTP, Schwellenpace, Almere) für andere Personen anzeigen. Gewichtsziele nur mit den
+  Schutzgrenzen aus `GoalRules` (siehe `docs/decisions.md`).
 - UI-Texte auf Deutsch mit echten Umlauten. Code-Bezeichner auf Englisch, Kommentare auf Deutsch.
 - iOS 18+, Swift 6, Xcode 26 (Standard-Isolation `MainActor`, Approachable Concurrency).
 - Logik, die sich ohne Apple-Frameworks formulieren lässt, gehört nach `CoachCore` – mit Tests. Dazu zählen die

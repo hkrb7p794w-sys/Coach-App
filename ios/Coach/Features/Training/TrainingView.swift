@@ -35,6 +35,7 @@ struct TrainingView: View {
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
         }
+        if settings.profile.mode == .season {
         Section("Disziplinen") {
           HubRow(
             title: "Schwimmen", symbol: "figure.pool.swim", color: .blue,
@@ -59,6 +60,18 @@ struct TrainingView: View {
             value: "\(max(today.days(until: season.marathonDate), 0)) Tage",
             caption: GermanFormat.date(season.marathonDate)
           ) { MarathonPage() }
+        }
+        } else {
+          Section("Meine Sportarten") {
+            ForEach(settings.profile.sports.filter { $0 == .run || $0 == .bike || $0 == .swim }) { sport in
+              HubRow(
+                title: sport.shortLabel, symbol: sport.symbol, color: sport.color,
+                value: Formatters.number(
+                  viewModel.weeks.last?.volume.kilometers[sport.garminSport] ?? 0, unit: "km", digits: 1),
+                caption: "diese Woche"
+              ) { PersonalSportPage(sport: sport, viewModel: viewModel) }
+            }
+          }
         }
       }
       .navigationTitle("Training")

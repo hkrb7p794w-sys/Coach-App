@@ -24,6 +24,35 @@ extension PlannedUnit.Kind {
   }
 }
 
+extension TrainingSport {
+  var color: Color {
+    switch self {
+    case .run: .green
+    case .strength: .purple
+    case .bike: .orange
+    case .swim: .blue
+    case .other: .teal
+    }
+  }
+
+  var shortLabel: String {
+    switch self {
+    case .run: "Laufen"
+    case .strength: "Kraft"
+    case .bike: "Rad"
+    case .swim: "Schwimmen"
+    case .other: "Anderes"
+    }
+  }
+}
+
+extension SessionSlot {
+  /// Kurzbeschriftung für Chips: „Laufen · Locker“.
+  var chipLabel: String {
+    sport == .other ? sport.shortLabel : "\(sport.shortLabel) · \(intensity.label)"
+  }
+}
+
 /// Symbol in einer farbigen, abgerundeten Fläche (wie in den Einstellungen von iOS).
 struct SportIcon: View {
   let symbol: String

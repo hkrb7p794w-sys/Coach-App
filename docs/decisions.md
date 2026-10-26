@@ -39,6 +39,58 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   (GitHub-Doku „About billing for GitHub Actions“). Ein iOS-Build dauert etwa 4 Minuten, also etwa
   40 Freiminuten, das reicht für rund 50 Builds im Monat. Linux-Läufe (Tests, Worker) zählen einfach.
 
+## 2026-10-26 – Personalisierung: Profil, Ziele, eigener Wochenplan
+
+Auftrag: Die App passt sich der Person an (Sportarten, Ziel, Wettkampf oder allgemeine Fitness, Wochenplan mit
+Ruhetagen). Anlass ist die Nutzung durch eine zweite Person (Abnehmen, nur Laufen und Gym).
+
+**Aufbau**
+- `UserProfile` (CoachCore): Sportarten, Hauptziel, optional Wettkampf, eigene Ziele (Laufstrecke, Pace, Ruhepuls,
+  Zielgewicht), Erfahrung je Sportart, Wochenplan, Gesundheitsangaben. Modus `season` (bisheriger Almere-Plan, wer
+  die App schon mit Garmin-Daten nutzt) oder `personal` (alle anderen, Einrichtungsassistent beim ersten Start).
+- `ScheduleCheck`: prüft den selbst gewählten Wochenplan (Ruhetag, Serien, zwei fordernde Tage hintereinander,
+  Intensitätsverteilung, Krafthäufigkeit, Wettkampf). Hinweise ohne Quelle sind als „Praxisregel“ markiert.
+- `ScheduleAdvisor`: vergleicht die Tagesampel mit dem eigenen Plan. Bei niedriger Erholung wird eine fordernde
+  Einheit auf den nächsten freien Tag verschoben, bei mittlerer lockerer gemacht, Ruhetage werden bestätigt.
+- `SchedulePlanner`: Planvorschlag für die verfügbaren Tage. Probiert alle Verteilungen durch und nimmt die mit den
+  wenigsten Regelverstößen; höchstens 6 Einheiten, damit ein Tag frei bleibt.
+- `GoalRules`: Ziel → Ernährung (neues Ziel „Umformen“, Wochentempo in % des Körpergewichts) mit Schutzgrenzen.
+- Ernährung, Heute, Plan, Training und Gym richten sich nach dem Profil; der Saisonplan bleibt unverändert.
+
+**Schutzgrenzen (Sicherheit vor Wunsch)**
+- Abnehmen höchstens 1 % des Körpergewichts pro Woche, Standard 0,5 %; Aufbau höchstens 0,5 %.
+- Keine Gewichtsziele bei Schwangerschaft/Stillzeit, Essstörung, unter 18 Jahren oder BMI unter 18,5 (auch ein
+  Zielgewicht unter BMI 18,5 wird nicht angesteuert). Defizite bleiben zusätzlich durch die Energieverfügbarkeits-
+  grenze begrenzt (IOC REDs 2023, bestand schon). Bei Erkrankung oder Verletzung rät die App zum Arzt.
+
+**Belege** (alle in PubMed geprüft, in `Evidence.swift` mit DOI)
+- Aktivität: WHO 2020 (150–300 min moderat oder 75–150 min intensiv, Krafttraining; eigene Empfehlungen für
+  Schwangere und chronisch Kranke).
+- Abnehmen: Garthe 2011 (0,7 % vs. 1,4 % pro Woche, mehr Magermasse bei langsamem Tempo); ACSM 2009 und Swift 2014
+  (Sport allein bringt ohne hohes Volumen nur etwa 2 kg; Krafttraining erhält Magermasse); Hudson 2020 und Morton 2018
+  (mehr Protein erhält bzw. baut Magermasse, über etwa 1,6 g/kg kein Zusatznutzen für den Aufbau); Nedeltcheva 2010
+  (Schlafmangel verschiebt den Gewichtsverlust von Fett zu Magermasse, kleine Studie).
+- Zunehmen/Aufbau: Larson-Meyer 2022 (300–500 kcal Überschuss üblich, 0,45 kg/Woche für viele schwer erreichbar;
+  Praxisregel).
+- Ruhepuls und Fitness: Hespanhol Junior 2015 (nach einem Jahr Laufen −6,7 Schläge/min bei Inaktiven, 49 Studien),
+  Reimers 2018 (191 Studien, Ausdauertraining senkt den Ruhepuls); Milanović 2015 (Intervalle steigern die VO2max
+  etwas stärker); Pedisic 2019 (Laufen senkt das Sterberisiko um 27 %, auch einmal pro Woche).
+- Wochenplan: Seiler 2006 und weitere (überwiegend lockere Einheiten, bestand schon); Bell 2023 (Deload-Konsens).
+
+**Bewusst anders als verbreitet**
+- Die „10-%-Regel“ für den Laufumfang ist nicht belegt: Buist 2007 (532 Einsteiger, RCT) fand keinen Unterschied bei
+  Verletzungen, Nielsen 2014 sah nur ab etwa 30 % Steigerung tendenziell mehr entfernungsbedingte Verletzungen
+  (nicht signifikant). Die App steigert vorsichtig und nie über 30 % und kennzeichnet das als Praxisregel.
+- Kein Training nach Zyklusphase: McNulty 2020 und Elliott-Sale 2020 (Metaanalysen, Qualität niedrig) finden nur
+  unbedeutende Unterschiede und lassen keine allgemeinen Regeln zu. Die App passt sich deshalb nach Befinden und
+  Erholung an, nicht nach Zyklusphase. Kein Training „nach Pille“.
+- Nicht geprüft/aufgenommen: Verhaltensforschung zu Gewohnheiten und Vorsätzen (Gollwitzer & Sheeran, Lally et al.)
+  stehen nicht in PubMed; ohne geprüfte Quelle fließen sie nicht ein.
+
+**Noch offen (nächster Schritt):** erzeugte Trainingspläne mit Progression für Laufen und Gym (Wochenumfang aus dem
+Garmin-Stand, Entlastungswoche alle vier Wochen, Ziel-Pace/-Distanz) sowie die KI-Notiz für persönliche Profile.
+Bis dahin zeigt der Gym-Reiter nur das freie Erfassen von Sätzen.
+
 ## 2026-10-26 – FIT-Auswertung: aerobe Kopplung und Pace-Check
 
 - Runden und Zeitreihen liefert die Personal API nur als FIT-Datei (`/download-service/files/activity/{id}`,

@@ -29,6 +29,11 @@ struct GymView: View {
                 .font(.headline)
             }
           }
+        } else if model.settings.profile.mode == .personal {
+          PersonalGymSection(profile: model.settings.profile) {
+            viewModel.startEmpty()
+            showWorkout = true
+          }
         } else {
           TodaySection(viewModel: viewModel) { workout in
             if let workout { viewModel.start(workout) } else { viewModel.startEmpty() }
@@ -40,7 +45,9 @@ struct GymView: View {
           Section { Text(message).font(.footnote) }
         }
 
-        ProgressSection(viewModel: viewModel)
+        if model.settings.profile.mode == .season {
+          ProgressSection(viewModel: viewModel)
+        }
         VolumeSection(viewModel: viewModel)
 
         if !records.isEmpty {
@@ -72,6 +79,31 @@ struct GymView: View {
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
       }
+    }
+  }
+}
+
+/// Krafttraining für Profile ohne Saisonplan: laut Wochenplan heute dran? Sätze lassen sich frei erfassen.
+private struct PersonalGymSection: View {
+  let profile: UserProfile
+  let start: () -> Void
+
+  var body: some View {
+    let today = profile.schedule.slots(on: Weekday(day: CalendarDay(date: .now))).filter { $0.sport == .strength }
+    Section {
+      if let slot = today.first {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(slot.title).font(.title3.bold())
+          Text(slot.guide).font(.footnote).foregroundStyle(.secondary)
+        }
+      } else {
+        Text("Heute steht laut deinem Wochenplan kein Krafttraining an.").foregroundStyle(.secondary)
+      }
+      Button("Training starten", action: start).bold()
+    } header: {
+      Text("Heute")
+    } footer: {
+      Text("Erfasse deine Sätze: Die App zeigt Verlauf und Sätze je Muskel. Ein Plan mit Progression folgt.")
     }
   }
 }
