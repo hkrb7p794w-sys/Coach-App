@@ -82,7 +82,7 @@ function requestBody(request: GenerateRequest): unknown {
     ...(request.system ? { systemInstruction: { parts: [{ text: request.system }] } } : {}),
     // Thinking-Modelle zählen Denk-Tokens mit; ein knappes Budget liefert sonst leere Antworten.
     generationConfig: {
-      maxOutputTokens: 4096,
+      maxOutputTokens: request.maxOutputTokens ?? 4096,
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
       ...(request.json ? { responseMimeType: "application/json" } : {}),
     },

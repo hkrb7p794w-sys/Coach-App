@@ -39,6 +39,13 @@ struct NutritionView: View {
         }
         mealsSection
         reviewSection
+        Section {
+          NavigationLink {
+            RecipesView()
+          } label: {
+            Label("Rezeptideen für die kommende Woche", systemImage: "frying.pan")
+          }
+        }
       }
       .navigationTitle("Ernährung")
       .toolbar { addMenu }

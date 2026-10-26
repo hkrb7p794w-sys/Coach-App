@@ -2,6 +2,30 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Rezeptideen für die kommende Woche
+
+- **Regeln legen die Tagesziele fest:** Für jeden Tag der kommenden Woche (Montag bis Sonntag) rechnet die App
+  Energie, Protein, Kohlenhydrate und Fett. Grundlage ist dieselbe Logik wie für „heute“ (`NutritionPlanner.compute`
+  mit den geplanten Einheiten des Wochenplans inklusive Ausnahmen bzw. des Saisonplans). Kohlenhydrate richten sich
+  nach dem Trainingstag (Thomas et al. 2016), Protein nach dem Ziel, und die Energie hat die REDs-Untergrenze.
+- **Weitere Eingaben:**
+  - Ernährungsweise und Ziel, Allergene, Abneigungen, Zubereitungszeit, Snack und Meal-Prep.
+  - Lücken der letzten 14 Tage: Nährstoffe aus den erfassten Mahlzeiten unter 80 % des Ziels, nur Tage mit
+    mindestens 2 Mahlzeiten.
+  - Die 15 am häufigsten genutzten Lebensmittel.
+- **KI schlägt vor (Worker-Aufgabe `weekly_recipes`):** Die Zutaten kommen mit Menge und Nährwerten je 100 g, im
+  selben Schema wie bei der Mahlzeiten-Analyse. Nährwert-Datenbanken (USDA, Open Food Facts) waren aus der
+  Entwicklungsumgebung nicht erreichbar. Deshalb gibt es keine eingebaute Nährwerttabelle; die Werte sind als
+  KI-Schätzung gekennzeichnet.
+- **Die App prüft jede Antwort:**
+  - Jede Zutat wird gegen Ernährungsweise und Allergene geprüft (Schlüsselwörter, pflanzliche Ersatzprodukte
+    ausgenommen). Unpassende Rezepte werden verworfen und genannt.
+  - Die Mengen werden ans Energieziel angepasst (Faktor 0,75–1,33, auf 5 g gerundet). Liegt der Tag danach mehr
+    als 15 % daneben, erscheint ein Hinweis.
+  - Ohne KI gibt es keine Rezepte, nur die Tagesziele.
+- **Einkaufsliste:** Gleiche Zutaten der Woche werden zusammengefasst und mit der Personenzahl multipliziert,
+  abhakbar und teilbar. Ein Rezept lässt sich mit einem Tippen als Mahlzeit eintragen.
+
 ## 2026-10-26 – Gym-App: Bibliothek, Routinen, RIR und KI-Tipps
 
 - **Vorbild GymBook:** Übungsbibliothek (51 Übungen mit Muskeln, Geräten und 2–3 Technikhinweisen), eigene
