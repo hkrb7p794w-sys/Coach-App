@@ -21,7 +21,7 @@ final class AppModel {
 
   init(inMemory: Bool = false, secrets: any SecretStore = KeychainStore(), defaults: UserDefaults = .standard) {
     container = CoachSchema.makeContainer(inMemory: inMemory)
-    garmin = GarminClient(secrets: secrets)
+    garmin = GarminClient(secrets: secrets, connect: GarminConnectSession(secrets: secrets, defaults: defaults))
     sync = GarminSyncService(client: garmin, context: container.mainContext, defaults: defaults)
     ai = AIClient(secrets: secrets, defaults: defaults)
     settings = CoachSettings(defaults: defaults)
@@ -33,7 +33,7 @@ final class AppModel {
 
   /// Beim Öffnen der App: nur abrufen, wenn ein Key da ist und der letzte Abruf länger her ist.
   func syncIfDue() async {
-    guard garmin.hasKey, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) else { return }
+    guard garmin.isConfigured, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) else { return }
     await syncNow()
   }
 

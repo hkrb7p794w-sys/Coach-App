@@ -27,7 +27,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 9 | Design-Überarbeitung (Designsystem, Heute-Ansicht) | in Arbeit (Heute fertig: PR 12) |
 | 10 | Disziplinen wie im HA-Dashboard: Tests und Trends (CSS, FTP, Schwelle), Pace-Check, Wettkampfläufe, Zielzeit Almere, Marathon | fertig (PR 11, Pace-Check und aerobe Kopplung PR 13) |
 | 11 | Tagesform & Leistung, Schlafanalyse, Wochenreport mit Vorschlägen, Chat, Erinnerungen | offen |
-| 12 | Optional: inoffizieller Garmin-Login (Readiness, Trainingsstatus, Endurance Score, Schreiben zu Garmin) | offen |
+| 12 | Garmin-Konto als Hauptquelle (Readiness, Trainingsstatus, Endurance Score, Prognosen), Personal API als Rückfall | in Arbeit (PR 15) |
 
 Maßstab für 7–12 ist der Funktionsumfang des Home-Assistant-Stands (Garmin AI Coach 0.29.3, Übergabe vom
 26.10.2026).

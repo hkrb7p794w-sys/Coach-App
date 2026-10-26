@@ -5,18 +5,42 @@ import Foundation
 ///
 /// Der persönliche API-Key (aus Garmin Connect, Einstellungen › Personal API Key) wird gegen ein
 /// Bearer-Token getauscht, das im Keychain zwischengespeichert und kurz vor Ablauf erneuert wird.
+///
+/// Ist das Garmin-Konto angemeldet (`GarminConnectSession`), kommen die Daten zuerst von dort; die Personal API
+/// springt je Abruf ein, wenn das Konto scheitert (abgelaufen, blockiert, Endpunkt unbekannt).
 final class GarminClient {
+  enum Source: String {
+    case connect = "Garmin-Konto"
+    case personalAPI = "Personal API"
+  }
+
   private let secrets: any SecretStore
   private let session: URLSession
   private var cachedToken: GarminBearerToken?
+  let connect: GarminConnectSession?
+  /// Wer die Abrufe seit dem letzten `resetSources()` beantwortet hat (für den Abrufbericht).
+  private(set) var sources: [Source: Int] = [:]
+  /// Letzter Fehler des Garmin-Kontos, wenn die Personal API einspringen musste.
+  private(set) var lastConnectError: String?
 
-  init(secrets: any SecretStore, session: URLSession = .shared) {
+  init(secrets: any SecretStore, session: URLSession = .shared, connect: GarminConnectSession? = nil) {
     self.secrets = secrets
     self.session = session
+    self.connect = connect
   }
 
   var hasKey: Bool {
     !(secrets.string(for: .garminAPIKey) ?? "").isEmpty
+  }
+
+  /// Mindestens ein Zugang ist eingerichtet.
+  var isConfigured: Bool {
+    hasKey || (connect?.isLoggedIn ?? false)
+  }
+
+  func resetSources() {
+    sources = [:]
+    lastConnectError = nil
   }
 
   /// Neuer Key: altes Token verwerfen.
@@ -32,6 +56,31 @@ final class GarminClient {
   }
 
   func data(_ endpoint: GarminEndpoint) async throws -> Data {
+    if let connect, connect.isLoggedIn, endpoint != .tokenExchange {
+      do {
+        let request = endpoint.request
+        let data = try await connect.data(path: request.path, query: request.query, accept: request.accept)
+        sources[.connect, default: 0] += 1
+        return data
+      } catch {
+        lastConnectError = (error as? GarminAPIError)?.message ?? error.localizedDescription
+        guard hasKey else { throw error }
+      }
+    }
+    let data = try await personalData(endpoint)
+    sources[.personalAPI, default: 0] += 1
+    return data
+  }
+
+  /// Nur über das Garmin-Konto verfügbare Werte (Readiness, Trainingsstatus …).
+  func json(_ endpoint: ConnectEndpoint) async throws -> JSONValue {
+    guard let connect, connect.isLoggedIn else { throw GarminConnectError.needsLogin }
+    let value = try await connect.json(endpoint)
+    sources[.connect, default: 0] += 1
+    return value
+  }
+
+  private func personalData(_ endpoint: GarminEndpoint) async throws -> Data {
     do {
       return try await authorizedData(endpoint, token: validToken())
     } catch GarminAPIError.unauthorized {

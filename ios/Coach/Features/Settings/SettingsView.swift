@@ -16,6 +16,7 @@ private struct SettingsForm: View {
   var body: some View {
     NavigationStack {
       Form {
+        connectSection
         garminSection
         aiSection
         Section("Coach") {
@@ -36,6 +37,54 @@ private struct SettingsForm: View {
       .overlay {
         if viewModel.isBusy { ProgressView() }
       }
+    }
+  }
+
+  private var connectSection: some View {
+    Section {
+      if viewModel.connectLoggedIn {
+        Label(model.garmin.connect?.email ?? "Angemeldet", systemImage: "person.crop.circle.badge.checkmark")
+          .foregroundStyle(.green)
+        Button("Jetzt abrufen") {
+          Task { await model.syncNow() }
+        }
+        Button("Abmelden", role: .destructive) { viewModel.logoutConnect() }
+      } else if viewModel.awaitingCodeVia != nil {
+        TextField("Bestätigungscode", text: $viewModel.connectCode)
+          .keyboardType(.numberPad)
+          .textContentType(.oneTimeCode)
+        Button("Code bestätigen") {
+          Task { await viewModel.submitConnectCode() }
+        }
+        .disabled(viewModel.connectCode.count < 4)
+      } else {
+        TextField("E-Mail", text: $viewModel.connectEmail)
+          .keyboardType(.emailAddress)
+          .textContentType(.username)
+          .textInputAutocapitalization(.never)
+          .autocorrectionDisabled()
+        SecureField("Passwort", text: $viewModel.connectPassword)
+          .textContentType(.password)
+        Button("Anmelden") {
+          Task { await viewModel.loginConnect() }
+        }
+      }
+      if let status = viewModel.connectStatus {
+        Text(status).font(.footnote).foregroundStyle(.secondary)
+      }
+      if let problem = model.lastReport?.connectProblem, viewModel.connectLoggedIn {
+        Label("Personal API ist eingesprungen: \(problem)", systemImage: "arrow.triangle.branch")
+          .font(.footnote)
+          .foregroundStyle(.orange)
+      }
+    } header: {
+      Text("Garmin-Konto")
+    } footer: {
+      Text(
+        "Inoffizieller Zugang wie die Garmin-Connect-App: mehr Werte (Training Readiness, Trainingsstatus, "
+          + "Endurance Score, Wettkampfprognosen). Das Passwort wird nicht gespeichert, nur das Anmelde-Token im "
+          + "Schlüsselbund. Fällt der Zugang aus, springt die Personal API ein, sofern ein Key hinterlegt ist."
+      )
     }
   }
 
@@ -67,7 +116,7 @@ private struct SettingsForm: View {
         Text(status).font(.footnote).foregroundStyle(.secondary)
       }
     } header: {
-      Text("Garmin")
+      Text("Garmin Personal API (Rückfall)")
     } footer: {
       Text(
         "Key erzeugen: Garmin Connect im Browser › Einstellungen › Personal API Key (Laufzeit 1 Jahr). "

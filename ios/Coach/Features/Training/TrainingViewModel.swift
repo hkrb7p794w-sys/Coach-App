@@ -95,6 +95,11 @@ final class TrainingViewModel {
     ActivityAnalysisPlanner.skipped(analyses)
   }
 
+  /// Garmins Readiness-Stufen auf Deutsch.
+  static let readinessLevelGerman = [
+    "PRIME": "Top", "HIGH": "Hoch", "MODERATE": "Mittel", "LOW": "Niedrig", "POOR": "Schlecht",
+  ]
+
   static func tiles(latest: DailyMetrics?, vo2Max: Double?, vo2MaxBike: Double?) -> [Tile] {
     func text(_ value: Double?, _ unit: String = "", digits: Int = 0) -> String? {
       guard let value else { return nil }
@@ -110,7 +115,14 @@ final class TrainingViewModel {
     if let charged = metrics?.bodyBatteryCharged, let drained = metrics?.bodyBatteryDrained {
       flow = "+\(Int(charged)) / −\(Int(drained))"
     }
+    let readiness: String? = metrics?.trainingReadiness.map { score in
+      let level = metrics?.trainingReadinessLevel.map { " · \(readinessLevelGerman[$0.uppercased()] ?? $0)" } ?? ""
+      return "\(Int(score))\(level)"
+    }
     let candidates: [(String, String?)] = [
+      ("Training Readiness", readiness),
+      ("Trainingsstatus", metrics?.trainingStatus.map(GarminMetricsParser.trainingStatusGerman)),
+      ("Endurance Score", text(metrics?.enduranceScore)),
       ("Body Battery (hoch / tief)", battery),
       ("Geladen / verbraucht", flow),
       ("Schlaf-Score", text(metrics?.sleepScore)),
