@@ -59,8 +59,8 @@ struct ActiveWorkoutView: View {
         }
       }
       .sheet(isPresented: $showCatalog) {
-        ExercisePicker { rule in
-          viewModel.addExercise(rule)
+        ExercisePickerView { exercise in
+          viewModel.addExercise(exercise)
           showCatalog = false
         }
       }
@@ -79,18 +79,25 @@ struct ActiveWorkoutView: View {
 private struct ExerciseCard: View {
   let exercise: LoggedExercise
   let viewModel: GymViewModel
-
-  private var step: Double {
-    ExerciseCatalog.rulesByID[exercise.exerciseID]?.step ?? 2.5
-  }
+  @Environment(AppModel.self) private var model
+  @State private var showDetail = false
 
   var body: some View {
+    let gym = model.settings.gym
+    let info = gym.exercise(exercise.exerciseID)
+    let step = ExerciseLibrary.rule(exercise.exerciseID, name: exercise.name, custom: gym.customExercises).step
     Section {
+      if let last = viewModel.lastTime(of: exercise.exerciseID) {
+        Text(last).font(.caption).foregroundStyle(.secondary)
+      }
       ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
-        SetRow(index: index, set: set, step: step) { change in
+        SetRow(
+          index: index, set: set, step: step, isTime: info?.tracking == .time, asksRIR: gym.tracksRIR
+        ) { change in
           switch change {
           case .reps(let reps): viewModel.setReps(reps, set: index, of: exercise.id)
           case .weight(let weight): viewModel.setWeight(weight, set: index, of: exercise.id)
+          case .rir(let rir): viewModel.setRIR(rir, set: index, of: exercise.id)
           case .toggle: viewModel.toggleDone(set: index, of: exercise.id)
           }
         }
@@ -105,6 +112,7 @@ private struct ExerciseCard: View {
         Text(exercise.name)
         Spacer()
         Menu {
+          Button("Anleitung und Verlauf", systemImage: "info.circle") { showDetail = true }
           Button("Übung entfernen", role: .destructive) { viewModel.removeExercise(exercise.id) }
         } label: {
           Image(systemName: "ellipsis.circle")
@@ -115,6 +123,14 @@ private struct ExerciseCard: View {
         Text(progress.headline)
       }
     }
+    .sheet(isPresented: $showDetail) {
+      NavigationStack {
+        ExerciseDetailView(exerciseID: exercise.exerciseID, viewModel: viewModel)
+          .toolbar {
+            ToolbarItem(placement: .confirmationAction) { Button("Fertig") { showDetail = false } }
+          }
+      }
+    }
   }
 }
 
@@ -122,15 +138,39 @@ private struct SetRow: View {
   enum Change {
     case reps(Int)
     case weight(Double)
+    case rir(Int?)
     case toggle
   }
 
   let index: Int
   let set: LoggedSet
   let step: Double
+  var isTime = false
+  var asksRIR = false
   let change: (Change) -> Void
 
   var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      row
+      // Nach dem Abhaken: Wiederholungen in Reserve schätzen.
+      if asksRIR, set.done, !isTime {
+        HStack(spacing: 6) {
+          Text("Noch drin:").font(.caption).foregroundStyle(.secondary)
+          ForEach(0..<5) { value in
+            Button(value == 4 ? "4+" : "\(value)") { change(.rir(set.rir == value ? nil : value)) }
+              .font(.caption.bold())
+              .buttonStyle(.bordered)
+              .tint(set.rir == value ? .accentColor : .secondary)
+              .controlSize(.mini)
+          }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Wiederholungen in Reserve")
+      }
+    }
+  }
+
+  private var row: some View {
     HStack(spacing: 12) {
       Text("\(index + 1)").font(.caption.bold()).foregroundStyle(.secondary).frame(width: 14)
       VStack(alignment: .leading, spacing: 2) {
@@ -141,8 +181,10 @@ private struct SetRow: View {
           .labelsHidden()
       }
       VStack(alignment: .leading, spacing: 2) {
-        Text("\(set.reps) Wdh.").monospacedDigit().font(.caption)
-        Stepper("Wiederholungen", value: Binding(get: { set.reps }, set: { change(.reps($0)) }), in: 0...100)
+        Text(isTime ? "\(set.reps) s" : "\(set.reps) Wdh.").monospacedDigit().font(.caption)
+        Stepper(
+          isTime ? "Sekunden" : "Wiederholungen", value: Binding(get: { set.reps }, set: { change(.reps($0)) }),
+          in: 0...600, step: isTime ? 5 : 1)
           .labelsHidden()
       }
       Spacer(minLength: 0)
@@ -175,46 +217,6 @@ private struct RestBanner: View {
       .padding()
       .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
       .padding(.horizontal)
-    }
-  }
-}
-
-private struct ExercisePicker: View {
-  let pick: (ExerciseRule) -> Void
-  @State private var search = ""
-  @Environment(\.dismiss) private var dismiss
-
-  private var rules: [ExerciseRule] {
-    var seen = Set<String>()
-    let unique = ExerciseCatalog.rules.filter { seen.insert($0.id).inserted }
-    let filtered = search.isEmpty ? unique : unique.filter { $0.name.localizedCaseInsensitiveContains(search) }
-    return filtered
-  }
-
-  var body: some View {
-    NavigationStack {
-      List {
-        ForEach(MuscleVolume.groups + [.forearms], id: \.self) { group in
-          let items = rules.filter { $0.group == group }
-          if !items.isEmpty {
-            Section(group.rawValue) {
-              ForEach(items, id: \.id) { rule in
-                Button(rule.name) { pick(rule) }
-              }
-            }
-          }
-        }
-        if !search.isEmpty {
-          Section {
-            Button("„\(search)“ als eigene Übung") { pick(.fallback(name: search)) }
-          }
-        }
-      }
-      .searchable(text: $search, prompt: "Übung suchen")
-      .navigationTitle("Übung hinzufügen")
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
-      }
     }
   }
 }

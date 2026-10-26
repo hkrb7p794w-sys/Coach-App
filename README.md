@@ -31,12 +31,14 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 13 | Personalisierung: Sportarten, Ziele, Wettkampf oder allgemeine Fitness, eigener Wochenplan mit Ruhetagen, Schutzgrenzen | fertig (PR 16) |
 | 14 | Erzeugte Trainingspläne mit Progression (Laufen, Gym) und KI-Notiz für persönliche Profile | offen |
 | 15 | Erinnerungen an Trainingstage (Mitteilung oder Karte unter „Heute“), Einheit verschieben oder diese Woche auslassen | fertig (PR 17) |
-| 16 | Begleiter (Trainer, Avatar, z. B. Hund „Daisy“), der motiviert | in Arbeit (PR 18) |
-| 17 | Rangliste zwischen Nutzern (Punkte für Planerfüllung, keine Gesundheitsdaten), Einladungslink | in Arbeit (PR 18) |
+| 16 | Begleiter (Trainer, Avatar, z. B. Hund „Daisy“), der motiviert | fertig (PR 18) |
+| 17 | Rangliste zwischen Nutzern (Punkte für Planerfüllung, keine Gesundheitsdaten), Einladungslink | fertig (PR 18) |
+| 18 | Gym-App nach Vorbild GymBook: Übungsbibliothek mit Anleitung, eigene Routinen und Vorschläge, Verlauf mit 1RM und Rekorden, Wiederholungen in Reserve, KI-Tipps zur Gewichtssteigerung | in Arbeit (PR 21) |
+| 19 | Rezeptideen für die kommende Woche aus Zielen, Trainingsplan und Ernährungsweise | offen |
 
 Später, erst auf Zuruf und wenn alles andere läuft: Apple Watch bzw. Apple Health als weitere Quelle,
-Gym-App mit Übungsbibliothek nach Vorbild GymBook und KI-Hinweisen zur Gewichtssteigerung, technische
-Einstellungen für Mitnutzer ausblenden, Android-Version, Rezeptideen.
+technische
+Einstellungen für Mitnutzer ausblenden, Android-Version.
 
 Maßstab für 7–12 ist der Funktionsumfang des Home-Assistant-Stands (Garmin AI Coach 0.29.3, Übergabe vom
 26.10.2026).

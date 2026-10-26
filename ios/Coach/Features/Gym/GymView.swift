@@ -14,7 +14,8 @@ struct GymView: View {
   @State private var showWorkout = false
 
   private var refreshKey: String {
-    "\(records.count)-\(records.first?.savedToHealth ?? false)-\(activities.count)-\(days.first?.dayKey ?? "")"
+    "\(records.count)-\(records.first?.savedToHealth ?? false)-\(activities.count)-\(days.first?.dayKey ?? "")-"
+      + "\(model.settings.gym.hashValue)"
   }
 
   var body: some View {
@@ -30,8 +31,8 @@ struct GymView: View {
             }
           }
         } else if model.settings.profile.mode == .personal {
-          PersonalGymSection(profile: model.settings.profile) {
-            viewModel.startEmpty()
+          PersonalGymSection(viewModel: viewModel) { routine in
+            if let routine { viewModel.start(routine) } else { viewModel.startEmpty() }
             showWorkout = true
           }
         } else {
@@ -45,9 +46,25 @@ struct GymView: View {
           Section { Text(message).font(.footnote) }
         }
 
-        if model.settings.profile.mode == .season {
-          ProgressSection(viewModel: viewModel)
+        GymHintsSection(viewModel: viewModel)
+
+        Section {
+          NavigationLink {
+            RoutinesView(viewModel: viewModel) { routine in
+              viewModel.start(routine)
+              showWorkout = true
+            }
+          } label: {
+            Label("Routinen", systemImage: "list.bullet.rectangle")
+          }
+          NavigationLink {
+            ExerciseLibraryView(viewModel: viewModel)
+          } label: {
+            Label("Übungen", systemImage: "books.vertical")
+          }
         }
+
+        ProgressSection(viewModel: viewModel)
         VolumeSection(viewModel: viewModel)
 
         if !records.isEmpty {
@@ -73,8 +90,12 @@ struct GymView: View {
         viewModel.update(
           sessions: records.compactMap(\.session),
           activities: activities.compactMap(\.activity),
-          days: days.prefix(3).compactMap(\.metrics)
+          days: days.prefix(3).compactMap(\.metrics),
+          gym: model.settings.gym
         )
+        if !viewModel.hintSource.hasPrefix("KI") {
+          await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal)
+        }
       }
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
@@ -83,15 +104,16 @@ struct GymView: View {
   }
 }
 
-/// Krafttraining für Profile ohne Saisonplan: laut Wochenplan heute dran? Sätze lassen sich frei erfassen.
+/// Krafttraining für Profile ohne Saisonplan: laut Wochenplan heute dran? Start mit einer eigenen Routine.
 private struct PersonalGymSection: View {
-  let profile: UserProfile
-  let start: () -> Void
+  let viewModel: GymViewModel
+  let start: (Routine?) -> Void
   @Environment(AppModel.self) private var model
 
   var body: some View {
     let day = CalendarDay(date: .now)
     let today = model.settings.schedule(inWeekOf: day).slots(on: Weekday(day: day)).filter { $0.sport == .strength }
+    let routines = model.settings.gym.routines
     Section {
       if let slot = today.first {
         VStack(alignment: .leading, spacing: 4) {
@@ -101,11 +123,25 @@ private struct PersonalGymSection: View {
       } else {
         Text("Heute steht laut deinem Wochenplan kein Krafttraining an.").foregroundStyle(.secondary)
       }
-      Button("Training starten", action: start).bold()
+      if viewModel.recovered == false {
+        Label("Erholung heute eingeschränkt: Gewichte halten, ggf. weniger Sätze.", systemImage: "exclamationmark.triangle")
+          .font(.footnote)
+          .foregroundStyle(.orange)
+      }
+      ForEach(routines) { routine in
+        Button {
+          start(routine)
+        } label: {
+          Label(routine.name, systemImage: "play.circle")
+        }
+      }
+      Button("Freies Training") { start(nil) }
     } header: {
       Text("Heute")
     } footer: {
-      Text("Erfasse deine Sätze: Die App zeigt Verlauf und Sätze je Muskel. Ein Plan mit Progression folgt.")
+      if routines.isEmpty {
+        Text("Lege unter „Routinen“ deine Einheiten an oder übernimm einen Vorschlag passend zu deinem Plan.")
+      }
     }
   }
 }
@@ -173,13 +209,14 @@ private struct ProgressSection: View {
           ForEach(rest) { item in ProgressRow(item: item, viewModel: viewModel) }
         }
       }
-      EvidenceDisclosure(ruleIDs: ["gym.progression"])
+      EvidenceDisclosure(ruleIDs: ["gym.progression", "gym.rir"])
     } header: {
       Text("Gewichts-Progression")
     } footer: {
       Text(
         "Regel: alle Arbeitssätze an der Obergrenze → +2,5–5 % und wieder unten im Bereich anfangen (ACSM 2009). "
-          + "Die Tagesampel verschiebt nur den Zeitpunkt.")
+          + "Bleiben in allen Sätzen 4 oder mehr Wiederholungen in Reserve, sofort steigern. Die Tagesampel "
+          + "verschiebt nur den Zeitpunkt.")
     }
   }
 }
@@ -199,7 +236,7 @@ private struct ProgressRow: View {
 
   var body: some View {
     NavigationLink {
-      ExerciseHistoryView(item: item, history: viewModel.history(of: item.exerciseID))
+      ExerciseDetailView(exerciseID: item.exerciseID, viewModel: viewModel)
     } label: {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 2) {
@@ -318,35 +355,5 @@ private struct SessionDetailView: View {
       }
     }
     .navigationTitle(session.title)
-  }
-}
-
-private struct ExerciseHistoryView: View {
-  let item: ExerciseProgress
-  let history: [DayValue]
-
-  var body: some View {
-    List {
-      Section {
-        Text(item.headline).font(.headline)
-        Text(item.detail).font(.footnote)
-      }
-      if history.count > 1 {
-        Section("Arbeitsgewicht") {
-          Chart(history) { point in
-            LineMark(x: .value("Tag", point.day.localDate, unit: .day), y: .value("kg", point.value))
-            PointMark(x: .value("Tag", point.day.localDate, unit: .day), y: .value("kg", point.value))
-          }
-          .chartYScale(domain: .automatic(includesZero: false))
-          .frame(height: 160)
-        }
-      }
-      Section("Einheiten") {
-        ForEach(history.reversed()) { point in
-          LabeledContent(Formatters.day(point.day), value: "\(GermanFormat.number(point.value)) kg")
-        }
-      }
-    }
-    .navigationTitle(item.name)
   }
 }

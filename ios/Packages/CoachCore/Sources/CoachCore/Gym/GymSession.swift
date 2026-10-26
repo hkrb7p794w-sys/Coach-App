@@ -6,11 +6,14 @@ public struct LoggedSet: Codable, Equatable, Sendable {
   public var weightKg: Double
   /// Abgehakt: nur abgehakte Sätze zählen.
   public var done: Bool
+  /// Wiederholungen in Reserve (RIR): wie viele noch gegangen wären; `nil` = nicht angegeben.
+  public var rir: Int?
 
-  public init(reps: Int, weightKg: Double, done: Bool = true) {
+  public init(reps: Int, weightKg: Double, done: Bool = true, rir: Int? = nil) {
     self.reps = reps
     self.weightKg = weightKg
     self.done = done
+    self.rir = rir
   }
 }
 
