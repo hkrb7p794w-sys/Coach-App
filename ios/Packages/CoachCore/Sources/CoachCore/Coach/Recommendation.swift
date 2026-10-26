@@ -148,6 +148,15 @@ public enum GermanFormat {
     return String(format: "%.1f", rounded).replacingOccurrences(of: ".", with: ",")
   }
 
+  /// Bis zu zwei Nachkommastellen mit Komma, ohne Nullen am Ende: 52,5 / 13,75 / 55 (wie `%g`).
+  public static func number(_ value: Double) -> String {
+    let rounded = (value * 100).rounded() / 100
+    if rounded == rounded.rounded() { return String(Int(rounded)) }
+    var text = String(format: "%.2f", rounded)
+    while text.hasSuffix("0") { text.removeLast() }
+    return text.replacingOccurrences(of: ".", with: ",")
+  }
+
   /// `dd.MM.yyyy`
   public static func date(_ day: CalendarDay) -> String {
     String(format: "%02d.%02d.%04d", day.day, day.month, day.year)

@@ -2,6 +2,21 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Gym in der App, Workouts in Apple Health
+
+- HealthKit funktioniert auf dem Gerät des Nutzers trotz SideStore (Diagnose „funktioniert“, Rückmeldung
+  26.10.2026). Krafteinheiten werden deshalb als Workout (`traditionalStrengthTraining`) in Apple Health
+  gespeichert. Die Prüfung zur Laufzeit bleibt: Ohne HealthKit wird lokal gespeichert und der Eintrag lässt sich
+  später nachholen.
+- Sätze werden in der App erfasst. Garmin bekommt sie nicht: Die Personal API ist nur lesend; Schreiben ginge nur
+  über den optionalen inoffiziellen Login.
+- Übungszuordnung (`exercise_names.py`), Trainingsplan mit Wochentagen (`gym_plan.json`, Lower flexibel Di/Do),
+  Doppelprogression (`gym_progress.py`, ACSM 2009) und Sätze je Muskel (Karte `coach-gym`) sind unverändert
+  portiert; Erwartungswerte der Tests sind mit dem Python-Code nachgerechnet.
+- Vorbefüllen: Steht eine Steigerung an und ist die Tagesampel grün, schlägt die App das neue Gewicht vor
+  (wieder bei der Untergrenze); sonst die Werte der letzten Einheit, ohne Verlauf die Werte aus dem Plan.
+- Die laufende Einheit liegt zusätzlich in den UserDefaults, damit sie einen Neustart der App übersteht.
+
 ## 2026-10-26 – Garmin-Werte wie im Home-Assistant-Dashboard
 
 - Abgeglichen mit `dashboard/garmin-coach.dashboard.json` im Altbestand (Reiter Erholung, Laufen/Rad/Schwimmen,

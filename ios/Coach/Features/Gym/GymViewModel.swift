@@ -1,0 +1,244 @@
+import CoachCore
+import Foundation
+import Observation
+import SwiftData
+
+/// Trainingsplan, laufende Einheit, Progression und Wochenvolumen.
+///
+/// Die laufende Einheit liegt zusätzlich in den UserDefaults – beendet iOS die App im Gym, ist nichts verloren.
+@Observable
+final class GymViewModel {
+  static let activeKey = "gym.activeSession"
+
+  private(set) var plan = GymPlan.standard
+  private(set) var today = CalendarDay(date: .now)
+  /// Einheit laut Plan für heute (nil = kein Gym-Tag oder schon erledigt).
+  private(set) var todayWorkout: Workout?
+  private(set) var weekPlan: [(day: CalendarDay, workout: Workout, done: Bool)] = []
+  private(set) var progress: [ExerciseProgress] = []
+  private(set) var volume: [MuscleGroup: Int] = [:]
+  private(set) var daysSinceLegs: Int?
+  private(set) var recovered: Bool?
+  private(set) var active: GymSession?
+  /// Pausenende nach dem letzten abgehakten Satz.
+  private(set) var restEndsAt: Date?
+  var message: String?
+  private(set) var isSaving = false
+
+  private var sessions: [GymSession] = []
+  private let defaults: UserDefaults
+
+  init(defaults: UserDefaults = .standard) {
+    self.defaults = defaults
+    active = defaults.data(forKey: Self.activeKey).flatMap { try? JSONDecoder().decode(GymSession.self, from: $0) }
+  }
+
+  func update(sessions: [GymSession], activities: [GarminActivity], days: [DailyMetrics], now: Date = .now) {
+    let today = CalendarDay(date: now)
+    self.today = today
+    self.sessions = sessions
+    let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
+    if let metrics = byDay[today] ?? byDay[today.adding(days: -1)] {
+      recovered = RecoveryEvaluator.evaluate(metrics, restingHeartRate7DayAverage: nil).level == .normal
+    } else {
+      recovered = nil
+    }
+
+    // Erledigt: eigene Einheiten und Krafttrainings von Garmin.
+    let doneDays = Set(sessions.map(\.day)).union(activities.filter { $0.sport == .strength }.compactMap(\.day))
+    let monday = today.adding(days: -today.weekdayIndex)
+    let planned = plan.plannedDays(monday: monday, today: today, doneDays: doneDays)
+    weekPlan = planned.keys.sorted().compactMap { day in
+      plan.workout(planned[day] ?? "").map { (day, $0, doneDays.contains(day)) }
+    }
+    todayWorkout = doneDays.contains(today) ? nil : planned[today].flatMap(plan.workout)
+
+    progress = GymProgression.evaluate(sessions: sessions, plan: plan, today: today, recovered: recovered)
+    volume = MuscleVolume.setsPerGroup(sessions: sessions, today: today)
+    daysSinceLegs = MuscleVolume.daysSinceLegs(sessions: sessions, today: today)
+  }
+
+  // MARK: - Laufende Einheit
+
+  /// Startet eine Einheit aus dem Plan, vorbefüllt mit den letzten Werten bzw. der Progression.
+  func start(_ workout: Workout, now: Date = .now) {
+    let exercises = workout.exercises.map { planned -> LoggedExercise in
+      let rule = planned.rule
+      let suggestion = prefill(for: rule.id, planned: planned)
+      return LoggedExercise(
+        exerciseID: rule.id, name: planned.name, group: rule.group,
+        sets: (0..<max(planned.sets, 1)).map { index in
+          let reps = suggestion.reps[safe: index] ?? suggestion.reps.last ?? 0
+          return LoggedSet(reps: reps, weightKg: suggestion.weight, done: false)
+        },
+        restSeconds: planned.restSeconds)
+    }
+    setActive(GymSession(workoutKey: workout.key, title: workout.name, start: now, exercises: exercises))
+  }
+
+  func startEmpty(now: Date = .now) {
+    setActive(GymSession(workoutKey: nil, title: "Krafttraining", start: now, exercises: []))
+  }
+
+  /// Gewicht und Wiederholungen für den nächsten Besuch: Steigerung nur, wenn die Regel es sagt und die Tagesampel
+  /// nicht dagegen spricht; sonst wie beim letzten Mal; ohne Verlauf wie im Plan.
+  func prefill(for exerciseID: String, planned: PlannedExercise?) -> (weight: Double, reps: [Int]) {
+    let range = planned?.planRepRange ?? ExerciseCatalog.rulesByID[exerciseID]?.reps ?? 8...12
+    if let item = progress.first(where: { $0.exerciseID == exerciseID }) {
+      switch item.status {
+      case .increase where recovered != false:
+        return (item.nextWeightKg ?? item.weightKg, [range.lowerBound])
+      case .restart:
+        return (item.nextWeightKg ?? item.weightKg, [range.lowerBound])
+      default:
+        return (item.weightKg, item.reps)
+      }
+    }
+    return (planned?.weightKg ?? 0, [planned?.reps ?? range.upperBound])
+  }
+
+  func addExercise(_ rule: ExerciseRule) {
+    guard var session = active else { return }
+    let suggestion = prefill(for: rule.id, planned: nil)
+    let sets = (0..<2).map { _ in
+      LoggedSet(reps: suggestion.reps.last ?? 10, weightKg: suggestion.weight, done: false)
+    }
+    session.exercises.append(LoggedExercise(exerciseID: rule.id, name: rule.name, group: rule.group, sets: sets))
+    setActive(session)
+  }
+
+  func removeExercise(_ id: UUID) {
+    guard var session = active else { return }
+    session.exercises.removeAll { $0.id == id }
+    setActive(session)
+  }
+
+  func addSet(to exerciseID: UUID) {
+    mutate(exerciseID) { exercise in
+      let last = exercise.sets.last ?? LoggedSet(reps: 10, weightKg: 0, done: false)
+      exercise.sets.append(LoggedSet(reps: last.reps, weightKg: last.weightKg, done: false))
+    }
+  }
+
+  func removeSet(_ index: Int, from exerciseID: UUID) {
+    mutate(exerciseID) { exercise in
+      if exercise.sets.indices.contains(index) { exercise.sets.remove(at: index) }
+    }
+  }
+
+  func setReps(_ reps: Int, set index: Int, of exerciseID: UUID) {
+    mutate(exerciseID) { exercise in
+      if exercise.sets.indices.contains(index) { exercise.sets[index].reps = max(0, reps) }
+    }
+  }
+
+  func setWeight(_ weight: Double, set index: Int, of exerciseID: UUID) {
+    mutate(exerciseID) { exercise in
+      guard exercise.sets.indices.contains(index) else { return }
+      let old = exercise.sets[index].weightKg
+      exercise.sets[index].weightKg = max(0, weight)
+      // Folgesätze mit gleichem Gewicht mitziehen – meist bleibt das Gewicht über alle Sätze gleich.
+      for later in exercise.sets.indices where later > index && !exercise.sets[later].done {
+        if abs(exercise.sets[later].weightKg - old) < 0.01 { exercise.sets[later].weightKg = max(0, weight) }
+      }
+    }
+  }
+
+  func toggleDone(set index: Int, of exerciseID: UUID, now: Date = .now) {
+    var rest: Int?
+    mutate(exerciseID) { exercise in
+      guard exercise.sets.indices.contains(index) else { return }
+      exercise.sets[index].done.toggle()
+      if exercise.sets[index].done { rest = exercise.restSeconds }
+    }
+    restEndsAt = rest.map { now.addingTimeInterval(TimeInterval($0)) }
+  }
+
+  func skipRest() {
+    restEndsAt = nil
+  }
+
+  func cancelActive() {
+    setActive(nil)
+    restEndsAt = nil
+  }
+
+  /// Speichert die Einheit lokal und – wenn möglich – in Apple Health.
+  func finish(context: ModelContext, writer: any WorkoutSaving, now: Date = .now) async {
+    guard var session = active else { return }
+    session.exercises = session.exercises.compactMap { exercise in
+      var exercise = exercise
+      exercise.sets = exercise.doneSets
+      return exercise.sets.isEmpty ? nil : exercise
+    }
+    guard !session.exercises.isEmpty else {
+      message = "Noch kein Satz abgehakt – nichts zu speichern."
+      return
+    }
+    session.end = now
+    isSaving = true
+    defer { isSaving = false }
+
+    let record = GymSessionRecord(session: session)
+    context.insert(record)
+    do {
+      try context.save()
+    } catch {
+      message = "Speichern fehlgeschlagen: \(error.localizedDescription)"
+      return
+    }
+    setActive(nil)
+    restEndsAt = nil
+    message = await Self.saveToHealth(record, session: session, context: context, writer: writer)
+  }
+
+  /// Gibt eine Meldung für die Anzeige zurück.
+  static func saveToHealth(
+    _ record: GymSessionRecord, session: GymSession, context: ModelContext, writer: any WorkoutSaving
+  ) async -> String {
+    guard writer.isAvailable else { return "Gespeichert. Apple Health ist auf diesem Gerät nicht verfügbar." }
+    do {
+      try await writer.save(session)
+      record.savedToHealth = true
+      try? context.save()
+      return "Gespeichert und in Apple Health eingetragen."
+    } catch {
+      return "Gespeichert. Apple Health: \(error.localizedDescription)"
+    }
+  }
+
+  // MARK: - Hilfen
+
+  private func mutate(_ exerciseID: UUID, _ change: (inout LoggedExercise) -> Void) {
+    guard var session = active, let index = session.exercises.firstIndex(where: { $0.id == exerciseID }) else {
+      return
+    }
+    change(&session.exercises[index])
+    setActive(session)
+  }
+
+  private func setActive(_ session: GymSession?) {
+    active = session
+    if let session, let data = try? JSONEncoder().encode(session) {
+      defaults.set(data, forKey: Self.activeKey)
+    } else {
+      defaults.removeObject(forKey: Self.activeKey)
+    }
+  }
+
+  /// Verlauf einer Übung (Arbeitsgewicht je Einheit) für die Grafik.
+  func history(of exerciseID: String) -> [DayValue] {
+    sessions.compactMap { session -> DayValue? in
+      let sets = session.exercises.filter { $0.exerciseID == exerciseID }.flatMap(\.doneSets)
+      guard let top = sets.map(\.weightKg).max() else { return nil }
+      return DayValue(day: session.day, value: top)
+    }
+    .sorted { $0.day < $1.day }
+  }
+}
+
+extension Array {
+  subscript(safe index: Int) -> Element? {
+    indices.contains(index) ? self[index] : nil
+  }
+}
