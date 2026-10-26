@@ -73,10 +73,11 @@ struct GymProgressionTests {
   /// Erwartungswerte aus `gym_progress.evaluate_exercise` des Altbestands (Zielbereich 8–12 laut Plan).
   @Test func increaseWhenAllSetsAtTop() throws {
     let result = try #require(
-      evaluate([
-        session("2026-10-16", "bankdruecken", weight: 52.5, reps: [12, 11]),
-        session("2026-10-20", "bankdruecken", weight: 52.5, reps: [12, 12]),
-      ], recovered: false))
+      evaluate(
+        [
+          session("2026-10-16", "bankdruecken", weight: 52.5, reps: [12, 11]),
+          session("2026-10-20", "bankdruecken", weight: 52.5, reps: [12, 12]),
+        ], recovered: false))
     #expect(result.status == .increase)
     #expect(result.nextWeightKg == 55)
     #expect(result.increasePercent == 4.8)
