@@ -6,11 +6,14 @@ import Foundation
 public struct CompanionSettings: Codable, Equatable, Hashable, Sendable {
   public enum Kind: String, Codable, CaseIterable, Sendable, Identifiable {
     case dog, cat, coach
+    /// Daisy mit echten Fotos, eines je Stimmung (Asset-Katalog der App).
+    case daisy
 
     public var id: String { rawValue }
 
     public var label: String {
       switch self {
+      case .daisy: "Daisy (mit Fotos)"
       case .dog: "Hund"
       case .cat: "Katze"
       case .coach: "Trainer:in"
@@ -19,7 +22,7 @@ public struct CompanionSettings: Codable, Equatable, Hashable, Sendable {
 
     public var symbol: String {
       switch self {
-      case .dog: "dog.fill"
+      case .dog, .daisy: "dog.fill"
       case .cat: "cat.fill"
       case .coach: "figure.strengthtraining.functional"
       }
@@ -48,13 +51,16 @@ public struct CompanionSettings: Codable, Equatable, Hashable, Sendable {
     let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
     if !trimmed.isEmpty { return trimmed }
     switch kind {
-    case .dog: return "Daisy"
+    case .dog, .daisy: return "Daisy"
     case .cat: return "Mimi"
     case .coach: return "Coach"
     }
   }
 
   public var isActive: Bool { enabled }
+
+  /// Hund-Sätze gelten auch für Daisy.
+  var voice: Kind { kind == .daisy ? .dog : kind }
 }
 
 public enum CompanionMood: String, Equatable, Sendable {
@@ -80,6 +86,16 @@ public enum CompanionMood: String, Equatable, Sendable {
     case .resting: "moon.zzz.fill"
     case .cozy: "cup.and.saucer.fill"
     case .hopeful: "sun.max.fill"
+    }
+  }
+
+  /// Foto von Daisy zur Stimmung: Spaziergang (los geht's), Gym (geschafft), Körbchen (ausruhen), Halstuch (stolz).
+  public var daisyPhoto: String {
+    switch self {
+    case .excited, .hopeful: "daisy-walk"
+    case .happy: "daisy-gym"
+    case .resting, .cozy: "daisy-rest"
+    case .proud: "daisy-proud"
     }
   }
 }
@@ -123,7 +139,7 @@ public enum CompanionVoice {
     let name = companion.displayName
     let session = context.plannedToday.first ?? "Training"
     let variants: [String]
-    switch (companion.kind, mood) {
+    switch (companion.voice, mood) {
     case (.dog, .happy):
       variants = [
         "Wuff! Du warst heute fleißig – \(name) wedelt ganz doll mit dem Schwanz.",
@@ -166,6 +182,7 @@ public enum CompanionVoice {
     case (.coach, .resting): variants = ["Ruhetag. Erholung gehört zum Training."]
     case (.coach, .cozy): variants = ["Deine Erholung ist niedrig. Heute lieber locker oder frei – das zahlt sich aus."]
     case (.coach, .hopeful): variants = ["Gestern ist vorbei. Heute zählt: „\(session)“."]
+    case (.daisy, _): variants = ["\(name) ist bei dir."]  // nicht erreicht: `voice` bildet Daisy auf .dog ab
     }
     let index = abs(day.day + day.month * 31) % variants.count
     return CompanionMessage(mood: mood, text: variants[index])
@@ -175,7 +192,7 @@ public enum CompanionVoice {
   public static func reminderLead(_ companion: CompanionSettings) -> String? {
     guard companion.isActive else { return nil }
     switch companion.kind {
-    case .dog: return "\(companion.displayName) wartet schon an der Tür."
+    case .dog, .daisy: return "\(companion.displayName) wartet schon an der Tür."
     case .cat: return "\(companion.displayName) schaut erwartungsvoll."
     case .coach: return nil
     }

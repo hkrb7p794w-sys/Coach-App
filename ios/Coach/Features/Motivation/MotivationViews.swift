@@ -53,7 +53,8 @@ private struct CompanionSection: View {
     Section {
       HStack(alignment: .top, spacing: 14) {
         ZStack(alignment: .bottomTrailing) {
-          CompanionAvatar(companion: companion, photo: photo, size: 64)
+          CompanionAvatar(
+            companion: companion, photo: companion.kind == .daisy ? nil : photo, mood: message.mood, size: 64)
           Image(systemName: message.mood.symbol)
             .font(.caption.weight(.bold))
             .foregroundStyle(.white)
@@ -77,12 +78,16 @@ private struct CompanionSection: View {
 struct CompanionAvatar: View {
   let companion: CompanionSettings
   let photo: UIImage?
+  var mood: CompanionMood = .proud
   var size: CGFloat = 64
 
   var body: some View {
     Group {
       if let photo {
         Image(uiImage: photo).resizable().scaledToFill()
+      } else if companion.kind == .daisy {
+        // Eigenes Foto je Stimmung (Asset-Katalog).
+        Image(mood.daisyPhoto).resizable().scaledToFill()
       } else {
         Image(systemName: companion.kind.symbol)
           .font(.system(size: size * 0.45))
@@ -165,7 +170,8 @@ struct MotivationSettingsView: View {
         Toggle("Begleiter anzeigen", isOn: $settings.companion.enabled)
         if settings.companion.enabled {
           HStack(spacing: 14) {
-            CompanionAvatar(companion: settings.companion, photo: photo, size: 56)
+            CompanionAvatar(
+              companion: settings.companion, photo: settings.companion.kind == .daisy ? nil : photo, size: 56)
             TextField("Name, z. B. Daisy", text: $settings.companion.name)
           }
           Picker("Art", selection: $settings.companion.kind) {
@@ -173,10 +179,19 @@ struct MotivationSettingsView: View {
               Label(kind.label, systemImage: kind.symbol).tag(kind)
             }
           }
-          PhotosPicker(selection: $pickedPhoto, matching: .images) {
-            Label(photo == nil ? "Foto auswählen" : "Anderes Foto", systemImage: "photo")
+          if settings.companion.kind == .daisy {
+            HStack(spacing: 10) {
+              ForEach([CompanionMood.excited, .happy, .resting, .proud], id: \.self) { mood in
+                CompanionAvatar(companion: settings.companion, photo: nil, mood: mood, size: 52)
+              }
+            }
+            .frame(maxWidth: .infinity)
+          } else {
+            PhotosPicker(selection: $pickedPhoto, matching: .images) {
+              Label(photo == nil ? "Foto auswählen" : "Anderes Foto", systemImage: "photo")
+            }
           }
-          if photo != nil {
+          if photo != nil, settings.companion.kind != .daisy {
             Button("Foto entfernen", role: .destructive) {
               CompanionPhoto.remove()
               photo = nil
@@ -187,7 +202,8 @@ struct MotivationSettingsView: View {
         Text("Begleiter")
       } footer: {
         Text(
-          "Der Begleiter kommentiert deinen Tag freundlich und erinnert dich an Einheiten. Er richtet sich nach "
+          "„Daisy (mit Fotos)“ zeigt je nach Stimmung ein anderes Foto: Spaziergang, Gym, Körbchen, Halstuch. "
+            + "Der Begleiter kommentiert deinen Tag freundlich und erinnert dich an Einheiten. Er richtet sich nach "
             + "denselben Regeln wie die Empfehlung: Bei schlechter Erholung lobt er das Ausruhen. Das Foto bleibt "
             + "auf diesem iPhone.")
       }
