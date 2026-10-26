@@ -5,6 +5,7 @@ import SwiftUI
 struct MyWeekView: View {
   @Environment(AppModel.self) private var model
   @State private var editing = false
+  @State private var guideSlot: SessionSlot?
 
   var body: some View {
     let profile = model.settings.profile
@@ -20,7 +21,7 @@ struct MyWeekView: View {
           ForEach(Weekday.allCases) { weekday in
             WeekDayRow(
               weekday: weekday, slots: thisWeek.slots(on: weekday), isToday: weekday == today,
-              note: adjustments.note(for: weekday, inWeekOf: day)
+              note: adjustments.note(for: weekday, inWeekOf: day), select: { guideSlot = $0 }
             ) {
               if weekday.rawValue >= today.rawValue {
                 PlanDayMenu(day: day.adding(days: weekday.rawValue - today.rawValue))
@@ -46,6 +47,7 @@ struct MyWeekView: View {
         }
       }
       .sheet(isPresented: $editing) { ScheduleEditorSheet() }
+      .navigationDestination(item: $guideSlot) { slot in SessionGuideView(slot: slot) }
     }
   }
 }
@@ -81,6 +83,7 @@ private struct WeekDayRow<Actions: View>: View {
   let slots: [SessionSlot]
   let isToday: Bool
   let note: String?
+  let select: (SessionSlot) -> Void
   @ViewBuilder let actions: () -> Actions
 
   var body: some View {
@@ -102,13 +105,20 @@ private struct WeekDayRow<Actions: View>: View {
             Text(note).font(.caption).foregroundStyle(.orange)
           }
           ForEach(slots) { slot in
-            HStack(alignment: .top, spacing: 10) {
-              SportIcon(symbol: slot.sport.symbol, color: slot.sport.color, size: 28)
-              VStack(alignment: .leading, spacing: 2) {
-                Text(slot.title).font(.subheadline.weight(.medium))
-                Text(slot.guide).font(.caption).foregroundStyle(.secondary)
+            Button {
+              select(slot)
+            } label: {
+              HStack(alignment: .top, spacing: 10) {
+                SportIcon(symbol: slot.sport.symbol, color: slot.sport.color, size: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                  Text(slot.title).font(.subheadline.weight(.medium))
+                  Text(slot.guide).font(.caption).foregroundStyle(.secondary)
+                  Label("Ausführlich", systemImage: "info.circle").font(.caption).foregroundStyle(Color.accentColor)
+                }
               }
             }
+            .buttonStyle(.plain)
+            .accessibilityHint("Zeigt die ausführliche Erklärung der Einheit")
           }
         }
       }
