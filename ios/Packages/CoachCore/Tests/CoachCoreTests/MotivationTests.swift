@@ -117,8 +117,9 @@ struct CompanionTests {
   @Test func daisySpeaksLikeADogAndHasAPhotoPerMood() {
     let photoDaisy = CompanionSettings(enabled: true, kind: .daisy)
     let dog = CompanionSettings(enabled: true, name: "Daisy", kind: .dog)
-    #expect(CompanionVoice.message(context(), companion: photoDaisy, day: monday).text
-      == CompanionVoice.message(context(), companion: dog, day: monday).text)
+    #expect(
+      CompanionVoice.message(context(), companion: photoDaisy, day: monday).text
+        == CompanionVoice.message(context(), companion: dog, day: monday).text)
     #expect(photoDaisy.displayName == "Daisy")
     #expect(CompanionMood.happy.daisyPhoto == "daisy-gym")
     #expect(CompanionMood.cozy.daisyPhoto == "daisy-rest")
