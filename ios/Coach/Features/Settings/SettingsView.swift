@@ -91,10 +91,23 @@ private struct SettingsForm: View {
       if let status = viewModel.aiStatus {
         Text(status).font(.footnote).foregroundStyle(.secondary)
       }
+      if let source = model.ai.sideStoreSourceURL {
+        ShareLink(item: source) {
+          Label("SideStore-Quelle teilen", systemImage: "square.and.arrow.up")
+        }
+        Button {
+          UIPasteboard.general.url = source
+        } label: {
+          Label("SideStore-Quelle kopieren", systemImage: "doc.on.doc")
+        }
+      }
     } header: {
       Text("KI-Worker")
     } footer: {
-      Text("Adresse und App-Token aus der Einrichtung des Cloudflare Workers (siehe docs/einrichtung.md).")
+      Text(
+        "Adresse und App-Token aus der Einrichtung des Cloudflare Workers (siehe docs/einrichtung.md). "
+          + "Die SideStore-Quelle ist privat: Wer den Link hat, kann die App laden – nur an Vertraute weitergeben."
+      )
     }
   }
 }

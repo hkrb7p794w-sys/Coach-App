@@ -1,7 +1,8 @@
 # Baut die unsignierte .ipa für SideStore und hängt sie an ein GitHub-Release.
 #
-# - Push auf main (nach jedem Merge): Release „vX.Y.<Lauf>“ plus SideStore-Quelle `source.json`.
-#   SideStore erkennt Updates an der höheren Versionsnummer und meldet sie (docs/sidestore.md).
+# - Push auf main (nach jedem Merge): Release „vX.Y.<Lauf>“ und Bereitstellung für SideStore über den
+#   Worker (Workers KV, private Quelle). SideStore erkennt Updates an der höheren Versionsnummer und meldet
+#   sie (docs/sidestore.md).
 # - Pull Request: Label „ios-build“ setzen (wird beim Start wieder entfernt, erneutes Setzen startet
 #   einen neuen Build). Ergebnis und Fehler landen als Kommentar im PR; Release als Vorabversion.
 # - manuell: Actions › iOS Build › Run workflow
@@ -140,47 +141,38 @@ jobs:
           (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/Coach.ipa" Payload)
           ls -lh Coach.ipa
 
-      - name: SideStore-Quelle erzeugen
+      - name: Für SideStore bereitstellen (Workers KV)
         if: github.event_name != 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KV_ID: 103715a4f0004a398c9e75637a2edf36
         run: |
+          # Das Repo ist privat: SideStore lädt IPA und Quelle über den Worker (worker/src/sidestore.ts).
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Cloudflare-Secrets fehlen – keine Bereitstellung für SideStore"
+            exit 0
+          fi
           git log -1 --format=%B > notes.txt
           python3 - <<'PY'
           import datetime, json, os
-          repo = os.environ["GITHUB_REPOSITORY"]
-          version, tag = os.environ["VERSION"], os.environ["TAG"]
-          base = f"https://github.com/{repo}"
           notes = open("notes.txt", encoding="utf-8").read().split("\nCo-Authored-By")[0].strip()
-          icon = f"https://raw.githubusercontent.com/{repo}/main/ios/Coach/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
-          source = {
-              "name": "Coach (privat)",
-              "identifier": "io.github.hkrb7p794w.coach.source",
-              "sourceURL": f"{base}/releases/latest/download/source.json",
-              "iconURL": icon,
-              "apps": [{
-                  "name": "Coach",
-                  "bundleIdentifier": "io.github.hkrb7p794w.coach",
-                  "developerName": "Alex",
-                  "subtitle": "Triathlon, Ernährung, Gym",
-                  "localizedDescription": "Persönliche Coaching-App: Garmin-Werte, Tagesempfehlung, Plan, Ernährung und Gym.",
-                  "iconURL": icon,
-                  "tintColor": "1E4FA3",
-                  "category": "utilities",
-                  "versions": [{
-                      "version": version,
-                      "buildVersion": os.environ["BUILD_NUMBER"],
-                      "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                      "localizedDescription": notes[:2000],
-                      "downloadURL": f"{base}/releases/download/{tag}/Coach.ipa",
-                      "size": os.path.getsize("Coach.ipa"),
-                      "minOSVersion": "18.0",
-                  }],
-              }],
-              "news": [],
+          info = {
+              "version": os.environ["VERSION"],
+              "buildVersion": os.environ["BUILD_NUMBER"],
+              "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "notes": notes[:2000],
+              "size": os.path.getsize("Coach.ipa"),
           }
-          with open("source.json", "w", encoding="utf-8") as handle:
-              json.dump(source, handle, ensure_ascii=False, indent=2)
+          json.dump(info, open("release.json", "w", encoding="utf-8"), ensure_ascii=False)
           PY
-          cat source.json
+          cat release.json
+          WRANGLER="npx --yes wrangler@4.152.0"
+          ICON=ios/Coach/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          $WRANGLER kv key put --namespace-id "$KV_ID" --remote Coach.ipa --path Coach.ipa
+          $WRANGLER kv key put --namespace-id "$KV_ID" --remote icon.png --path "$ICON"
+          # Zuletzt die Versionsangaben, damit die Quelle nie auf eine fehlende IPA zeigt.
+          $WRANGLER kv key put --namespace-id "$KV_ID" --remote release.json --path release.json
 
       - name: Release anlegen
         env:
@@ -188,10 +180,8 @@ jobs:
         run: |
           TARGET_SHA=$(git rev-parse HEAD)
           FLAGS=()
-          ASSETS=(Coach.ipa)
           if [ "$PRERELEASE" = "true" ]; then FLAGS+=(--prerelease); else FLAGS+=(--latest); fi
-          if [ -f source.json ]; then ASSETS+=(source.json); fi
-          gh release create "$TAG" "${ASSETS[@]}" \
+          gh release create "$TAG" Coach.ipa \
             --target "$TARGET_SHA" \
             --title "Coach $VERSION" \
             --notes "Unsignierte IPA für SideStore. Commit $SHORT_SHA, Build $BUILD_NUMBER." \

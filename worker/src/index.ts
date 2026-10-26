@@ -2,12 +2,14 @@
  * Cloudflare Worker „coach-ai“: nimmt Aufgaben der Coach-App entgegen und reicht sie an Gemini bzw.
  * Groq weiter. Die KI-Keys liegen nur hier (Worker-Secrets), nie in der App.
  *
+ * GET  /sidestore/<key>/… – private SideStore-Quelle (siehe sidestore.ts)
  * GET  /v1/health        – ohne Anmeldung, zeigt Version und welche Anbieter konfiguriert sind
  * POST /v1/ai/generate   – Authorization: Bearer <COACH_APP_TOKEN>
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { GroundingError } from "./grounding";
+import { handleSideStore } from "./sidestore";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 
@@ -50,6 +52,9 @@ function parseImages(value: unknown): ImageInput[] | string {
 
 export async function handle(request: Request, env: Env, deps: Deps = defaultDeps): Promise<Response> {
   const { pathname } = new URL(request.url);
+
+  const sidestore = await handleSideStore(request, env.COACH_APP_TOKEN, env.RELEASES);
+  if (sidestore) return sidestore;
 
   if (request.method === "GET" && pathname === "/v1/health") {
     return json(200, {

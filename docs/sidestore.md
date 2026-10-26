@@ -26,24 +26,27 @@ Du brauchst: iPhone mit Code-Sperre, Windows-PC (64 Bit), USB-Kabel, WLAN, Apple
 10. „My Apps“ › bei SideStore auf „7 DAYS“ tippen (erste Auffrischung). Fragt SideStore nach einem neuen
     Zertifikat: „Yes“ bzw. „Refresh Now“.
 
-## Coach über die eigene Quelle installieren (einmalig) – danach Updates per Hinweis
+## Coach über die private Quelle installieren (einmalig) – danach Updates per Hinweis
 
-Jeder Merge auf `main` baut automatisch eine neue Version (`vX.Y.<Build>`) und veröffentlicht eine
-SideStore-Quelle. SideStore prüft eingetragene Quellen im Hintergrund und meldet neue Versionen
-(„New Update Available“); installiert wird mit einem Tippen. Ganz ohne Tippen geht es nicht: SideStore
-installiert Updates nicht von selbst, die Hintergrundprüfung schickt nur die Mitteilung
+Jeder Merge auf `main` baut automatisch eine neue Version (`vX.Y.<Build>`). Weil das Repo privat ist, liefert
+der Cloudflare Worker `coach-ai` App und Quelle aus (Workers KV, `worker/src/sidestore.ts`). Der Link enthält
+einen geheimen Pfad, den die App aus dem App-Token berechnet. SideStore prüft eingetragene Quellen im Hintergrund
+und meldet neue Versionen („New Update Available“); installiert wird mit einem Tippen. Ganz ohne Tippen geht es
+nicht: SideStore installiert Updates nicht von selbst, die Hintergrundprüfung schickt nur die Mitteilung
 (SideStore-Quellcode `AppDelegate.performBackgroundFetch`, Stand 16.10.2026).
 
-1. LocalDevVPN verbinden.
-2. SideStore › **Sources** › „+“ › diese Adresse eintragen:
-   `https://github.com/hkrb7p794w-sys/Coach-App/releases/latest/download/source.json`
-3. In der Quelle „Coach (privat)“ › **Coach** › installieren. Eine bereits per Datei installierte Coach-App
-   wird dabei ersetzt; die Daten bleiben erhalten (gleiche App-ID).
-4. SideStore › Settings: **Background Refresh** einschalten und Mitteilungen für SideStore erlauben.
-5. Kommt die Mitteilung „New Update Available“: SideStore öffnen › „My Apps“ › bei Coach **Update**.
+1. In Coach › Einstellungen › KI-Worker auf **SideStore-Quelle kopieren** tippen (erscheint, sobald
+   Worker-Adresse und App-Token gespeichert sind).
+2. LocalDevVPN verbinden.
+3. SideStore › **Sources** › „+“ › Link einfügen. Eine alte Quelle „Coach (privat)“ mit `github.com`-Adresse
+   vorher entfernen – sie funktioniert nicht mehr, seit das Repo privat ist.
+4. In der Quelle „Coach (privat)“ › **Coach** › installieren bzw. aktualisieren. Die vorhandene App wird
+   ersetzt, die Daten bleiben erhalten (gleiche App-ID).
+5. SideStore › Settings: **Background Refresh** einschalten und Mitteilungen für SideStore erlauben.
+6. Kommt die Mitteilung „New Update Available“: SideStore öffnen › „My Apps“ › bei Coach **Update**.
 
-Manuell geht es weiterhin: Release unter <https://github.com/hkrb7p794w-sys/Coach-App/releases> öffnen,
-`Coach.ipa` laden und in SideStore › „My Apps“ › „+“ wählen.
+Den Link nur an Vertraute weitergeben: Wer ihn hat, kann die App laden (Garmin- und KI-Zugänge stecken nicht
+darin, die gibt jeder in seiner App selbst ein).
 
 ## Gut zu wissen
 

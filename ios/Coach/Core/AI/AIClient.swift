@@ -1,4 +1,5 @@
 import CoachCore
+import CryptoKit
 import Foundation
 
 nonisolated struct AIResponse: Decodable, Equatable {
@@ -53,6 +54,18 @@ final class AIClient {
 
   var isConfigured: Bool {
     Self.normalizedURL(workerURL) != nil && hasToken
+  }
+
+  /// Private SideStore-Quelle des Workers (`worker/src/sidestore.ts`): Pfad aus SHA-256("sidestore:" + Token).
+  var sideStoreSourceURL: URL? {
+    guard let base = Self.normalizedURL(workerURL), let token = secrets.string(for: .aiAppToken), !token.isEmpty
+    else { return nil }
+    return base.appending(path: "sidestore/\(Self.sideStoreKey(token: token))/source.json")
+  }
+
+  static func sideStoreKey(token: String) -> String {
+    let digest = SHA256.hash(data: Data("sidestore:\(token)".utf8))
+    return String(digest.map { String(format: "%02x", $0) }.joined().prefix(32))
   }
 
   /// Speichert Adresse und (falls angegeben) Token. Ein leeres Token-Feld lässt das gespeicherte stehen.

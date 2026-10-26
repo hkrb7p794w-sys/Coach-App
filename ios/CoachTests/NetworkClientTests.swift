@@ -132,6 +132,18 @@ extension StubbedNetworkTests {
       #expect(authorization(request) == "Bearer geheim")
     }
 
+    /// Gleicher Schlüssel wie im Worker (`worker/src/sidestore.ts`), Erwartungswert mit Python berechnet.
+    @Test func sideStoreSourceMatchesWorker() throws {
+      #expect(AIClient.sideStoreKey(token: "app-token-123") == "ee99266b889655b045c7352ceb212936")
+      let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+      let client = AIClient(secrets: InMemorySecretStore(), defaults: defaults)
+      #expect(client.sideStoreSourceURL == nil)
+      try client.configure(url: "https://coach-ai.example.workers.dev", token: "app-token-123")
+      #expect(
+        client.sideStoreSourceURL?.absoluteString
+          == "https://coach-ai.example.workers.dev/sidestore/ee99266b889655b045c7352ceb212936/source.json")
+    }
+
     @Test func aiClientMapsUnauthorized() async throws {
       let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
       let client = AIClient(
