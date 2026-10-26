@@ -43,7 +43,27 @@ public enum CoachingNote {
         "advice": .string(recommendation.advice),
         "reasons": .array(decisionReasons.map { .string($0) }),
       ]),
+      "evidence": evidenceInput(dailyNoteEvidence),
     ]
+  }
+
+  /// Regeln, auf die sich die Tagesnotiz stützen darf.
+  public static let dailyNoteEvidence = [
+    "recovery.hrv", "recovery.rhr", "recovery.sleep", "recovery.subjective", "intensity.distribution", "run.4x4",
+    "strength.economy", "strength.interference", "taper",
+  ]
+
+  /// `[{id, statement}]` für den Worker: Nur diese Aussagen darf die KI als Begründung nutzen.
+  public static func evidenceInput(_ ids: [String]) -> JSONValue {
+    .array(
+      Evidence.rules(ids).map { rule in
+        .object(["id": .string(rule.id), "statement": .string(rule.statement)])
+      })
+  }
+
+  /// Liest `"quellen": ["id", …]` aus der KI-Antwort; nur bekannte Regeln.
+  public static func sources(from output: JSONValue) -> [String] {
+    (output["quellen"]?.arrayValue ?? []).compactMap(\.stringValue).filter { Evidence.rulesByID[$0] != nil }
   }
 
   /// Erholungsblock: im Modus „reduziert“ ohne Rohwerte (wie `vitals_block` im Altbestand).

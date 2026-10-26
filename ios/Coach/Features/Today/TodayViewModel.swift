@@ -20,6 +20,8 @@ final class TodayViewModel {
     let level: RecoveryLevel
     let points: [String]
     let source: String
+    /// Von der KI genannte Regeln (fehlt in älteren Einträgen).
+    var sources: [String]?
   }
 
   static let noteKey = "coach.note"
@@ -27,6 +29,8 @@ final class TodayViewModel {
   private(set) var snapshot: Snapshot?
   private(set) var notePoints: [String] = []
   private(set) var noteSource = ""
+  /// Regeln hinter Tagesampel und Notiz.
+  private(set) var noteEvidence: [String] = []
   private(set) var noteError: String?
   private(set) var isLoadingNote = false
 
@@ -81,7 +85,7 @@ final class TodayViewModel {
       store(
         CachedNote(
           day: snapshot.plan.today.iso, level: snapshot.recommendation.level, points: points,
-          source: "KI · \(response.model)"))
+          source: "KI · \(response.model)", sources: CoachingNote.sources(from: response.output)))
       noteError = nil
     } catch {
       noteError = error.localizedDescription
@@ -96,9 +100,11 @@ final class TodayViewModel {
     if let cached = cachedNote(for: snapshot) {
       notePoints = cached.points
       noteSource = cached.source
+      noteEvidence = snapshot.recommendation.evidenceIDs + (cached.sources ?? [])
     } else {
       notePoints = CoachingNote.fallback(snapshot.recommendation, plan: snapshot.plan)
       noteSource = Self.fallbackSource
+      noteEvidence = snapshot.recommendation.evidenceIDs
     }
   }
 

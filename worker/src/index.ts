@@ -7,6 +7,7 @@
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
+import { GroundingError } from "./grounding";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 
@@ -96,13 +97,28 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
 
   const { system, prompt } = task.build(input as Record<string, unknown>, images.length);
   try {
-    const result = await generate({ system, prompt, json: task.json, images }, env, deps);
+    const result = await generate(
+      { system, prompt, json: task.json, images, temperature: task.temperature },
+      env,
+      deps,
+    );
     let output: unknown = result.text;
     if (task.json) {
       try {
         output = parseJsonOutput(result.text);
       } catch {
         return json(502, { error: "KI-Antwort ist kein gültiges JSON", model: result.model });
+      }
+    }
+    if (task.ground) {
+      try {
+        output = task.ground(output, `${system ?? ""}\n${prompt}`, input as Record<string, unknown>);
+      } catch (error) {
+        if (error instanceof GroundingError) {
+          deps.log(`[worker] ${error.message} (${result.model})`);
+          return json(502, { error: error.message, model: result.model });
+        }
+        throw error;
       }
     }
     return json(200, { output, model: result.model, provider: result.provider });

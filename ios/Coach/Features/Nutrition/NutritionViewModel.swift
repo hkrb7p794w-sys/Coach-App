@@ -22,6 +22,7 @@ final class NutritionViewModel {
   private(set) var isWorking = false
   private(set) var reviewPoints: [String] = []
   private(set) var reviewModel: String?
+  private(set) var reviewSources: [String] = []
   var errorMessage: String?
   var draft: Draft?
 
@@ -182,12 +183,19 @@ final class NutritionViewModel {
         "mealCount": .number(Double(todays.count)),
         "meals": .array(todays.map { .string("\($0.category.label): \($0.title)") }),
         "nutrients": .array(nutrients),
+        "evidence": CoachingNote.evidenceInput(Self.reviewEvidence),
       ]
       let response = try await ai.run(task: "nutrition_review", input: input)
       reviewPoints = CoachingNote.points(from: response.output)
+      reviewSources = CoachingNote.sources(from: response.output)
       reviewModel = response.model
     }
   }
+
+  /// Regeln, auf die sich die Ernährungsauswertung stützen darf.
+  static let reviewEvidence = [
+    "nutrition.energy", "nutrition.carbs", "nutrition.protein", "nutrition.reds", "recovery.sleep",
+  ]
 
   // MARK: - Hilfen
 

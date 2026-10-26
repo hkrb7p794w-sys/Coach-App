@@ -5,6 +5,13 @@
  *
  * Regel aus dem Altbestand: Die Regeln entscheiden, die KI formuliert nur.
  */
+import {
+  evidenceBlock,
+  evidenceFrom,
+  GROUNDING_SYSTEM,
+  groundPoints,
+  POINTS_WITH_SOURCES,
+} from "./grounding";
 import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
 import { list, text } from "./tasks-util";
@@ -14,7 +21,20 @@ export { list, text } from "./tasks-util";
 export interface TaskDefinition {
   json: boolean;
   allowImages: boolean;
+  /** Niedrig für sachliche Texte: weniger Ausschmückung, weniger Erfundenes. */
+  temperature?: number;
   build(input: Record<string, unknown>, images: number): { system?: string; prompt: string };
+  /** Prüft die Antwort gegen die Anfrage (siehe grounding.ts); wirft GroundingError, wenn nichts belegt ist. */
+  ground?(output: unknown, requestText: string, input: Record<string, unknown>): unknown;
+}
+
+/** Punkte nur mit Zahlen aus der Anfrage und Quellen aus den mitgeschickten Regeln. */
+function groundedPoints(output: unknown, requestText: string, input: Record<string, unknown>): unknown {
+  return groundPoints(
+    output,
+    requestText,
+    evidenceFrom(input).map((item) => item.id),
+  );
 }
 
 const GERMAN = "Schreibe durchgängig in korrektem Deutsch mit echten Umlauten (ä, ö, ü, ß).";
@@ -70,9 +90,10 @@ export function dailyNotePrompt(input: Record<string, unknown>): string {
     vitals || "- keine Daten",
     `VERBINDLICHE Tagesentscheidung (regelbasiert, nicht ändern): ${decisionText}`,
     "",
-    "Aufgabe: Formuliere daraus eine kurze, konkrete Umsetzung für heute. Antworte " +
-      'AUSSCHLIESSLICH mit JSON der Form {"punkte": ["...", "..."]} mit 2-3 Punkten, je ' +
-      "ein Satz, ohne Aufzählungszeichen im Text:",
+    evidenceBlock(evidenceFrom(input)),
+    "",
+    `Aufgabe: Formuliere daraus eine kurze, konkrete Umsetzung für heute. ${POINTS_WITH_SOURCES} ` +
+      "2-3 Punkte, je ein Satz, ohne Aufzählungszeichen im Text:",
     "1. Was heute konkret trainiert wird (passend zu Wochentag, offener Woche und der " +
       "Tagesentscheidung - bei 'locker' eine entschärfte Variante, bei 'Ruhetag' nichts Hartes). " +
       "Einheiten mit dem Zusatz 'schon erledigt' nicht noch einmal verordnen.",
@@ -96,19 +117,24 @@ export const TASKS: Record<string, TaskDefinition> = {
   daily_note: {
     json: true,
     allowImages: false,
-    build: (input) => ({ prompt: dailyNotePrompt(input) }),
+    temperature: 0.2,
+    build: (input) => ({ system: GROUNDING_SYSTEM, prompt: dailyNotePrompt(input) }),
+    ground: groundedPoints,
   },
   /** Mahlzeit per Foto und/oder Text in Positionen mit Nährwerten zerlegen. */
   meal_analyze: {
     json: true,
     allowImages: true,
+    temperature: 0.2,
     build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
   },
   /** Ernährung und Training des Tages gemeinsam auswerten. */
   nutrition_review: {
     json: true,
     allowImages: false,
-    build: (input) => ({ prompt: nutritionReviewPrompt(input) }),
+    temperature: 0.2,
+    build: (input) => ({ system: GROUNDING_SYSTEM, prompt: nutritionReviewPrompt(input) }),
+    ground: groundedPoints,
   },
 };
 
