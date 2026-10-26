@@ -10,6 +10,7 @@ final class CoachSettings {
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
+  static let testsKey = "coach.tests"
 
   private let defaults: UserDefaults
 
@@ -30,6 +31,11 @@ final class CoachSettings {
     didSet { save(competitionDecisions, forKey: Self.competitionKey) }
   }
 
+  /// Eingetragene Testwerte mit Datum (Verläufe und Aktualität der Benchmarks).
+  var tests: [TestRecord] {
+    didSet { save(tests, forKey: Self.testsKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -48,9 +54,27 @@ final class CoachSettings {
       defaults.data(forKey: Self.competitionKey).flatMap {
         try? JSONDecoder().decode(CompetitionDecisions.self, from: $0)
       } ?? [:]
+    tests = defaults.data(forKey: Self.testsKey).flatMap { try? JSONDecoder().decode([TestRecord].self, from: $0) } ?? []
     heartRate =
       defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
       ?? HeartRateOverrides()
+  }
+
+  /// Testwert übernehmen: Saisonwerte setzen und im Verlauf festhalten.
+  func record(_ kind: TestRecord.Kind, value: Double, on day: CalendarDay = CalendarDay(date: .now)) {
+    switch kind {
+    case .css: season.cssSecondsPer100m = Int(value.rounded())
+    case .ftp: season.ftpWatts = Int(value.rounded())
+    case .threshold: season.thresholdPaceSecondsPerKm = Int(value.rounded())
+    case .racePace: season.racePaceSecondsPerKm = Int(value.rounded())
+    case .bikeSpeed: season.raceBikeSpeedKmh = value
+    case .halfMarathon: break
+    }
+    tests = TestHistory.adding(TestRecord(kind: kind, value: value, day: day), to: tests)
+  }
+
+  var halfMarathonSeconds: Int? {
+    TestHistory.latest(.halfMarathon, in: tests).map { Int($0.value) }
   }
 
   private func save(_ value: some Encodable, forKey key: String) {

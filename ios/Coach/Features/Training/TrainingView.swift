@@ -3,39 +3,61 @@ import CoachCore
 import SwiftData
 import SwiftUI
 
-/// Erholung, Ausdauer und Herzfrequenz – die Garmin-Werte aus dem früheren Home-Assistant-Dashboard.
+/// Übersicht der Leistungsbereiche wie im früheren Home-Assistant-Dashboard: Erholung, Herzfrequenz, Schwimmen,
+/// Rad, Laufen, Zielzeit Almere und Marathon – jeweils eine eigene Seite.
 struct TrainingView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \DailyMetricsRecord.dayKey) private var days: [DailyMetricsRecord]
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
   @State private var viewModel = TrainingViewModel()
-  @State private var section = Part.recovery
-
-  enum Part: String, CaseIterable, Identifiable {
-    case recovery = "Erholung"
-    case endurance = "Ausdauer"
-    case heartRate = "Herzfrequenz"
-    var id: String { rawValue }
-  }
 
   private var refreshKey: String {
     "\(days.last?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.heartRate.hashValue)"
   }
 
   var body: some View {
+    let settings = model.settings
+    let season = settings.season
+    let today = CalendarDay(date: .now)
+    let estimate = RaceEstimate(config: season, tests: settings.tests, today: today)
     NavigationStack {
       List {
-        Picker("Bereich", selection: $section) {
-          ForEach(Part.allCases) { Text($0.rawValue).tag($0) }
+        Section {
+          HubRow(
+            title: "Erholung", symbol: "bed.double.fill", color: .indigo,
+            value: viewModel.recovery.first.map {
+              Formatters.number($0.trend.latest?.value, unit: $0.unit, digits: $0.digits)
+            } ?? "–", caption: "HRV, Ruhepuls, Schlaf"
+          ) { List { RecoverySections(viewModel: viewModel) }.navigationTitle("Erholung") }
+          HubRow(
+            title: "Herzfrequenz", symbol: "heart.fill", color: .red,
+            value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
+          ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
         }
-        .pickerStyle(.segmented)
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets())
-
-        switch section {
-        case .recovery: RecoverySections(viewModel: viewModel)
-        case .endurance: EnduranceSections(viewModel: viewModel)
-        case .heartRate: HeartRateSections(report: viewModel.zones)
+        Section("Disziplinen") {
+          HubRow(
+            title: "Schwimmen", symbol: "figure.pool.swim", color: .blue,
+            value: "\(PlanTokens.mmss(season.cssSecondsPer100m)) /100 m", caption: "CSS"
+          ) { SwimPage(viewModel: viewModel) }
+          HubRow(
+            title: "Rad", symbol: "figure.outdoor.cycle", color: .orange, value: "\(season.ftpWatts) W",
+            caption: "FTP"
+          ) { BikePage(viewModel: viewModel) }
+          HubRow(
+            title: "Laufen", symbol: "figure.run", color: .green,
+            value: "\(PlanTokens.mmss(season.thresholdPaceSecondsPerKm)) /km", caption: "Schwelle"
+          ) { RunPage(viewModel: viewModel) }
+        }
+        Section("Ziele") {
+          HubRow(
+            title: "Almere", symbol: "flag.checkered", color: .teal,
+            value: "\(RaceEstimate.hoursMinutes(estimate.totalMinutes)) h", caption: "geschätzte Zielzeit"
+          ) { AlmerePage() }
+          HubRow(
+            title: "Marathon", symbol: "medal.fill", color: .pink,
+            value: "\(max(today.days(until: season.marathonDate), 0)) Tage",
+            caption: GermanFormat.date(season.marathonDate)
+          ) { MarathonPage() }
         }
       }
       .navigationTitle("Training")
@@ -53,9 +75,36 @@ struct TrainingView: View {
   }
 }
 
+/// Zeile der Übersicht: Symbol, Bereich, aktueller Kernwert.
+private struct HubRow<Destination: View>: View {
+  let title: String
+  let symbol: String
+  let color: Color
+  let value: String
+  let caption: String
+  @ViewBuilder let destination: () -> Destination
+
+  var body: some View {
+    NavigationLink {
+      destination()
+    } label: {
+      HStack(spacing: 12) {
+        SportIcon(symbol: symbol, color: color)
+        Text(title).font(.body.weight(.medium))
+        Spacer()
+        VStack(alignment: .trailing, spacing: 0) {
+          Text(value).font(.subheadline.weight(.semibold)).monospacedDigit()
+          Text(caption).font(.caption2).foregroundStyle(.secondary)
+        }
+      }
+      .padding(.vertical, 2)
+    }
+  }
+}
+
 // MARK: - Erholung
 
-private struct RecoverySections: View {
+struct RecoverySections: View {
   let viewModel: TrainingViewModel
 
   var body: some View {
@@ -178,57 +227,44 @@ private struct SleepStagesView: View {
 
 // MARK: - Ausdauer
 
-private struct EnduranceSections: View {
+/// Kilometer pro Woche einer Sportart (12 Wochen).
+struct KilometersSection: View {
   let viewModel: TrainingViewModel
-
-  private let sports: [(GarminActivity.Sport, String, Color)] = [
-    (.swim, "Schwimmen", .blue), (.bike, "Rad", .orange), (.run, "Laufen", .green),
-  ]
+  let sport: GarminActivity.Sport
+  let color: Color
 
   var body: some View {
-    ForEach(sports, id: \.0) { sport, title, color in
-      Section {
-        let thisWeek = viewModel.weeks.last?.volume.kilometers[sport] ?? 0
-        let previous = viewModel.weeks.dropLast().suffix(4).map { $0.volume.kilometers[sport] ?? 0 }
-        let average = previous.isEmpty ? 0 : previous.reduce(0, +) / Double(previous.count)
-        HStack(alignment: .firstTextBaseline) {
-          Text("Diese Woche").font(.subheadline)
-          Spacer()
-          Text(Formatters.number(thisWeek, unit: "km", digits: sport == .bike ? 0 : 1))
-            .font(.title3.weight(.semibold)).monospacedDigit()
-        }
-        Chart(viewModel.weeks) { week in
-          BarMark(
-            x: .value("Woche", week.monday.localDate, unit: .weekOfYear),
-            y: .value("km", week.volume.kilometers[sport] ?? 0)
-          )
-          .foregroundStyle(week.id == viewModel.weeks.last?.id ? color : color.opacity(0.45))
-        }
-        .frame(height: 120)
-        Text(
-          "Ø der 4 Wochen davor: \(Formatters.number(average, unit: "km", digits: 1)) · "
-            + "\(viewModel.weeks.last?.volume.sessions[sport] ?? 0) Einheiten diese Woche"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      } header: {
-        Text("\(title) · Kilometer pro Woche")
-      }
-    }
-    VO2Section(title: "VO2max Laufen (Garmin)", trend: viewModel.vo2Run)
-    VO2Section(title: "VO2max Rad (Garmin)", trend: viewModel.vo2Bike)
     Section {
+      let thisWeek = viewModel.weeks.last?.volume.kilometers[sport] ?? 0
+      let previous = viewModel.weeks.dropLast().suffix(4).map { $0.volume.kilometers[sport] ?? 0 }
+      let average = previous.isEmpty ? 0 : previous.reduce(0, +) / Double(previous.count)
+      HStack(alignment: .firstTextBaseline) {
+        Text("Diese Woche").font(.subheadline)
+        Spacer()
+        Text(Formatters.number(thisWeek, unit: "km", digits: sport == .bike ? 0 : 1))
+          .font(.title3.weight(.semibold)).monospacedDigit()
+      }
+      Chart(viewModel.weeks) { week in
+        BarMark(
+          x: .value("Woche", week.monday.localDate, unit: .weekOfYear),
+          y: .value("km", week.volume.kilometers[sport] ?? 0)
+        )
+        .foregroundStyle(week.id == viewModel.weeks.last?.id ? color : color.opacity(0.45))
+      }
+      .frame(height: 120)
       Text(
-        "Garmin berechnet VO2max nur nach geeigneten Einheiten (Lauf im Freien mit GPS, Rad mit Leistungsmesser). "
-          + "Die aerobe Kopplung (HF-Pace-Drift) aus dem alten Dashboard folgt, sobald die App FIT-Dateien auswertet."
+        "Ø der 4 Wochen davor: \(Formatters.number(average, unit: "km", digits: 1)) · "
+          + "\(viewModel.weeks.last?.volume.sessions[sport] ?? 0) Einheiten diese Woche"
       )
-      .font(.footnote)
+      .font(.caption)
       .foregroundStyle(.secondary)
+    } header: {
+      Text("Kilometer pro Woche")
     }
   }
 }
 
-private struct VO2Section: View {
+struct VO2Section: View {
   let title: String
   let trend: MetricTrend?
 
@@ -255,7 +291,7 @@ private struct VO2Section: View {
 
 private let zoneColors: [Color] = [.gray, .blue, .green, .orange, .red]
 
-private struct HeartRateSections: View {
+struct HeartRateSections: View {
   let report: HeartRateZoneReport?
 
   var body: some View {
