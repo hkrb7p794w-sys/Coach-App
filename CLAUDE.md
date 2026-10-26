@@ -28,8 +28,9 @@ Altbestand (nur lesen, Logik übernehmen, keine HA-/MQTT-Teile): `hkrb7p794w-sys
   App eingegeben und liegt nur im Keychain. Datenschutzmodus „reduziert“ ist Standard
   (keine Roh-Gesundheitswerte an kostenlose KI-Kontingente).
 - **Keine Secrets im Repo** (Keys, Tokens, Garmin-Daten). Sie liegen in GitHub-Secrets bzw. als Worker-Secrets.
-- **HealthKit ist optional.** SideStore mit kostenloser Apple-ID entfernt das Entitlement
-  (siehe `docs/decisions.md`). Jede HealthKit-Funktion prüft `HealthAccessDiagnosis.isUsable` und hat einen Weg ohne.
+- **HealthKit ist optional.** SideStore mit kostenloser Apple-ID kann das Entitlement entfernen; beim Nutzer
+  funktioniert es (Stand 26.10.2026, siehe `docs/decisions.md`). Jede HealthKit-Funktion prüft Verfügbarkeit bzw.
+  Berechtigung und hat einen Weg ohne.
 - UI-Texte auf Deutsch mit echten Umlauten. Code-Bezeichner auf Englisch, Kommentare auf Deutsch.
 - iOS 18+, Swift 6, Xcode 26 (Standard-Isolation `MainActor`, Approachable Concurrency).
 - Logik, die sich ohne Apple-Frameworks formulieren lässt, gehört nach `CoachCore` – mit Tests. Dazu zählen die

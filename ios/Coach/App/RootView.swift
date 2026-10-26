@@ -15,11 +15,7 @@ struct RootView: View {
         NutritionView()
       }
       Tab("Gym", systemImage: "dumbbell") {
-        PlaceholderView(
-          title: "Gym",
-          systemImage: "dumbbell",
-          message: "Übungen, Sätze und Verlauf kommen in Phase 5."
-        )
+        GymView()
       }
       Tab("Einstellungen", systemImage: "gearshape") {
         SettingsView()
