@@ -10,7 +10,7 @@ import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 export const MAX_BODY_BYTES = 8 * 1024 * 1024;
 export const MAX_IMAGES = 4;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/heic", "image/webp"]);
@@ -94,7 +94,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
   if (images.length > 0 && !task.allowImages)
     return json(400, { error: "Diese Aufgabe nimmt keine Bilder an" });
 
-  const { system, prompt } = task.build(input as Record<string, unknown>);
+  const { system, prompt } = task.build(input as Record<string, unknown>, images.length);
   try {
     const result = await generate({ system, prompt, json: task.json, images }, env, deps);
     let output: unknown = result.text;
