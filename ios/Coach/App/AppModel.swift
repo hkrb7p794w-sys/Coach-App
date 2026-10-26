@@ -13,6 +13,7 @@ final class AppModel {
   let garmin: GarminClient
   let sync: GarminSyncService
   let ai: AIClient
+  let settings: CoachSettings
 
   private(set) var isSyncing = false
   private(set) var lastReport: SyncReport?
@@ -23,6 +24,7 @@ final class AppModel {
     garmin = GarminClient(secrets: secrets)
     sync = GarminSyncService(client: garmin, context: container.mainContext, defaults: defaults)
     ai = AIClient(secrets: secrets, defaults: defaults)
+    settings = CoachSettings(defaults: defaults)
   }
 
   var lastSync: Date? {

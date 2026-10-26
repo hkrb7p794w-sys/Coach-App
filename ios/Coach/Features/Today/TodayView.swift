@@ -2,11 +2,16 @@ import CoachCore
 import SwiftData
 import SwiftUI
 
-/// Phase 2: zeigt die abgerufenen Garmin-Daten. Tagesempfehlung und Wochen-Soll/Ist folgen in Phase 3.
+/// Tagesempfehlung, Wochen-Soll/Ist, Rennvorbereitung und die Garmin-Werte der letzten Tage.
 struct TodayView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
+  @State private var viewModel = TodayViewModel()
+
+  private var refreshKey: String {
+    "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.season.hashValue)"
+  }
 
   var body: some View {
     NavigationStack {
@@ -18,6 +23,12 @@ struct TodayView: View {
             Text("Hinterlege in den Einstellungen deinen Garmin Personal API Key, um Daten abzurufen.")
               .foregroundStyle(.secondary)
           }
+        }
+
+        if let snapshot = viewModel.snapshot {
+          RecommendationSection(snapshot: snapshot, viewModel: viewModel)
+          WeekSection(plan: snapshot.plan)
+          RaceSection(plan: snapshot.plan, config: model.settings.season)
         }
 
         if !days.isEmpty {
@@ -41,7 +52,193 @@ struct TodayView: View {
         }
       }
       .navigationTitle("Heute")
-      .refreshable { await model.syncNow() }
+      .refreshable {
+        await model.syncNow()
+        await viewModel.loadNote(ai: model.ai, settings: model.settings)
+      }
+      .task(id: refreshKey) {
+        viewModel.update(
+          days: days.compactMap(\.metrics),
+          activities: activities.compactMap(\.activity),
+          settings: model.settings
+        )
+        await viewModel.loadNote(ai: model.ai, settings: model.settings)
+      }
+    }
+  }
+}
+
+private struct RecommendationSection: View {
+  let snapshot: TodayViewModel.Snapshot
+  let viewModel: TodayViewModel
+  @Environment(AppModel.self) private var model
+
+  private var color: Color {
+    switch snapshot.recommendation.level {
+    case .normal: .green
+    case .locker: .orange
+    case .pause: .red
+    }
+  }
+
+  var body: some View {
+    Section {
+      VStack(alignment: .leading, spacing: 6) {
+        Label(snapshot.recommendation.label, systemImage: "circle.fill")
+          .font(.title3.bold())
+          .foregroundStyle(color)
+        Text(snapshot.recommendation.advice)
+        Text(snapshot.recommendation.reasons.joined(separator: " · "))
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+        if snapshot.isFromYesterday {
+          Text("Für heute liegen noch keine Garmin-Werte vor – Einordnung mit den Werten von gestern.")
+            .font(.footnote)
+            .foregroundStyle(.orange)
+        }
+      }
+
+      VStack(alignment: .leading, spacing: 6) {
+        ForEach(viewModel.notePoints, id: \.self) { point in
+          Label(point, systemImage: "chevron.right")
+            .labelStyle(BulletLabelStyle())
+        }
+        HStack {
+          Text(viewModel.noteSource).font(.caption).foregroundStyle(.secondary)
+          Spacer()
+          if viewModel.isLoadingNote {
+            ProgressView()
+          } else if model.ai.isConfigured {
+            Button("Neu formulieren") {
+              Task { await viewModel.loadNote(ai: model.ai, settings: model.settings, force: true) }
+            }
+            .font(.caption)
+          }
+        }
+        if let error = viewModel.noteError {
+          Text(error).font(.caption).foregroundStyle(.orange)
+        }
+      }
+    } header: {
+      Text("Tagesempfehlung")
+    }
+  }
+}
+
+private struct BulletLabelStyle: LabelStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    HStack(alignment: .firstTextBaseline, spacing: 6) {
+      configuration.icon.font(.caption2).foregroundStyle(.secondary)
+      configuration.title
+    }
+  }
+}
+
+private struct WeekSection: View {
+  let plan: PlanState
+
+  var body: some View {
+    Section {
+      ForEach(plan.targets, id: \.target.label) { item in
+        VStack(alignment: .leading, spacing: 4) {
+          HStack {
+            Text(item.target.label)
+            Spacer()
+            Text(soll(item)).foregroundStyle(.secondary).monospacedDigit()
+          }
+          ProgressView(value: Double(item.percent), total: 100)
+            .tint(item.done >= item.target.minimum ? .green : .accentColor)
+          if !item.target.detail.isEmpty {
+            Text(item.target.detail).font(.caption).foregroundStyle(.secondary)
+          }
+        }
+      }
+      if !plan.todayFixed.isEmpty {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Heute laut Wochenrahmen").font(.subheadline.bold())
+          ForEach(plan.todayFixed, id: \.text) { item in
+            Label(item.text, systemImage: item.done ? "checkmark.circle.fill" : "circle")
+              .foregroundStyle(item.done ? .secondary : .primary)
+          }
+        }
+      }
+    } header: {
+      Text("Woche (\(plan.weekday), noch \(plan.daysLeftInWeek) Tage)")
+    } footer: {
+      if !plan.weekOpen.isEmpty {
+        Text("Noch offen: " + plan.weekOpen.joined(separator: ", "))
+      }
+    }
+  }
+
+  private func soll(_ item: TargetProgress) -> String {
+    let target = item.target
+    let range = target.minimum == target.maximum ? "\(target.minimum)" : "\(target.minimum)–\(target.maximum)"
+    return "\(item.done) / \(range)"
+  }
+}
+
+private struct RaceSection: View {
+  let plan: PlanState
+  let config: SeasonConfig
+
+  var body: some View {
+    Section {
+      LabeledContent(config.mainRaceName) {
+        Text(countdown(plan.daysToRace))
+      }
+      if plan.daysToMarathon >= 0 {
+        LabeledContent("Marathon") {
+          Text(countdown(plan.daysToMarathon))
+        }
+      }
+      VStack(alignment: .leading, spacing: 4) {
+        Text("Phase: \(plan.phase.rawValue) bis \(GermanFormat.date(plan.phaseEnd))").font(.subheadline.bold())
+        Text(plan.phase.focus).font(.footnote).foregroundStyle(.secondary)
+        if let next = plan.nextPhase {
+          Text("Danach: \(next.rawValue)").font(.caption).foregroundStyle(.secondary)
+        }
+      }
+      DisclosureGroup("Plan dieser Phase") {
+        PlanLine(title: "Laufen", text: plan.plan.run)
+        PlanLine(title: "Schwimmen", text: plan.plan.swim)
+        PlanLine(title: "Rad", text: plan.plan.bike)
+        PlanLine(title: "Kraft", text: plan.plan.strength)
+      }
+      DisclosureGroup("Saisonphasen") {
+        ForEach(plan.phases, id: \.phase) { span in
+          HStack {
+            Text(span.phase.rawValue).fontWeight(span.phase == plan.phase ? .bold : .regular)
+            Spacer()
+            Text("\(GermanFormat.date(span.start)) – \(GermanFormat.date(span.end))")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+    } header: {
+      Text("Rennvorbereitung")
+    }
+  }
+
+  private func countdown(_ days: Int) -> String {
+    switch days {
+    case ..<0: "vorbei"
+    case 0: "heute"
+    case 1: "morgen"
+    default: "noch \(days) Tage"
+    }
+  }
+}
+
+private struct PlanLine: View {
+  let title: String
+  let text: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(title).font(.caption.bold())
+      Text(text).font(.footnote)
     }
   }
 }
@@ -142,7 +339,7 @@ enum Formatters {
   }
 
   static func day(_ day: CalendarDay) -> String {
-    day.referenceDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+    day.localDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
   }
 
   static func duration(_ seconds: Double) -> String {
@@ -151,13 +348,7 @@ enum Formatters {
   }
 
   static func hrvStatus(_ status: String) -> String {
-    switch status {
-    case "BALANCED": "ausgeglichen"
-    case "UNBALANCED": "unausgeglichen"
-    case "LOW": "niedrig"
-    case "POOR": "schlecht"
-    default: "kein Status"
-    }
+    RecoveryEvaluator.hrvStatusGerman[status] ?? "kein Status"
   }
 
   static func hrvColor(_ status: String) -> Color {

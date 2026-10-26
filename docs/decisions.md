@@ -2,6 +2,22 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-23 – Coach-Logik auf dem iPhone, Saison konfigurierbar
+
+- Tagesampel (`recommendation.py`), Saisonplan mit Phasen, Wochen-Soll und Musterwoche (`plan.py`) sowie das
+  Wochenvolumen (`app.py`) sind nach `CoachCore` portiert und unter Linux getestet. Grenzen und Texte sind
+  unverändert; die Phasengrenzen der Standardsaison stimmen mit dem Altbestand überein (Test).
+- Renntermine und Testwerte (FTP, CSS, Pace) sind in der App einstellbar statt fest im Code; Watt- und
+  Pace-Angaben im Plan rechnen sich daraus.
+- Die Struktur der Saison (Marathon als Zwischenziel, danach Mitteldistanz) ist weiterhin fest. Eine andere
+  Saisonstruktur braucht eine Code-Änderung in `SeasonPlan`.
+- Training Readiness liefert die Personal API nicht; die Regel ist vorhanden und greift, sobald der Wert
+  (z. B. über den optionalen inoffiziellen Zugang) verfügbar ist.
+- Datenschutz verbessert: Im Modus „reduziert“ gehen auch die Begründungen der Tagesampel ohne Rohwerte an
+  die KI (der Altbestand schickte dort z. B. „Ruhepuls 58 bpm“ mit).
+- Die KI-Notiz wird je Tag und Ampelstufe zwischengespeichert; ohne Worker zeigt die App die regelbasierte
+  Notiz (`fallback_note` im Altbestand).
+
 ## 2026-10-23 – KI-Worker in TypeScript, Prompts im Worker
 
 - Cloudflare Workers Free erlauben 10 ms CPU-Zeit je Anfrage (Warten auf `fetch` zählt nicht). Fotos werden als

@@ -37,16 +37,17 @@ public struct GarminActivity: Codable, Equatable, Sendable, Identifiable {
   public enum Sport: String, Codable, Sendable {
     case run, bike, swim, strength, other
 
+    /// Gleiche Reihenfolge und Schlüsselwörter wie der Altbestand (`app.py`, Wochenvolumen).
     init(typeKey: String?) {
       let key = typeKey?.lowercased() ?? ""
-      if key.contains("strength") || key.contains("fitness_equipment") {
-        self = .strength
-      } else if key.contains("swim") {
+      if key.contains("swim") {
         self = .swim
-      } else if key.contains("cycling") || key.contains("biking") || key.contains("bike") {
+      } else if key.contains("bik") || key.contains("cycl") || key.contains("ride") {
         self = .bike
-      } else if key.contains("running") || key.contains("run") || key.contains("trail") {
+      } else if key.contains("run") {
         self = .run
+      } else if key.contains("strength") || key.contains("weight") || key.contains("gym") {
+        self = .strength
       } else {
         self = .other
       }

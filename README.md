@@ -16,8 +16,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | Phase | Inhalt | Status |
 |---|---|---|
 | 1 | Gerüst, CI, leere App mit HealthKit-Diagnose | fertig (PR 1) |
-| 2 | Garmin-Anbindung (Personal API), lokale Datenhaltung, KI-Worker auf Cloudflare | in Arbeit (PR 2) |
-| 3 | Coach: Tagesempfehlung, Erholung, Wochen-Soll/Ist, Rennvorbereitung | offen |
+| 2 | Garmin-Anbindung (Personal API), lokale Datenhaltung, KI-Worker auf Cloudflare | fertig (PR 2) |
+| 3 | Coach: Tagesempfehlung, Erholung, Wochen-Soll/Ist, Rennvorbereitung | in Arbeit (PR 3) |
 | 4 | Ernährung: Foto, Text, Barcode; Tagesziele nach Training; KI-Auswertung | offen |
 | 5 | Gym: Übungen, Sätze, Verlauf, Speichern in HealthKit bzw. Garmin | offen |
 
