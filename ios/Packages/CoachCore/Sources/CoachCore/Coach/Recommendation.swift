@@ -53,7 +53,7 @@ public struct Recommendation: Codable, Equatable, Sendable {
 /// - HRV: maßgeblich ist der 7-Tage-Schnitt relativ zur persönlichen Baseline (Garmin „HRV-Status“),
 ///   nicht die Einzelnacht (Plews et al. 2012/2013; Garmin-Handbuch „Heart Rate Variability Status“).
 /// - Readiness: Garmins Stufen (1–24 Poor, 25–49 Low, …), nur nach unten genutzt, weil die akute
-///   Belastung selbst in den Score einfließt. Die Personal API liefert sie (noch) nicht; dann entfällt die Regel.
+///   Belastung selbst in den Score einfließt. Nur über den Garmin-Connect-Zugang; ohne Wert entfällt die Regel.
 /// - Ruhepuls: mindestens 5 bpm über dem eigenen 7-Tage-Schnitt als Warnsignal.
 /// - Schlaf: unter 5 h rot, unter 6 h gelb.
 public enum RecoveryEvaluator {
@@ -94,7 +94,7 @@ public enum RecoveryEvaluator {
       break
     }
 
-    if let score = readinessScore {
+    if let score = readinessScore ?? metrics.trainingReadiness {
       if score < 25 {
         worsen(to: .pause)
         reasons.append("Readiness \(Int(score.rounded())) (Garmin-Stufe „Poor“)")

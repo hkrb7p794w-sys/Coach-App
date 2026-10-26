@@ -36,6 +36,12 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
   public var sleepStress: Double?
   public var fitnessAge: Double?
   public var vo2Max: Double?
+  /// Nur über den Garmin-Connect-Zugang: Training Readiness (0–100) mit Garmins Stufe (`HIGH`, `LOW` …),
+  /// Trainingsstatus (z. B. `PRODUCTIVE_3`) und Endurance Score.
+  public var trainingReadiness: Double?
+  public var trainingReadinessLevel: String?
+  public var trainingStatus: String?
+  public var enduranceScore: Double?
 
   public init(day: CalendarDay) {
     self.day = day
@@ -76,6 +82,10 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
     result.sleepStress = other.sleepStress ?? sleepStress
     result.fitnessAge = other.fitnessAge ?? fitnessAge
     result.vo2Max = other.vo2Max ?? vo2Max
+    result.trainingReadiness = other.trainingReadiness ?? trainingReadiness
+    result.trainingReadinessLevel = other.trainingReadinessLevel ?? trainingReadinessLevel
+    result.trainingStatus = other.trainingStatus ?? trainingStatus
+    result.enduranceScore = other.enduranceScore ?? enduranceScore
     return result
   }
 
@@ -88,6 +98,8 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
       ("Stress", stressAverage), ("Schritte", steps), ("Aktive kcal", activeKilocalories),
       ("Atemfrequenz", respirationWaking ?? respirationSleep), ("SpO2", spo2Average),
       ("Schlafphasen", deepSleepSeconds), ("Fitnessalter", fitnessAge), ("VO2max", vo2Max),
+      ("Training Readiness", trainingReadiness), ("Trainingsstatus", trainingStatus),
+      ("Endurance Score", enduranceScore),
     ]
     return fields.compactMap { $0.1 == nil ? nil : $0.0 }
   }

@@ -12,6 +12,13 @@ final class SettingsViewModel {
   var keyExpiry: Date
   var workerURLInput: String
   var appTokenInput = ""
+  var connectEmail: String
+  var connectPassword = ""
+  var connectCode = ""
+  /// Garmin wartet auf einen Bestätigungscode (Methode, z. B. `email`).
+  private(set) var awaitingCodeVia: String?
+  private(set) var connectLoggedIn: Bool
+  private(set) var connectStatus: String?
 
   private(set) var garminStatus: String?
   private(set) var aiStatus: String?
@@ -27,6 +34,8 @@ final class SettingsViewModel {
       defaults.object(forKey: Self.keyExpiryKey) as? Date
       ?? Calendar.current.date(byAdding: .year, value: 1, to: .now) ?? .now
     workerURLInput = model.ai.workerURL
+    connectEmail = model.garmin.connect?.email ?? ""
+    connectLoggedIn = model.garmin.connect?.isLoggedIn ?? false
   }
 
   var hasGarminKey: Bool { model.garmin.hasKey }
@@ -62,6 +71,63 @@ final class SettingsViewModel {
     } catch {
       garminStatus = error.localizedDescription
     }
+  }
+
+  // MARK: - Garmin-Konto
+
+  func loginConnect() async {
+    guard let connect = model.garmin.connect else { return }
+    guard !connectEmail.isEmpty, !connectPassword.isEmpty else {
+      connectStatus = "Bitte E-Mail und Passwort eingeben."
+      return
+    }
+    isBusy = true
+    defer { isBusy = false }
+    connectStatus = "Anmeldung läuft …"
+    do {
+      let state = try await connect.login(email: connectEmail, password: connectPassword)
+      connectPassword = ""
+      await finish(state)
+    } catch {
+      connectPassword = ""
+      connectStatus = error.localizedDescription
+    }
+  }
+
+  func submitConnectCode() async {
+    guard let connect = model.garmin.connect else { return }
+    isBusy = true
+    defer { isBusy = false }
+    do {
+      let state = try await connect.submitCode(connectCode)
+      connectCode = ""
+      await finish(state)
+    } catch {
+      connectStatus = error.localizedDescription
+    }
+  }
+
+  private func finish(_ state: GarminConnectSession.LoginState) async {
+    switch state {
+    case .needsCode(let method):
+      awaitingCodeVia = method
+      connectStatus =
+        method.lowercased() == "email"
+        ? "Garmin hat dir einen Code per E-Mail geschickt." : "Garmin hat dir einen Code geschickt (\(method))."
+    case .loggedIn:
+      awaitingCodeVia = nil
+      connectLoggedIn = true
+      connectStatus = "Angemeldet. Daten werden abgerufen …"
+      await model.syncNow()
+      connectStatus = model.lastError ?? model.lastReport.map { "Abgerufen: \($0.summary)" } ?? "Angemeldet."
+    }
+  }
+
+  func logoutConnect() {
+    model.garmin.connect?.logout()
+    connectLoggedIn = false
+    awaitingCodeVia = nil
+    connectStatus = "Abgemeldet."
   }
 
   func saveExpiry() {

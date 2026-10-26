@@ -2,6 +2,31 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Garmin-Konto (inoffiziell) zuerst, Personal API als Rückfall
+
+- Auftrag des Nutzers: Der inoffizielle Login soll die Hauptquelle sein, die offizielle Personal API nur
+  einspringen. Grund: Readiness, Trainingsstatus, Endurance Score und Wettkampfprognosen gibt es nur so.
+- `garth` (OAuth1 über die alte Mobile-Anmeldung) funktioniert seit März 2026 nicht mehr. Garmin hat die
+  Anmeldung geändert und prüft TLS-Fingerabdrücke (garth-README: „deprecated“; python-garminconnect
+  Issue #332). Übernommen ist deshalb der Ablauf aus python-garminconnect 0.3.20 (Strategie „mobile“):
+  - Anmeldeseite laden, nach 2–5 s `POST /mobile/api/login` (`clientId=GCM_IOS_DARK`), bei Bedarf
+    Bestätigungscode über `/mobile/api/mfa/verifyCode`.
+  - Ticket gegen ein DI-OAuth2-Token tauschen (`diauth.garmin.com`), danach Abrufe auf
+    `connectapi.garmin.com` mit den Kopfzeilen der Garmin-App.
+  - Die App läuft auf einem echten iPhone (URLSession). Ihr TLS-Fingerabdruck ist der von iOS, genau den
+    imitiert python-garminconnect mit `curl_cffi`.
+- Das Passwort wird nicht gespeichert, nur das Token (Schlüsselbund) und die E-Mail-Adresse. Läuft die
+  Erneuerung ab, meldet die App „neu anmelden“.
+- Rückfall je Abruf: Scheitert das Konto (abgelaufen, 403/429, unbekannter Pfad), übernimmt die Personal API,
+  sofern ein Key hinterlegt ist. Der Abrufbericht zeigt, welche Quelle wie oft geantwortet hat.
+- Endpunkte nur über das Konto: `metrics-service/metrics/trainingreadiness/{date}`,
+  `…/trainingstatus/aggregated/{date}`, `…/endurancescore?calendarDate=`, `…/racepredictions/latest/{displayName}`,
+  dazu Tageswerte und Schlaf in der Connect-Form (`usersummary/daily/{displayName}`,
+  `dailySleepData/{displayName}`). Feldnamen wie im Altbestand (`ha_publish.extract_metrics`).
+- Die Training Readiness fließt in die Tagesampel ein; die Regel gab es schon (`RecoveryEvaluator`).
+- Ungeprüft, weil nur auf dem iPhone mit echtem Konto testbar: ob Garmin die Anmeldung von dort durchlässt.
+  Falls nicht, meldet die App den Grund, und die Personal API übernimmt.
+
 ## 2026-10-26 – Repo privat, SideStore-Auslieferung über den Worker
 
 - Auf Wunsch des Nutzers ist das Repo privat (Trainingsplan und Gewichte waren öffentlich). Release-Dateien

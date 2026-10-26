@@ -255,6 +255,9 @@ struct RunPage: View {
       TestTrendSection(
         title: "Schwellenpace", kind: .threshold, format: { "\(PlanTokens.mmss(Int($0))) /km" }, lowerIsBetter: true)
       VO2Section(title: "VO2max Laufen (Garmin)", trend: viewModel.vo2Run)
+      if let predictions = model.sync.racePredictions {
+        RacePredictionSection(predictions: predictions)
+      }
       PaceTableSection(
         title: "Paces", rows: RunPaces.rows(config: model.settings.season),
         footer: "Läufe nur als Zone 2, Schwelle oder 4×4 min – keine anderen Intervallformen.")
@@ -281,6 +284,37 @@ struct RunPage: View {
       }
     }
     .navigationTitle("Laufen")
+  }
+}
+
+/// Wettkampfprognosen der Uhr (nur mit dem Garmin-Konto).
+private struct RacePredictionSection: View {
+  let predictions: RacePredictions
+
+  var body: some View {
+    Section {
+      ForEach(rows, id: \.0) { label, seconds, pace in
+        HStack {
+          Text(label)
+          Spacer()
+          Text(TimeText.hms(Int(seconds))).font(.body.weight(.semibold)).monospacedDigit()
+          Text("\(PlanTokens.mmss(pace)) /km").font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            .frame(width: 72, alignment: .trailing)
+        }
+      }
+    } header: {
+      Text("Prognose der Uhr")
+    } footer: {
+      Text("Garmins Schätzung aus VO2max und Trainingsverlauf – eine Orientierung, kein Testergebnis.")
+    }
+  }
+
+  private var rows: [(String, Double, Int)] {
+    [
+      ("5 km", predictions.fiveK, 5.0), ("10 km", predictions.tenK, 10.0),
+      ("Halbmarathon", predictions.halfMarathon, 21.0975), ("Marathon", predictions.marathon, 42.195),
+    ]
+    .compactMap { label, seconds, km in seconds.map { (label, $0, Int(($0 / km).rounded())) } }
   }
 }
 

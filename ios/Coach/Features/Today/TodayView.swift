@@ -22,9 +22,9 @@ struct TodayView: View {
       List {
         SyncStatusSection()
 
-        if !model.garmin.hasKey {
+        if !model.garmin.isConfigured {
           Section {
-            Text("Hinterlege in den Einstellungen deinen Garmin Personal API Key, um Daten abzurufen.")
+            Text("Melde dich in den Einstellungen mit deinem Garmin-Konto an (oder hinterlege den Personal API Key).")
               .foregroundStyle(.secondary)
           }
         }

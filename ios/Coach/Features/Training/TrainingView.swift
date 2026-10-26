@@ -135,8 +135,8 @@ struct RecoverySections: View {
         Text("Werte von heute")
       } footer: {
         Text(
-          "Training Readiness, Trainingsstatus und Endurance Score liefert die offizielle Garmin-Schnittstelle "
-            + "nicht. Sie kommen mit dem optionalen Garmin-Login dazu.")
+          "Training Readiness, Trainingsstatus und Endurance Score gibt es nur mit dem Garmin-Konto "
+            + "(Einstellungen); die Personal API liefert sie nicht.")
       }
     }
     if let night = viewModel.sleepStages {

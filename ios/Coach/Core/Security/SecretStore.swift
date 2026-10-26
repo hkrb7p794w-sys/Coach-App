@@ -5,6 +5,8 @@ import Security
 enum SecretKey: String, CaseIterable {
   case garminAPIKey
   case garminBearerToken
+  /// Token des inoffiziellen Garmin-Connect-Zugangs (JSON, `GarminConnect.Token`).
+  case garminConnectToken
   case aiAppToken
 }
 

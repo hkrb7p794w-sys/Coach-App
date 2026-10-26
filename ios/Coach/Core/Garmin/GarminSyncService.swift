@@ -11,12 +11,19 @@ struct SyncReport: Equatable {
   var activitiesAnalyzed = 0
   /// Fehler einzelner Endpunkte; der Rest des Abrufs läuft trotzdem durch.
   var errors: [String] = []
+  /// Beantwortete Abrufe je Quelle (Garmin-Konto, Personal API).
+  var sources: [String: Int] = [:]
+  /// Grund, warum die Personal API einspringen musste.
+  var connectProblem: String?
   var finishedAt = Date.now
 
   var summary: String {
     var text = "\(daysUpdated) Tage, \(activitiesUpdated) Aktivitäten (\(range.start.iso) – \(range.end.iso))"
     if activitiesAnalyzed > 0 { text += ", \(activitiesAnalyzed) ausgewertet" }
     if !errors.isEmpty { text += ", \(errors.count) Fehler" }
+    if !sources.isEmpty {
+      text += " · " + sources.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value)" }.joined(separator: ", ")
+    }
     return text
   }
 }
@@ -34,6 +41,7 @@ final class GarminSyncService {
   static let profileKey = "garmin.profile"
   static let profileDateKey = "garmin.profileDate"
   static let activityBackfillKey = "garmin.activityBackfill"
+  static let racePredictionsKey = "garmin.racePredictions"
 
   init(
     client: GarminClient, context: ModelContext, defaults: UserDefaults = .standard,
@@ -49,14 +57,29 @@ final class GarminSyncService {
     defaults.object(forKey: Self.lastSyncKey) as? Date
   }
 
+  /// Wettkampfprognosen der Uhr (nur über das Garmin-Konto).
+  var racePredictions: RacePredictions? {
+    defaults.data(forKey: Self.racePredictionsKey).flatMap { try? JSONDecoder().decode(RacePredictions.self, from: $0) }
+  }
+
   var profile: GarminProfile? {
     defaults.data(forKey: Self.profileKey).flatMap { try? JSONDecoder().decode(GarminProfile.self, from: $0) }
   }
 
   func sync(now: Date = .now) async throws -> SyncReport {
-    guard client.hasKey else { throw GarminAPIError.missingKey }
-    // Schlägt schon der Token-Tausch fehl, ist der Key das Problem – dann nicht jeden Endpunkt einzeln melden.
-    _ = try await client.validToken()
+    guard client.isConfigured else { throw GarminAPIError.missingKey }
+    client.resetSources()
+    if client.connect?.isLoggedIn ?? false {
+      // Token früh erneuern: Ist die Anmeldung abgelaufen und kein Key da, gleich klar melden.
+      do {
+        _ = try await client.connect?.validToken()
+      } catch {
+        if !client.hasKey { throw error }
+      }
+    } else {
+      // Schlägt schon der Token-Tausch fehl, ist der Key das Problem – dann nicht jeden Endpunkt einzeln melden.
+      _ = try await client.validToken()
+    }
 
     let today = CalendarDay(date: now)
     let range = SyncPlan.range(latestStored: latestStoredDay(), today: today)
@@ -85,6 +108,9 @@ final class GarminSyncService {
         maps.append(parse(json))
       }
     }
+    if client.connect?.isLoggedIn ?? false {
+      maps += await connectExtras(today: today, report: &report)
+    }
     let merged = GarminMetricsParser.merge(maps).filter { range.start <= $0.key && $0.key <= range.end }
     report.daysUpdated = store(merged, at: now)
     report.activitiesUpdated = await syncActivities(since: range.start, report: &report)
@@ -100,6 +126,8 @@ final class GarminSyncService {
     report.activitiesAnalyzed = await analyzeActivities(today: today, report: &report)
 
     defaults.set(now, forKey: Self.lastSyncKey)
+    report.sources = Dictionary(uniqueKeysWithValues: client.sources.map { ($0.key.rawValue, $0.value) })
+    report.connectProblem = client.lastConnectError
     report.finishedAt = now
     return report
   }
@@ -164,6 +192,49 @@ final class GarminSyncService {
       if !more { break }
     }
     return updated
+  }
+
+  /// Werte, die nur das Garmin-Konto liefert, plus Tageswerte und Schlaf in der Connect-Form.
+  private func connectExtras(today: CalendarDay, report: inout SyncReport) async -> [GarminMetricsParser.DayMap] {
+    var maps: [GarminMetricsParser.DayMap] = []
+    for day in [today.adding(days: -1), today] {
+      if let json = await fetchConnect(.trainingReadiness(day), report: &report) {
+        maps.append(GarminMetricsParser.trainingReadiness(json, day: day))
+      }
+    }
+    if let json = await fetchConnect(.trainingStatus(today), report: &report) {
+      maps.append(GarminMetricsParser.trainingStatus(json, day: today))
+    }
+    if let json = await fetchConnect(.enduranceScore(today), report: &report) {
+      maps.append(GarminMetricsParser.enduranceScore(json, day: today))
+    }
+    if let name = client.connect?.displayName {
+      for day in [today.adding(days: -1), today] {
+        if let json = await fetchConnect(.userSummary(displayName: name, day: day), report: &report) {
+          maps.append(GarminMetricsParser.dailySummaries(json))
+        }
+        if let json = await fetchConnect(.dailySleepData(displayName: name, day: day), report: &report) {
+          maps.append(GarminMetricsParser.sleep(json))
+        }
+      }
+      if let json = await fetchConnect(.racePredictions(displayName: name), report: &report),
+        let predictions = RacePredictions(json: json), let data = try? JSONEncoder().encode(predictions)
+      {
+        defaults.set(data, forKey: Self.racePredictionsKey)
+      }
+    }
+    return maps
+  }
+
+  private func fetchConnect(_ endpoint: ConnectEndpoint, report: inout SyncReport) async -> JSONValue? {
+    do {
+      return try await client.json(endpoint)
+    } catch let error as GarminAPIError {
+      report.errors.append("Konto \(endpoint.path): \(error.message)")
+    } catch {
+      report.errors.append("Konto \(endpoint.path): \(error.localizedDescription)")
+    }
+    return nil
   }
 
   /// FIT-Dateien neuer Läufe und Fahrten auswerten (höchstens sechs je Abruf, der Rest folgt beim nächsten).
