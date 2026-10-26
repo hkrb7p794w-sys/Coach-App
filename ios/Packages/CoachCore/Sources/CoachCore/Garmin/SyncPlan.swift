@@ -8,6 +8,8 @@ import Foundation
 public enum SyncPlan {
   public static let initialDays = 60
   public static let overlapDays = 2
+  /// Aktivitätsverlauf für Wochenbalken (12 Wochen) und HFmax.
+  public static let activityHistoryDays = 91
   /// Abrufe kürzer hintereinander als dieser Abstand werden beim App-Start übersprungen.
   public static let minimumInterval: TimeInterval = 15 * 60
 

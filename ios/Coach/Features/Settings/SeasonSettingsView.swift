@@ -48,6 +48,18 @@ struct SeasonSettingsView: View {
       }
 
       Section {
+        HeartRateStepper(title: "HFmax", value: $settings.heartRate.maxHeartRate, range: 140...230)
+        HeartRateStepper(title: "Schwelle Laufen", value: $settings.heartRate.thresholdRun, range: 120...210)
+        HeartRateStepper(title: "Schwelle Rad", value: $settings.heartRate.thresholdBike, range: 120...210)
+      } header: {
+        Text("Herzfrequenz")
+      } footer: {
+        Text(
+          "Ohne eigene Werte nutzt die App die Laktatschwelle von Garmin und den höchsten bestätigten Puls aus "
+            + "deinen Einheiten. Schwelle: 30 Minuten am Anschlag, Ø-HF der letzten 20 Minuten.")
+      }
+
+      Section {
         Picker("KI-Datenschutz", selection: $settings.privacy) {
           Text("Reduziert (empfohlen)").tag(PrivacyMode.reduced)
           Text("Voll").tag(PrivacyMode.full)
@@ -72,5 +84,28 @@ struct SeasonSettingsView: View {
       get: { binding.wrappedValue.localDate },
       set: { binding.wrappedValue = CalendarDay(date: $0) }
     )
+  }
+}
+
+/// Eigener Pulswert; „automatisch“, solange keiner gesetzt ist.
+private struct HeartRateStepper: View {
+  let title: String
+  @Binding var value: Int?
+  let range: ClosedRange<Int>
+
+  var body: some View {
+    if let current = value {
+      HStack {
+        Stepper(
+          "\(title) \(current) bpm",
+          value: Binding(get: { current }, set: { value = $0 }), in: range)
+        Button("Auto") { value = nil }.buttonStyle(.borderless)
+      }
+    } else {
+      LabeledContent(title) {
+        Button("automatisch – eigenen Wert setzen") { value = (range.lowerBound + range.upperBound) / 2 + 10 }
+          .buttonStyle(.borderless)
+      }
+    }
   }
 }

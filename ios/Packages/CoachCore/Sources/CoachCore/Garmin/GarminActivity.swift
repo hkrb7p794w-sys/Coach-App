@@ -20,6 +20,8 @@ public struct GarminActivity: Codable, Equatable, Sendable, Identifiable {
   public var normalizedPower: Double?
   public var elevationGain: Double?
   public var vo2Max: Double?
+  /// Sekunden in den fünf Herzfrequenzzonen der Uhr (`hrTimeInZone_1` … `_5`).
+  public var secondsInZones: [Double]?
 
   public init(id: Int64) {
     self.id = id
@@ -80,6 +82,8 @@ public enum GarminActivityParser {
     activity.normalizedPower = record["normPower"]?.doubleValue
     activity.elevationGain = record["elevationGain"]?.doubleValue
     activity.vo2Max = record["vO2MaxValue"]?.doubleValue
+    let zones = (1...5).compactMap { record["hrTimeInZone_\($0)"]?.doubleValue }
+    if zones.count == 5, zones.reduce(0, +) > 0 { activity.secondsInZones = zones }
     return activity
   }
 }
@@ -92,6 +96,7 @@ public struct GarminProfile: Codable, Equatable, Sendable {
   /// `MALE` oder `FEMALE`.
   public var gender: String?
   public var vo2MaxRunning: Double?
+  public var vo2MaxCycling: Double?
   public var lactateThresholdHeartRate: Double?
 
   public init() {}
@@ -106,6 +111,7 @@ public struct GarminProfile: Codable, Equatable, Sendable {
     birthDate = data.firstValue(forAnyOf: ["birthDate"])?.stringValue.flatMap { CalendarDay(iso: $0) }
     gender = data.firstValue(forAnyOf: ["gender"])?.stringValue?.uppercased()
     vo2MaxRunning = data.firstValue(forAnyOf: ["vo2MaxRunning"])?.doubleValue
+    vo2MaxCycling = data.firstValue(forAnyOf: ["vo2MaxCycling"])?.doubleValue
     lactateThresholdHeartRate = data.firstValue(forAnyOf: ["lactateThresholdHeartRate"])?.doubleValue
   }
 

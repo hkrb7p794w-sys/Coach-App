@@ -29,6 +29,7 @@ final class GarminSyncService {
   static let lastSyncKey = "garmin.lastSync"
   static let profileKey = "garmin.profile"
   static let profileDateKey = "garmin.profileDate"
+  static let activityBackfillKey = "garmin.activityBackfill"
 
   init(client: GarminClient, context: ModelContext, defaults: UserDefaults = .standard) {
     self.client = client
@@ -66,6 +67,9 @@ final class GarminSyncService {
     // Einzeltage für heute: Zusammenfassungen hängen teils hinterher.
     sources.append((.hrv(today), GarminMetricsParser.hrv))
     sources.append((.dailySleep(today), GarminMetricsParser.sleep))
+    sources.append((.spo2(today.adding(days: -1)), GarminMetricsParser.spo2))
+    sources.append((.spo2(today), GarminMetricsParser.spo2))
+    sources.append((.fitnessAge(today), { GarminMetricsParser.fitnessAge($0, day: today) }))
 
     var maps: [GarminMetricsParser.DayMap] = []
     for (endpoint, parse) in sources {
@@ -76,6 +80,13 @@ final class GarminSyncService {
     let merged = GarminMetricsParser.merge(maps).filter { range.start <= $0.key && $0.key <= range.end }
     report.daysUpdated = store(merged, at: now)
     report.activitiesUpdated = await syncActivities(since: range.start, report: &report)
+    if defaults.string(forKey: Self.activityBackfillKey) == nil {
+      // Einmalig 13 Wochen Aktivitäten für die Wochenbalken und die HFmax nachladen.
+      let errorsBefore = report.errors.count
+      report.activitiesUpdated += await syncActivities(
+        since: today.adding(days: -SyncPlan.activityHistoryDays), ignoreKnown: true, report: &report)
+      if report.errors.count == errorsBefore { defaults.set(today.iso, forKey: Self.activityBackfillKey) }
+    }
     await refreshProfileIfNeeded(today: today, report: &report)
 
     try context.save()
@@ -112,7 +123,9 @@ final class GarminSyncService {
     return metrics.count
   }
 
-  private func syncActivities(since start: CalendarDay, report: inout SyncReport) async -> Int {
+  private func syncActivities(
+    since start: CalendarDay, ignoreKnown: Bool = false, report: inout SyncReport
+  ) async -> Int {
     let existing = (try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []
     var byID = Dictionary(existing.map { ($0.garminID, $0) }, uniquingKeysWith: { first, _ in first })
     let knownIDs = Set(byID.keys)
@@ -137,7 +150,8 @@ final class GarminSyncService {
         updated += 1
       }
       let more = SyncPlan.shouldLoadNextPage(
-        page: page, pageSize: pageSize, knownIDs: knownIDs, rangeStart: start, pagesLoaded: pages)
+        page: page, pageSize: pageSize, knownIDs: ignoreKnown ? [] : knownIDs, rangeStart: start,
+        pagesLoaded: pages)
       if !more { break }
     }
     return updated
@@ -145,6 +159,8 @@ final class GarminSyncService {
 
   private func refreshProfileIfNeeded(today: CalendarDay, report: inout SyncReport) async {
     guard defaults.string(forKey: Self.profileDateKey) != today.iso else { return }
+    // Uhr-Zonen: Die Rohantwort genügt, die App liest sie aus `RawResponseRecord`.
+    _ = await fetch(.heartRateZones, report: &report)
     guard let json = await fetch(.profileSettings, report: &report) else { return }
     if let data = try? JSONEncoder().encode(GarminProfile(settings: json)) {
       defaults.set(data, forKey: Self.profileKey)
@@ -156,6 +172,13 @@ final class GarminSyncService {
     var descriptor = FetchDescriptor<DailyMetricsRecord>(sortBy: [SortDescriptor(\.dayKey, order: .reverse)])
     descriptor.fetchLimit = 1
     return (try? context.fetch(descriptor))?.first.flatMap { CalendarDay(iso: $0.dayKey) }
+  }
+
+  /// Letzte gespeicherte Rohantwort eines Endpunkts.
+  func raw(_ endpoint: GarminEndpoint) -> JSONValue? {
+    let name = endpoint.request.path
+    let descriptor = FetchDescriptor<RawResponseRecord>(predicate: #Predicate { $0.endpoint == name })
+    return (try? context.fetch(descriptor).first).flatMap { try? JSONValue(data: $0.body) }
   }
 
   private func saveRaw(_ endpoint: GarminEndpoint, _ data: Data) {

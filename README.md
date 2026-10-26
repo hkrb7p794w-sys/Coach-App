@@ -18,7 +18,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 1 | Gerüst, CI, leere App mit HealthKit-Diagnose | fertig (PR 1) |
 | 2 | Garmin-Anbindung (Personal API), lokale Datenhaltung, KI-Worker auf Cloudflare | fertig (PR 2) |
 | 3 | Coach: Tagesempfehlung, Erholung, Wochen-Soll/Ist, Rennvorbereitung | fertig (PR 3) |
-| 4 | Ernährung: Foto, Text, Barcode; Tagesziele nach Training; KI-Auswertung | in Arbeit (PR 4) |
+| 4 | Ernährung: Foto, Text, Barcode; Tagesziele nach Training; KI-Auswertung | fertig (PR 4) |
+| 4b | Garmin-Werte wie im HA-Dashboard: Erholungsverläufe, SpO2, Atemfrequenz, VO2max, km/Woche, HF-Zonen | in Arbeit (PR 6) |
 | 5 | Gym: Übungen, Sätze, Verlauf, Speichern in HealthKit bzw. Garmin | offen |
 
 ## Installation auf dem iPhone
