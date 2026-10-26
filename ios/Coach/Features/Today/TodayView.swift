@@ -7,11 +7,14 @@ struct TodayView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
+  @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
   @State private var viewModel = TodayViewModel()
   @State private var showSettings = false
 
   private var refreshKey: String {
-    "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.season.hashValue)"
+    let settings = model.settings
+    return "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(gymSessions.count)-"
+      + "\(settings.season.hashValue)-\(settings.competitionDecisions.values.map(\.rawValue).sorted())"
   }
 
   var body: some View {
@@ -27,24 +30,20 @@ struct TodayView: View {
         }
 
         if let snapshot = viewModel.snapshot {
-          RecommendationSection(snapshot: snapshot, viewModel: viewModel)
-          WeekSection(plan: snapshot.plan)
-          RaceSection(plan: snapshot.plan, config: model.settings.season)
-        }
-
-        if !days.isEmpty {
-          Section("Erholung") {
-            ForEach(days.prefix(14)) { record in
-              if let metrics = record.metrics {
-                DayRow(metrics: metrics)
-              }
-            }
+          RecommendationSection(snapshot: snapshot)
+          if let today = snapshot.today {
+            TodayUnitsSection(today: today)
           }
+          CoachNoteSection(viewModel: viewModel)
+          if let today = snapshot.today, !today.rest.isEmpty {
+            RestOfWeekSection(items: today.rest)
+          }
+          WeekSection(plan: snapshot.plan)
         }
 
         if !activities.isEmpty {
-          Section("Aktivitäten") {
-            ForEach(activities.prefix(10)) { record in
+          Section("Letzte Aktivitäten") {
+            ForEach(activities.prefix(5)) { record in
               if let activity = record.activity {
                 ActivityRow(activity: activity)
               }
@@ -67,7 +66,8 @@ struct TodayView: View {
         viewModel.update(
           days: days.compactMap(\.metrics),
           activities: activities.compactMap(\.activity),
-          settings: model.settings
+          settings: model.settings,
+          gymDays: gymSessions.compactMap { $0.session?.day }
         )
         await viewModel.loadNote(ai: model.ai, settings: model.settings)
       }
@@ -75,9 +75,9 @@ struct TodayView: View {
   }
 }
 
+/// Tagesampel als Kopf der Seite: Stufe, Ratschlag, Gründe, Phase und Countdown.
 private struct RecommendationSection: View {
   let snapshot: TodayViewModel.Snapshot
-  let viewModel: TodayViewModel
   @Environment(AppModel.self) private var model
 
   private var color: Color {
@@ -88,47 +88,197 @@ private struct RecommendationSection: View {
     }
   }
 
+  private var symbol: String {
+    switch snapshot.recommendation.level {
+    case .normal: "checkmark.circle.fill"
+    case .locker: "tortoise.fill"
+    case .pause: "bed.double.fill"
+    }
+  }
+
   var body: some View {
+    let plan = snapshot.plan
+    let season = model.settings.season
     Section {
-      VStack(alignment: .leading, spacing: 6) {
-        Label(snapshot.recommendation.label, systemImage: "circle.fill")
-          .font(.title3.bold())
-          .foregroundStyle(color)
-        Text(snapshot.recommendation.advice)
-        Text(snapshot.recommendation.reasons.joined(separator: " · "))
-          .font(.footnote)
-          .foregroundStyle(.secondary)
+      VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
+          Image(systemName: symbol)
+            .font(.title)
+            .foregroundStyle(.white)
+            .frame(width: 52, height: 52)
+            .background(color.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .accessibilityHidden(true)
+          VStack(alignment: .leading, spacing: 2) {
+            Text(snapshot.recommendation.label).font(.title3.bold())
+            Text(snapshot.today?.advice ?? snapshot.recommendation.advice).font(.subheadline)
+          }
+        }
+        if !snapshot.recommendation.reasons.isEmpty {
+          Text(snapshot.recommendation.reasons.joined(separator: " · "))
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
         if snapshot.isFromYesterday {
-          Text("Für heute liegen noch keine Garmin-Werte vor – Einordnung mit den Werten von gestern.")
+          Label("Noch keine Garmin-Werte für heute – Einordnung mit den Werten von gestern.", systemImage: "clock")
             .font(.footnote)
             .foregroundStyle(.orange)
         }
-      }
-
-      VStack(alignment: .leading, spacing: 6) {
-        ForEach(viewModel.notePoints, id: \.self) { point in
-          Label(point, systemImage: "chevron.right")
-            .labelStyle(BulletLabelStyle())
+        HStack(spacing: 8) {
+          Chip(text: plan.phase.rawValue, color: .accentColor)
+          if plan.daysToMarathon >= 0 { Chip(text: "Marathon \(countdown(plan.daysToMarathon))", color: .pink) }
+          if plan.daysToRace >= 0 { Chip(text: "\(season.mainRaceName) \(countdown(plan.daysToRace))", color: .teal) }
         }
-        HStack {
-          Text(viewModel.noteSource).font(.caption).foregroundStyle(.secondary)
-          Spacer()
-          if viewModel.isLoadingNote {
-            ProgressView()
-          } else if model.ai.isConfigured {
-            Button("Neu formulieren") {
-              Task { await viewModel.loadNote(ai: model.ai, settings: model.settings, force: true) }
-            }
-            .font(.caption)
+      }
+      .padding(.vertical, 4)
+    } header: {
+      Text("\(plan.weekday), \(Formatters.shortDate(plan.today))")
+    }
+  }
+
+  private func countdown(_ days: Int) -> String {
+    switch days {
+    case 0: "heute"
+    case 1: "morgen"
+    default: "in \(days) T."
+    }
+  }
+}
+
+/// Kleine farbige Kapsel für Phase, Countdown und Hinweise.
+struct Chip: View {
+  let text: String
+  let color: Color
+
+  var body: some View {
+    Text(text)
+      .font(.caption.weight(.semibold))
+      .lineLimit(1)
+      .padding(.horizontal, 8)
+      .padding(.vertical, 3)
+      .background(color.opacity(0.15), in: Capsule())
+      .foregroundStyle(color)
+  }
+}
+
+/// Heutige Einheiten, offene Läufe ohne festen Tag und Ausfälle am letzten Wochentag.
+private struct TodayUnitsSection: View {
+  let today: TodayPlan
+
+  var body: some View {
+    Section {
+      if today.items.isEmpty {
+        Text("Heute nichts Festes.").foregroundStyle(.secondary)
+      }
+      ForEach(today.items) { item in TodayItemRow(item: item) }
+    } header: {
+      Text("Heute")
+    } footer: {
+      if !today.focus.isEmpty { Text(today.focus) }
+    }
+    if !today.open.isEmpty {
+      Section {
+        ForEach(today.open) { item in TodayItemRow(item: item) }
+      } header: {
+        Text("Noch offen · ohne festen Tag")
+      } footer: {
+        if !today.hint.isEmpty { Text(today.hint) }
+      }
+    }
+    if !today.skipped.isEmpty {
+      Section("Fällt diese Woche aus") {
+        ForEach(today.skipped) { item in TodayItemRow(item: item) }
+      }
+    }
+  }
+}
+
+private struct TodayItemRow: View {
+  let item: TodayPlan.Item
+  @State private var expanded = false
+
+  private var kind: PlannedUnit.Kind {
+    switch item.sport {
+    case .swim: .swim
+    case .bike: .bike
+    case .run: item.title.hasPrefix("Longrun") ? .longRun : (item.hardness >= 2 ? .quality : .easyRun)
+    case .strength, .rest: .gym
+    }
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack(alignment: .top, spacing: 12) {
+        if item.sport == .rest {
+          SportIcon(symbol: "leaf.fill", color: .mint)
+        } else {
+          SportIcon(symbol: kind.symbol, color: kind.color)
+        }
+        VStack(alignment: .leading, spacing: 2) {
+          HStack(spacing: 6) {
+            if let day = item.day { Text(day).font(.caption.bold()).foregroundStyle(.secondary) }
+            Text(item.title).font(.headline)
+          }
+          if !item.caption.isEmpty {
+            Text(item.caption).font(.subheadline).foregroundStyle(.secondary)
+          }
+          if !item.chip.isEmpty {
+            Chip(text: item.chip, color: item.chip == "nur locker bewegen" ? .red : .orange)
           }
         }
-        if let error = viewModel.noteError {
-          Text(error).font(.caption).foregroundStyle(.orange)
+        Spacer(minLength: 0)
+        if item.done {
+          Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("erledigt")
         }
+      }
+      if expanded, !item.detail.isEmpty {
+        Text(item.detail).font(.footnote).foregroundStyle(.secondary)
+      }
+    }
+    .contentShape(Rectangle())
+    .onTapGesture { if !item.detail.isEmpty { withAnimation { expanded.toggle() } } }
+    .accessibilityHint(item.detail.isEmpty ? "" : "Doppeltippen zeigt den Ablauf")
+  }
+}
+
+/// Coach-Notiz der KI (oder regelbasiert) mit Grundlage.
+private struct CoachNoteSection: View {
+  let viewModel: TodayViewModel
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    Section {
+      ForEach(viewModel.notePoints, id: \.self) { point in
+        Label(point, systemImage: "chevron.right")
+          .labelStyle(BulletLabelStyle())
+      }
+      HStack {
+        Text(viewModel.noteSource).font(.caption).foregroundStyle(.secondary)
+        Spacer()
+        if viewModel.isLoadingNote {
+          ProgressView()
+        } else if model.ai.isConfigured {
+          Button("Neu formulieren") {
+            Task { await viewModel.loadNote(ai: model.ai, settings: model.settings, force: true) }
+          }
+          .font(.caption)
+        }
+      }
+      if let error = viewModel.noteError {
+        Text(error).font(.caption).foregroundStyle(.orange)
       }
       EvidenceDisclosure(ruleIDs: viewModel.noteEvidence)
     } header: {
-      Text("Tagesempfehlung")
+      Text("Coach-Notiz")
+    }
+  }
+}
+
+private struct RestOfWeekSection: View {
+  let items: [TodayPlan.Item]
+
+  var body: some View {
+    Section("Rest der Woche") {
+      ForEach(items) { item in TodayItemRow(item: item) }
     }
   }
 }
@@ -186,71 +336,6 @@ private struct WeekSection: View {
   }
 }
 
-private struct RaceSection: View {
-  let plan: PlanState
-  let config: SeasonConfig
-
-  var body: some View {
-    Section {
-      LabeledContent(config.mainRaceName) {
-        Text(countdown(plan.daysToRace))
-      }
-      if plan.daysToMarathon >= 0 {
-        LabeledContent("Marathon") {
-          Text(countdown(plan.daysToMarathon))
-        }
-      }
-      VStack(alignment: .leading, spacing: 4) {
-        Text("Phase: \(plan.phase.rawValue) bis \(GermanFormat.date(plan.phaseEnd))").font(.subheadline.bold())
-        Text(plan.phase.focus).font(.footnote).foregroundStyle(.secondary)
-        if let next = plan.nextPhase {
-          Text("Danach: \(next.rawValue)").font(.caption).foregroundStyle(.secondary)
-        }
-      }
-      DisclosureGroup("Plan dieser Phase") {
-        PlanLine(title: "Laufen", text: plan.plan.run)
-        PlanLine(title: "Schwimmen", text: plan.plan.swim)
-        PlanLine(title: "Rad", text: plan.plan.bike)
-        PlanLine(title: "Kraft", text: plan.plan.strength)
-      }
-      DisclosureGroup("Saisonphasen") {
-        ForEach(plan.phases, id: \.phase) { span in
-          HStack {
-            Text(span.phase.rawValue).fontWeight(span.phase == plan.phase ? .bold : .regular)
-            Spacer()
-            Text("\(GermanFormat.date(span.start)) – \(GermanFormat.date(span.end))")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-        }
-      }
-    } header: {
-      Text("Rennvorbereitung")
-    }
-  }
-
-  private func countdown(_ days: Int) -> String {
-    switch days {
-    case ..<0: "vorbei"
-    case 0: "heute"
-    case 1: "morgen"
-    default: "noch \(days) Tage"
-    }
-  }
-}
-
-private struct PlanLine: View {
-  let title: String
-  let text: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(title).font(.caption.bold())
-      Text(text).font(.footnote)
-    }
-  }
-}
-
 struct SyncStatusSection: View {
   @Environment(AppModel.self) private var model
 
@@ -277,45 +362,6 @@ struct SyncStatusSection: View {
           .foregroundStyle(.secondary)
       }
     }
-  }
-}
-
-private struct DayRow: View {
-  let metrics: DailyMetrics
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      HStack {
-        Text(Formatters.day(metrics.day)).font(.headline)
-        Spacer()
-        if let status = metrics.hrvStatus {
-          Text(Formatters.hrvStatus(status))
-            .font(.caption)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(Formatters.hrvColor(status).opacity(0.2), in: Capsule())
-        }
-      }
-      HStack(spacing: 12) {
-        Metric(symbol: "heart", value: Formatters.number(metrics.restingHeartRate, unit: "bpm"))
-        Metric(symbol: "waveform.path.ecg", value: Formatters.number(metrics.hrvLastNightAverage, unit: "ms"))
-        Metric(symbol: "bed.double", value: Formatters.number(metrics.sleepHours, unit: "h", digits: 1))
-        Metric(symbol: "battery.75percent", value: Formatters.number(metrics.bodyBatteryHigh, unit: ""))
-      }
-      .font(.subheadline)
-      .foregroundStyle(.secondary)
-    }
-  }
-}
-
-private struct Metric: View {
-  let symbol: String
-  let value: String
-
-  var body: some View {
-    Label(value, systemImage: symbol)
-      .labelStyle(.titleAndIcon)
-      .lineLimit(1)
   }
 }
 
