@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Garmin-Werte wie im Home-Assistant-Dashboard
+
+- Abgeglichen mit `dashboard/garmin-coach.dashboard.json` im Altbestand (Reiter Erholung, Laufen/Rad/Schwimmen,
+  Herzfrequenz). Neu in der App (Reiter „Training“): Verläufe über 28 Tage für HRV-7-Tage-Schnitt, Ruhepuls,
+  Schlaf und Body Battery; Tageswerte inkl. Atemfrequenz, SpO2, Schlafphasen, Body Battery geladen/verbraucht,
+  VO2max (Laufen/Rad), Fitnessalter; Kilometer pro Woche je Sportart (12 Wochen); Herzfrequenzzonen.
+- Quellen in der Personal API (offizieller Client, `client.py`): Tageszusammenfassung und Schlaf
+  (SpO2, Atemfrequenz, Schlafphasen), `spo2acclimation`, `fitnessage/v2`, `heartRateZones/v2`; VO2max aus den
+  Aktivitäten (`vO2MaxValue`) und dem Profil (`vo2MaxRunning`/`vo2MaxCycling`); Zeit in Zonen aus
+  `hrTimeInZone_1…5` der Aktivitätsliste. Feldnamen wie in den Connect-Endpunkten; Abweichungen zeigt die
+  Garmin-Diagnose.
+- Herzfrequenzzonen unverändert aus `hr_zones.py` portiert (Friel in % LTHR, HFmax nur aus bestätigten
+  Messwerten, Verteilung der letzten 4 Wochen, Hinweise) und getestet.
+- Nicht über die Personal API verfügbar: Training Readiness, Trainingsstatus, Endurance Score. Sie folgen mit dem
+  optionalen inoffiziellen Login. Die aerobe Kopplung (HF-Pace-Drift, `decoupling.py`) braucht die Auswertung der
+  FIT-Dateien und folgt später.
+- Aktivitäten werden einmalig 13 Wochen rückwirkend geladen (Wochenbalken, HFmax).
+
 ## 2026-10-24 – Ernährung ohne BLS-Abgleich (vorerst)
 
 - Tagesziele (`targets.py`: Mifflin-St Jeor, Kohlenhydrate je Tagestyp nach Thomas/Erdman/Burke 2016, Protein je

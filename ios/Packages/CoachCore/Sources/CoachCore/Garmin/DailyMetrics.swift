@@ -21,6 +21,21 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
   public var steps: Double?
   public var activeKilocalories: Double?
   public var totalKilocalories: Double?
+  /// Atemfrequenz tagsüber (wach) und im Schlaf, Atemzüge pro Minute.
+  public var respirationWaking: Double?
+  public var respirationSleep: Double?
+  /// Sauerstoffsättigung in Prozent (Durchschnitt und tiefster Wert).
+  public var spo2Average: Double?
+  public var spo2Lowest: Double?
+  public var bodyBatteryCharged: Double?
+  public var bodyBatteryDrained: Double?
+  public var deepSleepSeconds: Double?
+  public var lightSleepSeconds: Double?
+  public var remSleepSeconds: Double?
+  public var awakeSleepSeconds: Double?
+  public var sleepStress: Double?
+  public var fitnessAge: Double?
+  public var vo2Max: Double?
 
   public init(day: CalendarDay) {
     self.day = day
@@ -48,6 +63,19 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
     result.steps = other.steps ?? steps
     result.activeKilocalories = other.activeKilocalories ?? activeKilocalories
     result.totalKilocalories = other.totalKilocalories ?? totalKilocalories
+    result.respirationWaking = other.respirationWaking ?? respirationWaking
+    result.respirationSleep = other.respirationSleep ?? respirationSleep
+    result.spo2Average = other.spo2Average ?? spo2Average
+    result.spo2Lowest = other.spo2Lowest ?? spo2Lowest
+    result.bodyBatteryCharged = other.bodyBatteryCharged ?? bodyBatteryCharged
+    result.bodyBatteryDrained = other.bodyBatteryDrained ?? bodyBatteryDrained
+    result.deepSleepSeconds = other.deepSleepSeconds ?? deepSleepSeconds
+    result.lightSleepSeconds = other.lightSleepSeconds ?? lightSleepSeconds
+    result.remSleepSeconds = other.remSleepSeconds ?? remSleepSeconds
+    result.awakeSleepSeconds = other.awakeSleepSeconds ?? awakeSleepSeconds
+    result.sleepStress = other.sleepStress ?? sleepStress
+    result.fitnessAge = other.fitnessAge ?? fitnessAge
+    result.vo2Max = other.vo2Max ?? vo2Max
     return result
   }
 
@@ -58,6 +86,8 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
       ("HRV 7 Tage", hrvWeeklyAverage), ("HRV-Status", hrvStatus), ("HRV-Baseline", hrvBaselineLow),
       ("Schlafdauer", sleepSeconds), ("Schlaf-Score", sleepScore), ("Body Battery", bodyBatteryHigh),
       ("Stress", stressAverage), ("Schritte", steps), ("Aktive kcal", activeKilocalories),
+      ("Atemfrequenz", respirationWaking ?? respirationSleep), ("SpO2", spo2Average),
+      ("Schlafphasen", deepSleepSeconds), ("Fitnessalter", fitnessAge), ("VO2max", vo2Max),
     ]
     return fields.compactMap { $0.1 == nil ? nil : $0.0 }
   }
@@ -83,6 +113,11 @@ public enum GarminMetricsParser {
       metrics.bodyBatteryLatest = nonNegative(record.first("bodyBatteryMostRecentValue"))
       metrics.activeKilocalories = nonNegative(record.first("activeKilocalories"))
       metrics.totalKilocalories = nonNegative(record.first("totalKilocalories"))
+      metrics.bodyBatteryCharged = nonNegative(record.first("bodyBatteryChargedValue"))
+      metrics.bodyBatteryDrained = nonNegative(record.first("bodyBatteryDrainedValue"))
+      metrics.respirationWaking = positive(record.first("avgWakingRespirationValue", "averageRespirationValue"))
+      metrics.spo2Average = positive(record.first("averageSpo2", "averageSpO2", "avgSpo2"))
+      metrics.spo2Lowest = positive(record.first("lowestSpo2", "lowestSpO2"))
     }
   }
 
@@ -105,6 +140,14 @@ public enum GarminMetricsParser {
         metrics.sleepScore = positive(scores["overall"]?["value"] ?? scores.firstValue(forAnyOf: ["value"]))
       }
       metrics.sleepScore = metrics.sleepScore ?? positive(record.first("overallSleepScore", "sleepScore"))
+      metrics.deepSleepSeconds = nonNegative(record.first("deepSleepSeconds"))
+      metrics.lightSleepSeconds = nonNegative(record.first("lightSleepSeconds"))
+      metrics.remSleepSeconds = nonNegative(record.first("remSleepSeconds"))
+      metrics.awakeSleepSeconds = nonNegative(record.first("awakeSleepSeconds"))
+      metrics.respirationSleep = positive(record.first("averageRespirationValue", "avgSleepRespirationValue"))
+      metrics.spo2Average = positive(record.first("averageSpO2Value", "averageSpo2Value"))
+      metrics.spo2Lowest = positive(record.first("lowestSpO2Value", "lowestSpo2Value"))
+      metrics.sleepStress = nonNegative(record.first("avgSleepStress"))
     }
   }
 
@@ -127,6 +170,24 @@ public enum GarminMetricsParser {
       metrics.stressAverage = nonNegative(
         record.first("averageStressLevel", "avgStressLevel", "overallStressLevel"))
     }
+  }
+
+  /// `/wellness-service/wellness/daily/spo2acclimation/{date}`.
+  public static func spo2(_ json: JSONValue) -> DayMap {
+    records(in: json) { record, metrics in
+      metrics.spo2Average = positive(
+        record.first("averageSpO2", "averageSpo2", "avgSpO2", "averageSPO2", "dailyAverageSpO2"))
+      metrics.spo2Lowest = positive(record.first("lowestSpO2", "lowestSpo2", "minSpO2"))
+    }
+  }
+
+  /// `/fitnessage-service/fitnessage/v2/{date}`. Die Antwort hat nicht immer `calendarDate`, daher mit Tag.
+  public static func fitnessAge(_ json: JSONValue, day: CalendarDay) -> DayMap {
+    var metrics = DailyMetrics(day: day)
+    metrics.fitnessAge = positive(json.firstValue(forAnyOf: ["fitnessAge"]))
+    metrics.vo2Max = positive(json.firstValue(forAnyOf: ["vo2Max", "vo2MaxValue", "vO2MaxValue"]))
+    guard metrics.fitnessAge != nil || metrics.vo2Max != nil else { return [:] }
+    return [day: metrics]
   }
 
   /// Führt mehrere Teilergebnisse zusammen (spätere überschreiben frühere, wenn befüllt).

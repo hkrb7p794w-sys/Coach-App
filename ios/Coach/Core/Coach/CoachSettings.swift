@@ -8,6 +8,7 @@ final class CoachSettings {
   static let seasonKey = "coach.season"
   static let privacyKey = "coach.privacy"
   static let nutritionKey = "coach.nutrition"
+  static let heartRateKey = "coach.heartRate"
 
   private let defaults: UserDefaults
 
@@ -23,6 +24,11 @@ final class CoachSettings {
     didSet { save(nutrition, forKey: Self.nutritionKey) }
   }
 
+  /// Eigene HFmax und Schwellen-HF (0 = automatisch).
+  var heartRate: HeartRateOverrides {
+    didSet { save(heartRate, forKey: Self.heartRateKey) }
+  }
+
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
     season =
@@ -32,6 +38,9 @@ final class CoachSettings {
     nutrition =
       defaults.data(forKey: Self.nutritionKey).flatMap { try? JSONDecoder().decode(NutritionSettings.self, from: $0) }
       ?? NutritionSettings()
+    heartRate =
+      defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
+      ?? HeartRateOverrides()
   }
 
   private func save(_ value: some Encodable, forKey key: String) {

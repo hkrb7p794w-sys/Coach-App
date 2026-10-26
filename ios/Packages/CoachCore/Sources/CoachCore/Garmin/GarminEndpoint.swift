@@ -46,6 +46,8 @@ public enum GarminEndpoint: Equatable, Sendable {
   case dailyStress(DateRange)
   case dailyHeartRate(CalendarDay)
   case weight(DateRange)
+  case spo2(CalendarDay)
+  case fitnessAge(CalendarDay)
   case activities(start: Int, limit: Int)
   case activity(id: Int64)
   case activityFile(id: Int64)
@@ -131,6 +133,12 @@ public enum GarminEndpoint: Equatable, Sendable {
         query: [item("includeAll", "true")],
         accept: json
       )
+    case .spo2(let day):
+      return GarminRequest(
+        method: "GET", path: "/wellness-service/wellness/daily/spo2acclimation/\(day.iso)", query: [], accept: json)
+    case .fitnessAge(let day):
+      return GarminRequest(
+        method: "GET", path: "/fitnessage-service/fitnessage/v2/\(day.iso)", query: [], accept: json)
     case .activities(let start, let limit):
       return GarminRequest(
         method: "GET",

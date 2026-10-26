@@ -8,6 +8,9 @@ struct RootView: View {
       Tab("Heute", systemImage: "sun.max") {
         TodayView()
       }
+      Tab("Training", systemImage: "heart.text.square") {
+        TrainingView()
+      }
       Tab("Ernährung", systemImage: "fork.knife") {
         NutritionView()
       }
