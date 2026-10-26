@@ -35,30 +35,43 @@ struct TrainingView: View {
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
         }
-        Section("Disziplinen") {
-          HubRow(
-            title: "Schwimmen", symbol: "figure.pool.swim", color: .blue,
-            value: "\(PlanTokens.mmss(season.cssSecondsPer100m)) /100 m", caption: "CSS"
-          ) { SwimPage(viewModel: viewModel) }
-          HubRow(
-            title: "Rad", symbol: "figure.outdoor.cycle", color: .orange, value: "\(season.ftpWatts) W",
-            caption: "FTP"
-          ) { BikePage(viewModel: viewModel) }
-          HubRow(
-            title: "Laufen", symbol: "figure.run", color: .green,
-            value: "\(PlanTokens.mmss(season.thresholdPaceSecondsPerKm)) /km", caption: "Schwelle"
-          ) { RunPage(viewModel: viewModel) }
-        }
-        Section("Ziele") {
-          HubRow(
-            title: "Almere", symbol: "flag.checkered", color: .teal,
-            value: "\(RaceEstimate.hoursMinutes(estimate.totalMinutes)) h", caption: "geschätzte Zielzeit"
-          ) { AlmerePage() }
-          HubRow(
-            title: "Marathon", symbol: "medal.fill", color: .pink,
-            value: "\(max(today.days(until: season.marathonDate), 0)) Tage",
-            caption: GermanFormat.date(season.marathonDate)
-          ) { MarathonPage() }
+        if settings.profile.mode == .season {
+          Section("Disziplinen") {
+            HubRow(
+              title: "Schwimmen", symbol: "figure.pool.swim", color: .blue,
+              value: "\(PlanTokens.mmss(season.cssSecondsPer100m)) /100 m", caption: "CSS"
+            ) { SwimPage(viewModel: viewModel) }
+            HubRow(
+              title: "Rad", symbol: "figure.outdoor.cycle", color: .orange, value: "\(season.ftpWatts) W",
+              caption: "FTP"
+            ) { BikePage(viewModel: viewModel) }
+            HubRow(
+              title: "Laufen", symbol: "figure.run", color: .green,
+              value: "\(PlanTokens.mmss(season.thresholdPaceSecondsPerKm)) /km", caption: "Schwelle"
+            ) { RunPage(viewModel: viewModel) }
+          }
+          Section("Ziele") {
+            HubRow(
+              title: "Almere", symbol: "flag.checkered", color: .teal,
+              value: "\(RaceEstimate.hoursMinutes(estimate.totalMinutes)) h", caption: "geschätzte Zielzeit"
+            ) { AlmerePage() }
+            HubRow(
+              title: "Marathon", symbol: "medal.fill", color: .pink,
+              value: "\(max(today.days(until: season.marathonDate), 0)) Tage",
+              caption: GermanFormat.date(season.marathonDate)
+            ) { MarathonPage() }
+          }
+        } else {
+          Section("Meine Sportarten") {
+            ForEach(settings.profile.sports.filter { $0 == .run || $0 == .bike || $0 == .swim }) { sport in
+              HubRow(
+                title: sport.shortLabel, symbol: sport.symbol, color: sport.color,
+                value: Formatters.number(
+                  viewModel.weeks.last?.volume.kilometers[sport.garminSport] ?? 0, unit: "km", digits: 1),
+                caption: "diese Woche"
+              ) { PersonalSportPage(sport: sport, viewModel: viewModel) }
+            }
+          }
         }
       }
       .navigationTitle("Training")

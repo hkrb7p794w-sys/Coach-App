@@ -1,3 +1,4 @@
+import CoachCore
 import SwiftUI
 
 struct SettingsView: View {
@@ -12,15 +13,24 @@ private struct SettingsForm: View {
   @State var viewModel: SettingsViewModel
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
+  @State private var profileEditor: ProfileEditor?
+
+  private enum ProfileEditor: Identifiable {
+    case edit, switchToPersonal
+    var id: Self { self }
+  }
 
   var body: some View {
     NavigationStack {
       Form {
+        profileSection
         connectSection
         garminSection
         aiSection
         Section("Coach") {
-          NavigationLink("Saison & Ziele") { SeasonSettingsView() }
+          if model.settings.profile.mode == .season {
+            NavigationLink("Saison & Ziele") { SeasonSettingsView() }
+          }
           NavigationLink("Ernährung") { NutritionSettingsView() }
           NavigationLink("Wissenschaftliche Grundlagen") { EvidenceLibraryView() }
         }
@@ -33,9 +43,38 @@ private struct SettingsForm: View {
       .toolbar {
         ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
       }
+      .fullScreenCover(item: $profileEditor) { editor in
+        OnboardingView(
+          isEditing: true,
+          initial: editor == .edit ? model.settings.profile : UserProfile.personalDraft(from: model.settings.season))
+      }
       .disabled(viewModel.isBusy)
       .overlay {
         if viewModel.isBusy { ProgressView() }
+      }
+    }
+  }
+
+  private var profileSection: some View {
+    Section {
+      if model.settings.profile.mode == .season {
+        Label("Du nutzt den Saisonplan (\(model.settings.season.mainRaceName)).", systemImage: "flag.checkered")
+        Button("Zu persönlichem Profil wechseln") { profileEditor = .switchToPersonal }
+      } else {
+        let profile = model.settings.profile
+        Label(profile.goal.label, systemImage: profile.goal.symbol)
+        Label(profile.sports.map(\.shortLabel).joined(separator: ", "), systemImage: "figure.mixed.cardio")
+        Button("Sportarten, Ziel, Körperdaten ändern") { profileEditor = .edit }
+      }
+    } header: {
+      Text("Profil")
+    } footer: {
+      if model.settings.profile.mode == .season {
+        Text(
+          "Mit einem persönlichen Profil wählst du Sportarten, Ziel und Wochenplan selbst; der Saisonplan "
+            + "wird dann nicht mehr verwendet. Garmin-Daten, Gym-Einheiten und Mahlzeiten bleiben erhalten.")
+      } else {
+        Text("Plan, Ernährung und Empfehlungen passen sich an dein Profil an.")
       }
     }
   }

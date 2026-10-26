@@ -38,10 +38,16 @@ final class NutritionViewModel {
   ) {
     day = CalendarDay(date: now)
     let todaysActivities = activities.filter { $0.day == day }
-    let week = WeeklyVolume(activities: activities, weekContaining: day)
-    let plan = SeasonPlan.state(today: day, config: settings.season, week: week)
+    // Saisonplan: Musterwoche aus dem Plan; persönliches Profil: die eigenen Einheiten des Wochentags.
+    let planItems: [TemplateItem]
+    if settings.profile.mode == .season {
+      let week = WeeklyVolume(activities: activities, weekContaining: day)
+      planItems = SeasonPlan.state(today: day, config: settings.season, week: week).todayFixed
+    } else {
+      planItems = settings.profile.schedule.templateItems(on: Weekday(day: day))
+    }
     targets = NutritionPlanner.compute(
-      activities: todaysActivities, planItems: plan.todayFixed, settings: settings.nutrition,
+      activities: todaysActivities, planItems: planItems, settings: settings.nutrition,
       garminProfile: profile, day: day, hasGarminData: hasGarminData)
     totals = NutritionSummary.totals(meals.filter { $0.dayKey == day.iso }.flatMap(\.items))
   }
@@ -154,8 +160,22 @@ final class NutritionViewModel {
     }
     await work {
       let todays = meals.filter { $0.dayKey == day.iso }
-      let week = WeeklyVolume(activities: activities, weekContaining: day)
-      let plan = SeasonPlan.state(today: day, config: settings.season, week: week)
+      // Saisonplan: Wochentag, Phase und Fixpunkte aus dem Plan; sonst Ziel und eigene Einheiten des Tages.
+      let weekdayName: String
+      let phaseName: String
+      let plannedTexts: [String]
+      if settings.profile.mode == .season {
+        let week = WeeklyVolume(activities: activities, weekContaining: day)
+        let plan = SeasonPlan.state(today: day, config: settings.season, week: week)
+        weekdayName = plan.weekday
+        phaseName = plan.phase.rawValue
+        plannedTexts = plan.todayFixed.map(\.text)
+      } else {
+        let weekday = Weekday(day: day)
+        weekdayName = weekday.long
+        phaseName = settings.profile.goal.label
+        plannedTexts = settings.profile.schedule.slots(on: weekday).map(\.title)
+      }
       let training = activities.filter { $0.day == day }.map { activity -> String in
         let minutes = Int(((activity.durationSeconds ?? 0) / 60).rounded())
         let load = activity.trainingLoad.map { ", Last \(Int($0.rounded()))" } ?? ""
@@ -170,13 +190,13 @@ final class NutritionViewModel {
         ])
       }
       let input: [String: JSONValue] = [
-        "weekday": .string(plan.weekday),
+        "weekday": .string(weekdayName),
         "time": .string(Date.now.formatted(date: .omitted, time: .shortened)),
         "dayType": .string(targets.dayType.label),
         "dayTypeSource": .string(targets.source.rawValue),
-        "phase": .string(plan.phase.rawValue),
+        "phase": .string(phaseName),
         "training": .array(training.map { .string($0) }),
-        "planned": .array(plan.todayFixed.map { .string($0.text) }),
+        "planned": .array(plannedTexts.map { .string($0) }),
         "recovery": .string(recovery),
         "goal": .string(settings.nutrition.goal.label),
         "diet": .string(settings.nutrition.diet.label),

@@ -14,7 +14,8 @@ struct TodayView: View {
   private var refreshKey: String {
     let settings = model.settings
     return "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(gymSessions.count)-"
-      + "\(settings.season.hashValue)-\(settings.competitionDecisions.values.map(\.rawValue).sorted())"
+      + "\(settings.season.hashValue)-\(settings.competitionDecisions.values.map(\.rawValue).sorted())-"
+      + "\(settings.profile.hashValue)"
   }
 
   var body: some View {
@@ -30,15 +31,21 @@ struct TodayView: View {
         }
 
         if let snapshot = viewModel.snapshot {
-          RecommendationSection(snapshot: snapshot)
-          if let today = snapshot.today {
-            TodayUnitsSection(today: today)
+          if model.settings.profile.mode == .season {
+            RecommendationSection(snapshot: snapshot)
+            if let today = snapshot.today {
+              TodayUnitsSection(today: today)
+            }
+            CoachNoteSection(viewModel: viewModel)
+            if let today = snapshot.today, !today.rest.isEmpty {
+              RestOfWeekSection(items: today.rest)
+            }
+            WeekSection(plan: snapshot.plan)
+          } else {
+            PersonalTodaySections(
+              snapshot: snapshot, activities: activities.compactMap(\.activity),
+              gymDays: Set(gymSessions.compactMap { $0.session?.day }))
           }
-          CoachNoteSection(viewModel: viewModel)
-          if let today = snapshot.today, !today.rest.isEmpty {
-            RestOfWeekSection(items: today.rest)
-          }
-          WeekSection(plan: snapshot.plan)
         }
 
         if !activities.isEmpty {
@@ -60,7 +67,9 @@ struct TodayView: View {
       .sheet(isPresented: $showSettings) { SettingsView() }
       .refreshable {
         await model.syncNow()
-        await viewModel.loadNote(ai: model.ai, settings: model.settings)
+        if model.settings.profile.mode == .season {
+          await viewModel.loadNote(ai: model.ai, settings: model.settings)
+        }
       }
       .task(id: refreshKey) {
         viewModel.update(
@@ -69,7 +78,9 @@ struct TodayView: View {
           settings: model.settings,
           gymDays: gymSessions.compactMap { $0.session?.day }
         )
-        await viewModel.loadNote(ai: model.ai, settings: model.settings)
+        if model.settings.profile.mode == .season {
+          await viewModel.loadNote(ai: model.ai, settings: model.settings)
+        }
       }
     }
   }

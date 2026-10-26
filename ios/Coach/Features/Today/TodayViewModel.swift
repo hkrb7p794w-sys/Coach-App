@@ -15,6 +15,8 @@ final class TodayViewModel {
     let week: WeeklyVolume
     /// Einheiten des Tages mit Hinweisen (Portierung von `coach_today()`).
     let today: TodayPlan?
+    /// Empfehlung aus dem eigenen Wochenplan (nur bei persönlichem Profil).
+    let advice: ScheduleAdvice?
   }
 
   private struct CachedNote: Codable {
@@ -66,13 +68,22 @@ final class TodayViewModel {
         schedule: $0, activities: activities, gymDays: gymDays, settings: settings, today: today,
         recommendation: recommendation, hasMetrics: metrics != nil)
     }
+    var advice: ScheduleAdvice?
+    if settings.profile.mode == .personal {
+      let trainedToday =
+        activities.contains { $0.day == today && ($0.durationSeconds ?? 0) >= 900 } || gymDays.contains(today)
+      advice = ScheduleAdvisor.advice(
+        profile: settings.profile, day: today, recovery: metrics == nil ? nil : recommendation.level,
+        trainedToday: trainedToday)
+    }
     snapshot = Snapshot(
       metrics: metrics,
       isFromYesterday: byDay[today] == nil && yesterday != nil,
       recommendation: recommendation,
       plan: plan,
       week: week,
-      today: todayPlan
+      today: todayPlan,
+      advice: advice
     )
     showCachedOrFallback()
   }

@@ -24,12 +24,15 @@ struct TodayViewModelTests {
     let viewModel = TodayViewModel(defaults: store)
     let history = [metrics(0, rhr: 58, hrv: "BALANCED")] + (1...7).map { metrics($0, rhr: 50) }
 
-    viewModel.update(days: history, activities: [], settings: CoachSettings(defaults: store), now: now)
+    let settings = CoachSettings(defaults: store)
+    settings.profile = .seasonPlan
+    viewModel.update(days: history, activities: [], settings: settings, now: now)
 
     let snapshot = try #require(viewModel.snapshot)
     #expect(!snapshot.isFromYesterday)
     #expect(snapshot.recommendation.level == .locker)
     #expect(snapshot.plan.weekday == "Freitag")
+    #expect(snapshot.advice == nil)
     // Ohne KI-Worker steht die regelbasierte Notiz da.
     #expect(viewModel.notePoints.first?.hasPrefix("Locker / verkürzt") == true)
   }

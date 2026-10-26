@@ -10,7 +10,10 @@ extension StubbedNetworkTests {
   struct NutritionViewModelTests {
     private func environment() throws -> (ModelContainer, CoachSettings) {
       let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
-      return (CoachSchema.makeContainer(inMemory: true), CoachSettings(defaults: defaults))
+      let settings = CoachSettings(defaults: defaults)
+      // Diese Tests prüfen die Musterwoche des Saisonplans.
+      settings.profile = .seasonPlan
+      return (CoachSchema.makeContainer(inMemory: true), settings)
     }
 
     /// Freitag: laut Musterwoche Push + Pull (Kraft) → leichter Tag.

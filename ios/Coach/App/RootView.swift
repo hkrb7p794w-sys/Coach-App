@@ -1,15 +1,17 @@
+import CoachCore
 import SwiftUI
 
 struct RootView: View {
   @Environment(AppModel.self) private var model
 
   var body: some View {
+    let profile = model.settings.profile
     TabView {
       Tab("Heute", systemImage: "sun.max") {
         TodayView()
       }
       Tab("Plan", systemImage: "calendar") {
-        PlanView()
+        if profile.mode == .season { PlanView() } else { MyWeekView() }
       }
       Tab("Training", systemImage: "heart.text.square") {
         TrainingView()
@@ -17,11 +19,17 @@ struct RootView: View {
       Tab("Ernährung", systemImage: "fork.knife") {
         NutritionView()
       }
-      Tab("Gym", systemImage: "dumbbell") {
-        GymView()
+      if profile.trains(.strength) {
+        Tab("Gym", systemImage: "dumbbell") {
+          GymView()
+        }
       }
     }
     .task { await model.syncIfDue() }
+    // Erster Start: Einrichtungsassistent, bis das Profil fertig ist.
+    .fullScreenCover(isPresented: Binding(get: { !profile.onboardingDone }, set: { _ in })) {
+      OnboardingView()
+    }
   }
 }
 

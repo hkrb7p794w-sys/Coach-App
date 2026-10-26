@@ -11,6 +11,7 @@ final class CoachSettings {
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
   static let testsKey = "coach.tests"
+  static let profileKey = "coach.profile"
 
   private let defaults: UserDefaults
 
@@ -36,6 +37,12 @@ final class CoachSettings {
     didSet { save(tests, forKey: Self.testsKey) }
   }
 
+  /// Wer die App ist und was sie erreichen will: Sportarten, Ziel, Wochenplan. Bestehende Nutzer behalten den
+  /// Saisonplan, neue starten mit dem Einrichtungsassistenten.
+  var profile: UserProfile {
+    didSet { save(profile, forKey: Self.profileKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -59,6 +66,31 @@ final class CoachSettings {
     heartRate =
       defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
       ?? HeartRateOverrides()
+    var migrated = false
+    if let stored = defaults.data(forKey: Self.profileKey).flatMap({
+      try? JSONDecoder().decode(UserProfile.self, from: $0)
+    }) {
+      profile = stored
+    } else {
+      let existing =
+        defaults.object(forKey: GarminSyncService.lastSyncKey) != nil || defaults.data(forKey: Self.seasonKey) != nil
+      profile = ProfileMigration.initialProfile(hasExistingData: existing)
+      migrated = existing
+    }
+    if migrated { save(profile, forKey: Self.profileKey) }
+  }
+
+  /// Überträgt das Ziel des Profils auf die Ernährung (Tempo, Schutzgrenzen) und liefert die Hinweise dazu.
+  /// Im Saisonplan bleibt die Ernährung unverändert.
+  @discardableResult
+  func applyProfileToNutrition(garmin: GarminProfile?, day: CalendarDay = CalendarDay(date: .now)) -> GoalAssessment {
+    let body = nutrition.profile(garmin: garmin, on: day)
+    let assessment = GoalRules.assess(profile: profile, body: body)
+    guard profile.mode == .personal else { return assessment }
+    var updated = nutrition
+    GoalRules.apply(assessment, to: &updated)
+    nutrition = updated
+    return assessment
   }
 
   /// Testwert übernehmen: Saisonwerte setzen und im Verlauf festhalten.

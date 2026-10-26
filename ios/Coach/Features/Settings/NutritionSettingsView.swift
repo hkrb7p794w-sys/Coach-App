@@ -10,14 +10,29 @@ struct NutritionSettingsView: View {
     let garmin = model.sync.profile
     Form {
       Section {
-        Picker("Ziel", selection: $settings.nutrition.goal) {
-          ForEach(NutritionGoal.allCases, id: \.self) { Text($0.label).tag($0) }
+        if settings.profile.mode == .personal {
+          // Ziel und Tempo kommen aus dem Profil (mit Schutzgrenzen), nicht von Hand.
+          LabeledContent("Ziel", value: settings.nutrition.goal.label)
+          if let rate = settings.nutrition.weeklyWeightChangePercent {
+            LabeledContent("Tempo", value: "\(GermanFormat.decimal(rate)) % pro Woche")
+          }
+        } else {
+          Picker("Ziel", selection: $settings.nutrition.goal) {
+            ForEach(NutritionGoal.allCases, id: \.self) { Text($0.label).tag($0) }
+          }
         }
         Picker("Ernährungsweise", selection: $settings.nutrition.diet) {
           ForEach(Diet.allCases, id: \.self) { Text($0.label).tag($0) }
         }
       } footer: {
-        Text("Abnehmen: −15 % an Ruhe- und leichten Tagen, halb so viel an moderaten, keins an harten Tagen.")
+        if settings.profile.mode == .personal {
+          Text(
+            "Das Ziel änderst du im Profil (Einstellungen). Defizit und Überschuss gelten voll "
+              + "an Ruhe- und leichten Tagen, halb an moderaten, an harten Tagen nicht."
+          )
+        } else {
+          Text("Abnehmen: −15 % an Ruhe- und leichten Tagen, halb so viel an moderaten, keins an harten Tagen.")
+        }
       }
 
       Section {
