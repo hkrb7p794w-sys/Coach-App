@@ -197,7 +197,9 @@ struct MotivationSettingsView: View {
         if settings.league.isJoined {
           LabeledContent("Code", value: settings.league.code)
           if let invite = model.league.inviteURL {
-            ShareLink(item: invite, subject: Text("Coach-Rangliste"), message: Text("Mach mit in meiner Coach-Rangliste!")) {
+            ShareLink(
+              item: invite, subject: Text("Coach-Rangliste"), message: Text("Mach mit in meiner Coach-Rangliste!")
+            ) {
               Label("Einladungslink teilen", systemImage: "square.and.arrow.up")
             }
           }

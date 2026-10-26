@@ -151,7 +151,8 @@ struct LeagueTests {
     #expect(entry.week == "2026-10-26")
     #expect(entry.done == 1)
     #expect(entry.planned == 3)
-    let json = #"{"id":"a","name":"Lea","avatar":"person","week":"2026-10-26","weekPoints":5,"#
+    let json =
+      #"{"id":"a","name":"Lea","avatar":"person","week":"2026-10-26","weekPoints":5,"#
       + #""totalPoints":9,"streak":1,"done":1,"planned":2,"updatedAt":"2026-10-28T12:00:00.000Z"}"#
     let decoded = try JSONDecoder().decode(LeagueEntry.self, from: Data(json.utf8))
     #expect(decoded.name == "Lea")

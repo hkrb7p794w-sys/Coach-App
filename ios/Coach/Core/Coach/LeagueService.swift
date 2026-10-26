@@ -87,8 +87,10 @@ final class LeagueService {
 /// Foto des Begleiters, lokal in Application Support (nicht in der Cloud).
 enum CompanionPhoto {
   static var url: URL? {
-    try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-      .appending(path: "companion.jpg")
+    try? FileManager.default.url(
+      for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+    )
+    .appending(path: "companion.jpg")
   }
 
   static func load() -> UIImage? {
