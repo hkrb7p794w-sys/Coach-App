@@ -2,6 +2,51 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-24 – Ernährung ohne BLS-Abgleich (vorerst)
+
+- Tagesziele (`targets.py`: Mifflin-St Jeor, Kohlenhydrate je Tagestyp nach Thomas/Erdman/Burke 2016, Protein je
+  Ziel, Fett 20–35 %, DGE-Mikronährstoffe, Flüssigkeit), Mahlzeit-Analyse (`analyze.py`) und Open Food Facts
+  (`off.py`) sind portiert. Erwartungswerte der Zielberechnung sind unabhängig mit der Formel des Altbestands
+  nachgerechnet (Test).
+- Der Abgleich mit dem Bundeslebensmittelschlüssel (BLS 4.0, 14 MB, CC BY 4.0) fehlt noch: Der Download von
+  blsdb.de ist aus der Build-Umgebung gesperrt und hat einen wechselnden Link mit Bot-Sperre. Nährwerte kommen
+  daher aus der KI-Schätzung (je 100 g) bzw. von Open Food Facts; eigene, gespeicherte Lebensmittel haben
+  Vorrang vor der KI-Schätzung. Möglicher nächster Schritt: BLS-Datei einmalig bereitstellen und als SQLite im
+  App-Bundle oder im Worker (Cloudflare D1) nutzen.
+- Fotos werden vor dem Versand auf höchstens 1280 px verkleinert und neu als JPEG kodiert (EXIF/GPS fallen weg)
+  und nicht gespeichert.
+- Open Food Facts direkt aus der App (eigener User-Agent laut OFF-Doku), gefundene Produkte werden lokal
+  gemerkt; ein zweiter Scan braucht kein Netz.
+- Ernährung und Training werden gemeinsam von der KI ausgewertet (Worker-Aufgabe `nutrition_review`): Tagestyp,
+  Training, Wochenplan, Tagesampel, Ziel/Ernährungsweise und der Stand je Nährstoff.
+
+## 2026-10-23 – Coach-Logik auf dem iPhone, Saison konfigurierbar
+
+- Tagesampel (`recommendation.py`), Saisonplan mit Phasen, Wochen-Soll und Musterwoche (`plan.py`) sowie das
+  Wochenvolumen (`app.py`) sind nach `CoachCore` portiert und unter Linux getestet. Grenzen und Texte sind
+  unverändert; die Phasengrenzen der Standardsaison stimmen mit dem Altbestand überein (Test).
+- Renntermine und Testwerte (FTP, CSS, Pace) sind in der App einstellbar statt fest im Code; Watt- und
+  Pace-Angaben im Plan rechnen sich daraus.
+- Die Struktur der Saison (Marathon als Zwischenziel, danach Mitteldistanz) ist weiterhin fest. Eine andere
+  Saisonstruktur braucht eine Code-Änderung in `SeasonPlan`.
+- Training Readiness liefert die Personal API nicht; die Regel ist vorhanden und greift, sobald der Wert
+  (z. B. über den optionalen inoffiziellen Zugang) verfügbar ist.
+- Datenschutz verbessert: Im Modus „reduziert“ gehen auch die Begründungen der Tagesampel ohne Rohwerte an
+  die KI (der Altbestand schickte dort z. B. „Ruhepuls 58 bpm“ mit).
+- Die KI-Notiz wird je Tag und Ampelstufe zwischengespeichert; ohne Worker zeigt die App die regelbasierte
+  Notiz (`fallback_note` im Altbestand).
+
+## 2026-10-23 – KI-Worker in TypeScript, Prompts im Worker
+
+- Cloudflare Workers Free erlauben 10 ms CPU-Zeit je Anfrage (Warten auf `fetch` zählt nicht). Fotos werden als
+  Base64 an Gemini weitergereicht; das ist in V8 (TypeScript) billig, in Python-Workers (Pyodide) teurer.
+  Quelle: Cloudflare-Doku „Workers › Platform › Limits“. Daher TypeScript mit Biome (Lint/Format) und Vitest.
+- Prompts liegen im Worker (`worker/src/tasks.ts`), die App schickt nur Aufgabe und abgeleitete Werte. Eine
+  Prompt-Änderung braucht so nur einen Worker-Deploy, keine neue App-Version (Neuinstallation per SideStore).
+- Der Worker ist ohne `COACH_APP_TOKEN` gesperrt (503) und vergleicht das Token in konstanter Zeit.
+- Fund beim Portieren: Die Nachfolgemodell-Erkennung des Altbestands nahm einen Satzpunkt in den Modellnamen
+  auf („…models/gemini-3.6-flash.“); im Worker korrigiert und getestet.
+
 ## 2026-10-23 – Kein eigener Server: Garmin über die Personal API, KI über einen Cloudflare Worker
 
 Der Nutzer möchte keinen dauerhaft laufenden Rechner (Pi trägt Home Assistant, Mini-PC läuft nur morgens).

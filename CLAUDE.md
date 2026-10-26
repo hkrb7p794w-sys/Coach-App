@@ -13,9 +13,9 @@ Gebaut wird ausschließlich in GitHub Actions, installiert per SideStore (kosten
 | `ios/Coach/` | SwiftUI-App, MVVM: `App/`, `Features/<Bereich>/` (View + ViewModel), `Core/` (Health, API, Persistenz, UI-Bausteine) |
 | `ios/CoachTests/` | App-Tests (Swift Testing), laufen nur im Simulator (macOS) |
 | `ios/Packages/CoachCore/` | Reine Logik **ohne** Apple-Frameworks – testbar auf Linux mit `swift test` |
-| `backend/` | Phase-1-Gerüst (Python, uv); wird in Phase 2 zum Cloudflare Worker für die KI-Aufrufe |
+| `worker/` | Cloudflare Worker (TypeScript): KI-Weiterleitung Gemini → Groq, Prompts in `src/tasks.ts` |
 | `docs/` | Entscheidungen (`decisions.md`) und Anleitungen für den Nutzer |
-| `.github/workflows/` | `ios-build.yml` (macOS, nur manuell), `swift.yml` und `backend.yml` (Linux, bei PRs) |
+| `.github/workflows/` | `ios-build.yml` (macOS, nur manuell), `swift.yml` und `worker.yml` (Linux, bei PRs; Worker-Deploy auf `main`) |
 
 Altbestand (nur lesen, Logik übernehmen, keine HA-/MQTT-Teile): `hkrb7p794w-sys/Garmin-AI-Coach`
 (`garmin_ai_coach/` Coach-Regeln und Prompts, `ernaehrung/app/` Ernährung, `fit_coach/app/garmin_sync.py` Login mit MFA).
@@ -38,8 +38,8 @@ Altbestand (nur lesen, Logik übernehmen, keine HA-/MQTT-Teile): `hkrb7p794w-sys
 ## Befehle
 
 ```sh
-# Backend
-cd backend && uv sync && uv run ruff check . && uv run ruff format --check . && uv run pytest
+# Worker (Node 22)
+cd worker && npm ci && npm run lint && npm run typecheck && npm test
 
 # Swift (Linux oder Mac, Swift 6.2)
 swift format lint --strict --recursive --configuration ios/.swift-format ios/Coach ios/CoachTests ios/Packages/CoachCore
@@ -52,7 +52,10 @@ cd ios && xcodegen generate
 
 ## CI
 
-- `swift.yml`, `backend.yml`: automatisch bei PRs und auf `main` (günstige Linux-Runner).
+- `swift.yml`, `worker.yml`: automatisch bei PRs und auf `main` (günstige Linux-Runner). `swift.yml` schreibt bei
+  Fehlern Compiler-/Testfehler und den `swift format`-Patch als PR-Kommentar (anwendbar mit `git apply`).
+- `worker.yml` stellt den Worker nach dem Merge auf `main` bereit, sofern die Secrets gesetzt sind
+  (`docs/einrichtung.md`).
 - `ios-build.yml`: **nur manuell**, weil macOS-Minuten teuer sind. Auslösen per „Run workflow“ oder per
   PR-Label `ios-build` (Label wird beim Start entfernt). Ergebnis bzw. Fehlerauszug kommt als PR-Kommentar,
   die `.ipa` als GitHub-Release-Asset (PR-Builds als Vorabversion).
@@ -62,6 +65,6 @@ cd ios && xcodegen generate
 ## Konventionen
 
 - Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `ci:`, `test:`, `refactor:`), Scope optional
-  (`feat(ios): …`, `fix(backend): …`).
+  (`feat(ios): …`, `fix(worker): …`, `feat(core): …`).
 - Eine PR pro Phase; Phasen und Stand siehe `README.md`.
 - Entscheidungen gegen offizielle Doku prüfen und in `docs/decisions.md` mit Quelle festhalten.

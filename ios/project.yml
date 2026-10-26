@@ -10,7 +10,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.4.0"
     CURRENT_PROJECT_VERSION: "1"
     # Xcode-26-Standard für neue Projekte: Code läuft ohne Annotation auf dem MainActor,
     # nonisolated async bleibt beim Aufrufer (SE-0461).
@@ -46,6 +46,10 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        UIBackgroundModes:
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - io.github.hkrb7p794w.coach.refresh
         NSHealthShareUsageDescription: >-
           Coach liest Workouts, Schlaf und Herzfrequenz, um Erholung und Training
           einzuordnen.
