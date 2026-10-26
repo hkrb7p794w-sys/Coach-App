@@ -26,13 +26,24 @@ Du brauchst: iPhone mit Code-Sperre, Windows-PC (64 Bit), USB-Kabel, WLAN, Apple
 10. „My Apps“ › bei SideStore auf „7 DAYS“ tippen (erste Auffrischung). Fragt SideStore nach einem neuen
     Zertifikat: „Yes“ bzw. „Refresh Now“.
 
-## Coach installieren oder aktualisieren
+## Coach über die eigene Quelle installieren (einmalig) – danach Updates per Hinweis
 
-1. Auf dem iPhone in Safari das Release öffnen: <https://github.com/hkrb7p794w-sys/coach-app/releases>
-2. Beim gewünschten Build `Coach.ipa` antippen und laden.
-3. LocalDevVPN verbinden.
-4. SideStore › „My Apps“ › „+“ › die geladene `Coach.ipa` aus „Downloads“ wählen.
-5. Coach öffnen › Tab **Diagnose** › „HealthKit prüfen“ und das Ergebnis melden.
+Jeder Merge auf `main` baut automatisch eine neue Version (`vX.Y.<Build>`) und veröffentlicht eine
+SideStore-Quelle. SideStore prüft eingetragene Quellen im Hintergrund und meldet neue Versionen
+(„New Update Available“); installiert wird mit einem Tippen. Ganz ohne Tippen geht es nicht: SideStore
+installiert Updates nicht von selbst, die Hintergrundprüfung schickt nur die Mitteilung
+(SideStore-Quellcode `AppDelegate.performBackgroundFetch`, Stand 16.10.2026).
+
+1. LocalDevVPN verbinden.
+2. SideStore › **Sources** › „+“ › diese Adresse eintragen:
+   `https://github.com/hkrb7p794w-sys/Coach-App/releases/latest/download/source.json`
+3. In der Quelle „Coach (privat)“ › **Coach** › installieren. Eine bereits per Datei installierte Coach-App
+   wird dabei ersetzt; die Daten bleiben erhalten (gleiche App-ID).
+4. SideStore › Settings: **Background Refresh** einschalten und Mitteilungen für SideStore erlauben.
+5. Kommt die Mitteilung „New Update Available“: SideStore öffnen › „My Apps“ › bei Coach **Update**.
+
+Manuell geht es weiterhin: Release unter <https://github.com/hkrb7p794w-sys/Coach-App/releases> öffnen,
+`Coach.ipa` laden und in SideStore › „My Apps“ › „+“ wählen.
 
 ## Gut zu wissen
 
