@@ -119,6 +119,7 @@ private struct RecommendationSection: View {
           Text(error).font(.caption).foregroundStyle(.orange)
         }
       }
+      EvidenceDisclosure(ruleIDs: viewModel.noteEvidence)
     } header: {
       Text("Tagesempfehlung")
     }

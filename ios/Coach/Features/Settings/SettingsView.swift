@@ -20,6 +20,7 @@ private struct SettingsForm: View {
         Section("Coach") {
           NavigationLink("Saison & Ziele") { SeasonSettingsView() }
           NavigationLink("Ernährung") { NutritionSettingsView() }
+          NavigationLink("Wissenschaftliche Grundlagen") { EvidenceLibraryView() }
         }
         Section("Diagnose") {
           NavigationLink("Garmin-Diagnose") { GarminDiagnosticsView() }

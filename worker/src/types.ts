@@ -21,6 +21,7 @@ export interface GenerateRequest {
   prompt: string;
   json: boolean;
   images: ImageInput[];
+  temperature?: number;
 }
 
 export interface GenerateResult {

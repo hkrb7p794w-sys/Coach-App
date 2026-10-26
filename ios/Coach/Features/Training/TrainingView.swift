@@ -284,6 +284,8 @@ private struct HeartRateSections: View {
       }
       Section("Hinweise") {
         ForEach(report.hints, id: \.self) { Text($0).font(.footnote) }
+        EvidenceDisclosure(
+          ruleIDs: ["hr.threshold-zones", "hr.max-formula", "intensity.distribution", "hr.optical"])
       }
     }
   }

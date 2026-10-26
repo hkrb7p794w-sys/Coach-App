@@ -220,3 +220,33 @@ struct CoachingNoteTests {
     #expect(CoachingNote.points(from: output) == ["Eins", "2"])
   }
 }
+
+struct EvidenceTests {
+  @Test func everyRuleHasKnownSourcesAndUniqueIDs() {
+    #expect(Set(Evidence.studies.map(\.id)).count == Evidence.studies.count)
+    #expect(Set(Evidence.rules.map(\.id)).count == Evidence.rules.count)
+    for rule in Evidence.rules {
+      #expect(!rule.studyIDs.isEmpty, "\(rule.id) ohne Quelle")
+      #expect(rule.studies.count == rule.studyIDs.count, "\(rule.id) nennt eine unbekannte Studie")
+    }
+    for study in Evidence.studies {
+      #expect(study.url != nil)
+      #expect(!study.pmid.isEmpty)
+    }
+  }
+
+  @Test func appRuleReferencesExist() {
+    let used =
+      CoachingNote.dailyNoteEvidence
+      + ["gym.progression", "gym.volume", "hr.threshold-zones", "hr.max-formula", "hr.optical", "nutrition.carbs"]
+    #expect(used.allSatisfy { Evidence.rulesByID[$0] != nil })
+  }
+
+  @Test func sourcesFromOutputKeepOnlyKnownRules() throws {
+    let output = try JSONValue(data: Data(#"{"punkte": ["a"], "quellen": ["run.4x4", "erfunden"]}"#.utf8))
+    #expect(CoachingNote.sources(from: output) == ["run.4x4"])
+    let input = CoachingNote.evidenceInput(["run.4x4", "gibtsnicht"])
+    #expect(input.arrayValue?.count == 1)
+    #expect(input.arrayValue?.first?["id"]?.stringValue == "run.4x4")
+  }
+}

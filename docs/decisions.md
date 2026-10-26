@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Wissenschaftliche Basis und Kontrolle der KI
+
+- Auftrag des Nutzers: Empfehlungen sollen auf begutachteter Wissenschaft beruhen, die KI darf nichts erfinden.
+- `CoachCore/Evidence`: 31 Veröffentlichungen (DOI bzw. PMID am 26.10.2026 in PubMed geprüft, Grundlage ist
+  `docs/wissenschaft-und-quellen.md` der HA-Übergabe) und 20 Regeln. Jede Regel hat eine Kernaussage und eine
+  ehrliche Einstufung: „gut belegt“, „belegt, Schwellen aus der Praxis“ oder „Praxisregel“ (z. B. Ruhepuls
+  +5 Schläge – vorsichtig gewählt, ohne Studie für genau diesen Wert). Tests stellen sicher, dass jede Regel
+  eine bekannte Quelle hat.
+- Die App zeigt unter Tagesnotiz, Ernährungsauswertung, Gym-Progression, Volumen und HF-Zonen die Grundlage mit
+  Links (doi.org bzw. PubMed); alle Regeln unter Einstellungen › Wissenschaftliche Grundlagen.
+- Worker (`grounding.ts`): Systemanweisung (nur Fakten aus der Anfrage, keine neuen Zahlen/Quellen, keine
+  Diagnosen, nie mehr Training fordern), Temperatur 0,2, belegte Regeln als einzige erlaubte Begründung.
+  Jede Antwort wird geprüft: Punkte mit Zahlen, die nicht in der Anfrage stehen, werden verworfen (0–3 als
+  Zählwörter frei), Quellen nur aus den mitgeschickten Regeln. Bleibt nichts übrig, antwortet der Worker mit
+  502 und die App zeigt die regelbasierte Notiz.
+- Grenze: Die Zahlenprüfung erkennt erfundene Werte, nicht falsche Schlussfolgerungen ohne Zahlen. Dafür gibt es
+  die feste Systemanweisung und die Regeln; die Entscheidung selbst trifft weiterhin nie die KI.
+
 ## 2026-10-26 – Gym in der App, Workouts in Apple Health
 
 - HealthKit funktioniert auf dem Gerät des Nutzers trotz SideStore (Diagnose „funktioniert“, Rückmeldung

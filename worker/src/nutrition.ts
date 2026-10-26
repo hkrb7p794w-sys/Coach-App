@@ -1,6 +1,7 @@
 /**
  * Ernährungs-Prompts (Portierung von `ernaehrung/app/analyze.py` aus dem Altbestand, ohne BLS-Abgleich).
  */
+import { evidenceBlock, evidenceFrom, POINTS_WITH_SOURCES } from "./grounding";
 import { list, text } from "./tasks-util";
 
 export const GROUPS = [
@@ -117,8 +118,10 @@ export function nutritionReviewPrompt(input: Record<string, unknown>): string {
     "Stand gegenüber den Tageszielen:",
     table || "- keine Daten",
     "",
-    "Aufgabe: Werte Ernährung und Training gemeinsam aus. Antworte AUSSCHLIESSLICH mit JSON der Form " +
-      '{"punkte": ["...", "..."]} mit 2-4 Punkten, je ein bis zwei Sätze:',
+    evidenceBlock(evidenceFrom(input)),
+    "",
+    `Aufgabe: Werte Ernährung und Training gemeinsam aus. ${POINTS_WITH_SOURCES} ` +
+      "2-4 Punkte, je ein bis zwei Sätze:",
     "1. Passt die Energie- und Kohlenhydratzufuhr zum Training (vor, während, nach der Einheit)? " +
       "Berücksichtige die Uhrzeit: Ziele sind Tagesziele, morgens ist wenig erreicht normal.",
     "2. Protein: Verteilung über den Tag (0,25-0,4 g/kg je Mahlzeit) und was noch fehlt.",

@@ -76,7 +76,7 @@ async function call(
       model,
       messages: messages(request),
       max_completion_tokens: 4096,
-      temperature: 0.4,
+      temperature: request.temperature ?? 0.4,
       ...(request.json ? { response_format: { type: "json_object" } } : {}),
     }),
   });

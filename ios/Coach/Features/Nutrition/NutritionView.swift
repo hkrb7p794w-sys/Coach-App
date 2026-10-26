@@ -154,6 +154,9 @@ struct NutritionView: View {
         }
       }
       .disabled(viewModel.isWorking || !model.ai.isConfigured)
+      if !viewModel.reviewPoints.isEmpty {
+        EvidenceDisclosure(ruleIDs: viewModel.reviewSources + NutritionViewModel.reviewEvidence)
+      }
     } header: {
       Text("KI-Auswertung")
     } footer: {

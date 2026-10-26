@@ -139,6 +139,7 @@ private struct ProgressSection: View {
           ForEach(rest) { item in ProgressRow(item: item, viewModel: viewModel) }
         }
       }
+      EvidenceDisclosure(ruleIDs: ["gym.progression"])
     } header: {
       Text("Gewichts-Progression")
     } footer: {
@@ -213,6 +214,7 @@ private struct VolumeSection: View {
         }
         .font(.subheadline)
       }
+      EvidenceDisclosure(ruleIDs: ["gym.volume", "strength.economy", "strength.interference"])
     } header: {
       Text("Sätze je Muskel · 7 Tage")
     } footer: {
