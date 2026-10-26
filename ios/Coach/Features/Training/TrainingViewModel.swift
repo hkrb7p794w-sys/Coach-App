@@ -32,6 +32,9 @@ final class TrainingViewModel {
   private(set) var vo2Run: MetricTrend?
   private(set) var vo2Bike: MetricTrend?
   private(set) var zones: HeartRateZoneReport?
+  /// FIT-Auswertungen (aerobe Kopplung, Runden für den Pace-Check).
+  private(set) var analyses: [ActivityAnalysis] = []
+  private(set) var restingHeartRate: Double?
 
   func update(
     days: [DailyMetrics],
@@ -39,6 +42,7 @@ final class TrainingViewModel {
     profile: GarminProfile?,
     watchZones: JSONValue?,
     overrides: HeartRateOverrides,
+    analyses: [ActivityAnalysis] = [],
     now: Date = .now
   ) {
     let today = CalendarDay(date: now)
@@ -68,9 +72,27 @@ final class TrainingViewModel {
     let vo2 = profile?.vo2MaxRunning ?? runVO2.last?.value ?? sorted.last { $0.vo2Max != nil }?.vo2Max
     tiles = Self.tiles(latest: latest, vo2Max: vo2, vo2MaxBike: profile?.vo2MaxCycling ?? bikeVO2.last?.value)
 
+    self.analyses = analyses
+    restingHeartRate = sorted.last { $0.restingHeartRate != nil }?.restingHeartRate
     weeks = WeekVolume.history(activities: activities, today: today, weeks: 12)
     zones = HeartRateZoneCalculator.report(
       activities: activities, watchZonesJSON: watchZones, profile: profile, overrides: overrides, today: today)
+  }
+
+  /// Pace-Check mit der aktuell eingestellten Schwellenpace; ohne Ruhepuls wie im Altbestand 50 bpm.
+  func paceCheck(thresholdPace: Int) -> PaceCheck.Result {
+    PaceCheck.evaluate(
+      ActivityAnalysisPlanner.paceSessions(analyses, today: today), thresholdPace: thresholdPace,
+      lthr: zones?.run.lactateThreshold.map(Double.init), maxHeartRate: zones?.maxHeartRate.map(Double.init),
+      restingHeartRate: restingHeartRate ?? 50)
+  }
+
+  func decoupled(_ sport: AerobicDecoupling.Sport) -> [ActivityAnalysis] {
+    ActivityAnalysisPlanner.decoupled(analyses, sport: sport)
+  }
+
+  var skippedDecoupling: [ActivityAnalysis] {
+    ActivityAnalysisPlanner.skipped(analyses)
   }
 
   static func tiles(latest: DailyMetrics?, vo2Max: Double?, vo2MaxBike: Double?) -> [Tile] {

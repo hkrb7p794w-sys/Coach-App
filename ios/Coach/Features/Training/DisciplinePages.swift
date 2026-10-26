@@ -207,6 +207,7 @@ struct BikePage: View {
       PaceTableSection(
         title: "Zonen aus FTP \(season.ftpWatts) W", rows: BikeZones.rows(ftp: season.ftpWatts),
         footer: "FTP nur als Referenz für Watt-Angaben – keine Umrechnung in km/h.")
+      DecouplingSection(title: "Aerobe Kopplung (Pw:HR)", sport: .ride, viewModel: viewModel)
       if let schedule = viewModel.schedule {
         Section {
           DisclosureGroup("Zwift-Workouts (\(schedule.zw.count))", isExpanded: $showWorkouts) {
@@ -273,13 +274,9 @@ struct RunPage: View {
           guard let pace = values.first.flatMap(TimeText.seconds), (150...600).contains(pace) else { return nil }
           return ("\(PlanTokens.mmss(pace)) /km", { model.settings.record(.racePace, value: Double(pace)) })
         })
+      PaceCheckSection(viewModel: viewModel)
+      DecouplingSection(title: "Aerobe Kopplung (Pa:HR)", sport: .run, viewModel: viewModel, showsSkipped: true)
       Section {
-        Text(
-          "Die aerobe Kopplung (HF-Pace-Drift) aus dem alten Dashboard folgt, sobald die App die FIT-Dateien der "
-            + "Läufe auswertet."
-        )
-        .font(.footnote)
-        .foregroundStyle(.secondary)
         EvidenceDisclosure(ruleIDs: ["run.4x4", "intensity.distribution", "hr.threshold-zones"])
       }
     }

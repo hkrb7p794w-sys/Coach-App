@@ -7,12 +7,15 @@ struct SyncReport: Equatable {
   var range: DateRange
   var daysUpdated = 0
   var activitiesUpdated = 0
+  /// Per FIT-Datei ausgewertete Läufe und Fahrten (aerobe Kopplung, Pace-Check).
+  var activitiesAnalyzed = 0
   /// Fehler einzelner Endpunkte; der Rest des Abrufs läuft trotzdem durch.
   var errors: [String] = []
   var finishedAt = Date.now
 
   var summary: String {
     var text = "\(daysUpdated) Tage, \(activitiesUpdated) Aktivitäten (\(range.start.iso) – \(range.end.iso))"
+    if activitiesAnalyzed > 0 { text += ", \(activitiesAnalyzed) ausgewertet" }
     if !errors.isEmpty { text += ", \(errors.count) Fehler" }
     return text
   }
@@ -26,15 +29,20 @@ final class GarminSyncService {
   private let client: GarminClient
   private let context: ModelContext
   private let defaults: UserDefaults
+  let analysisStore: ActivityAnalysisStore
   static let lastSyncKey = "garmin.lastSync"
   static let profileKey = "garmin.profile"
   static let profileDateKey = "garmin.profileDate"
   static let activityBackfillKey = "garmin.activityBackfill"
 
-  init(client: GarminClient, context: ModelContext, defaults: UserDefaults = .standard) {
+  init(
+    client: GarminClient, context: ModelContext, defaults: UserDefaults = .standard,
+    analysisStore: ActivityAnalysisStore = ActivityAnalysisStore()
+  ) {
     self.client = client
     self.context = context
     self.defaults = defaults
+    self.analysisStore = analysisStore
   }
 
   var lastSync: Date? {
@@ -88,8 +96,9 @@ final class GarminSyncService {
       if report.errors.count == errorsBefore { defaults.set(today.iso, forKey: Self.activityBackfillKey) }
     }
     await refreshProfileIfNeeded(today: today, report: &report)
-
     try context.save()
+    report.activitiesAnalyzed = await analyzeActivities(today: today, report: &report)
+
     defaults.set(now, forKey: Self.lastSyncKey)
     report.finishedAt = now
     return report
@@ -155,6 +164,53 @@ final class GarminSyncService {
       if !more { break }
     }
     return updated
+  }
+
+  /// FIT-Dateien neuer Läufe und Fahrten auswerten (höchstens sechs je Abruf, der Rest folgt beim nächsten).
+  private func analyzeActivities(today: CalendarDay, report: inout SyncReport) async -> Int {
+    let activities = ((try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []).compactMap(\.activity)
+    var analyzed = analysisStore.load()
+    var fetches = 0
+    var count = 0
+    for activity in ActivityAnalysisPlanner.pending(activities, analyzed: analyzed, today: today) {
+      var fit: FitActivity?
+      var rpe: Double?
+      if ActivityAnalysisPlanner.needsFile(activity) {
+        guard fetches < ActivityAnalysisPlanner.maxFetchesPerSync else { continue }
+        fetches += 1
+        do {
+          let data = try await client.data(.activityFile(id: activity.id))
+          fit = try? await Self.decodeFit(data)
+        } catch let error as GarminAPIError {
+          report.errors.append("FIT \(activity.id): \(error.message)")
+          continue
+        } catch {
+          report.errors.append("FIT \(activity.id): \(error.localizedDescription)")
+          continue
+        }
+        if ActivityAnalysisPlanner.paceKind(activity) != nil { rpe = await self.rpe(activity.id) }
+      }
+      analyzed[activity.id] = ActivityAnalysisPlanner.analyze(activity, fit: fit, rpe: rpe)
+      count += 1
+    }
+    for id in ActivityAnalysisPlanner.needsRPE(Array(analyzed.values), today: today) {
+      if let value = await rpe(id) { analyzed[id]?.rpe = value }
+    }
+    analysisStore.save(analyzed, today: today)
+    return count
+  }
+
+  /// Selbsteinschätzung (RPE) von der Uhr; fehlt sie, bleibt es still.
+  private func rpe(_ id: Int64) async -> Double? {
+    guard let json = try? await client.json(.activity(id: id)) else { return nil }
+    return ActivityAnalysisPlanner.rpe(fromActivityDetail: json)
+  }
+
+  /// Entpacken und Lesen im Hintergrund, damit die Oberfläche flüssig bleibt.
+  nonisolated static func decodeFit(_ data: Data) async throws -> FitActivity {
+    try await Task.detached(priority: .utility) {
+      try FitDecoder.decode(ZipArchive.fitData(from: data))
+    }.value
   }
 
   private func refreshProfileIfNeeded(today: CalendarDay, report: inout SyncReport) async {
