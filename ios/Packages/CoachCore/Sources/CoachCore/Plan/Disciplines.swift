@@ -43,7 +43,9 @@ public struct TestRecord: Codable, Equatable, Sendable, Identifiable {
 public enum TestHistory {
   /// Neuer Eintrag ersetzt einen gleichartigen vom selben Tag.
   public static func adding(_ record: TestRecord, to records: [TestRecord]) -> [TestRecord] {
-    (records.filter { $0.id != record.id } + [record]).sorted { ($0.day, $0.kind.rawValue) < ($1.day, $1.kind.rawValue) }
+    (records.filter { $0.id != record.id } + [record]).sorted {
+      ($0.day, $0.kind.rawValue) < ($1.day, $1.kind.rawValue)
+    }
   }
 
   public static func latest(_ kind: TestRecord.Kind, in records: [TestRecord]) -> TestRecord? {

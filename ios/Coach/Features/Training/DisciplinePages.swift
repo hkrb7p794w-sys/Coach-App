@@ -160,7 +160,8 @@ struct SwimPage: View {
     let css = model.settings.season.cssSecondsPer100m
     List {
       KilometersSection(viewModel: viewModel, sport: .swim, color: .blue)
-      TestTrendSection(title: "CSS · Schwellentempo /100 m", kind: .css, format: { PlanTokens.mmss(Int($0)) },
+      TestTrendSection(
+        title: "CSS · Schwellentempo /100 m", kind: .css, format: { PlanTokens.mmss(Int($0)) },
         lowerIsBetter: true)
       PaceTableSection(title: "Paces aus der CSS", rows: SwimPaces.rows(css: css))
       Section("Technik-Fokus bei 2:00–2:15 /100 m") {
@@ -442,7 +443,8 @@ struct MarathonPage: View {
             + "Generalprobe – am Renntag nichts Neues.")
         InfoLine(title: "Taper", text: "3 Wochen, Umfang −25 / −40 / −60 %, das Tempo bleibt.")
         InfoLine(
-          title: "Kraft", text: "Beine schwer und kurz (2–3 Sätze à 4–6 Wdh.), mindestens 48 h Abstand zu Longrun und "
+          title: "Kraft",
+          text: "Beine schwer und kurz (2–3 Sätze à 4–6 Wdh.), mindestens 48 h Abstand zu Longrun und "
             + "Qualitätslauf.")
         InfoLine(
           title: "Stoppsignal",

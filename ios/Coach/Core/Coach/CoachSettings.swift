@@ -54,7 +54,8 @@ final class CoachSettings {
       defaults.data(forKey: Self.competitionKey).flatMap {
         try? JSONDecoder().decode(CompetitionDecisions.self, from: $0)
       } ?? [:]
-    tests = defaults.data(forKey: Self.testsKey).flatMap { try? JSONDecoder().decode([TestRecord].self, from: $0) } ?? []
+    tests =
+      defaults.data(forKey: Self.testsKey).flatMap { try? JSONDecoder().decode([TestRecord].self, from: $0) } ?? []
     heartRate =
       defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
       ?? HeartRateOverrides()
