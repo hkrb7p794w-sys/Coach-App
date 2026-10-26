@@ -212,11 +212,13 @@ private struct SeasonWeekRow: View {
       VStack(alignment: .leading, spacing: 2) {
         Text(week.monday.map { "ab \(Formatters.shortDate($0))" } ?? week.w)
           .font(.subheadline.weight(isCurrent ? .bold : .regular))
-        Text([week.qc, week.lr > 0 ? "Longrun \(GermanFormat.decimal(week.lr)) km" : nil, week.f.isEmpty ? nil : week.f]
-          .compactMap { $0 }.joined(separator: " · "))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
+        Text(
+          [week.qc, week.lr > 0 ? "Longrun \(GermanFormat.decimal(week.lr)) km" : nil, week.f.isEmpty ? nil : week.f]
+            .compactMap { $0 }.joined(separator: " · ")
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(2)
       }
       Spacer()
       if isCurrent {
