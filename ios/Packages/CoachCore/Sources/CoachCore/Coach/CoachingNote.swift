@@ -47,6 +47,14 @@ public enum CoachingNote {
     ]
   }
 
+  /// „Titel (Zusatz) – schon erledigt“ bzw. „→ Hinweis“ für den Prompt.
+  public static func line(_ title: String, _ caption: String, done: Bool, chip: String) -> String {
+    var text = caption.isEmpty ? title : "\(title) (\(caption))"
+    if done { text += " – schon erledigt" }
+    if !chip.isEmpty { text += " → \(chip)" }
+    return text
+  }
+
   /// Regeln, auf die sich die Tagesnotiz stützen darf.
   public static let dailyNoteEvidence = [
     "recovery.hrv", "recovery.rhr", "recovery.sleep", "recovery.subjective", "intensity.distribution", "run.4x4",

@@ -13,6 +13,8 @@ final class TodayViewModel {
     let recommendation: Recommendation
     let plan: PlanState
     let week: WeeklyVolume
+    /// Einheiten des Tages mit Hinweisen (Portierung von `coach_today()`).
+    let today: TodayPlan?
   }
 
   private struct CachedNote: Codable {
@@ -35,12 +37,17 @@ final class TodayViewModel {
   private(set) var isLoadingNote = false
 
   private let defaults: UserDefaults
+  private let schedule: SeasonSchedule?
 
-  init(defaults: UserDefaults = .standard) {
+  init(defaults: UserDefaults = .standard, schedule: SeasonSchedule? = .load()) {
     self.defaults = defaults
+    self.schedule = schedule
   }
 
-  func update(days: [DailyMetrics], activities: [GarminActivity], settings: CoachSettings, now: Date = .now) {
+  func update(
+    days: [DailyMetrics], activities: [GarminActivity], settings: CoachSettings, gymDays: [CalendarDay] = [],
+    now: Date = .now
+  ) {
     let today = CalendarDay(date: now)
     let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
     let yesterday = byDay[today.adding(days: -1)]
@@ -54,14 +61,45 @@ final class TodayViewModel {
     )
     let week = WeeklyVolume(activities: activities, weekContaining: today)
     let plan = SeasonPlan.state(today: today, config: settings.season, week: week)
+    let todayPlan = schedule.map {
+      Self.todayPlan(
+        schedule: $0, activities: activities, gymDays: gymDays, settings: settings, today: today,
+        recommendation: recommendation, hasMetrics: metrics != nil)
+    }
     snapshot = Snapshot(
       metrics: metrics,
       isFromYesterday: byDay[today] == nil && yesterday != nil,
       recommendation: recommendation,
       plan: plan,
-      week: week
+      week: week,
+      today: todayPlan
     )
     showCachedOrFallback()
+  }
+
+  /// Erledigtes der Woche: Garmin-Aktivitäten (Rad nur mit Distanz) und Krafteinheiten aus Garmin und App.
+  static func todayPlan(
+    schedule: SeasonSchedule, activities: [GarminActivity], gymDays: [CalendarDay], settings: CoachSettings,
+    today: CalendarDay, recommendation: Recommendation, hasMetrics: Bool
+  ) -> TodayPlan {
+    let monday = today.adding(days: -today.weekdayIndex)
+    let week = activities.filter { activity in
+      guard let day = activity.day else { return false }
+      return monday <= day && day <= today
+    }
+    let strengthDays = Set(
+      week.filter { $0.sport == .strength }.compactMap(\.day) + gymDays.filter { monday <= $0 && $0 <= today })
+    let done = TodayPlan.Done(
+      swim: week.filter { $0.sport == .swim }.count,
+      run: week.filter { $0.sport == .run }.count,
+      bike: week.filter { $0.sport == .bike && ($0.distanceMeters ?? 0) > 0 }.count,
+      strength: strengthDays.count)
+    let zones = HeartRateZoneCalculator.distribution(activities: activities, today: today, weeks: 1)
+      .perWeek.first { $0.monday == monday }?.run
+    return TodayPlan(
+      schedule: schedule, config: settings.season, decisions: settings.competitionDecisions, today: today,
+      level: hasMetrics ? recommendation.level : nil, advice: recommendation.advice, done: done,
+      gymDays: strengthDays, runZones: zones)
   }
 
   /// KI-Notiz holen. Ohne eingerichteten Worker bleibt die regelbasierte Notiz stehen.
@@ -70,7 +108,7 @@ final class TodayViewModel {
     if !force, let cached = cachedNote(for: snapshot), cached.source != Self.fallbackSource { return }
     isLoadingNote = true
     defer { isLoadingNote = false }
-    let input = CoachingNote.input(
+    var input = CoachingNote.input(
       recommendation: snapshot.recommendation,
       metrics: snapshot.metrics,
       plan: snapshot.plan,
@@ -78,6 +116,13 @@ final class TodayViewModel {
       week: snapshot.week,
       privacy: settings.privacy
     )
+    // Gleiche Einheiten und Hinweise wie in der Ansicht – Karte und Notiz widersprechen sich nicht.
+    if let today = snapshot.today {
+      input["todayItems"] = .array(
+        today.items.map { .string(CoachingNote.line($0.title, $0.caption, done: $0.done, chip: $0.chip)) })
+      input["openItems"] = .array(
+        today.open.map { .string(CoachingNote.line($0.title, $0.caption, done: false, chip: $0.chip)) })
+    }
     do {
       let response = try await ai.run(task: "daily_note", input: input)
       let points = CoachingNote.points(from: response.output)

@@ -11,6 +11,6 @@ let package = Package(
   ],
   targets: [
     .target(name: "CoachCore", resources: [.copy("Resources/season-plan.json")]),
-    .testTarget(name: "CoachCoreTests", dependencies: ["CoachCore"]),
+    .testTarget(name: "CoachCoreTests", dependencies: ["CoachCore"], resources: [.copy("Fixtures")]),
   ]
 )
