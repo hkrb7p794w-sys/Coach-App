@@ -1,0 +1,178 @@
+# Baut die unsignierte .ipa für SideStore und hängt sie an ein GitHub-Release.
+#
+# Start nur bei Bedarf, weil macOS-Minuten teuer sind:
+# - manuell: Actions › iOS Build › Run workflow
+# - in einem Pull Request: Label „ios-build“ setzen (wird beim Start wieder entfernt,
+#   erneutes Setzen startet einen neuen Build). Ergebnis und Fehler landen als Kommentar im PR.
+name: iOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: Unit-Tests im Simulator ausführen
+        type: boolean
+        default: true
+      prerelease:
+        description: Release als Vorabversion markieren
+        type: boolean
+        default: false
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ios-build-${{ github.ref }}-${{ github.event.label.name || 'dispatch' }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'ios-build'
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      XCODE_MAJOR: "26"
+      LOG: ${{ github.workspace }}/build.log
+      PR: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - name: Label entfernen
+        if: github.event_name == 'pull_request'
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/ios-build" || true
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Xcode wählen
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_"$XCODE_MAJOR"*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version | tee -a "$LOG"
+
+      - name: Werkzeuge installieren
+        run: brew install xcodegen ldid 2>&1 | tee -a "$LOG"
+
+      - name: Projekt erzeugen
+        working-directory: ios
+        run: xcodegen generate 2>&1 | tee -a "$LOG"
+
+      - name: Version bestimmen
+        run: |
+          VERSION=$(sed -n 's/^ *MARKETING_VERSION: "\(.*\)"/\1/p' ios/project.yml | head -1)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            TAG="v${VERSION}-pr${PR}.${GITHUB_RUN_NUMBER}"
+          else
+            TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
+          fi
+          {
+            echo "VERSION=$VERSION"
+            echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER"
+            echo "TAG=$TAG"
+            echo "SHORT_SHA=$SHORT_SHA"
+          } >> "$GITHUB_ENV"
+
+      - name: Unit-Tests (Simulator)
+        if: github.event_name == 'pull_request' || inputs.run_tests
+        run: |
+          UDID=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          def version(key):
+              return [int(part) for part in key.rsplit("iOS-", 1)[1].split("-")]
+          for runtime in sorted((k for k in devices if "iOS-" in k), key=version, reverse=True):
+              for device in devices[runtime]:
+                  if device["name"].startswith("iPhone"):
+                      print(device["udid"])
+                      sys.exit()
+          sys.exit("kein iPhone-Simulator gefunden")
+          ')
+          xcodebuild test \
+            -project ios/Coach.xcodeproj -scheme Coach \
+            -destination "id=$UDID" \
+            2>&1 | tee -a "$LOG"
+
+      - name: Archiv bauen (unsigniert)
+        run: |
+          xcodebuild archive \
+            -project ios/Coach.xcodeproj -scheme Coach -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Coach.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            2>&1 | tee -a "$LOG"
+
+      - name: IPA packen
+        run: |
+          APP="$RUNNER_TEMP/Coach.xcarchive/Products/Applications/Coach.app"
+          test -d "$APP"
+          # Pseudo-Signatur mit Entitlements: SideStore liest daraus, welche Rechte die App
+          # anfordert. Ohne sie sähe SideStore das HealthKit-Entitlement gar nicht.
+          if [ -d "$APP/Frameworks" ]; then
+            find "$APP/Frameworks" -maxdepth 1 \( -name '*.dylib' -o -name '*.framework' \) | while read -r item; do
+              if [ -d "$item" ]; then ldid -S "$item/$(basename "$item" .framework)"; else ldid -S "$item"; fi
+            done
+          fi
+          ldid -Sios/Coach/Resources/Coach.entitlements "$APP/Coach"
+          echo "Entitlements der IPA:" | tee -a "$LOG"
+          ldid -e "$APP/Coach" | tee -a "$LOG"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry "$GITHUB_WORKSPACE/Coach.ipa" Payload)
+          ls -lh Coach.ipa
+
+      - name: Release anlegen
+        env:
+          PRERELEASE: ${{ github.event_name == 'pull_request' || inputs.prerelease }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          FLAGS=()
+          if [ "$PRERELEASE" = "true" ]; then FLAGS+=(--prerelease); else FLAGS+=(--latest); fi
+          gh release create "$TAG" Coach.ipa \
+            --target "$TARGET_SHA" \
+            --title "Coach $VERSION ($BUILD_NUMBER)" \
+            --notes "Unsignierte IPA für SideStore. Commit $SHORT_SHA, Build $BUILD_NUMBER." \
+            "${FLAGS[@]}"
+
+      - name: Erfolg im PR melden
+        if: success() && github.event_name == 'pull_request'
+        run: |
+          URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            -f body="✅ iOS-Build $BUILD_NUMBER ($SHORT_SHA) erfolgreich: [$TAG]($URL)"
+
+      - name: Fehler im PR melden
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          touch "$LOG"
+          {
+            echo "❌ iOS-Build fehlgeschlagen ([Run]($RUN_URL))"
+            echo
+            echo '```'
+            grep -E 'error:|\*\* [A-Z ]+ FAILED \*\*|Test .* failed|✘|Expectation failed' "$LOG" | cut -c1-400 | head -60
+            echo '```'
+            echo
+            echo '<details><summary>Log-Ende</summary>'
+            echo
+            echo '```'
+            tail -150 "$LOG" | cut -c1-400
+            echo '```'
+            echo '</details>'
+          } > comment.md
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md
+
+      - name: Log sichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore

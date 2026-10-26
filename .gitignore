@@ -1,0 +1,41 @@
+# Secrets – niemals einchecken
+.env
+.env.*
+!.env.example
+*.p12
+*.mobileprovision
+*.key
+*token*.json
+
+# iOS / Xcode (Projekt wird von XcodeGen erzeugt)
+ios/*.xcodeproj/
+ios/Coach/Resources/Info.plist
+ios/Coach/Resources/Coach.entitlements
+xcuserdata/
+DerivedData/
+build/
+*.ipa
+*.xcarchive
+.build/
+.swiftpm/
+Package.resolved
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+
+# Laufzeitdaten des Backends
+backend/data/
+*.db
+*.sqlite3
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

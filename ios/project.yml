@@ -1,0 +1,83 @@
+# XcodeGen-Spezifikation – das .xcodeproj wird daraus erzeugt und nicht eingecheckt.
+# Doku: https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md
+name: Coach
+options:
+  bundleIdPrefix: io.github.hkrb7p794w
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: de
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Xcode-26-Standard für neue Projekte: Code läuft ohne Annotation auf dem MainActor,
+    # nonisolated async bleibt beim Aufrufer (SE-0461).
+    SWIFT_APPROACHABLE_CONCURRENCY: "YES"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    ENABLE_USER_SCRIPT_SANDBOXING: "YES"
+    LOCALIZATION_PREFERS_STRING_CATALOGS: "YES"
+packages:
+  CoachCore:
+    path: Packages/CoachCore
+targets:
+  Coach:
+    type: application
+    platform: iOS
+    sources:
+      - path: Coach
+    dependencies:
+      - package: CoachCore
+      - sdk: HealthKit.framework
+    entitlements:
+      path: Coach/Resources/Coach.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+    info:
+      path: Coach/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Coach
+        CFBundleDevelopmentRegion: de
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+        NSHealthShareUsageDescription: >-
+          Coach liest Workouts, Schlaf und Herzfrequenz, um Erholung und Training
+          einzuordnen.
+        NSHealthUpdateUsageDescription: >-
+          Coach speichert deine Krafttrainings als Workouts in Health.
+        NSCameraUsageDescription: >-
+          Coach nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.hkrb7p794w.coach
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: "NO"
+  CoachTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: CoachTests
+    dependencies:
+      - target: Coach
+      - package: CoachCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+schemes:
+  Coach:
+    build:
+      targets:
+        Coach: all
+        CoachTests: [test]
+    test:
+      targets:
+        - CoachTests
+    archive:
+      config: Release
