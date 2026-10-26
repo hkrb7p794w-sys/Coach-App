@@ -2,6 +2,19 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Disziplinen, Zielzeit Almere und Marathon
+
+- Portiert aus den HA-Ansichten Schwimmen, Rad, Laufen, Saison und Marathon: Paces aus der CSS (`swim_paces`),
+  Rad-Zonen in % FTP (`bike_zones`), Lauf-Paces (`run_paces`), geschätzte Zielzeit Almere (1,9 km / 94 km /
+  21,1 km plus 3 und 2 min Wechsel, Korridor 5:30–6:00 h, Aussage nur mit Benchmarks jünger als 8 Wochen),
+  Marathon-Ausblick mit Longrun-Leiter aus dem Saisonplan. Tests prüfen die Werte gegen das HA-Dashboard.
+- Testwerte werden mit Datum gespeichert (`TestRecord`): Verläufe für CSS, FTP und Schwelle, Aktualität für die
+  Zielzeit. Eintragen direkt auf der Seite der Disziplin.
+- CSS-Test nach Wakayoshi et al. 1992 (PubMed, doi:10.1055/s-2007-1021282) als neue Regel `swim.css`.
+- Marathon ≈ Halbmarathon × 2,15–2,2 ist ein Praxiswert ohne Studie und in der App so benannt.
+- Noch offen: Pace-Check (`pace_check.py`) und aerobe Kopplung (`decoupling.py`) brauchen Runden bzw. FIT-Daten
+  der Aktivitäten.
+
 ## 2026-10-26 – Saisonplan als Reiter „Plan“
 
 - Quelle: `coach_plan.jinja` (48 Wochen, je Woche Zwift-, Schwimm-, Qualitäts-, Z2- und Langlauf-Einheit,

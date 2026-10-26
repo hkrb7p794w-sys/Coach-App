@@ -41,6 +41,8 @@ public struct PlanWeek: Codable, Equatable, Sendable, Identifiable {
   /// Longrun und Länge in km (0 = keiner)
   public var l: String
   public var lr: Double
+  /// Besondere Woche, z. B. `marathon`
+  public var key: String?
   /// Wettkampfspezifischer Qualitätslauf/Longrun (zum Annehmen/Ablehnen) mit Alternative
   public var qw: Int?
   public var qa: String?

@@ -22,6 +22,8 @@ final class TrainingViewModel {
     var id: String { title }
   }
 
+  /// Saisonplan (Zwift-Bibliothek, Longrun-Leiter).
+  let schedule = SeasonSchedule.load()
   private(set) var today = CalendarDay(date: .now)
   private(set) var recovery: [TrendCard] = []
   private(set) var tiles: [Tile] = []
