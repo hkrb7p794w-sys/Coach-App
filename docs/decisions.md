@@ -2,6 +2,19 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Einheiten ausführlich erklärt
+
+- **Wunsch des Nutzers:** Einheiten wie die Schwimmtrainings nicht nur kurz zusammenfassen, sondern in der App
+  ausführlicher erklären.
+- **`UnitGuides` (CoachCore):** Jede Einheit bekommt Zweck, Ablauf Schritt für Schritt, Gefühl, typische Fehler und
+  ein Glossar der vorkommenden Begriffe (CSS, Abschlag, Zipper, Seitlage, Pull-Buoy, Sighting, Sweet Spot, FTP, Over-Under,
+  VO2max, Kadenz, Schwelle, Marathontempo …).
+  - Beim Schwimmen wird jeder Abschnitt des Ablaufs erklärt; das Tempo relativ zur CSS wird in Worte gefasst.
+  - Die Texte sind feste Bausteine ohne KI.
+  - Zahlen kommen nur aus dem Plan, den eigenen Testwerten oder belegten Regeln (z. B. 4×4 bei 90–95 % HFmax).
+- **Eigener Wochenplan:** Ein Tipp auf eine Einheit öffnet dieselbe Erklärung. Werte des Saisonplans (CSS, FTP) kommen
+  dort nicht vor.
+
 ## 2026-10-26 – Rezeptideen für die kommende Woche
 
 - **Regeln legen die Tagesziele fest:** Für jeden Tag der kommenden Woche (Montag bis Sonntag) rechnet die App

@@ -76,6 +76,8 @@ struct PlanUnitDetailView: View {
         CompetitionSection(unit: unit, week: week)
       }
 
+      UnitGuideSections(guide: UnitGuides.guide(for: unit))
+
       Section {
         EvidenceDisclosure(ruleIDs: unit.evidenceIDs)
       }
