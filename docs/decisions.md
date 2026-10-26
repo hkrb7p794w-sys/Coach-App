@@ -2,6 +2,26 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – FIT-Auswertung: aerobe Kopplung und Pace-Check
+
+- Runden und Zeitreihen liefert die Personal API nur als FIT-Datei (`/download-service/files/activity/{id}`,
+  ZIP); `get_activity_splits`/`get_activity_details` des Altbestands gibt es dort nicht (offizieller Client
+  `client.py`, Stand 26.10.2026). Die App entpackt das ZIP und liest die FIT-Nachrichten `record` und `lap`
+  selbst (`CoachCore/Fit`, Feldnummern laut FIT-SDK-Profil), ohne Apple-Frameworks, damit die Tests auf Linux
+  laufen.
+- `decoupling.py` (Methode 3: HF-Zonen-Filter, 10 min Aufwärmen weg, Zeitreihe, Rundenmethode als Ersatz) und
+  `pace_check.py` sind unverändert portiert, ebenso die Einordnung harter Einheiten aus `tagesform.py`.
+  Erwartungswerte: über 1.000 Zufallsfälle, berechnet mit dem Original-Code, dazu eine mit `fit_tool` erzeugte
+  FIT-Datei, die `fitparse` unabhängig gelesen hat.
+- Zeitbasis der Zeitreihe ist die Uhrzeit ab dem ersten Messpunkt (Garmins `sumDuration` war die Zeit bei
+  laufender Uhr); bei Auto-Pause verschiebt sich die Hälftengrenze minimal.
+- Höchstens sechs FIT-Abrufe je Synchronisierung, Ergebnisse als JSON im App-Support-Ordner (90 Tage). RPE kommt
+  aus `/activity-service/activity/{id}` (`summaryDTO.directWorkoutRpe`) und wird zwei Tage lang nachgefragt.
+- Wissenschaft: Herz-Kreislauf-Drift (Coyle & González-Alonso 2001, doi:10.1097/00003677-200104000-00009) und
+  „Durability“ (Maunder et al. 2021, doi:10.1007/s40279-021-01459-0) begründen die Kennzahl; die 5-%-Grenze ist
+  ein Praxiswert und so gekennzeichnet. Pace-Check: 4×4-Ziel 90–95 % HFmax (Helgerud et al. 2007), Schwelle an
+  der Schwellen-HF verankert; als Praxisregel markiert, der Feldtest bleibt maßgeblich.
+
 ## 2026-10-26 – Disziplinen, Zielzeit Almere und Marathon
 
 - Portiert aus den HA-Ansichten Schwimmen, Rad, Laufen, Saison und Marathon: Paces aus der CSS (`swim_paces`),

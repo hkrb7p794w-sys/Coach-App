@@ -12,7 +12,8 @@ struct TrainingView: View {
   @State private var viewModel = TrainingViewModel()
 
   private var refreshKey: String {
-    "\(days.last?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.heartRate.hashValue)"
+    "\(days.last?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.heartRate.hashValue)-"
+      + "\(model.lastReport?.finishedAt.timeIntervalSince1970 ?? 0)"
   }
 
   var body: some View {
@@ -68,7 +69,8 @@ struct TrainingView: View {
           activities: activities.compactMap(\.activity),
           profile: model.sync.profile,
           watchZones: model.sync.raw(.heartRateZones),
-          overrides: model.settings.heartRate
+          overrides: model.settings.heartRate,
+          analyses: Array(model.sync.analysisStore.load().values)
         )
       }
     }
