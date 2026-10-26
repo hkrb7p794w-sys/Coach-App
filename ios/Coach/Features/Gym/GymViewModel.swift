@@ -24,8 +24,16 @@ final class GymViewModel {
   private(set) var restEndsAt: Date?
   var message: String?
   private(set) var isSaving = false
+  /// KI-Hinweise zur Gewichtssteigerung (oder regelbasierter Ersatz).
+  private(set) var hints: [String] = []
+  private(set) var hintSource = ""
+  private(set) var hintEvidence: [String] = []
+  private(set) var isLoadingHints = false
 
-  private var sessions: [GymSession] = []
+  /// Zielbereiche je Übung: Saisonplan und eigene Routinen.
+  private(set) var ranges: [String: ClosedRange<Int>] = [:]
+  private(set) var gym = GymSettings()
+  private(set) var sessions: [GymSession] = []
   private let defaults: UserDefaults
 
   init(defaults: UserDefaults = .standard) {
@@ -33,10 +41,15 @@ final class GymViewModel {
     active = defaults.data(forKey: Self.activeKey).flatMap { try? JSONDecoder().decode(GymSession.self, from: $0) }
   }
 
-  func update(sessions: [GymSession], activities: [GarminActivity], days: [DailyMetrics], now: Date = .now) {
+  func update(
+    sessions: [GymSession], activities: [GarminActivity], days: [DailyMetrics], gym: GymSettings = GymSettings(),
+    now: Date = .now
+  ) {
     let today = CalendarDay(date: now)
     self.today = today
     self.sessions = sessions
+    self.gym = gym
+    ranges = plan.repRanges.merging(gym.routines.repRanges) { _, routine in routine }
     let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
     if let metrics = byDay[today] ?? byDay[today.adding(days: -1)] {
       recovered = RecoveryEvaluator.evaluate(metrics, restingHeartRate7DayAverage: nil).level == .normal
@@ -53,7 +66,9 @@ final class GymViewModel {
     }
     todayWorkout = doneDays.contains(today) ? nil : planned[today].flatMap(plan.workout)
 
-    progress = GymProgression.evaluate(sessions: sessions, plan: plan, today: today, recovered: recovered)
+    progress = GymProgression.evaluate(
+      sessions: sessions, ranges: ranges, custom: gym.customExercises, today: today, recovered: recovered)
+    if hints.isEmpty { showFallbackHints() }
     volume = MuscleVolume.setsPerGroup(sessions: sessions, today: today)
     daysSinceLegs = MuscleVolume.daysSinceLegs(sessions: sessions, today: today)
   }
@@ -76,6 +91,23 @@ final class GymViewModel {
     setActive(GymSession(workoutKey: workout.key, title: workout.name, start: now, exercises: exercises))
   }
 
+  /// Startet eine eigene Routine, vorbefüllt mit den letzten Werten bzw. der Progression.
+  func start(_ routine: Routine, now: Date = .now) {
+    let exercises = routine.items.map { item -> LoggedExercise in
+      let info = gym.exercise(item.exerciseID)
+      let suggestion = prefill(for: item.exerciseID, range: item.repRange, startWeight: nil)
+      return LoggedExercise(
+        exerciseID: item.exerciseID, name: item.name, group: info?.group ?? .other,
+        sets: (0..<item.sets).map { index in
+          LoggedSet(
+            reps: suggestion.reps[safe: index] ?? suggestion.reps.last ?? item.upperReps,
+            weightKg: suggestion.weight, done: false)
+        },
+        restSeconds: item.restSeconds)
+    }
+    setActive(GymSession(workoutKey: "routine-\(routine.id)", title: routine.name, start: now, exercises: exercises))
+  }
+
   func startEmpty(now: Date = .now) {
     setActive(GymSession(workoutKey: nil, title: "Krafttraining", start: now, exercises: []))
   }
@@ -83,7 +115,14 @@ final class GymViewModel {
   /// Gewicht und Wiederholungen für den nächsten Besuch: Steigerung nur, wenn die Regel es sagt und die Tagesampel
   /// nicht dagegen spricht; sonst wie beim letzten Mal; ohne Verlauf wie im Plan.
   func prefill(for exerciseID: String, planned: PlannedExercise?) -> (weight: Double, reps: [Int]) {
-    let range = planned?.planRepRange ?? ExerciseCatalog.rulesByID[exerciseID]?.reps ?? 8...12
+    let range = planned?.planRepRange ?? ranges[exerciseID] ?? gym.exercise(exerciseID)?.repRange ?? 8...12
+    return prefill(
+      for: exerciseID, range: range, startWeight: planned?.weightKg, plannedReps: planned?.reps)
+  }
+
+  func prefill(for exerciseID: String, range: ClosedRange<Int>, startWeight: Double?, plannedReps: Int? = nil)
+    -> (weight: Double, reps: [Int])
+  {
     if let item = progress.first(where: { $0.exerciseID == exerciseID }) {
       switch item.status {
       case .increase where recovered != false:
@@ -94,17 +133,64 @@ final class GymViewModel {
         return (item.weightKg, item.reps)
       }
     }
-    return (planned?.weightKg ?? 0, [planned?.reps ?? range.upperBound])
+    return (startWeight ?? 0, [plannedReps ?? range.upperBound])
   }
 
-  func addExercise(_ rule: ExerciseRule) {
+  func addExercise(_ exercise: ExerciseInfo) {
     guard var session = active else { return }
-    let suggestion = prefill(for: rule.id, planned: nil)
-    let sets = (0..<2).map { _ in
-      LoggedSet(reps: suggestion.reps.last ?? 10, weightKg: suggestion.weight, done: false)
+    let suggestion = prefill(for: exercise.id, planned: nil)
+    let sets = (0..<3).map { _ in
+      LoggedSet(reps: suggestion.reps.last ?? exercise.upperReps, weightKg: suggestion.weight, done: false)
     }
-    session.exercises.append(LoggedExercise(exerciseID: rule.id, name: rule.name, group: rule.group, sets: sets))
+    session.exercises.append(
+      LoggedExercise(
+        exerciseID: exercise.id, name: exercise.name, group: exercise.group, sets: sets,
+        restSeconds: exercise.compound ? 120 : 90))
     setActive(session)
+  }
+
+  /// Wiederholungen in Reserve für einen Satz.
+  func setRIR(_ rir: Int?, set index: Int, of exerciseID: UUID) {
+    mutate(exerciseID) { exercise in
+      if exercise.sets.indices.contains(index) { exercise.sets[index].rir = rir }
+    }
+  }
+
+  /// „Letztes Mal: 60 kg × 10/10/9 (Mo, 12.10.)“.
+  func lastTime(of exerciseID: String) -> String? {
+    guard let point = GymStats.history(of: exerciseID, sessions: sessions).last else { return nil }
+    let sets = point.sets.map { set in
+      set.weightKg > 0 ? "\(GermanFormat.number(set.weightKg))×\(set.reps)" : "\(set.reps)"
+    }
+    return "Letztes Mal (\(Formatters.day(point.day))): \(sets.joined(separator: ", "))"
+  }
+
+  // MARK: - KI-Hinweise
+
+  /// Hinweise zur Gewichtssteigerung von der KI; ohne Worker bleiben die Regeln stehen.
+  func loadHints(ai: AIClient, goal: FitnessGoal?) async {
+    guard ai.isConfigured, !isLoadingHints, !progress.isEmpty else { return }
+    isLoadingHints = true
+    defer { isLoadingHints = false }
+    do {
+      let response = try await ai.run(
+        task: "gym_hints",
+        input: GymHints.input(progress: progress, recovered: recovered, volume: volume, goal: goal))
+      let points = CoachingNote.points(from: response.output)
+      guard !points.isEmpty else { return }
+      hints = points
+      hintSource = "KI · \(response.model)"
+      hintEvidence = ["gym.progression"] + CoachingNote.sources(from: response.output)
+    } catch {
+      showFallbackHints()
+      hintSource = "Regeln (KI nicht erreichbar)"
+    }
+  }
+
+  private func showFallbackHints() {
+    hints = GymHints.fallback(progress)
+    hintSource = "Regeln (ohne KI)"
+    hintEvidence = ["gym.progression", "gym.rir"]
   }
 
   func removeExercise(_ id: UUID) {
@@ -189,7 +275,9 @@ final class GymViewModel {
     }
     setActive(nil)
     restEndsAt = nil
-    message = await Self.saveToHealth(record, session: session, context: context, writer: writer)
+    let records = GymStats.newRecords(in: session, before: sessions)
+    let health = await Self.saveToHealth(record, session: session, context: context, writer: writer)
+    message = records.isEmpty ? health : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + health
   }
 
   /// Gibt eine Meldung für die Anzeige zurück.
@@ -226,14 +314,9 @@ final class GymViewModel {
     }
   }
 
-  /// Verlauf einer Übung (Arbeitsgewicht je Einheit) für die Grafik.
-  func history(of exerciseID: String) -> [DayValue] {
-    sessions.compactMap { session -> DayValue? in
-      let sets = session.exercises.filter { $0.exerciseID == exerciseID }.flatMap(\.doneSets)
-      guard let top = sets.map(\.weightKg).max() else { return nil }
-      return DayValue(day: session.day, value: top)
-    }
-    .sorted { $0.day < $1.day }
+  /// Verlauf einer Übung je Tag (Höchstgewicht, geschätztes 1RM, Sätze).
+  func history(of exerciseID: String) -> [GymStats.Point] {
+    GymStats.history(of: exerciseID, sessions: sessions)
   }
 }
 

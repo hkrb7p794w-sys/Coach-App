@@ -2,6 +2,29 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Gym-App: Bibliothek, Routinen, RIR und KI-Tipps
+
+- **Vorbild GymBook:** Übungsbibliothek (51 Übungen mit Muskeln, Geräten und 2–3 Technikhinweisen), eigene
+  Übungen, Routinen, Satz-Erfassung mit „Letztes Mal“ und Pausen-Timer, Verlauf je Übung mit Höchstgewicht und
+  geschätztem 1RM, Rekorde nach jeder Einheit. Übungen aus dem Garmin-Katalog behalten ihre IDs und
+  Progressionswerte, damit alte Einheiten weiter zählen.
+- **Vorschläge für Routinen:** Jeder große Muskel kommt mindestens zweimal pro Woche dran (Schoenfeld et al. 2016,
+  doi:10.1007/s40279-016-0543-8). Bei 1–3 Krafttagen Ganzkörper, bei 4 Ober-/Unterkörper, ab 5 Push/Pull/Beine plus
+  Ober-/Unterkörper. Die Wiederholungsbereiche liegen in der Mitte: Muskeln wachsen über ein breites Lastspektrum
+  ähnlich (Schoenfeld et al. 2017, doi:10.1519/JSC.0000000000002200). Einsteiger machen 2 Sätze, sonst 3; die
+  Pausen (Grundübung 120 s, sonst 90 s) sind Praxiswerte.
+- **Wiederholungen in Reserve (RIR):** optional nach jedem Satz (0–4+). Die RIR-Skala ist praktikabel und valide
+  (Helms et al. 2016, doi:10.1519/SSC.0000000000000218; Zourdos et al. 2016, doi:10.1519/JSC.0000000000001049).
+  Muskelaufbau nimmt zu, je näher Sätze am Versagen enden (Robinson et al. 2024, doi:10.1007/s40279-024-02069-2),
+  Versagen selbst bringt kaum mehr (Refalo et al. 2023, doi:10.1007/s40279-022-01784-y).
+  - Neue Regel D in `GymProgression`: Bleiben in allen Arbeitssätzen mindestens 4 Wiederholungen in Reserve, wird
+    sofort ein Sprung erhöht.
+  - Die Schwelle 4 ist ein Praxiswert.
+  - Die Regeln A–C (Doppelprogression, ACSM 2009) bleiben unverändert.
+- **KI-Tipps (Worker-Aufgabe `gym_hints`):** Die Regeln entscheiden Gewicht und Wiederholungen. Die KI formuliert
+  daraus 2–4 Hinweise; Punkte mit Zahlen, die nicht in den Fakten stehen, verwirft der Worker (`grounding.ts`). Ohne
+  KI zeigt die App die Entscheidungen der Regeln.
+
 ## 2026-10-26 – Mehrere Nutzer:innen, Rangliste und Begleiter
 
 - **Kein Konto nötig:** Jede Installation ist bereits ein eigener Zugang. Profil, Garmin-Konto (Keychain),

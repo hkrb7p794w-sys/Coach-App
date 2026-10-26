@@ -53,6 +53,8 @@ public enum GymProgression {
   static let minimumWorkingSets = 2
   /// Übungen, die länger nicht gemacht wurden, fallen raus.
   static let relevantDays = 56
+  /// Ab so vielen Wiederholungen in Reserve in allen Arbeitssätzen war das Gewicht deutlich zu leicht.
+  static let easyRIR = 4
   /// Danach: Wiedereinstieg mit reduziertem Gewicht.
   static let breakDays = 21
   static let restartFactor = 0.90
@@ -63,6 +65,8 @@ public enum GymProgression {
     var day: CalendarDay
     var weight: Double
     var reps: [Int]
+    /// RIR der Sätze am Höchstgewicht, soweit angegeben.
+    var rirs: [Int] = []
     var minReps: Int { reps.min() ?? 0 }
     var maxReps: Int { reps.max() ?? 0 }
     var lastReps: Int { reps.last ?? 0 }
@@ -70,7 +74,9 @@ public enum GymProgression {
 
   /// Arbeitssätze: mindestens 80 % des schwersten Gewichts; ohne Gewicht alle Sätze.
   static func workingSets(_ sets: [LoggedSet]) -> [LoggedSet] {
-    let valid = sets.filter { $0.done && $0.reps > 0 }.map { LoggedSet(reps: $0.reps, weightKg: max($0.weightKg, 0)) }
+    let valid = sets.filter { $0.done && $0.reps > 0 }.map {
+      LoggedSet(reps: $0.reps, weightKg: max($0.weightKg, 0), rir: $0.rir)
+    }
     guard let top = valid.map(\.weightKg).max() else { return [] }
     guard top > 0 else { return valid }
     return valid.filter { $0.weightKg >= top * warmupFraction }
@@ -80,7 +86,7 @@ public enum GymProgression {
     let working = workingSets(sets)
     guard let top = working.map(\.weightKg).max() else { return nil }
     let atTop = top > 0 ? working.filter { abs($0.weightKg - top) <= weightTolerance } : working
-    return Entry(day: day, weight: top, reps: atTop.map(\.reps))
+    return Entry(day: day, weight: top, reps: atTop.map(\.reps), rirs: atTop.compactMap(\.rir))
   }
 
   /// Verlauf je Übung (alt → neu); mehrere Einheiten am selben Tag werden zusammengelegt.
@@ -177,11 +183,26 @@ public enum GymProgression {
     let ruleC =
       sameWeightPrevious && last.reps.count >= minimumWorkingSets && last.minReps >= high - 1
       && (previous?.minReps ?? 0) >= high - 1 && last.maxReps >= high
+    // D: alle Arbeitssätze mit mindestens 4 Wdh. in Reserve – Satz war deutlich zu leicht (RIR-Skala, Helms 2016)
+    let ruleD =
+      last.reps.count >= minimumWorkingSets && last.rirs.count == last.reps.count
+      && (last.rirs.min() ?? 0) >= easyRIR && last.minReps >= low
     // Warnsignal: zweimal mindestens 2 Wdh. unter der Untergrenze bei gleichem oder höherem Gewicht
     let drop =
       previous.map { last.minReps <= low - 2 && $0.minReps <= low - 2 && last.weight >= $0.weight - weightTolerance }
       ?? false
 
+    if ruleD, !(ruleA || ruleB || ruleC), let next {
+      let (nextKg, percent) = next
+      result.nextWeightKg = nextKg
+      result.increasePercent = percent
+      let gate = recovered == false ? " Erholung aktuell eingeschränkt: Steigerung erst bei guter Tagesform." : ""
+      return set(
+        .increase, "Erhöhen auf \(kg(nextKg)) kg (+\(kg(percent)) %)",
+        "\(kg(weight)) kg × \(repsText(last.reps)) mit noch \(last.rirs.min() ?? easyRIR)+ Wdh. in Reserve: deutlich "
+          + "zu leicht. Für Muskelaufbau sollten die Sätze näher am Muskelversagen enden (etwa 1–3 Wdh. in "
+          + "Reserve).\(gate)")
+    }
     if ruleA || ruleB || ruleC, let next {
       let (nextKg, percent) = next
       let why: String
@@ -234,11 +255,18 @@ public enum GymProgression {
   public static func evaluate(
     sessions: [GymSession], plan: GymPlan, today: CalendarDay, recovered: Bool? = nil
   ) -> [ExerciseProgress] {
-    let planRanges = plan.repRanges
+    evaluate(sessions: sessions, ranges: plan.repRanges, today: today, recovered: recovered)
+  }
+
+  /// Wie oben, mit Zielbereichen aus eigenen Routinen; eigene Übungen über `custom`.
+  public static func evaluate(
+    sessions: [GymSession], ranges planRanges: [String: ClosedRange<Int>], custom: [ExerciseInfo] = [],
+    today: CalendarDay, recovered: Bool? = nil
+  ) -> [ExerciseProgress] {
     var result: [ExerciseProgress] = []
     for (id, item) in history(sessions) {
       guard let last = item.entries.last, last.day.days(until: today) <= relevantDays else { continue }
-      var rule = ExerciseCatalog.rulesByID[id] ?? .fallback(name: item.name)
+      var rule = ExerciseLibrary.rule(id, name: item.name, custom: custom)
       rule.id = id
       rule.name = item.name
       rule.group = item.group

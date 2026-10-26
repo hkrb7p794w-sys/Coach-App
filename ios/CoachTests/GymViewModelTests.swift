@@ -54,13 +54,13 @@ struct GymViewModelTests {
     let container = CoachSchema.makeContainer(inMemory: true)
     viewModel.update(sessions: [], activities: [], days: [], now: now)
     viewModel.startEmpty(now: now)
-    let bench = try #require(ExerciseCatalog.rulesByID["bankdruecken"])
+    let bench = try #require(ExerciseLibrary.byID["bankdruecken"])
     viewModel.addExercise(bench)
     let exercise = try #require(viewModel.active?.exercises.first)
     viewModel.setWeight(50, set: 0, of: exercise.id)
-    #expect(viewModel.active?.exercises.first?.sets.map(\.weightKg) == [50, 50])
+    #expect(viewModel.active?.exercises.first?.sets.map(\.weightKg) == [50, 50, 50])
     viewModel.toggleDone(set: 0, of: exercise.id, now: now)
-    #expect(viewModel.restEndsAt == now.addingTimeInterval(90))
+    #expect(viewModel.restEndsAt == now.addingTimeInterval(120))
 
     let writer = StubWriter()
     await viewModel.finish(context: container.mainContext, writer: writer, now: now.addingTimeInterval(1800))
@@ -90,5 +90,37 @@ struct GymViewModelTests {
     await viewModel.finish(context: container.mainContext, writer: StubWriter(), now: now)
     #expect(viewModel.message?.contains("Noch kein Satz") == true)
     #expect(viewModel.active != nil)
+  }
+
+  @Test func routineStartsWithLastValuesAndStoresRIR() throws {
+    let viewModel = try makeViewModel()
+    let last = GymSession(
+      workoutKey: nil, title: "Ganzkörper A", start: now.addingTimeInterval(-3 * 86_400),
+      exercises: [
+        LoggedExercise(
+          exerciseID: "goblet_squat", name: "Goblet Squat", group: .legs,
+          sets: [LoggedSet(reps: 10, weightKg: 16), LoggedSet(reps: 9, weightKg: 16)])
+      ])
+    let routine = Routine(
+      name: "Ganzkörper A",
+      items: [
+        RoutineItem(
+          exerciseID: "goblet_squat", name: "Goblet Squat", sets: 3, lowerReps: 8, upperReps: 12, restSeconds: 120)
+      ])
+    var gym = GymSettings()
+    gym.routines = [routine]
+    viewModel.update(sessions: [last], activities: [], days: [], gym: gym, now: now)
+    #expect(viewModel.lastTime(of: "goblet_squat")?.hasSuffix("16×10, 16×9") == true)
+
+    viewModel.start(routine, now: now)
+    let exercise = try #require(viewModel.active?.exercises.first)
+    #expect(exercise.sets.count == 3)
+    #expect(exercise.sets.allSatisfy { $0.weightKg == 16 })
+    #expect(exercise.group == .legs)
+    #expect(exercise.restSeconds == 120)
+    viewModel.toggleDone(set: 0, of: exercise.id, now: now)
+    viewModel.setRIR(2, set: 0, of: exercise.id)
+    #expect(viewModel.active?.exercises.first?.sets.first?.rir == 2)
+    #expect(viewModel.hints.isEmpty == false)
   }
 }

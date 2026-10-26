@@ -12,6 +12,7 @@ import {
   groundPoints,
   POINTS_WITH_SOURCES,
 } from "./grounding";
+import { gymHintsPrompt } from "./gym";
 import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
 import { list, text } from "./tasks-util";
@@ -134,6 +135,14 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: false,
     temperature: 0.2,
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: nutritionReviewPrompt(input) }),
+    ground: groundedPoints,
+  },
+  /** Hinweise zur Gewichtssteigerung aus den Progressionsregeln. */
+  gym_hints: {
+    json: true,
+    allowImages: false,
+    temperature: 0.2,
+    build: (input) => ({ system: GROUNDING_SYSTEM, prompt: gymHintsPrompt(input) }),
     ground: groundedPoints,
   },
 };

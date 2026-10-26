@@ -16,6 +16,7 @@ final class CoachSettings {
   static let remindersKey = "coach.reminders"
   static let companionKey = "coach.companion"
   static let leagueKey = "coach.league"
+  static let gymKey = "coach.gym"
 
   private let defaults: UserDefaults
 
@@ -67,6 +68,11 @@ final class CoachSettings {
     didSet { save(league, forKey: Self.leagueKey) }
   }
 
+  /// Routinen, eigene Übungen und Ausstattung fürs Gym.
+  var gym: GymSettings {
+    didSet { save(gym, forKey: Self.gymKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -105,6 +111,9 @@ final class CoachSettings {
       try? JSONDecoder().decode(LeagueSettings.self, from: $0)
     }
     league = storedLeague ?? LeagueSettings()
+    gym =
+      defaults.data(forKey: Self.gymKey).flatMap { try? JSONDecoder().decode(GymSettings.self, from: $0) }
+      ?? GymSettings()
     var migrated = false
     if let stored = defaults.data(forKey: Self.profileKey).flatMap({
       try? JSONDecoder().decode(UserProfile.self, from: $0)
