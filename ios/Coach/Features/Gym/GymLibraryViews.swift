@@ -86,7 +86,8 @@ struct ExerciseDetailView: View {
       }
       if let exercise {
         Section {
-          LabeledContent("Muskel", value: ([exercise.group] + exercise.secondary).map(\.rawValue).joined(separator: ", "))
+          LabeledContent(
+            "Muskel", value: ([exercise.group] + exercise.secondary).map(\.rawValue).joined(separator: ", "))
           if !exercise.equipment.isEmpty {
             LabeledContent("Geräte", value: exercise.equipment.map(\.label).joined(separator: " / "))
           }

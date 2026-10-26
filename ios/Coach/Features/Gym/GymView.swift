@@ -124,9 +124,11 @@ private struct PersonalGymSection: View {
         Text("Heute steht laut deinem Wochenplan kein Krafttraining an.").foregroundStyle(.secondary)
       }
       if viewModel.recovered == false {
-        Label("Erholung heute eingeschränkt: Gewichte halten, ggf. weniger Sätze.", systemImage: "exclamationmark.triangle")
-          .font(.footnote)
-          .foregroundStyle(.orange)
+        Label(
+          "Erholung heute eingeschränkt: Gewichte halten, ggf. weniger Sätze.", systemImage: "exclamationmark.triangle"
+        )
+        .font(.footnote)
+        .foregroundStyle(.orange)
       }
       ForEach(routines) { routine in
         Button {

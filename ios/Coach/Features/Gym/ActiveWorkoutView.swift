@@ -184,8 +184,9 @@ private struct SetRow: View {
         Text(isTime ? "\(set.reps) s" : "\(set.reps) Wdh.").monospacedDigit().font(.caption)
         Stepper(
           isTime ? "Sekunden" : "Wiederholungen", value: Binding(get: { set.reps }, set: { change(.reps($0)) }),
-          in: 0...600, step: isTime ? 5 : 1)
-          .labelsHidden()
+          in: 0...600, step: isTime ? 5 : 1
+        )
+        .labelsHidden()
       }
       Spacer(minLength: 0)
       Button {

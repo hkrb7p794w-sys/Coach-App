@@ -43,7 +43,8 @@ struct ExerciseLibraryTests {
     #expect(!bench.isAvailable(with: Equipment.homeDumbbells))
     #expect(try #require(ExerciseLibrary.byID["liegestuetze"]).isAvailable(with: Equipment.none))
 
-    let own = ExerciseInfo.custom(name: " Landmine Press ", group: .shoulders, equipment: .barbell, tracking: .weightReps)
+    let own = ExerciseInfo.custom(
+      name: " Landmine Press ", group: .shoulders, equipment: .barbell, tracking: .weightReps)
     #expect(own.id == "eigen_landmine_press")
     #expect(own.name == "Landmine Press")
     var settings = GymSettings()
@@ -81,11 +82,13 @@ struct RoutineTemplateTests {
           for group in Set(routine.items.compactMap { ExerciseLibrary.byID[$0.exerciseID]?.group }) {
             sessionsPerGroup[group, default: 0] += 1
           }
-          #expect(routine.items.allSatisfy { ExerciseLibrary.byID[$0.exerciseID]?.isAvailable(with: equipment) == true })
+          #expect(
+            routine.items.allSatisfy { ExerciseLibrary.byID[$0.exerciseID]?.isAvailable(with: equipment) == true })
           #expect(Set(routine.items.map(\.exerciseID)).count == routine.items.count)
         }
         for group in [MuscleGroup.chest, .back, .legs, .shoulders] {
-          #expect((sessionsPerGroup[group] ?? 0) >= 2, "\(group) bei \(days) Tagen nur \(sessionsPerGroup[group] ?? 0)×")
+          #expect(
+            (sessionsPerGroup[group] ?? 0) >= 2, "\(group) bei \(days) Tagen nur \(sessionsPerGroup[group] ?? 0)×")
         }
       }
     }
@@ -93,9 +96,12 @@ struct RoutineTemplateTests {
 
   @Test func splitDependsOnDaysAndLevel() {
     #expect(RoutineTemplates.suggest(profile: profile(strengthDays: 2), equipment: Equipment.gym).count == 2)
-    #expect(RoutineTemplates.suggest(profile: profile(strengthDays: 4), equipment: Equipment.gym).first?.name == "Oberkörper A")
+    #expect(
+      RoutineTemplates.suggest(profile: profile(strengthDays: 4), equipment: Equipment.gym).first?.name
+        == "Oberkörper A")
     #expect(RoutineTemplates.suggest(profile: profile(strengthDays: 5), equipment: Equipment.gym).count == 5)
-    let beginner = RoutineTemplates.suggest(profile: profile(strengthDays: 2, level: .beginner), equipment: Equipment.gym)
+    let beginner = RoutineTemplates.suggest(
+      profile: profile(strengthDays: 2, level: .beginner), equipment: Equipment.gym)
     #expect(beginner.flatMap(\.items).allSatisfy { $0.sets == 2 })
     let none = RoutineTemplates.suggest(profile: profile(strengthDays: 2), equipment: Equipment.none)
     #expect(none.flatMap(\.items).contains { $0.exerciseID == "liegestuetze" })
@@ -132,7 +138,8 @@ struct RIRProgressionTests {
   }
 
   @Test func plentyInReserveMeansIncreaseNow() throws {
-    let easy = session(2, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 8, weightKg: 20, rir: 4) })
+    let easy = session(
+      2, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 8, weightKg: 20, rir: 4) })
     let result = try #require(evaluate([easy]))
     #expect(result.status == .increase)
     #expect(result.nextWeightKg == 22.5)
@@ -140,7 +147,8 @@ struct RIRProgressionTests {
   }
 
   @Test func closeToFailureKeepsBuildingReps() throws {
-    let hard = session(2, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 8, weightKg: 20, rir: 1) })
+    let hard = session(
+      2, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 8, weightKg: 20, rir: 1) })
     let earlier = session(5, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 7, weightKg: 20) })
     let result = try #require(evaluate([earlier, hard]))
     #expect(result.status == .build)
@@ -161,7 +169,8 @@ struct RIRProgressionTests {
 
 struct GymHintsTests {
   @Test func inputCarriesDecisionsAndEvidence() throws {
-    let easy = session(2, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 8, weightKg: 20, rir: 4) })
+    let easy = session(
+      2, "kurzhantel_bankdruecken", sets: (0..<3).map { _ in LoggedSet(reps: 8, weightKg: 20, rir: 4) })
     let progress = GymProgression.evaluate(sessions: [easy], ranges: [:], today: today)
     let input = GymHints.input(progress: progress, recovered: true, volume: [.chest: 3], goal: .buildMuscle)
     let line = try #require(input["exercises"]?.arrayValue?.first?.stringValue)

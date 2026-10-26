@@ -103,7 +103,10 @@ struct GymViewModelTests {
       ])
     let routine = Routine(
       name: "Ganzkörper A",
-      items: [RoutineItem(exerciseID: "goblet_squat", name: "Goblet Squat", sets: 3, lowerReps: 8, upperReps: 12, restSeconds: 120)])
+      items: [
+        RoutineItem(
+          exerciseID: "goblet_squat", name: "Goblet Squat", sets: 3, lowerReps: 8, upperReps: 12, restSeconds: 120)
+      ])
     var gym = GymSettings()
     gym.routines = [routine]
     viewModel.update(sessions: [last], activities: [], days: [], gym: gym, now: now)
