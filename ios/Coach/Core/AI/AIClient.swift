@@ -90,13 +90,6 @@ final class AIClient {
   }
 
   func run(task: String, input: [String: JSONValue] = [:], images: [Image] = []) async throws -> AIResponse {
-    guard let base = Self.normalizedURL(workerURL), let token = secrets.string(for: .aiAppToken) else {
-      throw AIClientError.notConfigured
-    }
-    var request = URLRequest(url: base.appending(path: "v1/ai/generate"), timeoutInterval: 120)
-    request.httpMethod = "POST"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     var body: [String: JSONValue] = ["task": .string(task), "input": .object(input)]
     if !images.isEmpty {
       body["images"] = .array(
@@ -104,7 +97,30 @@ final class AIClient {
           .object(["mimeType": .string($0.mimeType), "data": .string($0.data.base64EncodedString())])
         })
     }
-    request.httpBody = try JSONEncoder().encode(JSONValue.object(body))
+    let data = try await send(
+      path: "v1/ai/generate", method: "POST", body: try JSONEncoder().encode(JSONValue.object(body)), timeout: 120)
+    return try JSONDecoder().decode(AIResponse.self, from: data)
+  }
+
+  /// App-Token für den Einladungslink der Rangliste.
+  var appToken: String? {
+    secrets.string(for: .aiAppToken).flatMap { $0.isEmpty ? nil : $0 }
+  }
+
+  /// Anfrage an den Worker mit App-Token; liefert den Antwortkörper bei Status 2xx.
+  func send(
+    path: String, method: String, body: Data? = nil, query: [URLQueryItem] = [], timeout: TimeInterval = 30
+  ) async throws -> Data {
+    guard let base = Self.normalizedURL(workerURL), let token = appToken else {
+      throw AIClientError.notConfigured
+    }
+    var url = base.appending(path: path)
+    if !query.isEmpty { url.append(queryItems: query) }
+    var request = URLRequest(url: url, timeoutInterval: timeout)
+    request.httpMethod = method
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.httpBody = body
 
     let result: (Data, URLResponse)
     do {
@@ -119,6 +135,6 @@ final class AIClient {
       let message = (try? JSONDecoder().decode(AIErrorBody.self, from: data))?.error ?? "unbekannter Fehler"
       throw AIClientError.http(status, message)
     }
-    return try JSONDecoder().decode(AIResponse.self, from: data)
+    return data
   }
 }

@@ -7,7 +7,11 @@
   "compatibility_date": "2026-10-01",
   "workers_dev": true,
   // IPA und Versionsangaben für die private SideStore-Quelle (Upload durch ios-build.yml).
-  "kv_namespaces": [{ "binding": "RELEASES", "id": "103715a4f0004a398c9e75637a2edf36" }],
+  // Ranglisten zwischen Nutzer:innen (nur Namen und Punkte, siehe src/league.ts).
+  "kv_namespaces": [
+    { "binding": "RELEASES", "id": "103715a4f0004a398c9e75637a2edf36" },
+    { "binding": "LEAGUE", "id": "41093b08a16e441ba7ca34b5d423364b" }
+  ],
   "observability": {
     "enabled": true
   },

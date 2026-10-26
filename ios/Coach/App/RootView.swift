@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RootView: View {
   @Environment(AppModel.self) private var model
+  @State private var invite: LeagueInvite?
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
   private var reminderKey: Int {
@@ -10,6 +11,7 @@ struct RootView: View {
     hasher.combine(model.settings.profile)
     hasher.combine(model.settings.planAdjustments)
     hasher.combine(model.settings.reminders)
+    hasher.combine(model.settings.companion)
     return hasher.finalize()
   }
 
@@ -38,6 +40,11 @@ struct RootView: View {
     .task(id: reminderKey) {
       guard profile.onboardingDone else { return }
       await model.refreshReminders()
+    }
+    // Einladungslink coach://join?… (Rangliste).
+    .onOpenURL { url in invite = LeagueInvite(url: url) }
+    .sheet(isPresented: Binding(get: { invite != nil }, set: { if !$0 { invite = nil } })) {
+      if let invite { JoinLeagueSheet(invite: invite) }
     }
     // Aus einer Mitteilung „Verschieben …“ gewählt.
     .sheet(

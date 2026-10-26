@@ -30,9 +30,9 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 12 | Garmin-Konto als Hauptquelle (Readiness, Trainingsstatus, Endurance Score, Prognosen), Personal API als Rückfall | fertig (PR 15) |
 | 13 | Personalisierung: Sportarten, Ziele, Wettkampf oder allgemeine Fitness, eigener Wochenplan mit Ruhetagen, Schutzgrenzen | fertig (PR 16) |
 | 14 | Erzeugte Trainingspläne mit Progression (Laufen, Gym) und KI-Notiz für persönliche Profile | offen |
-| 15 | Erinnerungen an Trainingstage (Mitteilung oder Karte unter „Heute“), Einheit verschieben oder diese Woche auslassen | in Arbeit (PR 17) |
-| 16 | Begleiter (Trainer, Avatar, z. B. Hund „Daisy“), der motiviert | offen |
-| 17 | Rangliste zwischen Nutzern (Punkte für Planerfüllung, keine Gesundheitsdaten), Einladungslink | offen |
+| 15 | Erinnerungen an Trainingstage (Mitteilung oder Karte unter „Heute“), Einheit verschieben oder diese Woche auslassen | fertig (PR 17) |
+| 16 | Begleiter (Trainer, Avatar, z. B. Hund „Daisy“), der motiviert | in Arbeit (PR 18) |
+| 17 | Rangliste zwischen Nutzern (Punkte für Planerfüllung, keine Gesundheitsdaten), Einladungslink | in Arbeit (PR 18) |
 
 Später, erst auf Zuruf und wenn alles andere läuft: Apple Watch bzw. Apple Health als weitere Quelle,
 Gym-App mit Übungsbibliothek nach Vorbild GymBook und KI-Hinweisen zur Gewichtssteigerung, technische

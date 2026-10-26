@@ -159,7 +159,7 @@ struct ReminderPlannerTests {
   @Test func bodyMentionsCompanion() {
     let reminder = TrainingReminder(day: monday, titles: ["Lockerer Lauf"], canAdjust: true)
     #expect(ReminderPlanner.body(for: reminder).contains("verschieben"))
-    #expect(ReminderPlanner.body(for: reminder, companion: "Daisy").hasPrefix("Daisy"))
+    #expect(ReminderPlanner.body(for: reminder, lead: "Daisy wartet schon.").hasPrefix("Daisy wartet"))
     let season = TrainingReminder(day: monday, titles: ["Push"], canAdjust: false)
     #expect(!ReminderPlanner.body(for: season).contains("verschieben"))
   }

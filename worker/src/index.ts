@@ -4,11 +4,13 @@
  *
  * GET  /sidestore/<key>/… – private SideStore-Quelle (siehe sidestore.ts)
  * GET  /v1/health        – ohne Anmeldung, zeigt Version und welche Anbieter konfiguriert sind
+ * /v1/league/…          – Rangliste (siehe league.ts), Authorization: Bearer <COACH_APP_TOKEN>
  * POST /v1/ai/generate   – Authorization: Bearer <COACH_APP_TOKEN>
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { GroundingError } from "./grounding";
+import { handleLeague, type LeagueStore } from "./league";
 import { handleSideStore } from "./sidestore";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
@@ -65,14 +67,22 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     });
   }
 
-  if (pathname !== "/v1/ai/generate") return json(404, { error: "Nicht gefunden" });
-  if (request.method !== "POST") return json(405, { error: "Nur POST" });
+  const isLeague = pathname.startsWith("/v1/league/");
+  if (pathname !== "/v1/ai/generate" && !isLeague) return json(404, { error: "Nicht gefunden" });
+  if (!isLeague && request.method !== "POST") return json(405, { error: "Nur POST" });
 
   if (!env.COACH_APP_TOKEN)
     return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
   const header = request.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token || !tokensMatch(token, env.COACH_APP_TOKEN)) return json(401, { error: "Nicht autorisiert" });
+
+  if (isLeague) {
+    const store = env.LEAGUE as unknown as LeagueStore | undefined;
+    return (
+      (await handleLeague(request, store, new Date(deps.now()))) ?? json(404, { error: "Nicht gefunden" })
+    );
+  }
 
   const length = Number(request.headers.get("content-length") ?? "0");
   if (length > MAX_BODY_BYTES) return json(413, { error: "Anfrage zu groß" });

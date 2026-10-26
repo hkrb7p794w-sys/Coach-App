@@ -15,6 +15,7 @@ final class AppModel {
   let ai: AIClient
   let settings: CoachSettings
   let reminders: ReminderService
+  let league: LeagueService
   @ObservationIgnored private lazy var seasonSchedule = SeasonSchedule.load()
 
   private(set) var isSyncing = false
@@ -29,6 +30,23 @@ final class AppModel {
     settings = CoachSettings(defaults: defaults)
     // In Tests (inMemory) ohne Mitteilungszentrale.
     reminders = ReminderService(settings: settings, center: inMemory ? nil : .current())
+    league = LeagueService(ai: ai, settings: settings)
+  }
+
+  /// Planerfüllung für Begleiter und Rangliste. Im Saisonplan gelten die festen Einheiten als geplant.
+  func motivation(trainingDays: Set<CalendarDay>, today: CalendarDay = CalendarDay(date: .now)) -> MotivationSummary {
+    let settings = settings
+    let season = settings.profile.mode == .season ? seasonSchedule : nil
+    return MotivationSummary.compute(
+      schedule: { monday in
+        guard let season else { return settings.schedule(inWeekOf: monday) }
+        var week = WeekSchedule()
+        let reminders = ReminderPlanner.season(
+          schedule: season, config: settings.season, decisions: settings.competitionDecisions, today: monday,
+          includeToday: true, days: 7)
+        for reminder in reminders { week.set([SessionSlot(.other)], on: Weekday(day: reminder.day)) }
+        return week
+      }, trainingDays: trainingDays, today: today)
   }
 
   /// Erinnerungen der nächsten 14 Tage neu planen (nach Änderungen am Plan und beim Öffnen der App).
