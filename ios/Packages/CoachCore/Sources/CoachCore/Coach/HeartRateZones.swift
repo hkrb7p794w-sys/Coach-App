@@ -417,7 +417,8 @@ public enum HeartRateZoneCalculator {
             + "(letzte 4 Wochen, Näherung je Einheit).\(watchText) Richtwert ~80 % locker – zu viel Mittelbereich "
             + "macht lockere Einheiten weniger erholsam.")
       } else if average == nil, let share, share.minutes >= 120, share.easyPercent < 70 {
-        hints.append("\(label): nur \(share.easyPercent) % der Zeit in Z1–2 der Uhr (letzte 4 Wochen); Richtwert ~80 %.")
+        hints.append(
+          "\(label): nur \(share.easyPercent) % der Zeit in Z1–2 der Uhr (letzte 4 Wochen); Richtwert ~80 %.")
       }
     }
     hints.append(
