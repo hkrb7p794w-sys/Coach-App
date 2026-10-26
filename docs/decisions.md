@@ -2,6 +2,20 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Saisonplan als Reiter „Plan“
+
+- Quelle: `coach_plan.jinja` (48 Wochen, je Woche Zwift-, Schwimm-, Qualitäts-, Z2- und Langlauf-Einheit,
+  Musterwoche und Prioritäten je Phase, Zwift-Bibliothek Z01–Z15) und `swim_plan.json` (Schwimmschritte) aus dem
+  Altbestand, unverändert als `CoachCore/Resources/season-plan.json` übernommen.
+- Platzhalter wie im Altbestand aus den Testwerten: `§S±n§` CSS + n s/100 m, `§Wnn§` % FTP, `§T§` Schwelle,
+  `§I§` Schwelle −23 bis −18 s/km, `§E§` Schwelle +65 bis +100 s/km, `§MP§` Marathonpace, `§R§` Renn-Laufpace
+  (neu in Saison & Ziele, Standard 5:42 /km). Tests prüfen die Werte gegen das HA-Dashboard (4:32–4:37, 6:00–6:35).
+- Wettkampf-Läufe 🏁 lassen sich annehmen oder ablehnen (dann gilt die Alternative), Schlüssel wie im Altbestand
+  (`wk-lauf-<Montag>-q|l`). Erledigt-Haken: Garmin-Aktivitäten der Woche und Krafteinheiten der App; der Longrun
+  zählt ab 80 % der geplanten Länge, Rad nur mit Distanz (Zwift + Uhr nicht doppelt).
+- Navigation: fünf Tabs (Heute, Plan, Training, Ernährung, Gym), Einstellungen über das Zahnrad in „Heute“
+  (Apple HIG: Tab-Bar für 2–5 Hauptbereiche).
+
 ## 2026-10-26 – Wissenschaftliche Basis und Kontrolle der KI
 
 - Auftrag des Nutzers: Empfehlungen sollen auf begutachteter Wissenschaft beruhen, die KI darf nichts erfinden.

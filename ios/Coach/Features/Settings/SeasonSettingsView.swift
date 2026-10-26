@@ -39,6 +39,9 @@ struct SeasonSettingsView: View {
         Stepper(
           "Marathonpace \(GermanFormat.minutesSeconds(settings.season.marathonPaceSecondsPerKm)) /km",
           value: $settings.season.marathonPaceSecondsPerKm, in: 150...480)
+        Stepper(
+          "Renn-Laufpace \(GermanFormat.minutesSeconds(settings.season.racePaceSecondsPerKm)) /km",
+          value: $settings.season.racePaceSecondsPerKm, in: 150...480)
       } header: {
         Text("Testwerte")
       } footer: {

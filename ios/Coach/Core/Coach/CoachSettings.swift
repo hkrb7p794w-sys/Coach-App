@@ -9,6 +9,7 @@ final class CoachSettings {
   static let privacyKey = "coach.privacy"
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
+  static let competitionKey = "coach.competitionDecisions"
 
   private let defaults: UserDefaults
 
@@ -22,6 +23,11 @@ final class CoachSettings {
 
   var nutrition: NutritionSettings {
     didSet { save(nutrition, forKey: Self.nutritionKey) }
+  }
+
+  /// Entscheidungen zu Wettkampf-Einheiten 🏁 im Plan (`wk-lauf-<Montag>-q|l`).
+  var competitionDecisions: CompetitionDecisions {
+    didSet { save(competitionDecisions, forKey: Self.competitionKey) }
   }
 
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
@@ -38,6 +44,10 @@ final class CoachSettings {
     nutrition =
       defaults.data(forKey: Self.nutritionKey).flatMap { try? JSONDecoder().decode(NutritionSettings.self, from: $0) }
       ?? NutritionSettings()
+    competitionDecisions =
+      defaults.data(forKey: Self.competitionKey).flatMap {
+        try? JSONDecoder().decode(CompetitionDecisions.self, from: $0)
+      } ?? [:]
     heartRate =
       defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
       ?? HeartRateOverrides()

@@ -11,6 +11,7 @@ struct SettingsView: View {
 private struct SettingsForm: View {
   @State var viewModel: SettingsViewModel
   @Environment(AppModel.self) private var model
+  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     NavigationStack {
@@ -28,6 +29,9 @@ private struct SettingsForm: View {
         }
       }
       .navigationTitle("Einstellungen")
+      .toolbar {
+        ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
+      }
       .disabled(viewModel.isBusy)
       .overlay {
         if viewModel.isBusy { ProgressView() }

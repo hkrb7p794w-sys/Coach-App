@@ -8,6 +8,9 @@ struct RootView: View {
       Tab("Heute", systemImage: "sun.max") {
         TodayView()
       }
+      Tab("Plan", systemImage: "calendar") {
+        PlanView()
+      }
       Tab("Training", systemImage: "heart.text.square") {
         TrainingView()
       }
@@ -16,9 +19,6 @@ struct RootView: View {
       }
       Tab("Gym", systemImage: "dumbbell") {
         GymView()
-      }
-      Tab("Einstellungen", systemImage: "gearshape") {
-        SettingsView()
       }
     }
     .task { await model.syncIfDue() }

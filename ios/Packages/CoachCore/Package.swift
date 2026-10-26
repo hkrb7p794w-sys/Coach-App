@@ -10,7 +10,7 @@ let package = Package(
     .library(name: "CoachCore", targets: ["CoachCore"])
   ],
   targets: [
-    .target(name: "CoachCore"),
+    .target(name: "CoachCore", resources: [.copy("Resources/season-plan.json")]),
     .testTarget(name: "CoachCoreTests", dependencies: ["CoachCore"]),
   ]
 )
