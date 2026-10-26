@@ -94,11 +94,13 @@ extension StubbedNetworkTests {
       var metrics = DailyMetrics(day: friday)
       metrics.restingHeartRate = 60
       metrics.hrvStatus = "LOW"
-      let history = [metrics] + (1...7).map { offset -> DailyMetrics in
-        var day = DailyMetrics(day: friday.adding(days: -offset))
-        day.restingHeartRate = 50
-        return day
-      }
+      let history =
+        [metrics]
+        + (1...7).map { offset -> DailyMetrics in
+          var day = DailyMetrics(day: friday.adding(days: -offset))
+          day.restingHeartRate = 50
+          return day
+        }
       viewModel.update(days: history, activities: [], settings: settings, now: friday.localDate)
       let advice = try #require(viewModel.snapshot?.advice)
       #expect(advice.mode == .rest)

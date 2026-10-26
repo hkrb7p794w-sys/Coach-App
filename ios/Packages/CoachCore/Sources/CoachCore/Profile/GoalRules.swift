@@ -78,11 +78,17 @@ public enum GoalRules {
         ], ["nutrition.reds"])
     }
     if wantsChange, body.age < minimumAge {
-      return hold(["Für unter 18-Jährige gibt die App keine Gewichtsziele vor. Sie hält dein Gewicht und unterstützt das Training."])
+      return hold([
+        "Für unter 18-Jährige gibt die App keine Gewichtsziele vor. Sie hält dein Gewicht und "
+          + "unterstützt das Training."
+      ])
     }
     if goal.losesWeight, bmi(body) < minimumBMI {
       return hold(
-        ["Dein BMI liegt unter 18,5. Abnehmen ist dann nicht sinnvoll: Die App hält dein Gewicht und baut mit dem Training Kraft auf."],
+        [
+          "Dein BMI liegt unter 18,5. Abnehmen ist dann nicht sinnvoll: Die App hält dein "
+            + "Gewicht und baut mit dem Training Kraft auf."
+        ],
         ["nutrition.reds"])
     }
     if profile.health.contains(.medicalCondition) || profile.health.contains(.injury) {
@@ -97,8 +103,13 @@ public enum GoalRules {
     case .loseWeight:
       var rate = defaultLossPercentPerWeek
       if let target = profile.targets.targetWeightKilograms, let weeks = profile.targets.weeksToTargetWeight {
-        if bmi(BodyProfile(weightKilograms: target, heightCentimeters: body.heightCentimeters, age: body.age, isFemale: body.isFemale)) < minimumBMI {
-          notes.append("Dein Zielgewicht läge unter BMI 18,5. Die App plant daher mit dem Standardtempo und stoppt bei BMI 18,5.")
+        if bmi(
+          BodyProfile(
+            weightKilograms: target, heightCentimeters: body.heightCentimeters, age: body.age, isFemale: body.isFemale))
+          < minimumBMI
+        {
+          notes.append(
+            "Dein Zielgewicht läge unter BMI 18,5. Die App plant daher mit dem Standardtempo und stoppt bei BMI 18,5.")
         } else {
           let result = weeklyLossPercent(currentKilograms: body.weightKilograms, targetKilograms: target, weeks: weeks)
           rate = result.percent
@@ -132,10 +143,14 @@ public enum GoalRules {
         let result = weeklyGainPercent(currentKilograms: body.weightKilograms, targetKilograms: target, weeks: weeks)
         rate = result.percent
         if result.capped {
-          notes.append("Dein Wunschtempo ist schneller, als der Körper Muskeln aufbaut. Die App begrenzt auf höchstens 0,5 % pro Woche.")
+          notes.append(
+            "Dein Wunschtempo ist schneller, als der Körper Muskeln aufbaut. Die App begrenzt "
+              + "auf höchstens 0,5 % pro Woche."
+          )
         }
       }
-      notes.append("Ein kleiner Überschuss genügt: etwa 300–500 kcal pro Tag zusammen mit konsequentem Krafttraining.")
+      notes.append(
+        "Ein kleiner Überschuss genügt: etwa 300–500 kcal pro Tag zusammen mit konsequentem Krafttraining.")
       evidence += ["gain.surplus", "weightloss.protein"]
       assessment = GoalAssessment(
         nutritionGoal: .gain, weeklyChangePercent: rate, notes: notes, evidenceIDs: evidence, blocksWeightChange: false)
@@ -158,10 +173,14 @@ public enum GoalRules {
       return "Du liegst schon bei oder unter deinem Ziel. Ziel ist jetzt, den Wert zu halten."
     }
     if difference <= 7 {
-      return "Realistisch: In Studien sank der Ruhepuls nach einem Jahr regelmäßigem Ausdauertraining im Schnitt um etwa 7 Schläge pro Minute."
+      return
+        "Realistisch: In Studien sank der Ruhepuls nach einem Jahr regelmäßigem "
+          + "Ausdauertraining im Schnitt um etwa 7 Schläge pro Minute."
     }
     let gap = Int(difference.rounded())
-    return "Dein Ziel liegt \(gap) Schläge unter deinem Wert. Das ist mehr als der Durchschnitt aus Studien nach einem Jahr "
+    return
+      "Dein Ziel liegt \(gap) Schläge unter deinem Wert. Das ist mehr als der Durchschnitt aus Studien "
+      + "nach einem Jahr "
       + "(etwa 7). Es ist ambitioniert; die App zeigt dir den Fortschritt."
   }
 

@@ -180,7 +180,8 @@ private struct PersonalGoalSection: View {
   var body: some View {
     let today = CalendarDay(date: .now)
     let targets = profile.targets
-    let longestRun = activities
+    let longestRun =
+      activities
       .filter { $0.sport == .run && ($0.day ?? today.adding(days: -999)) >= today.adding(days: -28) }
       .compactMap(\.distanceMeters).max().map { $0 / 1000 }
     if profile.event != nil || targets.restingHeartRate != nil || targets.runDistanceKilometers != nil {

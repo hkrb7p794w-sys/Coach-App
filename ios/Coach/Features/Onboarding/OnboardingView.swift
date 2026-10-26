@@ -168,7 +168,8 @@ struct OnboardingView: View {
         } header: {
           Text("Ziele (alles optional)")
         } footer: {
-          Text("Das Tempo beim Gewicht begrenzt die App auf einen gesunden Bereich, auch wenn der Wunsch schneller wäre.")
+          Text(
+            "Das Tempo beim Gewicht begrenzt die App auf einen gesunden Bereich, auch wenn der Wunsch schneller wäre.")
         }
       }
     }
@@ -241,7 +242,10 @@ struct OnboardingView: View {
       } header: {
         Text("Sicherheits-Check")
       } footer: {
-        Text("Bei diesen Angaben ist die App vorsichtiger und setzt keine Gewichtsziele. Sie ersetzt keine ärztliche Beratung.")
+        Text(
+          "Bei diesen Angaben ist die App vorsichtiger und setzt keine Gewichtsziele. Sie "
+            + "ersetzt keine ärztliche Beratung."
+        )
       }
 
       if let assessment = currentAssessment, !assessment.notes.isEmpty {
@@ -259,7 +263,11 @@ struct OnboardingView: View {
         HStack(spacing: 6) {
           ForEach(Weekday.allCases) { weekday in
             DayToggle(weekday: weekday, isOn: availableDays.contains(weekday)) {
-              if availableDays.contains(weekday) { availableDays.remove(weekday) } else { availableDays.insert(weekday) }
+              if availableDays.contains(weekday) {
+                availableDays.remove(weekday)
+              } else {
+                availableDays.insert(weekday)
+              }
             }
           }
         }
@@ -303,9 +311,11 @@ struct OnboardingView: View {
       Section {
         Text(
           "Die App prüft täglich deine Erholung (Garmin) gegen deinen Wochenplan und schlägt vor, Einheiten zu "
-            + "verschieben oder lockerer zu machen. Ruhetage und Ziele kannst du jederzeit in den Einstellungen ändern.")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
+            + "verschieben oder lockerer zu machen. Ruhetage und Ziele kannst du jederzeit in den "
+            + "Einstellungen ändern."
+        )
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
       }
     }
   }

@@ -48,14 +48,18 @@ public enum ScheduleCheck {
     if schedule.restDays.isEmpty {
       add(
         "rest", .warning,
-        "Du trainierst an allen sieben Tagen. Plane mindestens einen freien Tag ein, damit sich dein Körper anpassen kann.")
+        "Du trainierst an allen sieben Tagen. Plane mindestens einen freien Tag ein, damit "
+          + "sich dein Körper anpassen kann."
+      )
     } else {
       let limit = level == .beginner ? 3 : 5
       if schedule.longestStreak > limit {
         add(
           "streak", .tip,
           "\(schedule.longestStreak) Trainingstage hintereinander. "
-            + (level == .beginner ? "Zum Einstieg ist ein freier Tag nach spätestens drei Tagen besser." : "Ein freier oder sehr lockerer Tag dazwischen hilft der Erholung."))
+            + (level == .beginner
+              ? "Zum Einstieg ist ein freier Tag nach spätestens drei Tagen besser."
+              : "Ein freier oder sehr lockerer Tag dazwischen hilft der Erholung."))
       }
     }
 
@@ -88,7 +92,8 @@ public enum ScheduleCheck {
 
     // Gewählte Sportarten ohne Termin.
     for sport in profile.sports where schedule.count(of: sport) == 0 {
-      add("missing-\(sport.rawValue)", .info, "Du hast \(sport.label) gewählt, aber noch keinen Tag dafür eingeplant.")
+      add("missing-\(sport.rawValue)", .info, "Du hast \(sport.label) gewählt, aber noch keinen Tag dafür "
+        + "eingeplant.")
     }
 
     // Krafttraining.
@@ -111,7 +116,9 @@ public enum ScheduleCheck {
       if strength > 4 {
         add(
           "strength-many", .info,
-          "Mehr als vier Krafttage: Achte darauf, dieselben Muskeln nicht an aufeinanderfolgenden Tagen schwer zu belasten.")
+          "Mehr als vier Krafttage: Achte darauf, dieselben Muskeln nicht an "
+            + "aufeinanderfolgenden Tagen schwer zu belasten."
+        )
       }
     }
 
@@ -147,13 +154,15 @@ public enum ScheduleCheck {
     if aimsAtEndurance, profile.sports.contains(where: \.isEndurance), endurance.count < 2 {
       add(
         "endurance-frequency", .tip,
-        "Für bessere Fitness und einen niedrigeren Ruhepuls zählt regelmäßiges Ausdauertraining: besser mindestens zwei Einheiten pro Woche.",
+        "Für bessere Fitness und einen niedrigeren Ruhepuls zählt regelmäßiges "
+          + "Ausdauertraining: besser mindestens zwei Einheiten pro Woche.",
         ["rhr.endurance"])
     }
     if schedule.sessionCount < 3 {
       add(
         "who-minimum", .info,
-        "Die WHO empfiehlt 150–300 Minuten moderate Bewegung pro Woche. Mit weniger als drei Einheiten wird das knapp.",
+        "Die WHO empfiehlt 150–300 Minuten moderate Bewegung pro Woche. Mit weniger als drei "
+          + "Einheiten wird das knapp.",
         ["activity.who"])
     }
 

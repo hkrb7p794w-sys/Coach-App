@@ -63,7 +63,8 @@ struct UserProfileTests {
 struct WeekScheduleTests {
   @Test func alwaysHasSevenDays() throws {
     #expect(WeekSchedule(days: [[SessionSlot(.run)]]).days.count == 7)
-    let decoded = try JSONDecoder().decode(WeekSchedule.self, from: Data(#"[[{"sport":"run","intensity":"easy"}]]"#.utf8))
+    let decoded = try JSONDecoder().decode(
+      WeekSchedule.self, from: Data(#"[[{"sport":"run","intensity":"easy"}]]"#.utf8))
     #expect(decoded.days.count == 7)
     #expect(decoded.slots(on: .monday) == [SessionSlot(.run)])
     #expect(try JSONDecoder().decode(WeekSchedule.self, from: Data(#"{"a":1}"#.utf8)).days.count == 7)
@@ -163,9 +164,12 @@ struct ScheduleCheckTests {
 
   @Test func warnsAboutHeavyLegsBeforeLongRun() {
     let plan = schedule([.friday: [SessionSlot(.strength, .hard)], .saturday: [SessionSlot(.run, .long)]])
-    #expect(ids(ScheduleCheck.hints(schedule: plan, profile: profile(level: .advanced))).contains("strength-before-run-4"))
+    #expect(
+      ids(ScheduleCheck.hints(schedule: plan, profile: profile(level: .advanced))).contains("strength-before-run-4"))
     let swapped = schedule([.friday: [SessionSlot(.run, .long)], .saturday: [SessionSlot(.strength, .hard)]])
-    #expect(!ids(ScheduleCheck.hints(schedule: swapped, profile: profile(level: .advanced))).contains("strength-before-run-4"))
+    #expect(
+      !ids(ScheduleCheck.hints(schedule: swapped, profile: profile(level: .advanced))).contains("strength-before-run-4")
+    )
   }
 
   @Test func checksMarathonRequirements() {
@@ -418,7 +422,10 @@ struct SchedulePlannerTests {
       availableDays: [.monday, .tuesday, .thursday, .friday, .saturday])
     #expect(result.count(of: .strength) == 4)
     #expect(result.count(of: .run) == 1)
-    #expect(!ScheduleCheck.hints(schedule: result, profile: profile(sports: [.run, .strength], goal: .buildMuscle, level: .intermediate)).contains { $0.severity == .warning })
+    #expect(
+      !ScheduleCheck.hints(
+        schedule: result, profile: profile(sports: [.run, .strength], goal: .buildMuscle, level: .intermediate)
+      ).contains { $0.severity == .warning })
   }
 
   @Test func marathonPlansHaveALongRunOnTheWeekend() {

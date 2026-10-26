@@ -26,7 +26,10 @@ struct NutritionSettingsView: View {
         }
       } footer: {
         if settings.profile.mode == .personal {
-          Text("Das Ziel änderst du im Profil (Einstellungen). Defizit und Überschuss gelten voll an Ruhe- und leichten Tagen, halb an moderaten, an harten Tagen nicht.")
+          Text(
+            "Das Ziel änderst du im Profil (Einstellungen). Defizit und Überschuss gelten voll "
+              + "an Ruhe- und leichten Tagen, halb an moderaten, an harten Tagen nicht."
+          )
         } else {
           Text("Abnehmen: −15 % an Ruhe- und leichten Tagen, halb so viel an moderaten, keins an harten Tagen.")
         }

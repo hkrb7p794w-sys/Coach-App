@@ -67,10 +67,13 @@ final class CoachSettings {
       defaults.data(forKey: Self.heartRateKey).flatMap { try? JSONDecoder().decode(HeartRateOverrides.self, from: $0) }
       ?? HeartRateOverrides()
     var migrated = false
-    if let stored = defaults.data(forKey: Self.profileKey).flatMap({ try? JSONDecoder().decode(UserProfile.self, from: $0) }) {
+    if let stored = defaults.data(forKey: Self.profileKey).flatMap({
+      try? JSONDecoder().decode(UserProfile.self, from: $0)
+    }) {
       profile = stored
     } else {
-      let existing = defaults.object(forKey: GarminSyncService.lastSyncKey) != nil || defaults.data(forKey: Self.seasonKey) != nil
+      let existing =
+        defaults.object(forKey: GarminSyncService.lastSyncKey) != nil || defaults.data(forKey: Self.seasonKey) != nil
       profile = ProfileMigration.initialProfile(hasExistingData: existing)
       migrated = existing
     }
