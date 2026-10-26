@@ -44,7 +44,7 @@ final class NutritionViewModel {
       let week = WeeklyVolume(activities: activities, weekContaining: day)
       planItems = SeasonPlan.state(today: day, config: settings.season, week: week).todayFixed
     } else {
-      planItems = settings.profile.schedule.templateItems(on: Weekday(day: day))
+      planItems = settings.schedule(inWeekOf: day).templateItems(on: Weekday(day: day))
     }
     targets = NutritionPlanner.compute(
       activities: todaysActivities, planItems: planItems, settings: settings.nutrition,
@@ -174,7 +174,7 @@ final class NutritionViewModel {
         let weekday = Weekday(day: day)
         weekdayName = weekday.long
         phaseName = settings.profile.goal.label
-        plannedTexts = settings.profile.schedule.slots(on: weekday).map(\.title)
+        plannedTexts = settings.schedule(inWeekOf: day).slots(on: weekday).map(\.title)
       }
       let training = activities.filter { $0.day == day }.map { activity -> String in
         let minutes = Int(((activity.durationSeconds ?? 0) / 60).rounded())

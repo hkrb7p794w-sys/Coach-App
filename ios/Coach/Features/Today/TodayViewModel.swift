@@ -73,7 +73,8 @@ final class TodayViewModel {
       let trainedToday =
         activities.contains { $0.day == today && ($0.durationSeconds ?? 0) >= 900 } || gymDays.contains(today)
       advice = ScheduleAdvisor.advice(
-        profile: settings.profile, day: today, recovery: metrics == nil ? nil : recommendation.level,
+        profile: settings.profile, schedule: settings.schedule(inWeekOf: today), day: today,
+        recovery: metrics == nil ? nil : recommendation.level,
         trainedToday: trainedToday)
     }
     snapshot = Snapshot(

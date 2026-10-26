@@ -29,10 +29,12 @@ public enum ScheduleAdvisor {
   /// - Parameters:
   ///   - recovery: Tagesampel aus Garmin-Werten; `nil`, wenn heute noch keine Werte vorliegen.
   ///   - trainedToday: Für heute ist schon eine Aktivität aufgezeichnet.
+  ///   - schedule: Plan dieser Woche mit Ausnahmen (`PlanAdjustments`); Standard ist der Wochenplan des Profils.
   public static func advice(
-    profile: UserProfile, day: CalendarDay, recovery: RecoveryLevel?, trainedToday: Bool
+    profile: UserProfile, schedule: WeekSchedule? = nil, day: CalendarDay, recovery: RecoveryLevel?,
+    trainedToday: Bool
   ) -> ScheduleAdvice {
-    let schedule = profile.schedule
+    let schedule = schedule ?? profile.schedule
     let weekday = Weekday(day: day)
     let slots = schedule.slots(on: weekday)
     let titles = slots.map(\.title)

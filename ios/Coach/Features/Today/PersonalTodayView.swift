@@ -12,9 +12,11 @@ struct PersonalTodaySections: View {
   var body: some View {
     let profile = model.settings.profile
     if let advice = snapshot.advice {
-      PersonalAdviceSection(snapshot: snapshot, advice: advice, profile: profile)
+      PersonalAdviceSection(snapshot: snapshot, advice: advice)
     }
-    PersonalWeekStrip(profile: profile, activityDays: Set(activities.compactMap(\.day)).union(gymDays))
+    PersonalWeekStrip(
+      schedule: model.settings.schedule(inWeekOf: snapshot.plan.today),
+      activityDays: Set(activities.compactMap(\.day)).union(gymDays))
     PersonalGoalSection(profile: profile, snapshot: snapshot, activities: activities)
   }
 }
@@ -22,7 +24,7 @@ struct PersonalTodaySections: View {
 private struct PersonalAdviceSection: View {
   let snapshot: TodayViewModel.Snapshot
   let advice: ScheduleAdvice
-  let profile: UserProfile
+  @Environment(AppModel.self) private var model
 
   private var color: Color {
     switch snapshot.recommendation.level {
@@ -42,7 +44,9 @@ private struct PersonalAdviceSection: View {
   }
 
   var body: some View {
-    let slots = profile.schedule.slots(on: Weekday(day: snapshot.plan.today))
+    let today = snapshot.plan.today
+    let slots = model.settings.schedule(inWeekOf: today).slots(on: Weekday(day: today))
+    let note = model.settings.planAdjustments.note(for: Weekday(day: today), inWeekOf: today)
     Section {
       VStack(alignment: .leading, spacing: 10) {
         HStack(alignment: .center, spacing: 12) {
@@ -80,6 +84,16 @@ private struct PersonalAdviceSection: View {
             }
           }
         }
+        if let note {
+          Label("Heute: \(note)", systemImage: "calendar.badge.clock")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+        if advice.mode != .done, !slots.isEmpty || note != nil {
+          ScrollView(.horizontal, showsIndicators: false) {
+            PlanDayActions(day: today, suggested: advice.move)
+          }
+        }
         if !advice.evidenceIDs.isEmpty {
           EvidenceDisclosure(ruleIDs: advice.evidenceIDs)
         }
@@ -91,7 +105,7 @@ private struct PersonalAdviceSection: View {
 
 /// Die sieben Tage der Woche: geplant, erledigt, frei.
 private struct PersonalWeekStrip: View {
-  let profile: UserProfile
+  let schedule: WeekSchedule
   let activityDays: Set<CalendarDay>
 
   private enum DayState {
@@ -119,7 +133,7 @@ private struct PersonalWeekStrip: View {
   }
 
   private func dayCell(weekday: Weekday, day: CalendarDay, today: CalendarDay) -> some View {
-    let slots = profile.schedule.slots(on: weekday)
+    let slots = schedule.slots(on: weekday)
     let current = state(planned: !slots.isEmpty, day: day, today: today)
     return VStack(spacing: 6) {
       Text(weekday.short)

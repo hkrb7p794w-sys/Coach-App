@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-26 – Erinnerungen als lokale Mitteilungen, Ausnahmen nur für eine Woche
+
+- Push über APNs braucht einen Server und das Entitlement `aps-environment`, das kostenlose Konten bzw.
+  SideStore nicht bekommen. Lokale Mitteilungen (`UNUserNotificationCenter`, `UNCalendarNotificationTrigger`)
+  brauchen beides nicht und funktionieren offline. Quelle:
+  <https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app>
+- iOS hält höchstens 64 geplante Mitteilungen je App; die App plant deshalb nur die nächsten 14 Tage und plant
+  bei jedem Öffnen sowie nach jeder Planänderung neu. Quelle:
+  <https://developer.apple.com/documentation/uikit/uilocalnotification> („the system keeps the soonest-firing 64
+  notifications … and discards the rest“).
+- Aktionen in der Mitteilung: „Erledigt“, „Verschieben …“ (öffnet die App mit passenden Tagen),
+  „Diese Woche auslassen“. Ohne Erlaubnis zeigt „Heute“ dieselben Knöpfe.
+- Auslassen und Verschieben ändern nur die laufende Woche (`PlanAdjustments`); der Wochenplan bleibt. Tagesampel,
+  Ernährung und Gym rechnen mit dem angepassten Plan. Zieltage werden wie der Wochenplan bewertet
+  (`ScheduleCheck`), zwei fordernde Ausdauertage direkt hintereinander landen hinten (Seiler 2006).
+- Saisonplan: nur Erinnerung an die festen Einheiten, ohne Verschieben; offene Einheiten verteilt der Saisonplan
+  selbst.
+
 ## 2026-10-26 – Garmin-Konto (inoffiziell) zuerst, Personal API als Rückfall
 
 - Auftrag des Nutzers: Der inoffizielle Login soll die Hauptquelle sein, die offizielle Personal API nur

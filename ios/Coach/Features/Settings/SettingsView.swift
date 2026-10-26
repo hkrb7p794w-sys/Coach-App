@@ -24,6 +24,7 @@ private struct SettingsForm: View {
     NavigationStack {
       Form {
         profileSection
+        ReminderSettingsSection()
         connectSection
         garminSection
         aiSection
@@ -196,6 +197,39 @@ private struct SettingsForm: View {
         "Adresse und App-Token aus der Einrichtung des Cloudflare Workers (siehe docs/einrichtung.md). "
           + "Die SideStore-Quelle ist privat: Wer den Link hat, kann die App laden – nur an Vertraute weitergeben."
       )
+    }
+  }
+}
+
+/// Erinnerung an geplante Einheiten: an/aus, Uhrzeit, Status der iOS-Mitteilungen.
+private struct ReminderSettingsSection: View {
+  @Environment(AppModel.self) private var model
+  @Environment(\.openURL) private var openURL
+
+  var body: some View {
+    @Bindable var settings = model.settings
+    Section {
+      Toggle("An Trainingstagen erinnern", isOn: $settings.reminders.enabled)
+      if settings.reminders.enabled {
+        DatePicker("Uhrzeit", selection: $settings.reminders.time, displayedComponents: .hourAndMinute)
+        if model.reminders.permission == .denied {
+          Button("Mitteilungen in iOS erlauben") {
+            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+          }
+        }
+      }
+    } header: {
+      Text("Erinnerungen")
+    } footer: {
+      if model.reminders.permission == .denied {
+        Text("Mitteilungen sind in iOS ausgeschaltet. Die Erinnerung erscheint dann nur unter „Heute“.")
+      } else if settings.profile.mode == .personal {
+        Text(
+          "In der Mitteilung kannst du die Einheit verschieben oder diese Woche auslassen. "
+            + "Der Wochenplan selbst bleibt dabei unverändert.")
+      } else {
+        Text("Erinnert an die festen Einheiten des Saisonplans.")
+      }
     }
   }
 }
