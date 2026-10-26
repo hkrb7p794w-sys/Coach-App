@@ -8,6 +8,7 @@ struct TodayView: View {
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
   @State private var viewModel = TodayViewModel()
+  @State private var showSettings = false
 
   private var refreshKey: String {
     "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.season.hashValue)"
@@ -52,6 +53,12 @@ struct TodayView: View {
         }
       }
       .navigationTitle("Heute")
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("Einstellungen", systemImage: "gearshape") { showSettings = true }
+        }
+      }
+      .sheet(isPresented: $showSettings) { SettingsView() }
       .refreshable {
         await model.syncNow()
         await viewModel.loadNote(ai: model.ai, settings: model.settings)
@@ -341,6 +348,11 @@ enum Formatters {
 
   static func day(_ day: CalendarDay) -> String {
     day.localDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+  }
+
+  /// „26.10.“
+  static func shortDate(_ day: CalendarDay) -> String {
+    String(format: "%02d.%02d.", day.day, day.month)
   }
 
   static func duration(_ seconds: Double) -> String {

@@ -18,6 +18,8 @@ public struct SeasonConfig: Codable, Hashable, Sendable {
   public var thresholdPaceSecondsPerKm = 295
   /// Marathon-Zielpace in Sekunden je km.
   public var marathonPaceSecondsPerKm = 325
+  /// Renn-Laufpace für den Halbmarathon nach dem Rad (Almere-Benchmark) in Sekunden je km.
+  public var racePaceSecondsPerKm = 342
 
   public init() {}
 
@@ -25,7 +27,7 @@ public struct SeasonConfig: Codable, Hashable, Sendable {
 
   private enum CodingKeys: String, CodingKey {
     case mainRaceName, mainRaceDescription, mainRaceDate, raceGoal, marathonDate, baseStart, marathonBlockStart
-    case ftpWatts, cssSecondsPer100m, thresholdPaceSecondsPerKm, marathonPaceSecondsPerKm
+    case ftpWatts, cssSecondsPer100m, thresholdPaceSecondsPerKm, marathonPaceSecondsPerKm, racePaceSecondsPerKm
   }
 
   /// Tolerant: fehlende Felder (ältere gespeicherte Stände) bekommen den Standardwert.
@@ -49,6 +51,8 @@ public struct SeasonConfig: Codable, Hashable, Sendable {
       ?? defaults.thresholdPaceSecondsPerKm
     marathonPaceSecondsPerKm =
       try container.decodeIfPresent(Int.self, forKey: .marathonPaceSecondsPerKm) ?? defaults.marathonPaceSecondsPerKm
+    racePaceSecondsPerKm =
+      try container.decodeIfPresent(Int.self, forKey: .racePaceSecondsPerKm) ?? defaults.racePaceSecondsPerKm
   }
 }
 
