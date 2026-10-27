@@ -269,7 +269,7 @@ final class GymViewModel {
   func finish(
     context: ModelContext, writer: any WorkoutSaving, garmin: GarminConnectSession? = nil, now: Date = .now
   ) async -> GymSessionRecord? {
-    guard var session = active else { return }
+    guard var session = active else { return nil }
     session.exercises = session.exercises.compactMap { exercise in
       var exercise = exercise
       exercise.sets = exercise.doneSets

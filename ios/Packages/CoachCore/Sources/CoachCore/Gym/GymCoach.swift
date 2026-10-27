@@ -107,6 +107,12 @@ public enum GymCoach {
     public var notes: [String]
     /// Vom Plan der KI verworfene oder korrigierte Punkte.
     public var corrections: [String]
+
+    public init(routines: [Routine], notes: [String], corrections: [String]) {
+      self.routines = routines
+      self.notes = notes
+      self.corrections = corrections
+    }
   }
 
   /// Eingabe für die Worker-Aufgabe `gym_plan`.
