@@ -2,7 +2,6 @@ import XCTest
 
 /// Screenshots aller Hauptbereiche mit Beispieldaten (`-demo`) in hell, dunkel und großer Schrift.
 /// Läuft nur im Workflow „Screenshots“; die Bilder landen als Anhänge im Ergebnis und von dort in einem Release.
-@MainActor
 final class ScreenshotTests: XCTestCase {
   private struct Variant {
     let name: String
@@ -19,11 +18,9 @@ final class ScreenshotTests: XCTestCase {
       ]),
   ]
 
-  override func setUp() {
-    continueAfterFailure = true
-  }
-
+  @MainActor
   func testCaptureMainScreens() {
+    continueAfterFailure = true
     for variant in variants {
       let app = XCUIApplication()
       app.launchArguments = ["-demo"] + variant.arguments

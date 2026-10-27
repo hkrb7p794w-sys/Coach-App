@@ -90,6 +90,8 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: "YES"
         TEST_TARGET_NAME: Coach
+        # XCTestCase ist nicht an den MainActor gebunden; nur die Testmethode läuft dort.
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 schemes:
   # Nur für den Workflow „Screenshots“: UI-Test mit Beispieldaten.
   Screenshots:
