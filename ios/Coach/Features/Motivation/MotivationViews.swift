@@ -7,6 +7,8 @@ struct MotivationSections: View {
   let snapshot: TodayViewModel.Snapshot
   let activities: [GarminActivity]
   let gymDays: Set<CalendarDay>
+  var showsCompanion = true
+  var showsLeague = true
   @Environment(AppModel.self) private var model
 
   private var trainingDays: Set<CalendarDay> {
@@ -18,7 +20,7 @@ struct MotivationSections: View {
     let today = snapshot.plan.today
     let days = trainingDays
     let summary = model.motivation(trainingDays: days, today: today)
-    if settings.companion.isActive {
+    if showsCompanion, settings.companion.isActive {
       CompanionSection(
         companion: settings.companion,
         message: CompanionVoice.message(
@@ -28,7 +30,7 @@ struct MotivationSections: View {
             missedYesterday: summary.missedYesterday(today: today)),
           companion: settings.companion, day: today))
     }
-    if settings.league.isJoined {
+    if showsLeague, settings.league.isJoined {
       LeagueSection(summary: summary)
         .task(id: "\(summary.weekPoints)-\(summary.totalPoints)-\(settings.league.code)") {
           await model.league.sync(summary: summary)

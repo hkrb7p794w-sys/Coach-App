@@ -7,17 +7,32 @@ struct PersonalTodaySections: View {
   let snapshot: TodayViewModel.Snapshot
   let activities: [GarminActivity]
   let gymDays: Set<CalendarDay>
+  /// Wochenstreifen und Ziele mit anzeigen (auf „Heute“ liegen sie unter „Diese Woche“).
+  var showsWeek = true
   @Environment(AppModel.self) private var model
 
   var body: some View {
-    let profile = model.settings.profile
     if let advice = snapshot.advice {
       PersonalAdviceSection(snapshot: snapshot, advice: advice)
     }
+    if showsWeek {
+      PersonalWeekSections(snapshot: snapshot, activities: activities, gymDays: gymDays)
+    }
+  }
+}
+
+/// Die Woche auf einen Blick und der Fortschritt zu den eigenen Zielen.
+struct PersonalWeekSections: View {
+  let snapshot: TodayViewModel.Snapshot
+  let activities: [GarminActivity]
+  let gymDays: Set<CalendarDay>
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
     PersonalWeekStrip(
       schedule: model.settings.schedule(inWeekOf: snapshot.plan.today),
       activityDays: Set(activities.compactMap(\.day)).union(gymDays))
-    PersonalGoalSection(profile: profile, snapshot: snapshot, activities: activities)
+    PersonalGoalSection(profile: model.settings.profile, snapshot: snapshot, activities: activities)
   }
 }
 

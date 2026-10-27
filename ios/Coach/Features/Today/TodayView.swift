@@ -34,41 +34,54 @@ struct TodayView: View {
           }
         }
 
+        // Oben nur, was heute zählt: Empfehlung, Einheiten, Notiz. Woche, Ziele, Rangliste und Verlauf liegen
+        // eine Ebene tiefer unter „Diese Woche“.
         if let snapshot = viewModel.snapshot {
-          MotivationSections(
-            snapshot: snapshot, activities: activities.compactMap(\.activity),
-            gymDays: Set(gymSessions.compactMap { $0.session?.day }))
-          LoadWarningSection(activities: activities.compactMap(\.activity), today: snapshot.plan.today)
-          SleepTonightSection(days: days.compactMap(\.metrics))
+          let allActivities = activities.compactMap(\.activity)
+          let gymDays = Set(gymSessions.compactMap { $0.session?.day })
           if model.settings.profile.mode == .season {
             RecommendationSection(snapshot: snapshot)
             if let today = snapshot.today {
               TodayUnitsSection(today: today)
             }
             CoachNoteSection(viewModel: viewModel)
-            if let today = snapshot.today, !today.rest.isEmpty {
-              RestOfWeekSection(items: today.rest)
-            }
-            WeekSection(plan: snapshot.plan)
           } else {
-            PersonalTodaySections(
-              snapshot: snapshot, activities: activities.compactMap(\.activity),
-              gymDays: Set(gymSessions.compactMap { $0.session?.day }))
+            PersonalTodaySections(snapshot: snapshot, activities: allActivities, gymDays: gymDays, showsWeek: false)
           }
-        }
+          LoadWarningSection(activities: allActivities, today: snapshot.plan.today)
+          // Die Schlafenszeit erst am Abend zeigen.
+          if Calendar.current.component(.hour, from: .now) >= 17 {
+            SleepTonightSection(days: days.compactMap(\.metrics))
+          }
+          MotivationSections(snapshot: snapshot, activities: allActivities, gymDays: gymDays, showsLeague: false)
 
-        if !activities.isEmpty {
-          Section("Letzte Aktivitäten") {
-            ForEach(activities.prefix(5)) { record in
-              if let activity = record.activity {
-                NavigationLink {
-                  ActivityDetailView(record: record)
-                } label: {
-                  ActivitySummaryRow(activity: activity)
+          let todays = activities.filter { $0.dayKey == snapshot.plan.today.iso }
+          if !todays.isEmpty {
+            Section("Heute erledigt") {
+              ForEach(todays) { record in
+                if let activity = record.activity {
+                  NavigationLink {
+                    ActivityDetailView(record: record)
+                  } label: {
+                    ActivitySummaryRow(activity: activity)
+                  }
                 }
               }
             }
-            NavigationLink("Alle Aktivitäten") { ActivityListView() }
+          }
+
+          Section {
+            NavigationLink {
+              WeekOverviewView(
+                snapshot: snapshot, records: Array(activities.prefix(5)), activities: allActivities,
+                gymDays: gymDays)
+            } label: {
+              Label("Diese Woche, Ziele und Verlauf", systemImage: "calendar")
+            }
+          } footer: {
+            if let lastSync = model.lastSync ?? model.health.lastImport {
+              Text("Letzter Abruf \(lastSync.formatted(.relative(presentation: .named)))")
+            }
           }
         }
       }
@@ -302,6 +315,44 @@ private struct CoachNoteSection: View {
   }
 }
 
+/// Alles, was nicht nur heute zählt: Rest der Woche, Wochenziele, Ziele, Rangliste und die letzten Aktivitäten.
+private struct WeekOverviewView: View {
+  let snapshot: TodayViewModel.Snapshot
+  let records: [ActivityRecord]
+  let activities: [GarminActivity]
+  let gymDays: Set<CalendarDay>
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    List {
+      if model.settings.profile.mode == .season {
+        if let today = snapshot.today, !today.rest.isEmpty {
+          RestOfWeekSection(items: today.rest)
+        }
+        WeekSection(plan: snapshot.plan)
+      } else {
+        PersonalWeekSections(snapshot: snapshot, activities: activities, gymDays: gymDays)
+      }
+      MotivationSections(snapshot: snapshot, activities: activities, gymDays: gymDays, showsCompanion: false)
+      if !records.isEmpty {
+        Section("Letzte Aktivitäten") {
+          ForEach(records) { record in
+            if let activity = record.activity {
+              NavigationLink {
+                ActivityDetailView(record: record)
+              } label: {
+                ActivitySummaryRow(activity: activity)
+              }
+            }
+          }
+          NavigationLink("Alle Aktivitäten") { ActivityListView() }
+        }
+      }
+    }
+    .navigationTitle("Diese Woche")
+  }
+}
+
 private struct RestOfWeekSection: View {
   let items: [TodayPlan.Item]
 
@@ -375,17 +426,14 @@ struct SyncStatusSection: View {
           ProgressView()
           Text("Daten werden abgerufen …")
         }
-      } else if let lastSync = model.lastSync ?? model.health.lastImport {
-        LabeledContent("Letzter Abruf") {
-          Text(lastSync, format: .relative(presentation: .named))
-        }
       }
       if let error = model.lastError {
         Label(error, systemImage: "exclamationmark.triangle")
           .foregroundStyle(.orange)
           .font(.footnote)
       }
-      if let result = model.health.lastResult {
+      // Vom Health-Import nur Probleme zeigen; die Zusammenfassung steht in den Einstellungen.
+      if let result = model.health.lastResult, result.hasPrefix("Keine") || result.contains("nicht lesbar") {
         Text(result).font(.footnote).foregroundStyle(.secondary)
       }
       if let report = model.lastReport, !report.errors.isEmpty {

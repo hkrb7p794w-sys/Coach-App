@@ -95,17 +95,9 @@ final class TodayViewModel {
     today: CalendarDay, recommendation: Recommendation, hasMetrics: Bool
   ) -> TodayPlan {
     let monday = today.adding(days: -today.weekdayIndex)
-    let week = activities.filter { activity in
-      guard let day = activity.day else { return false }
-      return monday <= day && day <= today
-    }
-    let strengthDays = Set(
-      week.filter { $0.sport == .strength }.compactMap(\.day) + gymDays.filter { monday <= $0 && $0 <= today })
-    let done = TodayPlan.Done(
-      swim: week.filter { $0.sport == .swim }.count,
-      run: week.filter { $0.sport == .run }.count,
-      bike: week.filter { $0.sport == .bike && ($0.distanceMeters ?? 0) > 0 }.count,
-      strength: strengthDays.count)
+    let progress = TodayPlan.done(activities: activities, gymDays: gymDays, weekOf: today, upTo: today)
+    let strengthDays = progress.strengthDays
+    let done = progress.done
     let zones = HeartRateZoneCalculator.distribution(activities: activities, today: today, weeks: 1)
       .perWeek.first { $0.monday == monday }?.run
     return TodayPlan(

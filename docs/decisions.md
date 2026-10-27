@@ -2,6 +2,17 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – „Heute“ aufgeräumt, Erinnerungen kennen Erledigtes
+
+- „Heute“ zeigt oben nur, was heute zählt: Empfehlung, Einheiten, Coach-Notiz, Warnungen, abends die
+  Schlafenszeit, heute Erledigtes. Rest der Woche, Wochenziele, eigene Ziele, Rangliste und die letzten
+  Aktivitäten liegen unter „Diese Woche, Ziele und Verlauf“. Der letzte Abruf steht klein darunter.
+- Erinnerungen werden nach jedem Abruf (Garmin, Health) und nach jeder Krafteinheit neu geplant. Mit Training
+  am selben Tag (mindestens 15 Minuten oder eine Krafteinheit) entfällt die heutige Erinnerung; im Saisonplan
+  zählt das Erledigte der Woche wie unter „Heute“ (`TodayPlan.done`), z. B. keine Ausrüstungs-Erinnerung für
+  Donnerstag, wenn am Dienstag schon geschwommen wurde.
+- Die Watch-App fürs Gym ist gestrichen; der Testlauf mit echten Daten steht in `docs/todo.md`.
+
 ## 2026-10-27 – GymBook-Verlauf importieren, App heißt IronLudi
 
 - Import aus dem GymBook-Backup (`.database`, SQLite/Core Data, GymBook 7.1.9): `ZEXERCISELOG` je Satz mit
