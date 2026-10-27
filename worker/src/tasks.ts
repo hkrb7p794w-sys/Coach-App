@@ -14,7 +14,7 @@ import {
   groundPoints,
   POINTS_WITH_SOURCES,
 } from "./grounding";
-import { gymHintsPrompt } from "./gym";
+import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
 import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
 import { checkRecipes, weeklyRecipesPrompt } from "./recipes";
@@ -149,6 +149,15 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.2,
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: gymHintsPrompt(input) }),
     ground: groundedPoints,
+  },
+  /** Individueller Trainingsplan aus Fragebogen und Verlauf; die App prüft ihn mit ihren Regeln. */
+  gym_plan: {
+    json: true,
+    allowImages: false,
+    temperature: 0.3,
+    maxOutputTokens: 8000,
+    build: (input) => ({ prompt: gymPlanPrompt(input) }),
+    ground: checkGymPlan,
   },
   /** Chat mit dem Coach, nur aus den Fakten der App. */
   coach_chat: {

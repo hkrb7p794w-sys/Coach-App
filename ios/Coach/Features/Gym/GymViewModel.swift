@@ -167,6 +167,9 @@ final class GymViewModel {
 
   // MARK: - KI-Hinweise
 
+  /// Stillstand, Volumen und Häufigkeit je Muskel aus dem Verlauf (Regeln, ohne KI).
+  var observations: [String] { GymCoach.observations(sessions: sessions, today: today) }
+
   /// Hinweise zur Gewichtssteigerung von der KI; ohne Worker bleiben die Regeln stehen.
   func loadHints(ai: AIClient, goal: FitnessGoal?) async {
     guard ai.isConfigured, !isLoadingHints, !progress.isEmpty else { return }
@@ -175,7 +178,8 @@ final class GymViewModel {
     do {
       let response = try await ai.run(
         task: "gym_hints",
-        input: GymHints.input(progress: progress, recovered: recovered, volume: volume, goal: goal))
+        input: GymHints.input(
+          progress: progress, recovered: recovered, volume: volume, goal: goal, observations: observations))
       let points = CoachingNote.points(from: response.output)
       guard !points.isEmpty else { return }
       hints = points
@@ -188,7 +192,7 @@ final class GymViewModel {
   }
 
   private func showFallbackHints() {
-    hints = GymHints.fallback(progress)
+    hints = GymHints.fallback(progress, observations: observations)
     hintSource = "Regeln (ohne KI)"
     hintEvidence = ["gym.progression", "gym.rir"]
   }

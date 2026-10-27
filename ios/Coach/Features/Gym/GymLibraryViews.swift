@@ -306,11 +306,20 @@ struct RoutinesView: View {
   let start: (Routine) -> Void
   @Environment(AppModel.self) private var model
   @State private var editing: Routine?
+  @State private var showsPlanner = false
 
   var body: some View {
     let settings = model.settings
     let suggestions = RoutineTemplates.suggest(profile: settings.profile, equipment: settings.gym.equipment)
     List {
+      Section {
+        Button("KI-Trainingsplan erstellen", systemImage: "sparkles") { showsPlanner = true }
+          .font(.headline)
+      } footer: {
+        Text(
+          "Ein paar Fragen zu Ziel, Tagen und Beschwerden, dann ein Plan aus deinem Verlauf und deiner Ausstattung – "
+            + "von den Regeln geprüft.")
+      }
       Section {
         if settings.gym.routines.isEmpty {
           Text("Noch keine eigene Routine. Übernimm einen Vorschlag oder lege selbst eine an.")
@@ -372,6 +381,7 @@ struct RoutinesView: View {
     }
     .navigationTitle("Routinen")
     .toolbar { EditButton() }
+    .sheet(isPresented: $showsPlanner) { GymPlanView(viewModel: viewModel) }
     .sheet(item: $editing) { routine in
       RoutineEditor(routine: routine) { saved in
         if let index = model.settings.gym.routines.firstIndex(where: { $0.id == saved.id }) {
