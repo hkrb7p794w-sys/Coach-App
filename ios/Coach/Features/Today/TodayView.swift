@@ -34,6 +34,7 @@ struct TodayView: View {
           MotivationSections(
             snapshot: snapshot, activities: activities.compactMap(\.activity),
             gymDays: Set(gymSessions.compactMap { $0.session?.day }))
+          LoadWarningSection(activities: activities.compactMap(\.activity), today: snapshot.plan.today)
           if model.settings.profile.mode == .season {
             RecommendationSection(snapshot: snapshot)
             if let today = snapshot.today {

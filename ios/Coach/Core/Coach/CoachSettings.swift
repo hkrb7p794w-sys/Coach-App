@@ -18,6 +18,7 @@ final class CoachSettings {
   static let leagueKey = "coach.league"
   static let gymKey = "coach.gym"
   static let recipesKey = "coach.recipes"
+  static let weightsKey = "coach.weights"
 
   private let defaults: UserDefaults
 
@@ -79,6 +80,11 @@ final class CoachSettings {
     didSet { save(recipes, forKey: Self.recipesKey) }
   }
 
+  /// Eigene Wägungen (Garmin-Wägungen liegen beim Abruf).
+  var weights: [WeightEntry] {
+    didSet { save(weights, forKey: Self.weightsKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -123,6 +129,8 @@ final class CoachSettings {
     recipes =
       defaults.data(forKey: Self.recipesKey).flatMap { try? JSONDecoder().decode(RecipePreferences.self, from: $0) }
       ?? RecipePreferences()
+    weights =
+      defaults.data(forKey: Self.weightsKey).flatMap { try? JSONDecoder().decode([WeightEntry].self, from: $0) } ?? []
     var migrated = false
     if let stored = defaults.data(forKey: Self.profileKey).flatMap({
       try? JSONDecoder().decode(UserProfile.self, from: $0)
@@ -168,6 +176,14 @@ final class CoachSettings {
     case .halfMarathon: break
     }
     tests = TestHistory.adding(TestRecord(kind: kind, value: value, day: day), to: tests)
+  }
+
+  /// Wägung eintragen; ein Eintrag je Tag, der neue ersetzt den alten.
+  func logWeight(_ kilograms: Double, on day: CalendarDay = CalendarDay(date: .now)) {
+    let cutoff = day.adding(days: -365)
+    weights =
+      (weights.filter { $0.day != day && $0.day >= cutoff } + [WeightEntry(day: day, kilograms: kilograms, source: .manual)])
+      .sorted { $0.day < $1.day }
   }
 
   var halfMarathonSeconds: Int? {

@@ -133,6 +133,9 @@ struct GarminConnectTests {
     #expect(
       ConnectEndpoint.racePredictions(displayName: "a/b").path == "/metrics-service/metrics/racepredictions/latest/ab")
     #expect(ConnectEndpoint.userSummary(displayName: "alex", day: day).query.first?.value == "2026-10-26")
+    let weights = ConnectEndpoint.weightRange(start: day.adding(days: -27), end: day)
+    #expect(weights.path == "/weight-service/weight/range/2026-09-29/2026-10-26")
+    #expect(weights.query.first?.name == "includeAll")
   }
 
   @Test func parsesConnectOnlyValues() throws {

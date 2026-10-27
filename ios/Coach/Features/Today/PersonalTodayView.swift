@@ -21,6 +21,27 @@ struct PersonalTodaySections: View {
   }
 }
 
+/// Warnung, wenn der Laufumfang der letzten 7 Tage deutlich über dem Schnitt der drei Wochen davor liegt.
+struct LoadWarningSection: View {
+  let activities: [GarminActivity]
+  let today: CalendarDay
+
+  var body: some View {
+    if let warning = LoadCheck.running(activities: activities, today: today).warning {
+      Section {
+        Label {
+          Text(warning).font(.subheadline)
+        } icon: {
+          Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+        }
+        EvidenceDisclosure(ruleIDs: ["run.progression"])
+      } header: {
+        Text("Laufumfang")
+      }
+    }
+  }
+}
+
 private struct PersonalAdviceSection: View {
   let snapshot: TodayViewModel.Snapshot
   let advice: ScheduleAdvice
