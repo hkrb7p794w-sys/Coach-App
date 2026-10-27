@@ -143,7 +143,8 @@ public enum WeightTrend {
     func walk(_ value: JSONValue) {
       switch value {
       case .object(let object):
-        let dateText = object["calendarDate"]?.stringValue ?? object["summaryDate"]?.stringValue
+        let dateText =
+          object["calendarDate"]?.stringValue ?? object["summaryDate"]?.stringValue
           ?? object["date"]?.stringValue
         if let grams = object["weight"]?.doubleValue, let text = dateText, let day = CalendarDay(iso: text) {
           let kilograms = grams > 500 ? grams / 1000 : grams

@@ -25,7 +25,8 @@ public enum LoadCheck {
     }
     let last = kilometers(from: today.adding(days: -6), days: 7)
     let baseline = kilometers(from: today.adding(days: -27), days: 21) / 3
-    var result = Result(lastWeekKilometers: (last * 10).rounded() / 10, baselineKilometers: (baseline * 10).rounded() / 10)
+    var result = Result(
+      lastWeekKilometers: (last * 10).rounded() / 10, baselineKilometers: (baseline * 10).rounded() / 10)
     guard baseline > 0 else { return result }
     let increase = last / baseline - 1
     result.increase = (increase * 100).rounded() / 100

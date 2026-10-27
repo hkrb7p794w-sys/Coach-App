@@ -39,7 +39,9 @@ public enum InputCheck {
     }
     if !(14...100).contains(body.age) {
       issues.append(
-        InputIssue(id: "age", severity: .warning, message: "Alter \(body.age) wirkt unplausibel – bitte prüfen.", evidenceIDs: []))
+        InputIssue(
+          id: "age", severity: .warning, message: "Alter \(body.age) wirkt unplausibel – bitte prüfen.", evidenceIDs: []
+        ))
     }
     return issues
   }
@@ -73,7 +75,8 @@ public enum InputCheck {
       issues.append(
         InputIssue(
           id: "resting-hr", severity: .tip,
-          message: "Ein Ruhepuls-Ziel von \(pulse) bpm ist ungewöhnlich – bitte prüfen.", evidenceIDs: ["rhr.endurance"]))
+          message: "Ein Ruhepuls-Ziel von \(pulse) bpm ist ungewöhnlich – bitte prüfen.", evidenceIDs: ["rhr.endurance"]
+        ))
     }
     if let event = profile.event {
       let days = today.days(until: event.date)

@@ -182,7 +182,9 @@ final class CoachSettings {
   func logWeight(_ kilograms: Double, on day: CalendarDay = CalendarDay(date: .now)) {
     let cutoff = day.adding(days: -365)
     weights =
-      (weights.filter { $0.day != day && $0.day >= cutoff } + [WeightEntry(day: day, kilograms: kilograms, source: .manual)])
+      (weights.filter { $0.day != day && $0.day >= cutoff } + [
+        WeightEntry(day: day, kilograms: kilograms, source: .manual)
+      ])
       .sorted { $0.day < $1.day }
   }
 

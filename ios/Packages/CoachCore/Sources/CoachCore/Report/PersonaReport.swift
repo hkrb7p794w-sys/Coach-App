@@ -134,7 +134,8 @@ public enum PersonaReport {
     var settings = persona.nutrition
     let assessment = GoalRules.assess(profile: profile, body: body)
     if profile.mode == .personal { GoalRules.apply(assessment, to: &settings) }
-    let issues = InputCheck.body(body)
+    let issues =
+      InputCheck.body(body)
       + InputCheck.goals(profile: profile, body: body, predictions: persona.predictions, today: monday)
 
     let week = Weekday.allCases.map { weekday -> (Weekday, [String], NutritionTargets) in
@@ -218,7 +219,8 @@ public enum PersonaReport {
       if let pause = result.advicePause {
         checks.append(
           PersonaCheck(
-            rule: "Bei schlechter Erholung keine harte Einheit empfehlen", passed: pause.mode == .rest || pause.mode == .restDay,
+            rule: "Bei schlechter Erholung keine harte Einheit empfehlen",
+            passed: pause.mode == .rest || pause.mode == .restDay,
             detail: pause.headline))
       }
       let hardDays = schedule.demandingEnduranceDays
@@ -236,7 +238,8 @@ public enum PersonaReport {
       ("Walnusskerne", persona.recipeAllergens.contains(.nuts)),
     ]
     let recipeOK = samples.allSatisfy { name, mustFail in
-      RecipePlanner.violations(name, diet: persona.nutrition.diet, allergens: persona.recipeAllergens).isEmpty != mustFail
+      RecipePlanner.violations(name, diet: persona.nutrition.diet, allergens: persona.recipeAllergens).isEmpty
+        != mustFail
     }
     checks.append(
       PersonaCheck(
@@ -272,7 +275,10 @@ public enum PersonaReport {
       let rate = assessment.weeklyChangePercent.map { "\(GermanFormat.number($0)) % pro Woche" } ?? "Gewicht halten"
       lines.append("- Ernährung: \(assessment.nutritionGoal.label), \(rate)")
       for note in assessment.notes { lines.append("- \(note)") }
-      lines += ["", "### Woche", "", "| Tag | Einheiten | Tagestyp | kcal | Protein | KH | Fett |", "|---|---|---|---|---|---|---|"]
+      lines += [
+        "", "### Woche", "", "| Tag | Einheiten | Tagestyp | kcal | Protein | KH | Fett |",
+        "|---|---|---|---|---|---|---|",
+      ]
       for day in result.week {
         let values = day.targets.values
         func value(_ nutrient: Nutrient) -> String { "\(Int(values[nutrient] ?? 0))" }
