@@ -52,7 +52,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 34 | Gym im Training: Fokus-Karte, Ziffernblock, RIR in der Pause, Rückgängig, Abschluss mit vergessenen Sätzen, Bildschirm an | fertig (PR 42) |
 | 35 | Gym: Satzarten (Aufwärmen zählt nicht), Supersätze, Später/Ersetzen/Reihenfolge, Plausibilität, Pausen merken, Stange/Scheiben, Notizen | fertig (PR 43) |
 | 36 | Gym: Ziel sichtbar, Karte „Nächste Einheit“, Abschluss mit Vergleich und „Nächstes Mal“, Auswertung mit Kalender | fertig (PR 43) |
-| 37 | Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm, „Satz erledigt“ ohne Entsperren | in Arbeit |
+| 37 | Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm, „Satz erledigt“ ohne Entsperren | fertig (PR 44) |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
