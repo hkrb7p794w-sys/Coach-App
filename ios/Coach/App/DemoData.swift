@@ -119,8 +119,8 @@ enum DemoData {
       let day = today.adding(days: -offset)
       guard [.wednesday, .friday].contains(Weekday(day: day)) else { continue }
       let week = Double(offset / 7)
-      let start = Calendar.current.date(byAdding: .hour, value: 18, to: Calendar.current.startOfDay(for: day.localDate))
-        ?? day.localDate
+      let midnight = Calendar.current.startOfDay(for: day.localDate)
+      let start = Calendar.current.date(byAdding: .hour, value: 18, to: midnight) ?? day.localDate
       let session = GymSession(
         workoutKey: nil, title: "Ganzkörper", start: start, end: start.addingTimeInterval(55 * 60),
         exercises: [

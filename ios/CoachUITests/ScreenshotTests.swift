@@ -14,7 +14,9 @@ final class ScreenshotTests: XCTestCase {
     Variant(name: "dunkel", arguments: ["-demoScheme", "dark"]),
     Variant(
       name: "grosse-schrift",
-      arguments: ["-demoScheme", "light", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]),
+      arguments: [
+        "-demoScheme", "light", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL",
+      ]),
   ]
 
   override func setUp() {

@@ -27,6 +27,7 @@ jobs:
     timeout-minutes: 45
     env:
       XCODE_MAJOR: "26"
+      LOG: ${{ github.workspace }}/screenshots.log
       PR: ${{ github.event.pull_request.number }}
       GH_TOKEN: ${{ github.token }}
       HOMEBREW_NO_AUTO_UPDATE: "1"
@@ -88,7 +89,7 @@ jobs:
               -project ios/Coach.xcodeproj -scheme Screenshots \
               -destination "id=$UDID" \
               -resultBundlePath "$RUNNER_TEMP/$SIZE.xcresult" \
-              2>&1 | tail -40 || true
+              2>&1 | tee -a "$LOG" | tail -40 || true
           done
 
       - name: Bilder herausziehen
@@ -98,7 +99,9 @@ jobs:
             NAME_VAR="${SIZE}_NAME"
             DEVICE=$(echo "${!NAME_VAR}" | tr ' ()' '-__' | tr -s '-_')
             OUT="$RUNNER_TEMP/attachments-$SIZE"
-            xcrun xcresulttool export attachments --path "$RUNNER_TEMP/$SIZE.xcresult" --output-path "$OUT" || continue
+            xcrun xcresulttool export attachments --path "$RUNNER_TEMP/$SIZE.xcresult" --output-path "$OUT" \
+              2>&1 | tee -a "$LOG" || continue
+            ls "$OUT" | head -5 | tee -a "$LOG"
             python3 - "$OUT" "$DEVICE" <<'PY'
           import json, os, shutil, sys
           out, device = sys.argv[1], sys.argv[2]
@@ -110,7 +113,7 @@ jobs:
                   shutil.copy(os.path.join(out, attachment["exportedFileName"]), f"shots/{device}-{base}.png")
           PY
           done
-          ls shots | head -80
+          ls shots | head -80 | tee -a "$LOG"
           test -n "$(ls shots)"
 
       - name: Release mit Bildern anlegen
@@ -124,3 +127,23 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
               -f body="📸 Screenshots: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG ($SMALL_NAME, $LARGE_NAME)"
           fi
+
+      - name: Fehler im PR melden
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          touch "$LOG"
+          {
+            echo "❌ Screenshots fehlgeschlagen"
+            echo
+            echo '```'
+            grep -E 'error:|\*\* [A-Z ]+ FAILED \*\*|failed|Fehler|No such' "$LOG" | cut -c1-300 | head -40
+            echo '```'
+            echo
+            echo '<details><summary>Log-Ende</summary>'
+            echo
+            echo '```'
+            tail -120 "$LOG" | cut -c1-300
+            echo '```'
+            echo '</details>'
+          } > comment.md
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md
