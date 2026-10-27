@@ -7,7 +7,8 @@ struct ActivityDetailsTests {
   private var listJSON: JSONValue {
     .array([
       .object([
-        "activityId": .number(42), "activityName": .string("Lauf"), "activityType": .object(["typeKey": .string("running")]),
+        "activityId": .number(42), "activityName": .string("Lauf"),
+        "activityType": .object(["typeKey": .string("running")]),
         "startTimeLocal": .string("2026-10-25 08:00:00"), "duration": .number(3_000), "movingDuration": .number(2_950),
         "distance": .number(10_000), "averageSpeed": .number(3.333), "maxSpeed": .number(4.5),
         "averageHR": .number(148), "maxHR": .number(171), "elevationGain": .number(85), "elevationLoss": .number(84),
@@ -26,7 +27,8 @@ struct ActivityDetailsTests {
     let titles = sections.map(\.title)
     #expect(titles.contains("Laufdynamik"))
     #expect(!titles.contains("Schwimmen"))
-    let rows = Dictionary(sections.flatMap(\.rows).map { ($0.label, $0.value) }, uniquingKeysWith: { first, _ in first })
+    let rows = Dictionary(
+      sections.flatMap(\.rows).map { ($0.label, $0.value) }, uniquingKeysWith: { first, _ in first })
     #expect(rows["Distanz"] == "10 km")
     #expect(rows["Zeit"] == "50:00")
     #expect(rows["Ø Pace"] == "5:00 /km")

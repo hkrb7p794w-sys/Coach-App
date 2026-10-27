@@ -55,8 +55,11 @@ struct ActivityDetailView: View {
       VStack(alignment: .leading, spacing: 4) {
         if let day = activity.day {
           Text(
-            [Formatters.day(day), activity.startLocal.map { String($0.dropFirst(11).prefix(5)) + " Uhr" }, activity.locationName]
-              .compactMap { $0 }.joined(separator: " · ")
+            [
+              Formatters.day(day), activity.startLocal.map { String($0.dropFirst(11).prefix(5)) + " Uhr" },
+              activity.locationName,
+            ]
+            .compactMap { $0 }.joined(separator: " · ")
           )
           .font(.subheadline)
           .foregroundStyle(.secondary)
