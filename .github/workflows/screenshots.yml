@@ -94,26 +94,39 @@ jobs:
 
       - name: Bilder herausziehen
         run: |
+          exec > >(tee -a "$LOG") 2>&1
           mkdir -p shots
           for SIZE in SMALL LARGE; do
             NAME_VAR="${SIZE}_NAME"
-            DEVICE=$(echo "${!NAME_VAR}" | tr ' ()' '-__' | tr -s '-_')
+            DEVICE=$(echo "${!NAME_VAR}" | tr -c 'A-Za-z0-9\n' '-' | tr -s '-')
             OUT="$RUNNER_TEMP/attachments-$SIZE"
+            test -d "$RUNNER_TEMP/$SIZE.xcresult" || { echo "kein Ergebnis für $SIZE"; continue; }
             xcrun xcresulttool export attachments --path "$RUNNER_TEMP/$SIZE.xcresult" --output-path "$OUT" \
-              2>&1 | tee -a "$LOG" || continue
-            ls "$OUT" | head -5 | tee -a "$LOG"
-            python3 - "$OUT" "$DEVICE" <<'PY'
+              || { echo "Export fehlgeschlagen für $SIZE"; continue; }
+            ls "$OUT" | head -5
+            python3 - "$OUT" "$DEVICE" <<'PY' || echo "Manifest nicht lesbar für $SIZE"
           import json, os, shutil, sys
           out, device = sys.argv[1], sys.argv[2]
-          manifest = json.load(open(os.path.join(out, "manifest.json")))
-          for test in manifest:
+          path = os.path.join(out, "manifest.json")
+          manifest = json.load(open(path)) if os.path.exists(path) else []
+          copied = set()
+          for test in manifest if isinstance(manifest, list) else [manifest]:
               for attachment in test.get("attachments", []):
-                  name = attachment.get("suggestedHumanReadableName", attachment["exportedFileName"])
-                  base = name.split("_0_")[0].rsplit(".", 1)[0]
-                  shutil.copy(os.path.join(out, attachment["exportedFileName"]), f"shots/{device}-{base}.png")
+                  file = attachment.get("exportedFileName")
+                  name = attachment.get("suggestedHumanReadableName") or file
+                  if not file:
+                      continue
+                  base = os.path.splitext(name.split("_0_")[0])[0]
+                  shutil.copy(os.path.join(out, file), f"shots/{device}-{base}.png")
+                  copied.add(file)
+          # Rückfallweg: alle übrigen Bilder unter ihrem Dateinamen.
+          for file in os.listdir(out):
+              if file.lower().endswith((".png", ".jpg", ".jpeg", ".heic")) and file not in copied:
+                  shutil.copy(os.path.join(out, file), f"shots/{device}-{file}")
+          print(len(os.listdir("shots")), "Bilder")
           PY
           done
-          ls shots | head -80 | tee -a "$LOG"
+          ls shots | head -80
           test -n "$(ls shots)"
 
       - name: Release mit Bildern anlegen
