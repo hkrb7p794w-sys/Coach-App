@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Gym ersetzt GymBook
+
+- Die vier GymBook-Pläne (Lower, Push & Pull B, Pull A, Push A) sind als Vorlagen mit den zuletzt genutzten
+  Gewichten als Startwert hinterlegt (`RoutineTemplates.gymBook`). Kabelvarianten und Dips am Barren sind neu in
+  der Bibliothek. Annahme: „Dips 79 kg“ ist das Körpergewicht bzw. die Maschinenlast aus GymBook.
+- Übertragung nach Garmin Connect: Die App schreibt eine FIT-Datei (Sport „training“, Unterart „strength“) mit
+  `set`-Nachrichten (Übungskategorie, Wiederholungen, Gewicht, Dauer, Pausen) nach dem Profil des Garmin FIT SDK
+  (`@garmin/fitsdk` 21.218.0, `profile.js`) und lädt sie über den Upload-Dienst hoch (409 = schon vorhanden).
+  Abschaltbar, weil eine parallel auf der Uhr aufgezeichnete Einheit sonst doppelt erscheint.
+- KI-Trainingsplan: Fragebogen (Ziel, Tage, Minuten, Schwerpunkt, Beschwerden), Eingabe aus Ausstattung,
+  Verlauf und Profil. Der Worker lässt nur Übungen aus der gesendeten Bibliothek zu und verwirft Hinweise mit
+  fremden Zahlen; die App begrenzt Sätze (1–5), Wiederholungen und Pausen (45–240 s) und prüft das Wochenvolumen
+  je großem Muskel gegen 10–20 Sätze (Schoenfeld et al. 2017, PMID 27433992; Pelland et al. 2025, PMID 41343037)
+  und die Häufigkeit von zwei Tagen pro Woche (Schoenfeld et al. 2016, PMID 27102172). Ohne KI gibt es den
+  Regel-Vorschlag.
+- KI-Hinweise im Gym-Reiter bekommen zusätzlich die Beobachtungen der Regeln (`GymCoach.observations`):
+  Stillstand über drei Einheiten, zu wenig oder zu viele Sätze je Muskel in 7 Tagen, nur ein Trainingstag je Muskel.
+
 ## 2026-10-27 – Aktivitätsdetails wie in Garmin Connect
 
 - **Wunsch des Nutzers:** Bei erfassten Einheiten alle Details sehen, die auch die Garmin-App zeigt.

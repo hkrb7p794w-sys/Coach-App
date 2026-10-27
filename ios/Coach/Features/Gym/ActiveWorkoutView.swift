@@ -22,6 +22,7 @@ enum RestAlarm {
 /// Laufende Einheit: Sätze abhaken, Gewicht und Wiederholungen anpassen, Pausen-Timer.
 struct ActiveWorkoutView: View {
   let viewModel: GymViewModel
+  @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var context
   @State private var showCatalog = false
@@ -59,7 +60,7 @@ struct ActiveWorkoutView: View {
         ToolbarItem(placement: .confirmationAction) {
           Button("Beenden") {
             Task {
-              await viewModel.finish(context: context, writer: HealthWorkoutWriter())
+              await viewModel.finish(context: context, writer: HealthWorkoutWriter(), garmin: model.garmin.connect)
               if viewModel.active == nil { dismiss() }
             }
           }

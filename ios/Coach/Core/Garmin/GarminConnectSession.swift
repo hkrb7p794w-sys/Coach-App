@@ -177,6 +177,24 @@ final class GarminConnectSession {
     throw GarminAPIError.unauthorized
   }
 
+  /// Lädt eine FIT-Datei als Aktivität hoch. `true` = neu angelegt, `false` = war schon vorhanden (409).
+  func upload(fit: Data, fileName: String) async throws -> Bool {
+    var token = try await validToken()
+    for attempt in 0..<2 {
+      let request = GarminConnect.uploadRequest(
+        fit: fit, fileName: fileName, token: token, boundary: "coach-\(UUID().uuidString)")
+      let (_, status) = try await send(request, session: apiSession)
+      if status == 401, attempt == 0 {
+        token = try await validToken(forceRefresh: true)
+        continue
+      }
+      if status == 409 { return false }
+      if let error = GarminAPIError.from(status: status, isTokenExchange: false) { throw error }
+      return true
+    }
+    throw GarminAPIError.unauthorized
+  }
+
   func json(_ endpoint: ConnectEndpoint) async throws -> JSONValue {
     let body = try await data(path: endpoint.path, query: endpoint.query)
     return body.isEmpty ? .null : try JSONValue(data: body)

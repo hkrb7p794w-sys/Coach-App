@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GroundingError } from "../src/grounding";
-import { gymHintsPrompt } from "../src/gym";
+import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "../src/gym";
 import { findTask } from "../src/tasks";
 
 const input = {
@@ -47,5 +47,62 @@ describe("gym_hints", () => {
     expect(() => task?.ground?.({ punkte: ["Nimm 100 kg."], quellen: [] }, prompt, input)).toThrow(
       GroundingError,
     );
+  });
+});
+
+const planInput = {
+  goal: "Muskelaufbau",
+  days: 2,
+  minutes: 60,
+  experience: "Fortgeschritten",
+  repRange: "6–12",
+  focus: ["Brust"],
+  limitations: "Schulter links",
+  library: [
+    "bankdruecken | Bankdrücken | Brust | Wiederholungen | Grundübung",
+    "latziehen | Latziehen | Rücken | Wiederholungen | Grundübung",
+    "plank | Unterarmstütz | Rumpf | Sekunden | Isolation",
+  ],
+  lastWeights: ["bankdruecken: 52,5 kg × 12"],
+  observations: ["Brust: 4 Sätze in 7 Tagen – unter 10."],
+  evidence: [{ id: "gym.volume", statement: "Mehr Sätze, mehr Zuwachs." }],
+};
+
+describe("gym_plan", () => {
+  it("baut den Prompt aus Fragebogen, Bibliothek und Verlauf", () => {
+    const prompt = gymPlanPrompt(planInput);
+    expect(prompt).toContain("Trainingstage pro Woche: 2, je etwa 60 Minuten.");
+    expect(prompt).toContain("- bankdruecken | Bankdrücken | Brust | Wiederholungen | Grundübung");
+    expect(prompt).toContain("Schulter links");
+    expect(prompt).toContain("Letzte Gewichte: bankdruecken: 52,5 kg × 12.");
+    expect(prompt).toContain("Genau 2 Routinen");
+    expect(gymPlanPrompt({})).toContain("Trainingstage pro Woche: 3");
+  });
+
+  it("verwirft unbekannte Übungen und Hinweise mit erfundenen Zahlen", () => {
+    const task = findTask("gym_plan");
+    expect(task).toMatchObject({ json: true, allowImages: false });
+    const prompt = gymPlanPrompt(planInput);
+    const checked = checkGymPlan(
+      {
+        routinen: [
+          {
+            name: "Oberkörper",
+            uebungen: [
+              { id: "bankdruecken", saetze: 3 },
+              { id: "erfunden", saetze: 3 },
+            ],
+          },
+          { name: "Leer", uebungen: [{ id: "kniebeuge" }] },
+        ],
+        hinweise: ["Steigere Bankdrücken von 52,5 kg aus.", "Gehe auf 70 kg."],
+      },
+      prompt,
+      planInput,
+    ) as { routinen: { name: string; uebungen: { id: string }[] }[]; hinweise: string[] };
+    expect(checked.routinen).toHaveLength(1);
+    expect(checked.routinen[0]?.uebungen.map((item) => item.id)).toEqual(["bankdruecken"]);
+    expect(checked.hinweise).toEqual(["Steigere Bankdrücken von 52,5 kg aus."]);
+    expect(() => checkGymPlan({ routinen: [] }, prompt, planInput)).toThrow(GroundingError);
   });
 });

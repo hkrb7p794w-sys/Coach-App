@@ -75,9 +75,20 @@ public struct FitLap: Codable, Equatable, Sendable {
   }
 }
 
+/// Ein Satz im Krafttraining (FIT-Nachricht `set`, 225).
+public struct FitSet: Equatable, Sendable {
+  public var active: Bool
+  public var repetitions: Int?
+  public var weightKg: Double?
+  public var durationSeconds: Double?
+  public var category: Int?
+  public var subtype: Int?
+}
+
 public struct FitActivity: Equatable, Sendable {
   public var records: [FitRecord] = []
   public var laps: [FitLap] = []
+  public var sets: [FitSet] = []
 
   public init(records: [FitRecord] = [], laps: [FitLap] = []) {
     self.records = records
@@ -254,6 +265,12 @@ public enum FitDecoder {
       lap.maxPower = values[20]
       lap.calories = values[11]
       activity.laps.append(lap)
+    case 225:
+      activity.sets.append(
+        FitSet(
+          active: values[5] == 1, repetitions: values[3].map { Int($0) }, weightKg: values[4].map { $0 / 16 },
+          durationSeconds: values[0].map { $0 / 1000 }, category: values[7].map { Int($0) },
+          subtype: values[8].map { Int($0) }))
     default:
       break
     }

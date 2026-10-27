@@ -14,7 +14,8 @@ public enum GymHints {
   }
 
   public static func input(
-    progress: [ExerciseProgress], recovered: Bool?, volume: [MuscleGroup: Int], goal: FitnessGoal?
+    progress: [ExerciseProgress], recovered: Bool?, volume: [MuscleGroup: Int], goal: FitnessGoal?,
+    observations: [String] = []
   ) -> [String: JSONValue] {
     let recovery =
       switch recovered {
@@ -29,14 +30,18 @@ public enum GymHints {
       "volume": .array(groups.map { .string($0) }),
       "evidence": CoachingNote.evidenceInput(evidence),
     ]
+    // Stillstand, Volumen und Häufigkeit aus `GymCoach.observations`.
+    if !observations.isEmpty { input["observations"] = .array(observations.prefix(6).map { .string($0) }) }
     if let goal { input["goal"] = .string(goal.label) }
     return input
   }
 
   /// Regelbasierte Hinweise, wenn die KI nicht erreichbar ist: die Übungen mit Handlungsbedarf zuerst.
-  public static func fallback(_ progress: [ExerciseProgress], limit: Int = 4) -> [String] {
+  public static func fallback(
+    _ progress: [ExerciseProgress], observations: [String] = [], limit: Int = 4
+  ) -> [String] {
     let relevant = progress.filter { [.increase, .restart, .check].contains($0.status) }
     let items = relevant.isEmpty ? Array(progress.prefix(2)) : Array(relevant.prefix(limit))
-    return items.map { "\($0.name): \($0.headline)." }
+    return items.map { "\($0.name): \($0.headline)." } + observations.prefix(2)
   }
 }

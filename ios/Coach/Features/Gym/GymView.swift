@@ -324,6 +324,7 @@ private struct SessionDetailView: View {
   let record: GymSessionRecord
   let session: GymSession
   @Environment(\.modelContext) private var context
+  @Environment(AppModel.self) private var model
   @State private var message: String?
 
   var body: some View {
@@ -341,6 +342,16 @@ private struct SessionDetailView: View {
             Task {
               message = await GymViewModel.saveToHealth(
                 record, session: session, context: context, writer: HealthWorkoutWriter())
+            }
+          }
+        }
+        if record.uploadedToGarmin {
+          Label("In Garmin Connect übertragen", systemImage: "checkmark.circle.fill").foregroundStyle(.blue)
+        } else if let connect = model.garmin.connect, connect.isLoggedIn {
+          Button("Zu Garmin Connect übertragen") {
+            Task {
+              message = await GymViewModel.uploadToGarmin(
+                record, session: session, context: context, garmin: connect)
             }
           }
         }
