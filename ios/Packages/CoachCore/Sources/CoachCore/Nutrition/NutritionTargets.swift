@@ -29,6 +29,34 @@ public enum DayType: String, CaseIterable, Codable, Sendable, Comparable {
     }
   }
 
+  /// Untergrenze der Spanne aus Thomas et al. 2016 (leicht 3–5, moderat 5–7, hoch 6–10, sehr hoch 8–12 g/kg).
+  /// Reicht die Energie nicht für den Zielwert, sinken die Kohlenhydrate höchstens bis hierhin.
+  public var minimumCarbsPerKilogram: Double {
+    switch self {
+    case .restDay, .light: 3
+    case .moderate: 5
+    case .hard: 6
+    case .veryHard: 8
+    }
+  }
+
+  /// Angenommene Dauer einer geplanten Einheit (Minuten), solange Garmin noch nichts aufgezeichnet hat.
+  var plannedMinutes: Double {
+    switch self {
+    case .restDay: 0
+    case .light: 45
+    case .moderate: 60
+    case .hard: 90
+    case .veryHard: 180
+    }
+  }
+
+  /// MET der geplanten Einheit (Compendium of Physical Activities, Ainsworth et al. 2011): Kraft etwa 5, Ausdauer
+  /// etwa 7 (zwischen moderatem Radfahren und lockerem Laufen).
+  var plannedMET: Double {
+    self == .light ? 5 : 7
+  }
+
   /// Anteil des Energie-Defizits/-Überschusses, der angewendet wird („fuel for the work“).
   var goalScale: Double {
     switch self {
@@ -276,9 +304,13 @@ public enum NutritionPlanner {
 
     let bmr = mifflinStJeor(profile)
     let baseKcal = bmr * settings.activityFactor
-    let exerciseKcal = activities.reduce(0.0) { sum, activity in
+    var exerciseKcal = activities.reduce(0.0) { sum, activity in
       let minutes = (activity.durationSeconds ?? 0) / 60
       return sum + max(0, (activity.calories ?? 0) - bmr / 1440 * minutes)
+    }
+    if source == .planned {
+      // Netto-Verbrauch der geplanten Einheit: (MET − 1) × kg × Stunden.
+      exerciseKcal = (dayType.plannedMET - 1) * weight * dayType.plannedMinutes / 60
     }
     let dayEnergy = baseKcal + exerciseKcal
     var adjustPercent = settings.goal.adjustPercent
@@ -301,12 +333,18 @@ public enum NutritionPlanner {
 
     let proteinPerKilogram = settings.goal.proteinPerKilogram
     let protein = proteinPerKilogram * weight
-    var carbs = dayType.carbsPerKilogram * weight
-    let rest = energy - 4 * protein - 4 * carbs
+    // Die Energie entscheidet: Kohlenhydrate nach Tagestyp, aber nur so viele, dass Fett mindestens 20 % behält
+    // (ACSM 2016); höchstens bis zur Untergrenze der Spanne gekürzt.
     let fatMinimum = 0.20 * energy / 9
     let fatMaximum = 0.35 * energy / 9
-    let fat = min(max(rest / 9, fatMinimum), fatMaximum)
+    let carbRoom = (energy - 4 * protein - 9 * fatMinimum) / 4
+    var carbs = min(
+      dayType.carbsPerKilogram * weight, max(carbRoom, dayType.minimumCarbsPerKilogram * weight))
+    let rest = energy - 4 * protein - 4 * carbs
+    var fat = min(max(rest / 9, fatMinimum), fatMaximum)
     if rest / 9 > fatMaximum { carbs += (rest - fat * 9) / 4 }
+    // Auch wenn die Untergrenze der Kohlenhydrate die Energie übersteigt, bleibt Fett bei mindestens 20 %.
+    fat = max(fat, (protein + carbs) / 9)
     let total = 4 * protein + 4 * carbs + 9 * fat
 
     let water =

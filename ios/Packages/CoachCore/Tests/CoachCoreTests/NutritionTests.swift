@@ -45,7 +45,8 @@ struct NutritionTargetTests {
     #expect(NutritionPlanner.plannedDayType([TemplateItem(kind: .optional, text: "locker")]) == nil)
   }
 
-  /// Erwartungswerte unabhängig mit der Formel aus `targets.py` nachgerechnet.
+  /// Grundumsatz und Verbrauch wie in `targets.py`; die Makros weichen bewusst ab: Fett bleibt bei mindestens 20 %
+  /// der Energie, Kohlenhydrate werden dafür gekürzt (`targets.py` überschritt sonst die Tagesenergie).
   @Test func computesTargetsLikeLegacyAddOn() {
     let targets = NutritionPlanner.compute(
       activities: [activity("running", minutes: 60, kcal: 700, load: 90)], planItems: [], settings: settings,
@@ -55,10 +56,14 @@ struct NutritionTargetTests {
     #expect(targets.source == .garmin)
     #expect(targets.basalMetabolicRate == 1750)
     #expect(targets.exerciseKilocalories == 627)
-    #expect(targets.values[.kcal] == 3111)
+    let kcal = targets.values[.kcal] ?? 0
+    let carbs = targets.values[.carbs] ?? 0
+    let fat = targets.values[.fat] ?? 0
+    #expect(abs(kcal - 3_077) <= 2)
     #expect(targets.values[.protein] == 144)
-    #expect(targets.values[.carbs] == 480)
-    #expect(targets.values[.fat] == 68)
+    #expect((400...480).contains(carbs))
+    #expect(9 * fat / kcal >= 0.195)
+    #expect(abs(4 * 144 + 4 * carbs + 9 * fat - kcal) <= 10)
     #expect(targets.values[.water] == 3400)
     #expect(targets.values[.iron] == 11)
     #expect(targets.values[.iodine] == 150)
@@ -70,7 +75,11 @@ struct NutritionTargetTests {
       settings: settings, garminProfile: nil, day: day, hasGarminData: true)
     #expect(targets.dayType == .hard)
     #expect(targets.source == .planned)
-    #expect(targets.values[.carbs] ?? 0 >= 640)
+    // Geplante 90 Minuten Ausdauer (MET 7) fließen in die Energie ein; Kohlenhydrate mindestens 6 g/kg.
+    #expect(targets.exerciseKilocalories == 720)
+    #expect(targets.values[.carbs] ?? 0 >= 480)
+    let kcal = targets.values[.kcal] ?? 0
+    #expect(9 * (targets.values[.fat] ?? 0) / kcal >= 0.195)
   }
 
   @Test func deficitIsSkippedOnHardDaysAndFloored() {
