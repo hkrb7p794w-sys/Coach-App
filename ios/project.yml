@@ -79,7 +79,29 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: "YES"
+  CoachUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: CoachUITests
+    dependencies:
+      - target: Coach
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: Coach
+        # XCTestCase ist nicht an den MainActor gebunden; nur die Testmethode läuft dort.
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 schemes:
+  # Nur für den Workflow „Screenshots“: UI-Test mit Beispieldaten.
+  Screenshots:
+    build:
+      targets:
+        Coach: all
+        CoachUITests: [test]
+    test:
+      targets:
+        - CoachUITests
   Coach:
     build:
       targets:

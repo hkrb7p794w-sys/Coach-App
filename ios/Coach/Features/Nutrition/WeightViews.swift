@@ -1,11 +1,14 @@
 import Charts
 import CoachCore
+import SwiftData
 import SwiftUI
 
 /// Gewichtsverlauf: Wägungen eintragen (oder von Garmin), Trend über 28 Tage und Vorschlag, die Tagesenergie
 /// nachzusteuern. Die Anpassung übernimmt die Person selbst; die App ändert nichts ohne Zustimmung.
 struct WeightTrendView: View {
   @Environment(AppModel.self) private var model
+  @Query(sort: \MealRecord.createdAt) private var meals: [MealRecord]
+  @Query(sort: \ActivityRecord.startLocal) private var activities: [ActivityRecord]
   @State private var input = ""
   @State private var day = Date.now
   @FocusState private var inputFocused: Bool
@@ -18,6 +21,44 @@ struct WeightTrendView: View {
 
   private var result: WeightTrend.Result? {
     WeightTrend.trend(entries, today: today)
+  }
+
+  /// Erfasste kcal je Tag.
+  private var intake: [CalendarDay: Double] {
+    var result: [CalendarDay: Double] = [:]
+    for meal in meals {
+      guard let day = CalendarDay(iso: meal.dayKey) else { continue }
+      result[day, default: 0] += NutritionSummary.totals(meal.items)[.kcal] ?? 0
+    }
+    return result
+  }
+
+  /// Verbrauch laut Ernährung und Gewicht mit dem Bedarf laut Formel an denselben Tagen.
+  private var expenditure: (result: Expenditure.Result, formula: Double)? {
+    let settings = model.settings.nutrition
+    let body = settings.profile(garmin: model.sync.profile, on: today)
+    let days = intake
+    guard
+      let result = Expenditure.estimate(
+        intake: days, weights: entries, today: today,
+        basalMetabolicRate: NutritionPlanner.mifflinStJeor(body))
+    else { return nil }
+    // Formel ohne Ziel und Anpassung: Grundumsatz × Alltag + Training des jeweiligen Tages.
+    var maintenance = settings
+    maintenance.goal = .maintain
+    maintenance.weeklyWeightChangePercent = nil
+    maintenance.energyAdjustmentKilocalories = 0
+    let all = activities.compactMap(\.activity)
+    let start = today.adding(days: -Expenditure.windowDays)
+    let loggedDays = days.keys.filter { $0 >= start && $0 < today }
+    let values = loggedDays.map { day in
+      NutritionPlanner.compute(
+        activities: all.filter { $0.day == day }, planItems: [], settings: maintenance,
+        garminProfile: model.sync.profile, day: day, hasGarminData: true
+      ).values[.kcal] ?? 0
+    }
+    guard !values.isEmpty else { return nil }
+    return (result, values.reduce(0, +) / Double(values.count))
   }
 
   /// Geplantes Tempo in % pro Woche; `nil` = Gewicht halten. Ohne festgelegtes Tempo bei Ab- oder Zunehmen gibt es
@@ -42,6 +83,9 @@ struct WeightTrendView: View {
           .font(.subheadline)
           .foregroundStyle(.secondary)
         }
+      }
+      if let expenditure {
+        expenditureSection(expenditure.result, formula: expenditure.formula)
       }
       if model.settings.nutrition.energyAdjustmentKilocalories != 0 {
         adjustmentSection
@@ -92,7 +136,11 @@ struct WeightTrendView: View {
       .accessibilityLabel("Wägungen der letzten vier Wochen")
       LabeledContent("Trendgewicht heute", value: "\(GermanFormat.number(result.trendKilograms)) kg")
       LabeledContent("Änderung pro Woche", value: "\(signed(result.weeklyPercent)) %")
-      if plan.known {
+      if let expenditure, expenditure.result.plausible {
+        Text("Die Anpassung ergibt sich aus deinem gemessenen Verbrauch (siehe unten).")
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+      } else if plan.known {
         let advice = WeightTrend.advice(
           result: result, plannedPercent: plan.percent,
           currentAdjustment: model.settings.nutrition.energyAdjustmentKilocalories)
@@ -107,6 +155,49 @@ struct WeightTrendView: View {
       }
     } header: {
       Text("Trend (\(result.entries) Wägungen, \(result.spanDays) Tage)")
+    }
+  }
+
+  private func expenditureSection(_ result: Expenditure.Result, formula: Double) -> some View {
+    let current = model.settings.nutrition.energyAdjustmentKilocalories
+    return Section {
+      LabeledContent("Verbrauch laut Verlauf", value: "\(GermanFormat.number(result.kilocalories)) kcal")
+      LabeledContent("Laut Formel", value: "\(GermanFormat.number((formula / 10).rounded() * 10)) kcal")
+      LabeledContent("Im Schnitt gegessen", value: "\(GermanFormat.number(result.averageIntake)) kcal")
+      if !result.plausible {
+        Label(
+          "Das Ergebnis ist unplausibel – vermutlich fehlen Mahlzeiten. Erfasse alles, was du isst, auch Getränke "
+            + "und Snacks.",
+          systemImage: "exclamationmark.triangle.fill"
+        )
+        .font(.subheadline)
+        .foregroundStyle(.orange)
+      } else if let proposal = Expenditure.adjustment(result, formulaMaintenance: formula, current: current) {
+        Button {
+          var nutrition = model.settings.nutrition
+          nutrition.energyAdjustmentKilocalories = proposal
+          model.settings.nutrition = nutrition
+        } label: {
+          Label(
+            proposal == 0
+              ? "Anpassung zurücksetzen (Formel passt)"
+              : "Tagesziele um \(proposal > 0 ? "+" : "−")\(Int(abs(proposal))) kcal anpassen",
+            systemImage: "checkmark")
+        }
+      } else {
+        Label("Deine Tagesziele passen zu deinem Verbrauch.", systemImage: "checkmark.circle.fill")
+          .font(.subheadline)
+          .foregroundStyle(.green)
+      }
+      EvidenceDisclosure(ruleIDs: ["energy.measured"])
+    } header: {
+      Text("Gemessener Verbrauch")
+    } footer: {
+      Text(
+        "Aus \(result.loggedDays) Tagen mit erfassten Mahlzeiten"
+          + (result.excludedDays > 0 ? " (\(result.excludedDays) unvollständige Tage nicht gezählt)" : "")
+          + " und dem Gewichtstrend. Nur so genau wie deine Erfassung."
+      )
     }
   }
 

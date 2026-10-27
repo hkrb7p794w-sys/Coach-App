@@ -1,0 +1,162 @@
+# Screenshots aller Hauptbereiche mit Beispieldaten (UI-Test im Simulator, Startargument -demo):
+# kleines und großes iPhone, hell, dunkel und große Schrift. Die Bilder hängen an einer Vorabversion
+# „screenshots-…“, weil die Actions-Artefakte aus Claude-Code-Cloud-Sitzungen nicht lesbar sind.
+#
+# Start: Label „screenshots“ an einer PR (wird beim Start entfernt) oder Actions › Screenshots › Run workflow.
+# macOS-Minuten zählen zehnfach – nur bei Design-Änderungen starten.
+name: Screenshots
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'screenshots'
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      XCODE_MAJOR: "26"
+      LOG: ${{ github.workspace }}/screenshots.log
+      PR: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - name: Label entfernen
+        if: github.event_name == 'pull_request'
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$PR/labels/screenshots" || true
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.pull_request.number) || github.sha }}
+
+      - name: Xcode wählen
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_"$XCODE_MAJOR"*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Projekt erzeugen
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Simulatoren wählen
+        run: |
+          xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          def version(key):
+              return [int(part) for part in key.rsplit("iOS-", 1)[1].split("-")]
+          runtime = sorted((k for k in devices if "iOS-" in k), key=version, reverse=True)[0]
+          phones = [d for d in devices[runtime] if d["name"].startswith("iPhone")]
+          def pick(preferences):
+              for wanted in preferences:
+                  for device in phones:
+                      if device["name"] == wanted:
+                          return device
+              return phones[0]
+          small = pick(["iPhone SE (3rd generation)", "iPhone 16e", "iPhone 17", "iPhone 16"])
+          large = pick(["iPhone 17 Pro Max", "iPhone 16 Pro Max", "iPhone 16 Plus"])
+          with open("devices.env", "w") as out:
+              for key, device in (("SMALL", small), ("LARGE", large)):
+                  out.write("%s=%s\n%s_NAME=%s\n" % (key, device["udid"], key, device["name"]))
+          '
+          cat devices.env
+          cat devices.env >> "$GITHUB_ENV"
+
+      - name: Screenshots aufnehmen
+        run: |
+          set -o pipefail
+          for SIZE in SMALL LARGE; do
+            UDID="${!SIZE}"
+            xcrun simctl boot "$UDID" || true
+            # Einheitliche Statusleiste: 9:41, voller Akku.
+            xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 || true
+            xcodebuild test \
+              -project ios/Coach.xcodeproj -scheme Screenshots \
+              -destination "id=$UDID" \
+              -resultBundlePath "$RUNNER_TEMP/$SIZE.xcresult" \
+              2>&1 | tee -a "$LOG" | tail -40 || true
+          done
+
+      - name: Bilder herausziehen
+        run: |
+          exec > >(tee -a "$LOG") 2>&1
+          mkdir -p shots
+          for SIZE in SMALL LARGE; do
+            NAME_VAR="${SIZE}_NAME"
+            DEVICE=$(echo "${!NAME_VAR}" | tr -c 'A-Za-z0-9\n' '-' | tr -s '-')
+            OUT="$RUNNER_TEMP/attachments-$SIZE"
+            test -d "$RUNNER_TEMP/$SIZE.xcresult" || { echo "kein Ergebnis für $SIZE"; continue; }
+            xcrun xcresulttool export attachments --path "$RUNNER_TEMP/$SIZE.xcresult" --output-path "$OUT" \
+              || { echo "Export fehlgeschlagen für $SIZE"; continue; }
+            ls "$OUT" | head -5
+            python3 - "$OUT" "$DEVICE" <<'PY' || echo "Manifest nicht lesbar für $SIZE"
+          import json, os, shutil, sys
+          out, device = sys.argv[1], sys.argv[2]
+          path = os.path.join(out, "manifest.json")
+          manifest = json.load(open(path)) if os.path.exists(path) else []
+          copied = set()
+          for test in manifest if isinstance(manifest, list) else [manifest]:
+              for attachment in test.get("attachments", []):
+                  file = attachment.get("exportedFileName")
+                  name = attachment.get("suggestedHumanReadableName") or file
+                  if not file:
+                      continue
+                  base = os.path.splitext(name.split("_0_")[0])[0]
+                  shutil.copy(os.path.join(out, file), f"shots/{device}-{base}.png")
+                  copied.add(file)
+          # Rückfallweg: alle übrigen Bilder unter ihrem Dateinamen.
+          for file in os.listdir(out):
+              if file.lower().endswith((".png", ".jpg", ".jpeg", ".heic")) and file not in copied:
+                  shutil.copy(os.path.join(out, file), f"shots/{device}-{file}")
+          print(len(os.listdir("shots")), "Bilder")
+          PY
+          done
+          ls shots | head -80
+          test -n "$(ls shots)"
+
+      - name: Release mit Bildern anlegen
+        run: |
+          TAG="screenshots-${PR:-main}-${GITHUB_RUN_NUMBER}"
+          (cd shots && zip -q ../screenshots.zip ./*.png)
+          gh release create "$TAG" shots/*.png screenshots.zip \
+            --target "$(git rev-parse HEAD)" --prerelease \
+            --title "Screenshots $TAG" --notes "Beispieldaten (-demo), Commit $(git rev-parse --short HEAD)."
+          if [ -n "$PR" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+              -f body="📸 Screenshots: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG ($SMALL_NAME, $LARGE_NAME)"
+          fi
+
+      - name: Fehler im PR melden
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          touch "$LOG"
+          {
+            echo "❌ Screenshots fehlgeschlagen"
+            echo
+            echo '```'
+            grep -E 'error:|\*\* [A-Z ]+ FAILED \*\*|failed|Fehler|No such' "$LOG" | cut -c1-300 | head -40
+            echo '```'
+            echo
+            echo '<details><summary>Log-Ende</summary>'
+            echo
+            echo '```'
+            tail -120 "$LOG" | cut -c1-300
+            echo '```'
+            echo '</details>'
+          } > comment.md
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md

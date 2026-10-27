@@ -225,7 +225,9 @@ private struct NutrientRow: View {
       HStack {
         Text(nutrient.label)
         Spacer()
-        Text("\(Self.format(actual ?? 0)) / \(target.map(Self.format) ?? "–") \(nutrient.unit)")
+        let wholeNumbers = (target ?? 0) >= 10
+        let actualText = wholeNumbers ? String(Int((actual ?? 0).rounded())) : Self.format(actual ?? 0)
+        Text("\(actualText) / \(target.map(Self.format) ?? "–") \(nutrient.unit)")
           .monospacedDigit()
           .foregroundStyle(.secondary)
       }

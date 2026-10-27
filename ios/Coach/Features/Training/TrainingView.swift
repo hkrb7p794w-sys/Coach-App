@@ -9,6 +9,7 @@ struct TrainingView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \DailyMetricsRecord.dayKey) private var days: [DailyMetricsRecord]
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
+  @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
   @State private var viewModel = TrainingViewModel()
 
   private var refreshKey: String {
@@ -34,6 +35,19 @@ struct TrainingView: View {
             title: "Herzfrequenz", symbol: "heart.fill", color: .red,
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
+          let form = FitnessForm.series(activities: activities.compactMap(\.activity), today: today)
+          HubRow(
+            title: "Fitness & Form", symbol: "chart.line.uptrend.xyaxis", color: .blue,
+            value: form.last.flatMap(\.formPercent).map { FitnessForm.Zone.of($0).label } ?? "–",
+            caption: "Belastung der Uhr"
+          ) { FitnessFormPage(points: form) }
+          let report = WeeklyReport.lastWeek(
+            activities: activities.compactMap(\.activity), days: days.compactMap(\.metrics),
+            gymDays: gymSessions.compactMap { $0.session?.day }, today: today)
+          HubRow(
+            title: "Wochenbericht", symbol: "doc.text.magnifyingglass", color: .teal,
+            value: "\(report.week.sessions) Einheiten", caption: "letzte Woche"
+          ) { WeeklyReportPage(report: report) }
         }
         if settings.profile.mode == .season {
           Section("Disziplinen") {
@@ -98,21 +112,35 @@ private struct HubRow<Destination: View>: View {
   let value: String
   let caption: String
   @ViewBuilder let destination: () -> Destination
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
     NavigationLink {
       destination()
     } label: {
-      HStack(spacing: 12) {
-        SportIcon(symbol: symbol, color: color)
-        Text(title).font(.body.weight(.medium))
-        Spacer()
-        VStack(alignment: .trailing, spacing: 0) {
+      if typeSize.isAccessibilitySize {
+        // Bei sehr großer Schrift untereinander, damit Titel nicht mitten im Wort umbrechen.
+        VStack(alignment: .leading, spacing: 4) {
+          HStack(spacing: 12) {
+            SportIcon(symbol: symbol, color: color)
+            Text(title).font(.body.weight(.medium))
+          }
           Text(value).font(.subheadline.weight(.semibold)).monospacedDigit()
           Text(caption).font(.caption2).foregroundStyle(.secondary)
         }
+        .padding(.vertical, 2)
+      } else {
+        HStack(spacing: 12) {
+          SportIcon(symbol: symbol, color: color)
+          Text(title).font(.body.weight(.medium))
+          Spacer()
+          VStack(alignment: .trailing, spacing: 0) {
+            Text(value).font(.subheadline.weight(.semibold)).monospacedDigit()
+            Text(caption).font(.caption2).foregroundStyle(.secondary)
+          }
+        }
+        .padding(.vertical, 2)
       }
-      .padding(.vertical, 2)
     }
   }
 }

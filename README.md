@@ -36,7 +36,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 18 | Gym-App nach Vorbild GymBook: Übungsbibliothek mit Anleitung, eigene Routinen und Vorschläge, Verlauf mit 1RM und Rekorden, Wiederholungen in Reserve, KI-Tipps zur Gewichtssteigerung | fertig (PR 21) |
 | 19 | Rezeptideen für die kommende Woche aus Tageszielen, Trainingsplan, Ernährungsweise, Allergenen und Lücken der letzten Wochen; Einkaufsliste | fertig (PR 22) |
 | 20 | Einheiten ausführlich erklärt (Ablauf, Gefühl, Fehler, Glossar) | fertig (PR 23) |
-| 21 | Sicherungen: Eingabeprüfung (Zielzeit gegen Prognose), Gewichtsverlauf mit Nachsteuerung, Laufumfang-Warnung, strengere Rezeptprüfung, Prüfbericht mit Musterpersonen in jeder PR | in Arbeit (PR 24) |
+| 21 | Sicherungen: Eingabeprüfung (Zielzeit gegen Prognose), Gewichtsverlauf mit Nachsteuerung, Laufumfang-Warnung, strengere Rezeptprüfung, Prüfbericht mit Musterpersonen in jeder PR | fertig (PR 24, Makros PR 25) |
+| 22 | Vergleich mit Bezahl-Apps: Screenshots in CI, gemessener Verbrauch, Fitness/Form, Wochenbericht, Laufplan mit Steigerung, Gym-Komfort | in Arbeit (PR 26) |
 
 Später, erst auf Zuruf und wenn alles andere läuft: Apple Watch bzw. Apple Health als weitere Quelle,
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
