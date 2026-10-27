@@ -2,6 +2,30 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Vergleich mit Bezahl-Apps, Runde 2
+
+- **Screenshots in CI** (`screenshots.yml`, Label `screenshots`): UI-Test mit Beispieldaten (`-demo`, nur im Speicher,
+  erfundene Musterperson) auf iPhone SE und 17 Pro Max, hell, dunkel und große Schrift, Deutsch. Bilder als
+  Vorabversion `screenshots-…`, weil Actions-Artefakte aus der Cloud-Sitzung nicht lesbar sind. Ein Lauf kostet etwa
+  30–40 macOS-Minuten (×10 im privaten Repo) – nur gezielt starten.
+  - Befunde der ersten Runde: Wochentage brachen bei großer Schrift zeichenweise um, Titel in der Training-Übersicht
+    mitten im Wort, Tagesaktionen abgeschnitten, „Last“ statt „Belastung“, Nachkommastellen bei Gramm. Behoben.
+- **Gemessener Verbrauch (MacroFactor):** Intake-Balance-Methode, Verbrauch = mittlere erfasste Zufuhr − Gewichtstrend
+  × 7.700 kcal/kg (Gilmore et al. 2014, PMID 25057153; Sanghvi et al. 2015, PMID 26040640). Mindestens 14 erfasste Tage
+  in 28; Tage unter 50 % des Medians gelten als unvollständig; außerhalb von 1,1–3,5 × Grundumsatz unplausibel, weil
+  Selbstauskünfte die Zufuhr oft unterschätzen (Lichtman et al. 1992, PMID 1454084). Liegt eine plausible Messung vor,
+  ersetzt sie den Vorschlag aus dem Gewichtstrend (keine doppelte Anpassung).
+- **Fitness, Ermüdung, Form (TrainingPeaks):** gleitende Mittel der Garmin-Belastung über 42/7 Tage nach dem
+  Impulse-Response-Modell (Clarke & Skiba 2013, PMID 23728131). Keine Verletzungswarnungen aus dem Verhältnis
+  (Impellizzeri et al. 2020, PMID 32502973). Zonen in % der Fitness sind Praxiswerte (intervals.icu), so gekennzeichnet.
+  Dazu ein Wochenbericht gegen die Vorwoche mit festen Hinweisen.
+- **Laufplan mit Steigerung (Runna):** Minuten je Laufeinheit aus dem tatsächlichen Schnitt der letzten vier Wochen,
+  Aufbau höchstens +10 %, jede vierte Woche 70 % (Bell 2023), Tapering 70 %/50 % (Wang 2023), Obergrenze nach
+  Erfahrung; Gewichtung locker 1 / Qualität 0,9 / lang 1,4 und Inhalte der Qualitätseinheit sind Praxiswerte.
+- **Gym-Komfort (Strong, Hevy):** Aufwärmsätze, Scheibenrechner, Pause ±15 s, Mitteilung bei Pausenende.
+- **Nicht umgesetzt:** Live Activity auf dem Sperrbildschirm – braucht eine App-Erweiterung mit eigener App-ID; ob
+  SideStore sie mit kostenloser Apple-ID signiert, ist ungeprüft.
+
 ## 2026-10-27 – Energie entscheidet über die Makros (Bewertungsrunde 1)
 
 - **Fund im Prüfbericht:** An Trainingstagen lag Fett bei 14–18 % der Energie und die Summe der Makros über der
