@@ -23,7 +23,8 @@ final class ScreenshotTests: XCTestCase {
     continueAfterFailure = true
     for variant in variants {
       let app = XCUIApplication()
-      app.launchArguments = ["-demo"] + variant.arguments
+      // Deutsch wie auf dem iPhone des Nutzers (Zahlen mit Komma, Datum TT.MM.JJ).
+      app.launchArguments = ["-demo", "-AppleLanguages", "(de)", "-AppleLocale", "de_DE"] + variant.arguments
       app.launch()
       var index = 0
       func shot(_ screen: String) {

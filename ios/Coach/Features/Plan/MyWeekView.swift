@@ -85,13 +85,19 @@ private struct WeekDayRow<Actions: View>: View {
   let note: String?
   let select: (SessionSlot) -> Void
   @ViewBuilder let actions: () -> Actions
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      Text(weekday.short)
+    // Bei sehr großer Schrift steht der Tag über den Einheiten statt in einer schmalen Spalte.
+    let layout =
+      typeSize.isAccessibilitySize
+      ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+    layout {
+      Text(typeSize.isAccessibilitySize ? weekday.long : weekday.short)
         .font(.subheadline.weight(isToday ? .bold : .semibold))
         .foregroundStyle(isToday ? Color.accentColor : Color.secondary)
-        .frame(width: 28, alignment: .leading)
+        .frame(minWidth: 28, alignment: .leading)
+        .fixedSize()
       if slots.isEmpty {
         VStack(alignment: .leading, spacing: 2) {
           Text("Frei").foregroundStyle(.secondary)

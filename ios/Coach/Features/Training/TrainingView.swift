@@ -98,21 +98,35 @@ private struct HubRow<Destination: View>: View {
   let value: String
   let caption: String
   @ViewBuilder let destination: () -> Destination
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
     NavigationLink {
       destination()
     } label: {
-      HStack(spacing: 12) {
-        SportIcon(symbol: symbol, color: color)
-        Text(title).font(.body.weight(.medium))
-        Spacer()
-        VStack(alignment: .trailing, spacing: 0) {
+      if typeSize.isAccessibilitySize {
+        // Bei sehr großer Schrift untereinander, damit Titel nicht mitten im Wort umbrechen.
+        VStack(alignment: .leading, spacing: 4) {
+          HStack(spacing: 12) {
+            SportIcon(symbol: symbol, color: color)
+            Text(title).font(.body.weight(.medium))
+          }
           Text(value).font(.subheadline.weight(.semibold)).monospacedDigit()
           Text(caption).font(.caption2).foregroundStyle(.secondary)
         }
+        .padding(.vertical, 2)
+      } else {
+        HStack(spacing: 12) {
+          SportIcon(symbol: symbol, color: color)
+          Text(title).font(.body.weight(.medium))
+          Spacer()
+          VStack(alignment: .trailing, spacing: 0) {
+            Text(value).font(.subheadline.weight(.semibold)).monospacedDigit()
+            Text(caption).font(.caption2).foregroundStyle(.secondary)
+          }
+        }
+        .padding(.vertical, 2)
       }
-      .padding(.vertical, 2)
     }
   }
 }

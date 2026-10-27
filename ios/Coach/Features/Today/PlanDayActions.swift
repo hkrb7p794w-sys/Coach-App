@@ -14,7 +14,19 @@ struct PlanDayActions: View {
     let schedule = settings.schedule(inWeekOf: day)
     let options = moveOptions(schedule: schedule)
     let note = settings.planAdjustments.note(for: weekday, inWeekOf: day)
-    HStack(spacing: 10) {
+    // Nebeneinander, wenn genug Platz ist; sonst untereinander (kleines iPhone, große Schrift).
+    ViewThatFits(in: .horizontal) {
+      HStack(spacing: 10) { buttons(schedule: schedule, weekday: weekday, options: options, note: note) }
+      VStack(alignment: .leading, spacing: 8) {
+        buttons(schedule: schedule, weekday: weekday, options: options, note: note)
+      }
+    }
+    .font(.subheadline)
+    .labelStyle(.titleAndIcon)
+  }
+
+  @ViewBuilder
+  private func buttons(schedule: WeekSchedule, weekday: Weekday, options: [Weekday], note: String?) -> some View {
       if !schedule.slots(on: weekday).isEmpty {
         if !options.isEmpty {
           Menu {
@@ -39,9 +51,6 @@ struct PlanDayActions: View {
         }
         .buttonStyle(.bordered)
       }
-    }
-    .font(.subheadline)
-    .labelStyle(.titleAndIcon)
   }
 
   private func moveOptions(schedule: WeekSchedule) -> [Weekday] {

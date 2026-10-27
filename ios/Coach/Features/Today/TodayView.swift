@@ -392,7 +392,7 @@ private struct ActivityRow: View {
         if let meters = activity.distanceMeters, meters > 0 {
           Text(Formatters.number(meters / 1000, unit: "km", digits: 1))
         }
-        if let load = activity.trainingLoad { Text("Last \(Int(load.rounded()))") }
+        if let load = activity.trainingLoad { Text("Belastung \(Int(load.rounded()))") }
       }
       .font(.subheadline)
       .foregroundStyle(.secondary)

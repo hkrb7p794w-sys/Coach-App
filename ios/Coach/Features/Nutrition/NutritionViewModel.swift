@@ -178,7 +178,7 @@ final class NutritionViewModel {
       }
       let training = activities.filter { $0.day == day }.map { activity -> String in
         let minutes = Int(((activity.durationSeconds ?? 0) / 60).rounded())
-        let load = activity.trainingLoad.map { ", Last \(Int($0.rounded()))" } ?? ""
+        let load = activity.trainingLoad.map { ", Belastung \(Int($0.rounded()))" } ?? ""
         return "\(activity.name ?? activity.typeKey ?? "Aktivität") \(minutes) min\(load)"
       }
       let nutrients: [JSONValue] = Nutrient.allCases.compactMap { nutrient in
