@@ -327,10 +327,25 @@ struct RoutinesView: View {
         }
         ForEach(settings.gym.routines) { routine in
           RoutineRow(routine: routine, start: { start(routine) }, edit: { editing = routine })
+            .contextMenu {
+              Button("Duplizieren", systemImage: "plus.square.on.square") {
+                var copy = routine
+                copy.id = UUID()
+                copy.name += " (Kopie)"
+                copy.items = copy.items.map { item in
+                  var item = item
+                  item.id = UUID()
+                  return item
+                }
+                model.settings.gym.routines.append(copy)
+              }
+            }
         }
         .onDelete { offsets in model.settings.gym.routines.remove(atOffsets: offsets) }
         .onMove { from, to in model.settings.gym.routines.move(fromOffsets: from, toOffset: to) }
-        Button("Neue Routine", systemImage: "plus") { editing = Routine(name: "Neue Routine", items: []) }
+        Button("Eigene Routine anlegen", systemImage: "plus") {
+          editing = Routine(name: "Neue Routine", items: [])
+        }
       } header: {
         Text("Meine Routinen")
       }
@@ -416,28 +431,63 @@ private struct RoutineRow: View {
   }
 }
 
-/// Routine bearbeiten: Übungen, Sätze, Wiederholungsbereich, Pause.
+/// Routine bearbeiten: Übungen, Reihenfolge, Sätze, Wiederholungs- bzw. Sekundenbereich, Pause und Startgewicht.
 struct RoutineEditor: View {
   @State var routine: Routine
   let save: (Routine) -> Void
+  @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var picking = false
 
   var body: some View {
     NavigationStack {
       Form {
-        TextField("Name", text: $routine.name)
-        ForEach($routine.items) { $item in
-          Section(item.name) {
+        Section {
+          TextField("Name", text: $routine.name)
+        } footer: {
+          Text(
+            "Eigener Plan: Übungen, Reihenfolge, Sätze, Ziel-Wiederholungen, Pausen und Startgewicht frei "
+              + "wählbar.")
+        }
+        ForEach(Array($routine.items.enumerated()), id: \.element.id) { index, $item in
+          let isTime =
+            ExerciseLibrary.info(item.exerciseID, custom: model.settings.gym.customExercises)?.tracking == .time
+          let unit = isTime ? "s" : "Wdh."
+          Section("\(index + 1). \(item.name)") {
             Stepper("\(item.sets) Sätze", value: $item.sets, in: 1...10)
-            Stepper("ab \(item.lowerReps) Wdh.", value: $item.lowerReps, in: 1...max(item.upperReps, 1))
-            Stepper("bis \(item.upperReps) Wdh.", value: $item.upperReps, in: item.lowerReps...100)
+            Stepper(
+              "ab \(item.lowerReps) \(unit)", value: $item.lowerReps, in: 1...max(item.upperReps, 1),
+              step: isTime ? 5 : 1)
+            Stepper(
+              "bis \(item.upperReps) \(unit)", value: $item.upperReps, in: item.lowerReps...(isTime ? 600 : 100),
+              step: isTime ? 5 : 1)
             Stepper("Pause \(item.restSeconds) s", value: $item.restSeconds, in: 30...300, step: 15)
+            if !isTime {
+              LabeledContent("Startgewicht") {
+                TextField("aus Verlauf", value: $item.weightKg, format: .number.precision(.fractionLength(0...2)))
+                  .keyboardType(.decimalPad)
+                  .multilineTextAlignment(.trailing)
+                Text("kg").foregroundStyle(.secondary)
+              }
+            }
+            HStack {
+              Button("Nach oben", systemImage: "arrow.up") { move(index, by: -1) }
+                .disabled(index == 0)
+              Spacer()
+              Button("Nach unten", systemImage: "arrow.down") { move(index, by: 1) }
+                .disabled(index == routine.items.count - 1)
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
             Button("Entfernen", role: .destructive) { routine.items.removeAll { $0.id == item.id } }
           }
         }
         Section {
           Button("Übung hinzufügen", systemImage: "plus") { picking = true }
+        } footer: {
+          Text(
+            "Das Startgewicht gilt, solange es für die Übung noch keinen Verlauf gibt; danach schlägt die Progression "
+              + "das Gewicht vor. Eigene Übungen legst du in der Übungsauswahl an.")
         }
       }
       .navigationTitle("Routine")
@@ -456,6 +506,12 @@ struct RoutineEditor: View {
         }
       }
     }
+  }
+
+  private func move(_ index: Int, by offset: Int) {
+    let target = index + offset
+    guard routine.items.indices.contains(index), routine.items.indices.contains(target) else { return }
+    withAnimation { routine.items.swapAt(index, target) }
   }
 }
 

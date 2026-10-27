@@ -116,8 +116,9 @@ public enum GymCoach {
   ) -> [String: JSONValue] {
     let available = (ExerciseLibrary.all + custom).filter { $0.isAvailable(with: equipment) }
     let library = available.map { exercise in
-      "\(exercise.id) | \(exercise.name) | \(exercise.group.rawValue) | "
-        + "\(exercise.tracking == .time ? "Sekunden" : "Wiederholungen") | \(exercise.compound ? "Grundübung" : "Isolation")"
+      let tracking = exercise.tracking == .time ? "Sekunden" : "Wiederholungen"
+      let kind = exercise.compound ? "Grundübung" : "Isolation"
+      return "\(exercise.id) | \(exercise.name) | \(exercise.group.rawValue) | \(tracking) | \(kind)"
     }
     let favorites = Array(Set(routines.flatMap { $0.items.map(\.exerciseID) })).sorted()
     let lastWeights = lastSets(sessions).sorted { $0.key < $1.key }.map { id, set in
@@ -194,7 +195,9 @@ public enum GymCoach {
       if !items.isEmpty { routines.append(Routine(name: name, items: items)) }
     }
 
-    var notes = (output["hinweise"]?.arrayValue ?? []).compactMap(\.stringValue).prefix(5).map { String($0.prefix(300)) }
+    var notes = (output["hinweise"]?.arrayValue ?? []).compactMap(\.stringValue).prefix(5).map {
+      String($0.prefix(300))
+    }
     // Wochenvolumen je großer Muskelgruppe prüfen (Sätze aus Haupt- und Nebengruppen zählen voll bzw. halb nicht;
     // hier nur Hauptgruppe, wie in der Übersicht der App).
     var weekly: [MuscleGroup: Int] = [:]
@@ -202,7 +205,8 @@ public enum GymCoach {
     for group in majorGroups where !routines.isEmpty {
       let sets = weekly[group] ?? 0
       if sets < minimumWeeklySets {
-        notes.append("\(group.rawValue): \(sets) Sätze pro Woche – für Muskelaufbau eher \(minimumWeeklySets) oder mehr.")
+        notes.append(
+          "\(group.rawValue): \(sets) Sätze pro Woche – für Muskelaufbau eher \(minimumWeeklySets) oder mehr.")
       } else if sets > maximumWeeklySets {
         notes.append("\(group.rawValue): \(sets) Sätze pro Woche – viel; auf Erholung achten.")
       }
