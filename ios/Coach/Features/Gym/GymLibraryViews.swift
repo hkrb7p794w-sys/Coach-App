@@ -1,6 +1,7 @@
 import Charts
 import CoachCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Übungsbibliothek: nach Muskel sortiert, durchsuchbar, mit eigenen Übungen.
 struct ExerciseLibraryView: View {
@@ -307,6 +308,9 @@ struct RoutinesView: View {
   @Environment(AppModel.self) private var model
   @State private var editing: Routine?
   @State private var showsPlanner = false
+  @State private var importingGymBook = false
+  @State private var gymBookResult: String?
+  @Environment(\.modelContext) private var context
 
   var body: some View {
     let settings = model.settings
@@ -362,10 +366,19 @@ struct RoutinesView: View {
           model.settings.gym.routines += gymBook.filter { !existing.contains($0.name) }
         }
         .disabled(gymBook.allSatisfy { routine in settings.gym.routines.contains { $0.name == routine.name } })
+        Button("Verlauf aus GymBook-Backup importieren", systemImage: "clock.arrow.circlepath") {
+          importingGymBook = true
+        }
+        if let gymBookResult {
+          Text(gymBookResult).font(.footnote).foregroundStyle(.secondary)
+        }
       } header: {
         Text("Aus GymBook")
       } footer: {
-        Text("Deine vier Pläne aus GymBook mit den zuletzt genutzten Gewichten als Startwert.")
+        Text(
+          "Deine vier Pläne aus GymBook mit den zuletzt genutzten Gewichten als Startwert. Für den Verlauf die "
+            + "Backup-Datei aus GymBook (….database) in „Dateien“ sichern und hier auswählen. Mehrfaches Importieren "
+            + "legt nichts doppelt an.")
       }
       Section {
         ForEach(suggestions) { routine in
@@ -397,6 +410,18 @@ struct RoutinesView: View {
     .navigationTitle("Routinen")
     .toolbar { EditButton() }
     .sheet(isPresented: $showsPlanner) { GymPlanView(viewModel: viewModel) }
+    .fileImporter(isPresented: $importingGymBook, allowedContentTypes: [.item]) { result in
+      switch result {
+      case .success(let url):
+        do {
+          gymBookResult = try GymBookReader.importBackup(at: url, context: context, settings: model.settings)
+        } catch {
+          gymBookResult = error.localizedDescription
+        }
+      case .failure(let error):
+        gymBookResult = error.localizedDescription
+      }
+    }
     .sheet(item: $editing) { routine in
       RoutineEditor(routine: routine) { saved in
         if let index = model.settings.gym.routines.firstIndex(where: { $0.id == saved.id }) {

@@ -220,6 +220,12 @@ struct ReminderSettings: Codable, Equatable, Hashable {
   var enabled = true
   var hour = 7
   var minute = 30
+  /// Am Vorabend um 18 Uhr an Schwimm-Ausrüstung erinnern.
+  var equipment = true
+  /// Sonntags „Nächste Woche planen“.
+  var weekPlanning = true
+  var planningHour = 18
+  var planningMinute = 0
 
   init() {}
 
@@ -228,6 +234,20 @@ struct ReminderSettings: Codable, Equatable, Hashable {
     enabled = (try? container.decodeIfPresent(Bool.self, forKey: .enabled)) ?? true
     hour = min(max((try? container.decodeIfPresent(Int.self, forKey: .hour)) ?? 7, 0), 23)
     minute = min(max((try? container.decodeIfPresent(Int.self, forKey: .minute)) ?? 30, 0), 59)
+    equipment = (try? container.decodeIfPresent(Bool.self, forKey: .equipment)) ?? true
+    weekPlanning = (try? container.decodeIfPresent(Bool.self, forKey: .weekPlanning)) ?? true
+    planningHour = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningHour)) ?? 18, 0), 23)
+    planningMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningMinute)) ?? 0, 0), 59)
+  }
+
+  /// Uhrzeit der Sonntags-Erinnerung für den DatePicker.
+  var planningTime: Date {
+    get { Calendar.current.date(bySettingHour: planningHour, minute: planningMinute, second: 0, of: .now) ?? .now }
+    set {
+      let components = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+      planningHour = components.hour ?? 18
+      planningMinute = components.minute ?? 0
+    }
   }
 
   /// Uhrzeit als Datum (heute) für den DatePicker.

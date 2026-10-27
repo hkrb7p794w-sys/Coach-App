@@ -55,6 +55,13 @@ struct RootView: View {
         AdjustDaySheet(day: day)
       }
     }
+    // Aus der Sonntags-Mitteilung „Nächste Woche planen“.
+    .sheet(
+      isPresented: Binding(
+        get: { model.reminders.showsWeekPlanning }, set: { model.reminders.showsWeekPlanning = $0 })
+    ) {
+      NextWeekPlanSheet()
+    }
     // Erster Start: Einrichtungsassistent, bis das Profil fertig ist.
     .fullScreenCover(isPresented: Binding(get: { !profile.onboardingDone }, set: { _ in })) {
       OnboardingView()

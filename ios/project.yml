@@ -38,7 +38,7 @@ targets:
     info:
       path: Coach/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Coach
+        CFBundleDisplayName: IronLudi
         CFBundleDevelopmentRegion: de
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -56,13 +56,13 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - io.github.hkrb7p794w.coach.refresh
         NSHealthShareUsageDescription: >-
-          Coach liest Workouts, Schlaf, Herzfrequenz, Schritte, Kalorien, VO2max und
+          IronLudi liest Workouts, Schlaf, Herzfrequenz, Schritte, Kalorien, VO2max und
           Gewicht aus Apple Health (z. B. von der Apple Watch), um Erholung, Training
           und Ernährung einzuordnen.
         NSHealthUpdateUsageDescription: >-
-          Coach speichert deine Krafttrainings als Workouts in Health.
+          IronLudi speichert deine Krafttrainings als Workouts in Health.
         NSCameraUsageDescription: >-
-          Coach nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
+          IronLudi nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.hkrb7p794w.coach

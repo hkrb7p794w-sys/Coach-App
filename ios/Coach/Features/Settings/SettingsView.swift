@@ -225,10 +225,18 @@ private struct ReminderSettingsSection: View {
       Toggle("An Trainingstagen erinnern", isOn: $settings.reminders.enabled)
       if settings.reminders.enabled {
         DatePicker("Uhrzeit", selection: $settings.reminders.time, displayedComponents: .hourAndMinute)
-        if model.reminders.permission == .denied {
-          Button("Mitteilungen in iOS erlauben") {
-            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
-          }
+      }
+      if settings.profile.mode == .season {
+        Toggle("Schwimm-Ausrüstung am Vorabend (18 Uhr)", isOn: $settings.reminders.equipment)
+      }
+      Toggle("Sonntags „Nächste Woche planen“", isOn: $settings.reminders.weekPlanning)
+      if settings.reminders.weekPlanning {
+        DatePicker(
+          "Uhrzeit am Sonntag", selection: $settings.reminders.planningTime, displayedComponents: .hourAndMinute)
+      }
+      if model.reminders.permission == .denied {
+        Button("Mitteilungen in iOS erlauben") {
+          if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
         }
       }
     } header: {
