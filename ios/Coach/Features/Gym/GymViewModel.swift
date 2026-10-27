@@ -238,15 +238,26 @@ final class GymViewModel {
       if exercise.sets[index].done { rest = exercise.restSeconds }
     }
     restEndsAt = rest.map { now.addingTimeInterval(TimeInterval($0)) }
+    RestAlarm.schedule(at: restEndsAt)
   }
 
   func skipRest() {
     restEndsAt = nil
+    RestAlarm.schedule(at: nil)
+  }
+
+  /// Laufende Pause verlängern oder verkürzen (z. B. ±15 Sekunden).
+  func adjustRest(by seconds: TimeInterval, now: Date = .now) {
+    guard let end = restEndsAt else { return }
+    let adjusted = end.addingTimeInterval(seconds)
+    restEndsAt = adjusted > now ? adjusted : nil
+    RestAlarm.schedule(at: restEndsAt)
   }
 
   func cancelActive() {
     setActive(nil)
     restEndsAt = nil
+    RestAlarm.schedule(at: nil)
   }
 
   /// Speichert die Einheit lokal und – wenn möglich – in Apple Health.

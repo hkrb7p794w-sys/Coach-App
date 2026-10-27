@@ -1,5 +1,23 @@
 import CoachCore
 import SwiftUI
+import UserNotifications
+
+/// Mitteilung zum Pausenende, falls die App im Hintergrund ist (wie Strong oder Hevy).
+enum RestAlarm {
+  static let identifier = "coach.rest"
+
+  static func schedule(at end: Date?) {
+    let center = UNUserNotificationCenter.current()
+    center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    guard let end, end.timeIntervalSinceNow > 1 else { return }
+    let content = UNMutableNotificationContent()
+    content.title = "Pause vorbei"
+    content.body = "Weiter mit dem nächsten Satz."
+    content.sound = .default
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: end.timeIntervalSinceNow, repeats: false)
+    center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+  }
+}
 
 /// Laufende Einheit: Sätze abhaken, Gewicht und Wiederholungen anpassen, Pausen-Timer.
 struct ActiveWorkoutView: View {
@@ -119,8 +137,20 @@ private struct ExerciseCard: View {
         }
       }
     } footer: {
-      if let progress = viewModel.progress.first(where: { $0.exerciseID == exercise.exerciseID }) {
-        Text(progress.headline)
+      VStack(alignment: .leading, spacing: 4) {
+        if let progress = viewModel.progress.first(where: { $0.exerciseID == exercise.exerciseID }) {
+          Text(progress.headline)
+        }
+        let working = exercise.sets.map(\.weightKg).max() ?? 0
+        if let info {
+          let warmUp = WarmUp.steps(working: working, equipment: info.equipment, compound: info.compound)
+          if !warmUp.isEmpty, !exercise.sets.contains(where: \.done) {
+            Text(WarmUp.text(warmUp))
+          }
+          if info.equipment.first == .barbell, let plates = PlateCalculator.plates(total: working) {
+            Text("\(GermanFormat.number(working)) kg · \(PlateCalculator.text(plates))")
+          }
+        }
       }
     }
     .sheet(isPresented: $showDetail) {
@@ -213,6 +243,12 @@ private struct RestBanner: View {
         Text("Pause")
         Text(timerInterval: Date.now...end, countsDown: true).monospacedDigit().bold()
         Spacer()
+        Button("−15 s") { viewModel.adjustRest(by: -15) }
+          .buttonStyle(.bordered)
+          .accessibilityLabel("Pause 15 Sekunden kürzer")
+        Button("+15 s") { viewModel.adjustRest(by: 15) }
+          .buttonStyle(.bordered)
+          .accessibilityLabel("Pause 15 Sekunden länger")
         Button("Weiter") { viewModel.skipRest() }
       }
       .padding()
