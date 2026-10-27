@@ -313,8 +313,8 @@ struct EquipmentSettingsView: View {
             + "Kurzbefehle-App › + › Aktion „Fokus festlegen“ › Fokus (z. B. „Fitness“ oder „Nicht stören“) "
             + "einschalten, Name „\(WorkoutFocus.onShortcut)“. Einen zweiten mit „ausschalten“ und dem Namen "
             + "„\(WorkoutFocus.offShortcut)“. Nach dem ersten erledigten Satz (also in der Pause) und beim Beenden "
-            + "wechselt IronLudi kurz in die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus durchkommen, legst du in "
-            + "Einstellungen › Fokus fest.")
+            + "wechselt IronLudi kurz in die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus "
+            + "durchkommen, legst du in Einstellungen › Fokus fest.")
       }
       Section {
         Toggle("Nach Garmin Connect übertragen", isOn: $settings.gym.uploadsToGarmin)
