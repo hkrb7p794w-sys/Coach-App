@@ -254,7 +254,9 @@ final class GarminSyncService {
 
   /// FIT-Dateien neuer Läufe und Fahrten auswerten (höchstens sechs je Abruf, der Rest folgt beim nächsten).
   private func analyzeActivities(today: CalendarDay, report: inout SyncReport) async -> Int {
+    // Nur Garmin-Aktivitäten (positive IDs) haben eine FIT-Datei; Workouts aus Apple Health nicht.
     let activities = ((try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []).compactMap(\.activity)
+      .filter { $0.id >= 0 }
     var analyzed = analysisStore.load()
     var fetches = 0
     var count = 0

@@ -24,10 +24,13 @@ struct TodayView: View {
       List {
         SyncStatusSection()
 
-        if !model.garmin.isConfigured {
+        if !model.garmin.isConfigured && !model.health.isEnabled {
           Section {
-            Text("Melde dich in den Einstellungen mit deinem Garmin-Konto an (oder hinterlege den Personal API Key).")
-              .foregroundStyle(.secondary)
+            Text(
+              "Melde dich in den Einstellungen mit deinem Garmin-Konto an oder schalte den Import aus Apple Health "
+                + "(Apple Watch) ein."
+            )
+            .foregroundStyle(.secondary)
           }
         }
 
@@ -370,9 +373,9 @@ struct SyncStatusSection: View {
       if model.isSyncing {
         HStack {
           ProgressView()
-          Text("Garmin-Daten werden abgerufen …")
+          Text("Daten werden abgerufen …")
         }
-      } else if let lastSync = model.lastSync {
+      } else if let lastSync = model.lastSync ?? model.health.lastImport {
         LabeledContent("Letzter Abruf") {
           Text(lastSync, format: .relative(presentation: .named))
         }
@@ -381,6 +384,9 @@ struct SyncStatusSection: View {
         Label(error, systemImage: "exclamationmark.triangle")
           .foregroundStyle(.orange)
           .font(.footnote)
+      }
+      if let result = model.health.lastResult {
+        Text(result).font(.footnote).foregroundStyle(.secondary)
       }
       if let report = model.lastReport, !report.errors.isEmpty {
         Text("\(report.errors.count) Endpunkte ohne Daten – Details unter Einstellungen › Garmin-Diagnose.")

@@ -16,7 +16,7 @@ struct WeightTrendView: View {
   private var today: CalendarDay { CalendarDay(date: .now) }
 
   private var entries: [WeightEntry] {
-    WeightTrend.merged(model.settings.weights + model.sync.weights)
+    WeightTrend.merged(model.allWeights)
   }
 
   private var result: WeightTrend.Result? {
@@ -238,6 +238,22 @@ struct WeightTrendView: View {
     }
   }
 
+  static func icon(_ source: WeightEntry.Source) -> String {
+    switch source {
+    case .manual: "pencil"
+    case .garmin: "applewatch"
+    case .health: "heart.fill"
+    }
+  }
+
+  static func sourceLabel(_ source: WeightEntry.Source) -> String {
+    switch source {
+    case .manual: "eigene Eingabe"
+    case .garmin: "Garmin"
+    case .health: "Apple Health"
+    }
+  }
+
   private var historySection: some View {
     Section("Verlauf") {
       if entries.isEmpty {
@@ -248,9 +264,9 @@ struct WeightTrendView: View {
           Text(GermanFormat.date(entry.day))
           Spacer()
           Text("\(GermanFormat.number(entry.kilograms)) kg").monospacedDigit()
-          Image(systemName: entry.source == .manual ? "pencil" : "applewatch")
+          Image(systemName: Self.icon(entry.source))
             .foregroundStyle(.secondary)
-            .accessibilityLabel(entry.source == .manual ? "eigene Eingabe" : "Garmin")
+            .accessibilityLabel(Self.sourceLabel(entry.source))
         }
         .swipeActions {
           if entry.source == .manual {

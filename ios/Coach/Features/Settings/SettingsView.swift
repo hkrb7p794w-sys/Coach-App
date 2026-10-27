@@ -30,6 +30,7 @@ private struct SettingsForm: View {
         ReminderSettingsSection()
         connectSection
         garminSection
+        HealthImportSection()
         aiSection
         Section("Coach") {
           if model.settings.profile.mode == .season {
@@ -242,6 +243,48 @@ private struct ReminderSettingsSection: View {
       } else {
         Text("Erinnert an die festen Einheiten des Saisonplans.")
       }
+    }
+  }
+}
+
+/// Apple Health (Apple Watch, iPhone, andere Apps) als zweite Quelle neben Garmin.
+private struct HealthImportSection: View {
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    let health = model.health
+    Section {
+      if health.isAvailable {
+        Toggle(
+          "Daten aus Apple Health übernehmen",
+          isOn: Binding(
+            get: { health.isEnabled },
+            set: { isOn in
+              health.isEnabled = isOn
+              if isOn { Task { await health.importNow(garminConnected: model.garmin.isConfigured) } }
+            }))
+        if health.isEnabled {
+          Button("Jetzt importieren") {
+            Task { await health.importNow(garminConnected: model.garmin.isConfigured) }
+          }
+          .disabled(health.isImporting)
+        }
+        if health.isImporting {
+          ProgressView()
+        } else if let result = health.lastResult {
+          Text(result).font(.footnote).foregroundStyle(.secondary)
+        }
+      } else {
+        Text("Apple Health ist in dieser Installation nicht verfügbar (siehe Diagnose › HealthKit).")
+          .foregroundStyle(.secondary)
+      }
+    } header: {
+      Text("Apple Health / Apple Watch")
+    } footer: {
+      Text(
+        "Übernimmt Schlaf mit Phasen, Ruhepuls, Schritte, Kalorien, Atemfrequenz, Sauerstoff, VO2max, Gewicht und "
+          + "Workouts. Garmin hat Vorrang: Health füllt nur Lücken, Workouts, die Garmin schon kennt, kommen nicht "
+          + "doppelt. Die HRV übernimmt die App nur ohne Garmin, weil Apple sie anders misst (SDNN statt RMSSD).")
     }
   }
 }

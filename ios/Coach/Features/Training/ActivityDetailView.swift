@@ -224,7 +224,8 @@ struct ActivityDetailView: View {
     if let url = Self.cacheURL(base.id), let data = try? Data(contentsOf: url) {
       fit = try? await GarminSyncService.decodeFit(data)
     }
-    guard model.garmin.isConfigured, !model.isDemo else { return }
+    // Workouts aus Apple Health (negative ID) haben keine Garmin-Details.
+    guard model.garmin.isConfigured, !model.isDemo, base.id >= 0 else { return }
     if let json = try? await model.garmin.json(.activity(id: base.id)) {
       let detailed = GarminActivityParser.detail(json, base: base)
       activity = detailed

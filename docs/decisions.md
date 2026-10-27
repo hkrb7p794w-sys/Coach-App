@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Apple Health und Apple Watch als zweite Quelle
+
+- Import aus HealthKit (`HealthImportService`, Zuordnung in `CoachCore/Health/HealthImport`): Schlaf mit Phasen,
+  Ruhepuls, Schritte, aktive und Gesamtkalorien, Atemfrequenz, Sauerstoffsättigung, VO2max, Gewicht und Workouts.
+  Abfragen über `HKStatisticsCollectionQueryDescriptor` (Tageswerte) und `HKSampleQueryDescriptor` (Schlaf,
+  Workouts, Gewicht), Quelle: <https://developer.apple.com/documentation/healthkit/hkstatisticscollectionquerydescriptor>.
+- Garmin hat Vorrang, Health füllt nur Lücken. Workouts mit gleicher Sportart, die höchstens 10 Minuten
+  auseinander starten oder sich zu mehr als der Hälfte überlappen, gelten als Duplikat (Garmin Connect schreibt
+  seine Aktivitäten selbst nach Health). Von der App selbst geschriebene Krafteinheiten werden übersprungen.
+- HRV: Apple speichert SDNN (`heartRateVariabilitySDNN`), Garmin nächtliche RMSSD. Die Werte sind nicht
+  austauschbar; Health-HRV wird nur ohne Garmin übernommen, damit die persönliche Baseline aus einer Messart besteht.
+- Schlaf: je Nacht eine Quelle (die mit Schlafphasen, sonst die mit dem meisten Schlaf), Überlappungen zählen
+  einmal; Schlaf, der zwischen 10 und 18 Uhr beginnt, gilt als Nickerchen.
+- Health-Workouts bekommen negative IDs (aus der UUID), damit sie nie mit Garmin-IDs kollidieren und keine
+  Garmin-Details oder FIT-Dateien angefragt werden.
+- HealthKit bleibt optional (SideStore, siehe Eintrag vom 23.10.); ohne Berechtigung meldet die App das in den
+  Einstellungen.
+
 ## 2026-10-27 – Gym ersetzt GymBook
 
 - Die vier GymBook-Pläne (Lower, Push & Pull B, Pull A, Push A) sind als Vorlagen mit den zuletzt genutzten
