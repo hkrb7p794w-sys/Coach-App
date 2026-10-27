@@ -107,16 +107,13 @@ struct ActivityDetailView: View {
     var id: String { title }
   }
 
-  @ViewBuilder
-  private func chartsSection(
-    _ samples: [ActivityDetails.Sample], sport: GarminActivity.Sport, byDistance: Bool
-  ) -> some View {
-    let xLabel = byDistance ? "km" : "min"
+  /// Diagrammreihen aus dem FIT-Verlauf; nur Reihen mit mindestens zwei Punkten.
+  private func makeSeries(_ samples: [ActivityDetails.Sample], sport: GarminActivity.Sport) -> [Series] {
     let paceTitle = sport == .run ? "Pace (min/km)" : sport == .swim ? "Pace (min/100 m)" : "Geschwindigkeit (km/h)"
     func points(_ value: (ActivityDetails.Sample) -> Double?) -> [ChartPoint] {
       samples.compactMap { sample in value(sample).map { ChartPoint(x: sample.x, y: $0) } }
     }
-    let series = [
+    return [
       Series(title: "Herzfrequenz (bpm)", color: .red, points: points(\.heartRate), reversed: false),
       Series(title: paceTitle, color: .blue, points: points(\.pace), reversed: sport == .run || sport == .swim),
       Series(title: "Höhe (m)", color: .green, points: points(\.altitude), reversed: false),
@@ -125,6 +122,14 @@ struct ActivityDetailView: View {
         reversed: false),
       Series(title: "Leistung (W)", color: .orange, points: points(\.power), reversed: false),
     ].filter { $0.points.count > 1 }
+  }
+
+  @ViewBuilder
+  private func chartsSection(
+    _ samples: [ActivityDetails.Sample], sport: GarminActivity.Sport, byDistance: Bool
+  ) -> some View {
+    let xLabel = byDistance ? "km" : "min"
+    let series = makeSeries(samples, sport: sport)
     if !series.isEmpty {
       Section("Verlauf") {
         ForEach(series) { item in
