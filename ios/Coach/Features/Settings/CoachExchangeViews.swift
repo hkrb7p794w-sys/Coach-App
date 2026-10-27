@@ -93,6 +93,7 @@ struct CoachImportView: View {
   @Environment(AppModel.self) private var model
   @State private var text = ""
   @State private var preview: CoachImport.Preview?
+  @State private var selection = CoachImport.Selection()
   @State private var error: String?
   @State private var applied = false
 
@@ -126,31 +127,83 @@ struct CoachImportView: View {
   }
 
   @ViewBuilder private func previewSections(_ preview: CoachImport.Preview) -> some View {
+    let settings = model.settings
     if !preview.routines.isEmpty {
       Section {
+        Toggle("Alle bisherigen Routinen löschen", isOn: $selection.replaceAllRoutines)
         ForEach(preview.routines) { routine in
-          VStack(alignment: .leading, spacing: 2) {
+          VStack(alignment: .leading, spacing: 6) {
             Text(routine.name).font(.headline)
             ForEach(routine.items) { item in
               Text(itemText(item)).font(.caption).foregroundStyle(.secondary)
             }
+            let exists = settings.gym.routines.contains { $0.name == routine.name }
+            Picker("Übernehmen", selection: routineBinding(routine)) {
+              ForEach(CoachImport.RoutineChoice.allCases) { choice in
+                if choice != .replace || exists || selection.replaceAllRoutines {
+                  Text(choice.label).tag(choice)
+                }
+              }
+            }
+            .pickerStyle(.menu)
+            if exists, !selection.replaceAllRoutines {
+              Text(
+                selection.choice(for: routine) == .replace
+                  ? "Ersetzt deine Routine „\(routine.name)“."
+                  : "Deine Routine „\(routine.name)“ bleibt erhalten."
+              )
+              .font(.caption2)
+              .foregroundStyle(.orange)
+            }
           }
         }
       } header: {
-        Text(preview.routineMode == .replace ? "Routinen (ersetzen alle bisherigen)" : "Routinen (ergänzen)")
+        Text("Routinen")
+      } footer: {
+        Text(
+          selection.replaceAllRoutines
+            ? "Achtung: Deine bisherigen Routinen werden gelöscht; übrig bleiben nur die übernommenen."
+            : "Für jede Routine einzeln: bestehende gleichnamige ersetzen, zusätzlich anlegen oder weglassen.")
       }
     }
     if let schedule = preview.schedule {
-      Section(preview.scheduleScope == .nextWeek ? "Wochenplan nur nächste Woche" : "Wochenplan dauerhaft") {
-        ForEach(Weekday.allCases) { weekday in
-          let slots = schedule.slots(on: weekday)
-          LabeledContent(weekday.long, value: slots.isEmpty ? "frei" : slots.map(\.title).joined(separator: ", "))
+      let current = currentSchedule
+      Section {
+        Toggle("Wochenplan übernehmen", isOn: $selection.schedule)
+        if selection.schedule {
+          Picker("Gilt für", selection: $selection.scheduleScope) {
+            Text("Dauerhaft").tag(CoachImport.ScheduleScope.permanent)
+            Text("Nur nächste Woche").tag(CoachImport.ScheduleScope.nextWeek)
+          }
+          ForEach(Weekday.allCases) { weekday in
+            let new = schedule.slots(on: weekday)
+            let old = current.slots(on: weekday)
+            if new != old {
+              Toggle(isOn: dayBinding(weekday)) {
+                VStack(alignment: .leading, spacing: 2) {
+                  Text(weekday.long).font(.subheadline.weight(.semibold))
+                  Text("bisher: \(slotText(old))").font(.caption).foregroundStyle(.secondary)
+                  Text("neu: \(slotText(new))").font(.caption)
+                }
+              }
+            }
+          }
         }
+      } header: {
+        Text("Wochenplan")
+      } footer: {
+        Text("Nur die Tage mit Änderungen; abgewählte Tage bleiben wie bisher.")
       }
     }
     if !preview.notes.isEmpty {
-      Section("Hinweise der KI") {
-        ForEach(preview.notes, id: \.self) { Text($0).font(.subheadline) }
+      Section {
+        ForEach(Array(preview.notes.enumerated()), id: \.offset) { index, note in
+          Toggle(isOn: noteBinding(index)) { Text(note).font(.subheadline) }
+        }
+      } header: {
+        Text("Hinweise der KI")
+      } footer: {
+        Text("Ausgewählte Hinweise ersetzen die Hinweise des letzten Imports.")
       }
     }
     if !preview.corrections.isEmpty || !preview.ruleNotes.isEmpty {
@@ -163,9 +216,9 @@ struct CoachImportView: View {
       if applied {
         Label("Übernommen", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
       } else {
-        Button("Übernehmen", systemImage: "square.and.arrow.down") { apply(preview) }
+        Button("Auswahl übernehmen", systemImage: "square.and.arrow.down") { apply(preview) }
           .font(.headline)
-          .disabled(preview.isEmpty)
+          .disabled(!CoachImport.hasChanges(preview, selection: selection))
       }
     } footer: {
       Text(
@@ -174,6 +227,45 @@ struct CoachImportView: View {
           : "Routinen und Wochenplan lassen sich danach wie gewohnt bearbeiten; die Hinweise stehen unter „Heute“ › "
             + "„Diese Woche, Ziele und Verlauf“.")
     }
+  }
+
+  /// Plan, mit dem der Vorschlag verglichen wird (dauerhaft bzw. nächste Woche).
+  private var currentSchedule: WeekSchedule {
+    let settings = model.settings
+    switch selection.scheduleScope {
+    case .permanent: return settings.profile.schedule
+    case .nextWeek: return settings.schedule(inWeekOf: nextMonday)
+    }
+  }
+
+  private var nextMonday: CalendarDay {
+    PlanAdjustments.monday(of: CalendarDay(date: .now)).adding(days: 7)
+  }
+
+  private func slotText(_ slots: [SessionSlot]) -> String {
+    slots.isEmpty ? "frei" : slots.map(\.title).joined(separator: ", ")
+  }
+
+  private func routineBinding(_ routine: Routine) -> Binding<CoachImport.RoutineChoice> {
+    Binding(
+      get: { selection.choice(for: routine) },
+      set: { selection.routines[routine.id] = $0 })
+  }
+
+  private func dayBinding(_ weekday: Weekday) -> Binding<Bool> {
+    Binding(
+      get: { selection.scheduleDays.contains(weekday) },
+      set: { isOn in
+        if isOn { selection.scheduleDays.insert(weekday) } else { selection.scheduleDays.remove(weekday) }
+      })
+  }
+
+  private func noteBinding(_ index: Int) -> Binding<Bool> {
+    Binding(
+      get: { selection.notes.contains(index) },
+      set: { isOn in
+        if isOn { selection.notes.insert(index) } else { selection.notes.remove(index) }
+      })
   }
 
   private func itemText(_ item: RoutineItem) -> String {
@@ -185,8 +277,14 @@ struct CoachImportView: View {
   private func check() {
     let settings = model.settings
     do {
-      preview = try CoachImport.preview(
+      let checked = try CoachImport.preview(
         text, profile: settings.profile, equipment: settings.gym.equipment, custom: settings.gym.customExercises)
+      selection = CoachImport.Selection.defaults(
+        for: checked, existing: settings.gym.routines,
+        currentSchedule: checked.scheduleScope == .nextWeek
+          ? settings.schedule(inWeekOf: nextMonday) : settings.profile.schedule)
+      preview = checked
+      applied = false
       error = nil
     } catch {
       preview = nil
@@ -197,30 +295,19 @@ struct CoachImportView: View {
   private func apply(_ preview: CoachImport.Preview) {
     let settings = model.settings
     if !preview.routines.isEmpty {
-      switch preview.routineMode {
-      case .replace:
-        settings.gym.routines = preview.routines
-      case .add:
-        for routine in preview.routines {
-          if let index = settings.gym.routines.firstIndex(where: { $0.name == routine.name }) {
-            settings.gym.routines[index] = routine
-          } else {
-            settings.gym.routines.append(routine)
-          }
-        }
-      }
+      settings.gym.routines = CoachImport.routines(preview, selection: selection, existing: settings.gym.routines)
     }
-    if let schedule = preview.schedule {
-      switch preview.scheduleScope {
+    if let schedule = CoachImport.schedule(preview, selection: selection, current: currentSchedule) {
+      switch selection.scheduleScope {
       case .permanent:
         settings.profile.schedule = schedule
       case .nextWeek:
-        let nextMonday = PlanAdjustments.monday(of: CalendarDay(date: .now)).adding(days: 7)
         settings.planAdjustments.setWeekPlan(schedule, base: settings.profile.schedule, inWeekOf: nextMonday)
       }
     }
-    if !preview.notes.isEmpty {
-      settings.importedNotes = ImportedNotes(day: CalendarDay(date: .now), texts: preview.notes)
+    let notes = CoachImport.notes(preview, selection: selection)
+    if !notes.isEmpty {
+      settings.importedNotes = ImportedNotes(day: CalendarDay(date: .now), texts: notes)
     }
     applied = true
   }
