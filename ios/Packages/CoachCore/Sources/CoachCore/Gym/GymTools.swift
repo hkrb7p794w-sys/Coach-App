@@ -44,11 +44,12 @@ public enum WarmUp {
     public var reps: Int
   }
 
-  public static func steps(working: Double, equipment: [Equipment], compound: Bool) -> [Step] {
+  public static func steps(
+    working: Double, equipment: [Equipment], compound: Bool, bar: Double = PlateCalculator.standardBar
+  ) -> [Step] {
     guard compound else { return [] }
     if equipment.first == .barbell {
-      guard working >= 40 else { return [] }
-      let bar = PlateCalculator.standardBar
+      guard working >= max(40, bar * 2) else { return [] }
       var steps = [Step(weightKg: bar, reps: 10)]
       var shares: [(Double, Int)] = [(0.5, 5), (0.7, 3)]
       if working >= 60 { shares.append((0.85, 2)) }

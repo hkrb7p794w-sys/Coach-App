@@ -2,6 +2,40 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Gym: Start und Abschluss
+
+Dritter PR der UX-Prüfung:
+- **Ziel sichtbar**: Die Fokus-Karte zeigt, was die Progression vorschlägt („Ziel heute: 62,5 kg × 6–10 (+2,5 kg) –
+  letztes Mal 60 × 10/10/10“, `GymTarget`). Abweichungen muss niemand begründen: Die Progression rechnet ohnehin mit
+  dem, was tatsächlich eingetragen wird.
+- **Nächste Einheit**: eine Karte mit großem Start-Knopf; im persönlichen Modus die Routine nach der zuletzt trainierten
+  (`RoutineRotation`), mit Dauer und Hinweis „Beine seit n Tagen“. Andere Routinen als Leiste darunter.
+- **Abschluss**: Volumen gegenüber der letzten gleichen Einheit, „Nächstes Mal“ je Übung und die Hinweise (KI oder
+  Regeln) – sie stehen nicht mehr vor dem Training auf der Startseite.
+- **Auswertung** als eigene Seite: Kalender (Einheiten je Woche, Serie), Hinweise, Fortschritt, Sätze je Muskel. Die
+  Startseite zeigt nur noch die letzten 3 Einheiten, der ganze Verlauf liegt dahinter.
+- **Fokus per Kurzbefehl** schaltet erst nach dem ersten Satz ein – der kurze App-Wechsel fällt in die Pause.
+- **Große Schrift**: Werte und ± Knöpfe wachsen mit Dynamic Type (`@ScaledMetric`).
+
+## 2026-10-27 – Gym: Satzarten, Supersätze, Gerät belegt
+
+Zweiter PR der UX-Prüfung:
+- **Satzarten** (Arbeitssatz, Aufwärmen, Drop-Satz, bis zum Versagen). Aufwärmsätze werden gespeichert, zählen aber
+  nicht für Volumen, Bestleistungen und Progression (`LoggedExercise.doneSets`); „Aufwärmsätze einfügen“ legt sie
+  aus dem Aufwärmschema an. Gewicht ändern zieht nur Folgesätze derselben Art mit (rückgängig machbar).
+- **Supersätze**: gleiche `supersetID`; die Fokus-Karte wechselt A1 → A2 ohne Pause, die Pause kommt nach der Runde
+  (`WorkoutFlow.afterCompleting`). In Routinen per „Supersatz mit nächster Übung“.
+- **Gerät belegt**: „Später“ (ans Ende), „Ersetzen“ (gleiche Muskelgruppe, eigene Ausstattung; erledigte Sätze bleiben
+  bei der alten Übung), Reihenfolge per Ziehen.
+- **Pausen**: ±15 s gilt für die Übung auch beim nächsten Mal; RIR 0–1 bei Grundübungen verlängert die laufende
+  Pause einmal um 30 s (längere Pausen erhalten Leistung bei schweren Sätzen: Schoenfeld et al. 2016,
+  <https://pubmed.ncbi.nlm.nih.gov/26605807/>; Grgic et al. 2017, <https://pubmed.ncbi.nlm.nih.gov/28933024/>);
+  10 s vor Ende eine leichte Vibration.
+- **Sonderfälle**: Rückfrage bei unplausiblen Eingaben (über 350 kg, mehr als 1,5 × bisheriges Höchstgewicht + 10 kg,
+  über 50 Wiederholungen); Unterstützung bei Körpergewichtsübungen als negatives Gewicht (zählt als Last 0);
+  „kg je Hantel“ und „je Seite“; Scheibenrechner pro Satz mit eigener Stange und eigenen Scheiben; Notiz je Übung;
+  Einheiten im Verlauf werden erst nach Rückfrage gelöscht.
+
 ## 2026-10-27 – Gym im Training: Fokus-Karte statt Formular
 
 Ergebnis der UX-Prüfung (drei PRs, dies ist der erste):

@@ -74,7 +74,7 @@ public enum GymProgression {
 
   /// Arbeitssätze: mindestens 80 % des schwersten Gewichts; ohne Gewicht alle Sätze.
   static func workingSets(_ sets: [LoggedSet]) -> [LoggedSet] {
-    let valid = sets.filter { $0.done && $0.reps > 0 }.map {
+    let valid = sets.filter { $0.done && $0.reps > 0 && $0.kind != .warmup }.map {
       LoggedSet(reps: $0.reps, weightKg: max($0.weightKg, 0), rir: $0.rir)
     }
     guard let top = valid.map(\.weightKg).max() else { return [] }

@@ -273,6 +273,27 @@ struct EquipmentSettingsView: View {
             + "App sofort mehr Gewicht vor.")
       }
       Section {
+        Picker("Langhantelstange", selection: $settings.gym.barKg) {
+          ForEach([20.0, 15, 10, 7.5], id: \.self) { weight in Text("\(GermanFormat.number(weight)) kg").tag(weight) }
+        }
+        ForEach(Self.plateOptions, id: \.self) { plate in
+          Toggle(
+            "Scheibe \(GermanFormat.number(plate)) kg",
+            isOn: Binding(
+              get: { settings.gym.plates.contains(plate) },
+              set: { on in
+                settings.gym.plates.removeAll { $0 == plate }
+                if on { settings.gym.plates = (settings.gym.plates + [plate]).sorted(by: >) }
+              }))
+        }
+      } header: {
+        Text("Stange und Scheiben")
+      } footer: {
+        Text(
+          "Für den Scheibenrechner und die Aufwärmsätze. Eine andere Stange je Übung (z. B. SZ-Stange) stellst du "
+            + "während der Einheit im Menü der Übung ein.")
+      }
+      Section {
         Toggle("Bildschirm anlassen", isOn: $settings.gym.keepsScreenOn)
       } footer: {
         Text("Während einer Einheit sperrt sich das iPhone nicht – kein Entsperren mit verschwitzten Händen.")
@@ -291,9 +312,9 @@ struct EquipmentSettingsView: View {
           "iOS lässt Apps den Fokus nicht selbst schalten – das übernehmen zwei Kurzbefehle. Einmal einrichten: "
             + "Kurzbefehle-App › + › Aktion „Fokus festlegen“ › Fokus (z. B. „Fitness“ oder „Nicht stören“) "
             + "einschalten, Name „\(WorkoutFocus.onShortcut)“. Einen zweiten mit „ausschalten“ und dem Namen "
-            + "„\(WorkoutFocus.offShortcut)“. Beim Start und beim Beenden einer Einheit wechselt IronLudi kurz in "
-            + "die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus durchkommen, legst du in "
-            + "Einstellungen › Fokus fest.")
+            + "„\(WorkoutFocus.offShortcut)“. Nach dem ersten erledigten Satz (also in der Pause) und beim Beenden "
+            + "wechselt IronLudi kurz in die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus "
+            + "durchkommen, legst du in Einstellungen › Fokus fest.")
       }
       Section {
         Toggle("Nach Garmin Connect übertragen", isOn: $settings.gym.uploadsToGarmin)
@@ -305,6 +326,8 @@ struct EquipmentSettingsView: View {
     }
     .navigationTitle("Ausstattung")
   }
+
+  static let plateOptions: [Double] = [25, 20, 15, 10, 5, 2.5, 2, 1.25, 1, 0.5]
 }
 
 /// Eigene Routinen und Vorschläge passend zu Profil und Ausstattung.
@@ -478,7 +501,7 @@ struct RoutineEditor: View {
         } footer: {
           Text(
             "Eigener Plan: Übungen, Reihenfolge, Sätze, Ziel-Wiederholungen, Pausen und Startgewicht frei "
-              + "wählbar.")
+              + "wählbar. Im Supersatz wechseln sich die Übungen ab, die Pause kommt nach der Runde.")
         }
         ForEach(Array($routine.items.enumerated()), id: \.element.id) { index, $item in
           let isTime =
@@ -493,6 +516,9 @@ struct RoutineEditor: View {
               "bis \(item.upperReps) \(unit)", value: $item.upperReps, in: item.lowerReps...(isTime ? 600 : 100),
               step: isTime ? 5 : 1)
             Stepper("Pause \(item.restSeconds) s", value: $item.restSeconds, in: 30...300, step: 15)
+            if index < routine.items.count - 1 {
+              Toggle("Supersatz mit \(routine.items[index + 1].name)", isOn: $item.supersetWithNext)
+            }
             if !isTime {
               LabeledContent("Startgewicht") {
                 TextField("aus Verlauf", value: $item.weightKg, format: .number.precision(.fractionLength(0...2)))

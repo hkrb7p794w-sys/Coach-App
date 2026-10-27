@@ -40,6 +40,7 @@ struct ActiveWorkoutView: View {
   @State private var confirmCancel = false
   @State private var showFinish = false
   @State private var editing: SetValueTarget?
+  @State private var restWarnings = 0
 
   var body: some View {
     NavigationStack {
@@ -112,10 +113,17 @@ struct ActiveWorkoutView: View {
       .sensoryFeedback(trigger: viewModel.active?.doneSetCount ?? 0) { old, new in new > old ? .success : nil }
       .task(id: viewModel.restEndsAt) {
         guard let end = viewModel.restEndsAt else { return }
+        // 10 Sekunden vorher kurz antippen, damit man rechtzeitig unter der Stange ist.
+        if end.timeIntervalSinceNow > 10 {
+          try? await Task.sleep(for: .seconds(end.timeIntervalSinceNow - 10))
+          guard !Task.isCancelled, viewModel.restEndsAt == end else { return }
+          restWarnings += 1
+        }
         try? await Task.sleep(for: .seconds(max(0, end.timeIntervalSinceNow)))
         guard !Task.isCancelled, viewModel.restEndsAt == end else { return }
         viewModel.restFinished()
       }
+      .sensoryFeedback(.impact(weight: .light), trigger: restWarnings)
       .sensoryFeedback(.warning, trigger: viewModel.restFinishedCount)
     }
   }
@@ -176,7 +184,6 @@ private struct FocusCard: View {
   let session: GymSession
   let viewModel: GymViewModel
   @Binding var editing: SetValueTarget?
-  @State private var showDetail = false
 
   var body: some View {
     ScrollView {
@@ -190,13 +197,12 @@ private struct FocusCard: View {
           } else {
             exerciseDone(exercise)
           }
-          ExerciseNotes(exercise: exercise, viewModel: viewModel)
+          ExerciseNotes(exercise: exercise, viewModel: viewModel, set: target.set, offersWarmUp: true)
           if let set = target.set,
             let next = WorkoutFlow.upcoming(after: .init(exercise: target.exerciseIndex, set: set), in: session)
           {
             upcoming(next)
           }
-          sheetHost(exercise)
         } else {
           allDone
         }
@@ -211,20 +217,16 @@ private struct FocusCard: View {
       HStack(alignment: .firstTextBaseline) {
         Text(session.start, style: .timer).monospacedDigit().font(.footnote).foregroundStyle(.secondary)
         Spacer()
-        Menu {
-          Button("Anleitung und Verlauf", systemImage: "info.circle") { showDetail = true }
-          Button("Satz hinzufügen", systemImage: "plus.circle") { viewModel.addSet(to: exercise.id) }
-          Button("Übung entfernen", systemImage: "trash", role: .destructive) {
-            viewModel.removeExercise(exercise.id)
-          }
-        } label: {
-          Image(systemName: "ellipsis.circle").font(.title3).frame(width: 44, height: 44)
-        }
-        .accessibilityLabel("Optionen für \(exercise.name)")
+        ExerciseMenu(exercise: exercise, session: session, viewModel: viewModel)
+      }
+      if let label = WorkoutFlow.supersetLabels(in: session)[exercise.id] {
+        Text("Supersatz \(label)").font(.caption.bold()).foregroundStyle(.tint)
       }
       Text(exercise.name).font(.title.bold()).multilineTextAlignment(.center)
       if let set = target.set {
-        Text("Satz \(set + 1) von \(exercise.sets.count)").font(.headline).foregroundStyle(.secondary)
+        SetKindMenu(set: exercise.sets[set], index: set, total: exercise.sets.count) { kind in
+          viewModel.setKind(kind, set: set, of: exercise.id)
+        }
       }
     }
   }
@@ -249,7 +251,7 @@ private struct FocusCard: View {
   private func upcoming(_ next: WorkoutFlow.Position) -> some View {
     let exercise = session.exercises[next.exercise]
     let set = exercise.sets[next.set]
-    let values = set.weightKg > 0 ? "\(GermanFormat.number(set.weightKg)) kg × \(set.reps)" : "\(set.reps) Wdh."
+    let values = set.weightKg != 0 ? "\(GermanFormat.number(set.weightKg)) kg × \(set.reps)" : "\(set.reps) Wdh."
     return Text("Als Nächstes: \(exercise.name), Satz \(next.set + 1) · \(values)")
       .font(.footnote)
       .foregroundStyle(.secondary)
@@ -265,18 +267,6 @@ private struct FocusCard: View {
     }
     .padding(.top, 40)
   }
-
-  private func sheetHost(_ exercise: LoggedExercise) -> some View {
-    Color.clear.frame(height: 0)
-      .sheet(isPresented: $showDetail) {
-        NavigationStack {
-          ExerciseDetailView(exerciseID: exercise.exerciseID, viewModel: viewModel)
-            .toolbar {
-              ToolbarItem(placement: .confirmationAction) { Button("Fertig") { showDetail = false } }
-            }
-        }
-      }
-  }
 }
 
 /// Übungen als Leiste mit Fortschritt; Tippen wählt die Übung für die Fokus-Karte.
@@ -286,6 +276,7 @@ private struct ExerciseStrip: View {
 
   var body: some View {
     let shown = FocusTarget(session: session, focus: viewModel.focusExerciseID)?.exerciseIndex
+    let labels = WorkoutFlow.supersetLabels(in: session)
     ScrollViewReader { proxy in
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 8) {
@@ -297,6 +288,7 @@ private struct ExerciseStrip: View {
             } label: {
               HStack(spacing: 4) {
                 if complete { Image(systemName: "checkmark") }
+                if let label = labels[exercise.id] { Text(label).bold().foregroundStyle(.tint) }
                 Text(exercise.name).lineLimit(1)
                 Text("\(progress.done)/\(progress.total)").monospacedDigit().foregroundStyle(.secondary)
               }
@@ -329,18 +321,22 @@ private struct SetEditor: View {
 
   var body: some View {
     let gym = model.settings.gym
-    let isTime = gym.exercise(exercise.exerciseID)?.tracking == .time
+    let info = gym.exercise(exercise.exerciseID)
+    let isTime = info?.tracking == .time
     let step = ExerciseLibrary.rule(exercise.exerciseID, name: exercise.name, custom: gym.customExercises).step
     let set = exercise.sets[index]
+    let weight = ExerciseUnits.weightText(set.weightKg, info: info)
+    // Mit Unterstützung darf das Gewicht unter 0 gehen (−20 kg = 20 kg Hilfe).
+    let lowest = ExerciseUnits.allowsAssistance(info) ? -200.0 : 0
     VStack(spacing: 14) {
       ValueControl(
-        text: set.weightKg > 0 ? GermanFormat.number(set.weightKg) : "Körpergewicht",
-        unit: set.weightKg > 0 ? "kg" : "", label: "Gewicht", value: set.weightKg,
-        minus: { viewModel.setWeight(max(0, set.weightKg - step), set: index, of: exercise.id) },
+        text: weight.value, unit: weight.unit, label: "Gewicht", value: set.weightKg,
+        minus: { viewModel.setWeight(max(lowest, set.weightKg - step), set: index, of: exercise.id) },
         plus: { viewModel.setWeight(set.weightKg + step, set: index, of: exercise.id) },
         edit: { editing = SetValueTarget(exerciseID: exercise.id, set: index, field: .weight) })
       ValueControl(
-        text: "\(set.reps)", unit: isTime ? "s" : "Wdh.", label: isTime ? "Sekunden" : "Wiederholungen",
+        text: "\(set.reps)", unit: ExerciseUnits.repsUnit(exercise.exerciseID, isTime: isTime),
+        label: isTime ? "Sekunden" : "Wiederholungen",
         value: Double(set.reps),
         minus: { viewModel.setReps(set.reps - (isTime ? 5 : 1), set: index, of: exercise.id) },
         plus: { viewModel.setReps(set.reps + (isTime ? 5 : 1), set: index, of: exercise.id) },
@@ -357,6 +353,9 @@ private struct ValueControl: View {
   let minus: () -> Void
   let plus: () -> Void
   let edit: () -> Void
+  /// Wächst mit der Schriftgröße der Person (Dynamic Type).
+  @ScaledMetric(relativeTo: .largeTitle) private var size = 52
+  @ScaledMetric(relativeTo: .largeTitle) private var height = 84
 
   var body: some View {
     HStack(spacing: 12) {
@@ -365,7 +364,7 @@ private struct ValueControl: View {
         VStack(spacing: 0) {
           HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(text)
-              .font(.system(size: text.count > 6 ? 30 : 52, weight: .bold, design: .rounded))
+              .font(.system(size: text.count > 6 ? size * 0.6 : size, weight: .bold, design: .rounded))
               .monospacedDigit()
               .minimumScaleFactor(0.5)
               .lineLimit(1)
@@ -373,7 +372,7 @@ private struct ValueControl: View {
           }
           Text(label).font(.caption).foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, minHeight: 84)
+        .frame(maxWidth: .infinity, minHeight: height)
         .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 16))
       }
       .buttonStyle(.plain)
@@ -389,12 +388,13 @@ private struct RoundButton: View {
   let systemImage: String
   let label: String
   let action: () -> Void
+  @ScaledMetric(relativeTo: .title2) private var size = 60
 
   var body: some View {
     Button(action: action) {
       Image(systemName: systemImage)
         .font(.title2.bold())
-        .frame(width: 60, height: 60)
+        .frame(width: size, height: size)
         .background(.fill.tertiary, in: Circle())
     }
     .buttonStyle(.plain)
@@ -402,10 +402,13 @@ private struct RoundButton: View {
   }
 }
 
-/// Letztes Mal, Progression, Aufwärmen und Scheiben – klein unter dem Satz.
+/// Notiz, letztes Mal, Progression, Aufwärmen und Scheiben – klein unter dem Satz.
 private struct ExerciseNotes: View {
   let exercise: LoggedExercise
   let viewModel: GymViewModel
+  /// Satz der Fokus-Karte (Scheiben für genau dieses Gewicht); `nil` = schwerster Satz.
+  var set: Int?
+  var offersWarmUp = false
   var centered = true
   @Environment(AppModel.self) private var model
 
@@ -413,20 +416,37 @@ private struct ExerciseNotes: View {
     let gym = model.settings.gym
     let info = gym.exercise(exercise.exerciseID)
     VStack(alignment: centered ? .center : .leading, spacing: 6) {
+      if let note = gym.notes[exercise.exerciseID], !note.isEmpty {
+        Label(note, systemImage: "note.text").foregroundStyle(.primary)
+      }
       if let last = viewModel.lastTime(of: exercise.exerciseID) {
         Text(last)
       }
+      // Was die Progression für heute vorschlägt – sichtbar statt nur vorbefüllt.
       if let progress = viewModel.progress.first(where: { $0.exerciseID == exercise.exerciseID }) {
-        Text(progress.headline)
+        Text(GymTarget.text(for: progress, recovered: viewModel.recovered))
+          .font(.subheadline.weight(.medium))
+          .foregroundStyle(.primary)
       }
-      let working = exercise.sets.map(\.weightKg).max() ?? 0
+      let working = exercise.sets.filter { $0.kind != .warmup }.map(\.weightKg).max() ?? 0
+      let shown = set.flatMap { exercise.sets[safe: $0]?.weightKg } ?? working
       if let info {
-        let warmUp = WarmUp.steps(working: working, equipment: info.equipment, compound: info.compound)
-        if !warmUp.isEmpty, !exercise.sets.contains(where: \.done) {
+        let bar = gym.bar(for: info.id)
+        let warmUp = WarmUp.steps(working: working, equipment: info.equipment, compound: info.compound, bar: bar)
+        let started = exercise.sets.contains { $0.done || $0.kind == .warmup }
+        if !warmUp.isEmpty, !started {
           Text(WarmUp.text(warmUp))
+          if offersWarmUp {
+            Button("Aufwärmsätze einfügen", systemImage: "flame") { viewModel.insertWarmUp(into: exercise.id) }
+              .buttonStyle(.bordered)
+              .controlSize(.small)
+          }
         }
-        if info.equipment.first == .barbell, let plates = PlateCalculator.plates(total: working) {
-          Text("\(GermanFormat.number(working)) kg · \(PlateCalculator.text(plates))")
+        if info.equipment.first == .barbell,
+          let plates = PlateCalculator.plates(total: shown, bar: bar, available: gym.plates)
+        {
+          let total = "\(GermanFormat.number(shown)) kg · Stange \(GermanFormat.number(bar)) kg"
+          Text("\(total) · \(PlateCalculator.text(plates))")
         }
       }
     }
@@ -473,6 +493,7 @@ private struct DoneButton: View {
 /// Pause groß mit Fortschrittsbalken; darunter freiwillig RIR für den gerade erledigten Satz.
 private struct RestPanel: View {
   let viewModel: GymViewModel
+  @Environment(AppModel.self) private var model
 
   var body: some View {
     if let end = viewModel.restEndsAt, end > .now {
@@ -493,9 +514,9 @@ private struct RestPanel: View {
           }
         }
         HStack(spacing: 10) {
-          Button("−15 s") { viewModel.adjustRest(by: -15) }
+          Button("−15 s") { adjust(by: -15) }
             .accessibilityLabel("Pause 15 Sekunden kürzer")
-          Button("+15 s") { viewModel.adjustRest(by: 15) }
+          Button("+15 s") { adjust(by: 15) }
             .accessibilityLabel("Pause 15 Sekunden länger")
           Spacer()
           Button("Weiter") { viewModel.skipRest() }.bold()
@@ -507,6 +528,12 @@ private struct RestPanel: View {
       .padding()
       .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
     }
+  }
+
+  /// Die neue Pause gilt auch für die nächsten Male dieser Übung.
+  private func adjust(by seconds: TimeInterval) {
+    guard let remembered = viewModel.adjustRestAndRemember(by: seconds) else { return }
+    model.settings.gym.restOverrides[remembered.exerciseID] = remembered.seconds
   }
 }
 
@@ -587,7 +614,7 @@ private struct WorkoutListView: View {
         }
       }
       ForEach(session.exercises) { exercise in
-        ExerciseCard(exercise: exercise, viewModel: viewModel, editing: $editing)
+        ExerciseCard(exercise: exercise, session: session, viewModel: viewModel, editing: $editing)
       }
       Section {
         Button("Übung hinzufügen", systemImage: "plus", action: addExercise)
@@ -598,16 +625,16 @@ private struct WorkoutListView: View {
 
 private struct ExerciseCard: View {
   let exercise: LoggedExercise
+  let session: GymSession
   let viewModel: GymViewModel
   @Binding var editing: SetValueTarget?
   @Environment(AppModel.self) private var model
-  @State private var showDetail = false
 
   var body: some View {
-    let isTime = model.settings.gym.exercise(exercise.exerciseID)?.tracking == .time
+    let info = model.settings.gym.exercise(exercise.exerciseID)
     Section {
-      ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
-        SetRow(index: index, set: set, isTime: isTime, exerciseID: exercise.id, viewModel: viewModel) { field in
+      ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
+        SetRow(index: index, set: set, info: info, exerciseID: exercise.id, viewModel: viewModel) { field in
           editing = SetValueTarget(exerciseID: exercise.id, set: index, field: field)
         }
         .swipeActions {
@@ -617,28 +644,15 @@ private struct ExerciseCard: View {
       Button("Satz hinzufügen", systemImage: "plus.circle") { viewModel.addSet(to: exercise.id) }
     } header: {
       HStack {
+        if let label = WorkoutFlow.supersetLabels(in: session)[exercise.id] {
+          Text(label).font(.headline).foregroundStyle(.tint)
+        }
         Text(exercise.name).font(.headline)
         Spacer()
-        Menu {
-          Button("Auf der Fokus-Karte zeigen", systemImage: "scope") { viewModel.focusExerciseID = exercise.id }
-          Button("Anleitung und Verlauf", systemImage: "info.circle") { showDetail = true }
-          Button("Übung entfernen", systemImage: "trash", role: .destructive) {
-            viewModel.removeExercise(exercise.id)
-          }
-        } label: {
-          Image(systemName: "ellipsis.circle").frame(width: 44, height: 44)
-        }
+        ExerciseMenu(exercise: exercise, session: session, viewModel: viewModel, showsFocus: true)
       }
     } footer: {
       ExerciseNotes(exercise: exercise, viewModel: viewModel, centered: false)
-    }
-    .sheet(isPresented: $showDetail) {
-      NavigationStack {
-        ExerciseDetailView(exerciseID: exercise.exerciseID, viewModel: viewModel)
-          .toolbar {
-            ToolbarItem(placement: .confirmationAction) { Button("Fertig") { showDetail = false } }
-          }
-      }
     }
   }
 }
@@ -647,18 +661,29 @@ private struct ExerciseCard: View {
 private struct SetRow: View {
   let index: Int
   let set: LoggedSet
-  let isTime: Bool
+  let info: ExerciseInfo?
   let exerciseID: UUID
   let viewModel: GymViewModel
   let edit: (SetValueTarget.Field) -> Void
 
+  /// In der Liste kurz: „je Hantel“ steht auf der Fokus-Karte.
+  private func shortUnit(_ unit: String) -> String {
+    unit.replacingOccurrences(of: " je Hantel", with: "")
+  }
+
   var body: some View {
+    let isTime = info?.tracking == .time
+    let weight = ExerciseUnits.weightText(set.weightKg, info: info)
     HStack(spacing: 12) {
-      Text("\(index + 1)").font(.subheadline.bold()).foregroundStyle(.secondary).frame(width: 18)
+      Text(set.kind.badge ?? "\(index + 1)")
+        .font(.subheadline.bold())
+        .foregroundStyle(set.kind == .working ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+        .frame(width: 18)
+        .accessibilityLabel(set.kind == .working ? "Satz \(index + 1)" : set.kind.label)
       Button {
         edit(.weight)
       } label: {
-        Text(set.weightKg > 0 ? "\(GermanFormat.number(set.weightKg)) kg" : "Körpergew.")
+        Text(set.weightKg == 0 ? "Körpergew." : "\(weight.value) \(shortUnit(weight.unit))")
           .font(.title3.bold())
           .monospacedDigit()
           .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -688,6 +713,10 @@ private struct SetRow: View {
       .accessibilityLabel(set.done ? "Satz erledigt, tippen für wieder offen" : "Satz abhaken")
     }
     .contextMenu {
+      let kind = Binding(get: { set.kind }, set: { viewModel.setKind($0, set: index, of: exerciseID) })
+      Picker("Satzart", selection: kind) {
+        ForEach(SetKind.allCases) { kind in Text(kind.label).tag(kind) }
+      }
       if set.done, !isTime {
         Menu("Wiederholungen in Reserve") {
           ForEach(0..<5) { value in
@@ -696,6 +725,205 @@ private struct SetRow: View {
           Button("Keine Angabe") { viewModel.setRIR(nil, set: index, of: exerciseID) }
         }
       }
+    }
+  }
+}
+
+// MARK: - Übung anpassen
+
+/// „Satz 2 von 4“ mit Satzart (Aufwärmen, Drop-Satz …) zum Umstellen.
+private struct SetKindMenu: View {
+  let set: LoggedSet
+  let index: Int
+  let total: Int
+  let change: (SetKind) -> Void
+
+  var body: some View {
+    Menu {
+      Picker("Satzart", selection: Binding(get: { set.kind }, set: change)) {
+        ForEach(SetKind.allCases) { kind in Text(kind.label).tag(kind) }
+      }
+    } label: {
+      HStack(spacing: 6) {
+        Text("Satz \(index + 1) von \(total)")
+        if set.kind != .working {
+          Text(set.kind.label).foregroundStyle(.orange)
+        }
+        Image(systemName: "chevron.up.chevron.down").font(.caption)
+      }
+      .font(.headline)
+      .foregroundStyle(.secondary)
+      .frame(minHeight: 44)
+    }
+    .accessibilityLabel("Satz \(index + 1) von \(total), \(set.kind.label). Satzart ändern")
+  }
+}
+
+/// Menü einer Übung: später, ersetzen, Supersatz, Reihenfolge, Notiz, Stange, Anleitung, entfernen.
+private struct ExerciseMenu: View {
+  let exercise: LoggedExercise
+  let session: GymSession
+  let viewModel: GymViewModel
+  var showsFocus = false
+  @Environment(AppModel.self) private var model
+  @State private var sheet: Sheet?
+  @State private var editsNote = false
+  @State private var note = ""
+
+  enum Sheet: String, Identifiable {
+    case detail, replace, reorder
+    var id: String { rawValue }
+  }
+
+  var body: some View {
+    let gym = model.settings.gym
+    let info = gym.exercise(exercise.exerciseID)
+    let index = session.exercises.firstIndex { $0.id == exercise.id } ?? 0
+    Menu {
+      if showsFocus {
+        Button("Auf der Fokus-Karte zeigen", systemImage: "scope") { viewModel.focusExerciseID = exercise.id }
+      }
+      Section {
+        if index < session.exercises.count - 1 {
+          Button("Später (Gerät belegt)", systemImage: "arrow.uturn.down") { viewModel.moveToEnd(exercise.id) }
+        }
+        Button("Ersetzen …", systemImage: "arrow.left.arrow.right") { sheet = .replace }
+        Button("Reihenfolge ändern …", systemImage: "arrow.up.arrow.down") { sheet = .reorder }
+        if exercise.supersetID != nil {
+          Button("Supersatz auflösen", systemImage: "link.badge.plus") { viewModel.toggleSuperset(exercise.id) }
+        } else if index < session.exercises.count - 1 {
+          Button("Supersatz mit \(session.exercises[index + 1].name)", systemImage: "link") {
+            viewModel.toggleSuperset(exercise.id)
+          }
+        }
+      }
+      Section {
+        Button("Satz hinzufügen", systemImage: "plus.circle") { viewModel.addSet(to: exercise.id) }
+        Button(gym.notes[exercise.exerciseID] == nil ? "Notiz …" : "Notiz ändern …", systemImage: "note.text") {
+          note = gym.notes[exercise.exerciseID] ?? ""
+          editsNote = true
+        }
+        if info?.equipment.first == .barbell {
+          Picker("Stange", selection: barBinding) {
+            ForEach(Self.bars, id: \.weight) { bar in Text(bar.label).tag(bar.weight) }
+          }
+        }
+        Button("Anleitung und Verlauf", systemImage: "info.circle") { sheet = .detail }
+      }
+      Button("Übung entfernen", systemImage: "trash", role: .destructive) { viewModel.removeExercise(exercise.id) }
+    } label: {
+      Image(systemName: "ellipsis.circle").font(.title3).frame(width: 44, height: 44)
+    }
+    .accessibilityLabel("Optionen für \(exercise.name)")
+    .sheet(item: $sheet) { sheet in
+      NavigationStack {
+        switch sheet {
+        case .detail:
+          ExerciseDetailView(exerciseID: exercise.exerciseID, viewModel: viewModel)
+            .toolbar {
+              ToolbarItem(placement: .confirmationAction) { Button("Fertig") { self.sheet = nil } }
+            }
+        case .replace:
+          ReplaceExerciseView(exercise: exercise, viewModel: viewModel) { self.sheet = nil }
+        case .reorder:
+          ReorderExercisesView(viewModel: viewModel) { self.sheet = nil }
+        }
+      }
+    }
+    .alert("Notiz zu \(exercise.name)", isPresented: $editsNote) {
+      TextField("z. B. Sitz 4, Griff weit", text: $note)
+      Button("Sichern") {
+        let text = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        model.settings.gym.notes[exercise.exerciseID] = text.isEmpty ? nil : text
+      }
+      Button("Abbrechen", role: .cancel) {}
+    } message: {
+      Text("Steht ab jetzt bei jeder Einheit unter der Übung.")
+    }
+  }
+
+  static let bars: [(weight: Double, label: String)] = [
+    (20, "Langhantel 20 kg"), (15, "Langhantel 15 kg"), (10, "SZ-Stange 10 kg"), (25, "Trap Bar 25 kg"),
+    (7.5, "Kurze Stange 7,5 kg"),
+  ]
+
+  private var barBinding: Binding<Double> {
+    Binding(
+      get: { model.settings.gym.bar(for: exercise.exerciseID) },
+      set: { model.settings.gym.bars[exercise.exerciseID] = $0 })
+  }
+}
+
+/// Alternativen für dieselbe Muskelgruppe mit der eigenen Ausstattung.
+private struct ReplaceExerciseView: View {
+  let exercise: LoggedExercise
+  let viewModel: GymViewModel
+  let close: () -> Void
+  @Environment(AppModel.self) private var model
+  @State private var showsAll = false
+
+  var body: some View {
+    let gym = model.settings.gym
+    let options = WorkoutEdits.alternatives(
+      for: exercise.exerciseID, custom: gym.customExercises, equipment: gym.equipment)
+    List {
+      Section {
+        ForEach(options) { option in
+          Button {
+            viewModel.replace(exercise.id, with: option)
+            close()
+          } label: {
+            ExerciseLabel(exercise: option)
+          }
+          .buttonStyle(.plain)
+        }
+      } footer: {
+        Text(
+          exercise.sets.contains(where: \.done)
+            ? "Erledigte Sätze bleiben bei \(exercise.name); die offenen übernimmt die neue Übung."
+            : "Satzzahl und Wiederholungen bleiben, das Gewicht kommt aus deinem Verlauf.")
+      }
+      Section {
+        Button("Andere Übung wählen …") { showsAll = true }
+      }
+    }
+    .navigationTitle("\(exercise.name) ersetzen")
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      ToolbarItem(placement: .cancellationAction) { Button("Abbrechen", action: close) }
+    }
+    .sheet(isPresented: $showsAll) {
+      ExercisePickerView { option in
+        viewModel.replace(exercise.id, with: option)
+        showsAll = false
+        close()
+      }
+    }
+  }
+}
+
+private struct ReorderExercisesView: View {
+  let viewModel: GymViewModel
+  let close: () -> Void
+
+  var body: some View {
+    let exercises = viewModel.active?.exercises ?? []
+    List {
+      ForEach(exercises) { exercise in
+        let progress = WorkoutFlow.progress(of: exercise)
+        HStack {
+          Text(exercise.name)
+          Spacer()
+          Text("\(progress.done)/\(progress.total)").monospacedDigit().foregroundStyle(.secondary)
+        }
+      }
+      .onMove { viewModel.moveExercises(fromOffsets: $0, toOffset: $1) }
+    }
+    .environment(\.editMode, .constant(.active))
+    .navigationTitle("Reihenfolge")
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      ToolbarItem(placement: .confirmationAction) { Button("Fertig", action: close) }
     }
   }
 }
@@ -709,6 +937,9 @@ private struct SetValuePad: View {
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var text = ""
+  /// Unterstützung statt Zusatzgewicht (negatives Gewicht), nur bei Körpergewichtsübungen.
+  @State private var assisted = false
+  @State private var warning: String?
 
   private var exercise: LoggedExercise? {
     viewModel.active?.exercises.first { $0.id == target.exerciseID }
@@ -720,7 +951,8 @@ private struct SetValuePad: View {
     let isTime = exercise.flatMap { gym.exercise($0.exerciseID) }?.tracking == .time
     let step = exercise.map { ExerciseLibrary.rule($0.exerciseID, name: $0.name, custom: gym.customExercises).step }
     let deltas = Self.deltas(isWeight: isWeight, isTime: isTime, step: step ?? 2.5)
-    let unit = isWeight ? "kg" : isTime ? "s" : "Wdh."
+    let info = exercise.flatMap { gym.exercise($0.exerciseID) }
+    let unit = isWeight ? (assisted ? "kg Hilfe" : "kg") : isTime ? "s" : "Wdh."
     VStack(spacing: 14) {
       Text("\(isWeight ? "Gewicht" : isTime ? "Dauer" : "Wiederholungen") · Satz \(target.set + 1)")
         .font(.headline)
@@ -731,6 +963,13 @@ private struct SetValuePad: View {
           .monospacedDigit()
           .foregroundStyle(text.isEmpty ? .secondary : .primary)
         Text(unit).font(.title2.bold()).foregroundStyle(.secondary)
+      }
+      if isWeight, ExerciseUnits.allowsAssistance(info) {
+        Picker("Art", selection: $assisted) {
+          Text("Zusatzgewicht").tag(false)
+          Text("Unterstützung").tag(true)
+        }
+        .pickerStyle(.segmented)
       }
       HStack(spacing: 8) {
         ForEach(deltas, id: \.self) { delta in
@@ -766,7 +1005,17 @@ private struct SetValuePad: View {
     .sensoryFeedback(.selection, trigger: text)
     .onAppear {
       guard let set = exercise?.sets[safe: target.set] else { return }
-      text = isWeight ? NumberPad.text(for: set.weightKg) : set.reps > 0 ? "\(set.reps)" : ""
+      assisted = set.weightKg < 0
+      text = isWeight ? NumberPad.text(for: abs(set.weightKg)) : set.reps > 0 ? "\(set.reps)" : ""
+    }
+    .alert(
+      "Wirklich?", isPresented: Binding(get: { warning != nil }, set: { if !$0 { warning = nil } }),
+      presenting: warning
+    ) { _ in
+      Button("Übernehmen") { apply() }
+      Button("Korrigieren", role: .cancel) {}
+    } message: { text in
+      Text(text)
     }
   }
 
@@ -778,7 +1027,7 @@ private struct SetValuePad: View {
   /// Wert des vorherigen Satzes für „wie Satz n“.
   private var previousValue: String? {
     guard target.set > 0, let set = exercise?.sets[safe: target.set - 1] else { return nil }
-    return target.field == .weight ? NumberPad.text(for: set.weightKg) : "\(set.reps)"
+    return target.field == .weight ? NumberPad.text(for: abs(set.weightKg)) : "\(set.reps)"
   }
 
   private func key(_ title: String, _ key: NumberPad.Key, isWeight: Bool) -> some View {
@@ -793,10 +1042,24 @@ private struct SetValuePad: View {
     .buttonStyle(.plain)
   }
 
+  /// Unplausible Werte (625 statt 62,5 kg) erst nach Rückfrage übernehmen.
   private func save() {
     let value = NumberPad.value(text) ?? 0
+    guard let exercise else { return dismiss() }
+    let isTime = model.settings.gym.exercise(exercise.exerciseID)?.tracking == .time
+    let best = viewModel.history(of: exercise.exerciseID).map(\.topWeightKg).max()
+    let set = exercise.sets[safe: target.set]
+    warning =
+      target.field == .weight
+      ? SetCheck.warning(weightKg: assisted ? 0 : value, reps: 0, isTime: isTime, previousBestKg: best)
+      : SetCheck.warning(weightKg: 0, reps: Int(value), isTime: isTime, previousBestKg: nil)
+    if warning == nil, set != nil { apply() }
+  }
+
+  private func apply() {
+    let value = NumberPad.value(text) ?? 0
     switch target.field {
-    case .weight: viewModel.setWeight(value, set: target.set, of: target.exerciseID)
+    case .weight: viewModel.setWeight(assisted ? -value : value, set: target.set, of: target.exerciseID)
     case .reps: viewModel.setReps(Int(value), set: target.set, of: target.exerciseID)
     }
     dismiss()
@@ -865,12 +1128,30 @@ private struct FinishWorkoutSheet: View {
       Image(systemName: "checkmark.seal.fill").font(.system(size: 48)).foregroundStyle(.green)
       Text(finished.title).font(.title2.bold())
       SummaryGrid(summary: finished.summary)
+      if let change = finished.volumeChange {
+        Label(
+          "\(abs(change)) % \(change >= 0 ? "mehr" : "weniger") Volumen als beim letzten Mal",
+          systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
+        )
+        .font(.subheadline)
+      }
       if !finished.records.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
           Text("Bestleistungen").font(.headline)
           ForEach(finished.records, id: \.self) { record in
             Label(record, systemImage: "trophy.fill").foregroundStyle(.primary)
           }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      NextTimeList(exerciseIDs: finished.exerciseIDs, viewModel: viewModel)
+      if !viewModel.hints.isEmpty {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Hinweise").font(.headline)
+          ForEach(viewModel.hints, id: \.self) { hint in
+            Text("• \(hint)").font(.subheadline)
+          }
+          Text(viewModel.hintSource).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
@@ -898,6 +1179,28 @@ private struct FinishWorkoutSheet: View {
     await viewModel.finish(
       context: context, writer: HealthWorkoutWriter(), garmin: model.garmin.connect, completingOpenSets: completing)
     await model.refreshReminders()
+  }
+}
+
+/// „Nächstes Mal“ je Übung: die Entscheidung der Progression, sobald die neue Einheit eingerechnet ist.
+private struct NextTimeList: View {
+  let exerciseIDs: [String]
+  let viewModel: GymViewModel
+
+  var body: some View {
+    let items = exerciseIDs.compactMap { id in viewModel.progress.first { $0.exerciseID == id } }
+    if !items.isEmpty {
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Nächstes Mal").font(.headline)
+        ForEach(items) { item in
+          VStack(alignment: .leading, spacing: 2) {
+            Text(item.name).font(.subheadline.bold())
+            Text(item.headline).font(.subheadline).foregroundStyle(.secondary)
+          }
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
   }
 }
 

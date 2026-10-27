@@ -97,14 +97,14 @@ final class GymViewModel {
           let reps = suggestion.reps[safe: index] ?? suggestion.reps.last ?? 0
           return LoggedSet(reps: reps, weightKg: suggestion.weight, done: false)
         },
-        restSeconds: planned.restSeconds)
+        restSeconds: gym.restOverrides[rule.id] ?? planned.restSeconds)
     }
     setActive(GymSession(workoutKey: workout.key, title: workout.name, start: now, exercises: exercises))
   }
 
   /// Startet eine eigene Routine, vorbefüllt mit den letzten Werten bzw. der Progression.
   func start(_ routine: Routine, now: Date = .now) {
-    let exercises = routine.items.map { item -> LoggedExercise in
+    var exercises = routine.items.map { item -> LoggedExercise in
       let info = gym.exercise(item.exerciseID)
       let suggestion = prefill(for: item.exerciseID, range: item.repRange, startWeight: item.weightKg)
       return LoggedExercise(
@@ -114,7 +114,18 @@ final class GymViewModel {
             reps: suggestion.reps[safe: index] ?? suggestion.reps.last ?? item.upperReps,
             weightKg: suggestion.weight, done: false)
         },
-        restSeconds: item.restSeconds)
+        restSeconds: gym.restOverrides[item.exerciseID] ?? item.restSeconds)
+    }
+    // „Supersatz mit nächster Übung“ aus der Routine: Ketten bekommen eine gemeinsame Kennung.
+    var group: UUID?
+    for (index, item) in routine.items.enumerated() where exercises.indices.contains(index) {
+      let linked = index > 0 && routine.items[index - 1].supersetWithNext
+      if item.supersetWithNext || linked {
+        if !linked { group = UUID() }
+        exercises[index].supersetID = group
+      } else {
+        group = nil
+      }
     }
     setActive(GymSession(workoutKey: "routine-\(routine.id)", title: routine.name, start: now, exercises: exercises))
   }
@@ -134,6 +145,12 @@ final class GymViewModel {
   func prefill(for exerciseID: String, range: ClosedRange<Int>, startWeight: Double?, plannedReps: Int? = nil)
     -> (weight: Double, reps: [Int])
   {
+    // Mit Unterstützung (negatives Gewicht) wie beim letzten Mal; die Progression rechnet nur mit Last.
+    if let last = GymStats.history(of: exerciseID, sessions: sessions).last,
+      let assisted = last.sets.first(where: { $0.weightKg < 0 })
+    {
+      return (assisted.weightKg, last.sets.map(\.reps))
+    }
     if let item = progress.first(where: { $0.exerciseID == exerciseID }) {
       switch item.status {
       case .increase where recovered != false:
@@ -156,14 +173,76 @@ final class GymViewModel {
     session.exercises.append(
       LoggedExercise(
         exerciseID: exercise.id, name: exercise.name, group: exercise.group, sets: sets,
-        restSeconds: exercise.compound ? 120 : 90))
+        restSeconds: gym.restOverrides[exercise.id] ?? (exercise.compound ? 120 : 90)))
     setActive(session)
   }
 
-  /// Wiederholungen in Reserve für einen Satz.
-  func setRIR(_ rir: Int?, set index: Int, of exerciseID: UUID) {
+  /// Wiederholungen in Reserve für einen Satz. Für den gerade erledigten Satz einer Grundübung mit RIR 0–1
+  /// verlängert sich die laufende Pause einmal (`RestAdvisor`).
+  func setRIR(_ rir: Int?, set index: Int, of exerciseID: UUID, now: Date = .now) {
     mutate(exerciseID) { exercise in
       if exercise.sets.indices.contains(index) { exercise.sets[index].rir = rir }
+    }
+    guard lastDone?.exercise == exerciseID, lastDone?.set == index, !restExtended, let end = restEndsAt, end > now,
+      let exercise = active?.exercises.first(where: { $0.id == exerciseID })
+    else { return }
+    let compound = gym.exercise(exercise.exerciseID)?.compound ?? false
+    let extra = RestAdvisor.seconds(base: restSeconds, compound: compound, rir: rir) - restSeconds
+    guard extra > 0 else { return }
+    restExtended = true
+    adjustRest(by: TimeInterval(extra), now: now)
+  }
+
+  /// Pause wurde für den letzten Satz schon wegen RIR verlängert.
+  private var restExtended = false
+
+  // MARK: - Ablauf ändern (Gerät belegt, Supersatz, Aufwärmen, Satzart)
+
+  func moveToEnd(_ exerciseID: UUID) {
+    guard var session = active else { return }
+    WorkoutEdits.moveToEnd(exerciseID, in: &session)
+    if focusExerciseID == exerciseID { focusExerciseID = nil }
+    setActive(session)
+  }
+
+  func moveExercises(fromOffsets source: IndexSet, toOffset destination: Int) {
+    guard var session = active else { return }
+    WorkoutEdits.move(fromOffsets: source, toOffset: destination, in: &session)
+    setActive(session)
+  }
+
+  func toggleSuperset(_ exerciseID: UUID) {
+    guard var session = active else { return }
+    WorkoutEdits.toggleSuperset(exerciseID, in: &session)
+    setActive(session)
+  }
+
+  /// Übung tauschen; das Gewicht kommt aus dem Verlauf der neuen Übung.
+  func replace(_ exerciseID: UUID, with info: ExerciseInfo) {
+    guard var session = active else { return }
+    rememberUndo("Übung ersetzt")
+    let suggestion = prefill(for: info.id, planned: nil)
+    WorkoutEdits.replace(exerciseID, with: info, weightKg: suggestion.weight, in: &session)
+    if focusExerciseID == exerciseID {
+      focusExerciseID = session.exercises.first { $0.exerciseID == info.id && $0.sets.contains { !$0.done } }?.id
+    }
+    setActive(session)
+  }
+
+  func insertWarmUp(into exerciseID: UUID) {
+    guard var session = active, let exercise = session.exercises.first(where: { $0.id == exerciseID }),
+      let info = gym.exercise(exercise.exerciseID)
+    else { return }
+    let working = exercise.sets.filter { $0.kind != .warmup }.map(\.weightKg).max() ?? 0
+    let steps = WarmUp.steps(
+      working: working, equipment: info.equipment, compound: info.compound, bar: gym.bar(for: info.id))
+    WorkoutEdits.insertWarmUp(steps, into: exerciseID, in: &session)
+    setActive(session)
+  }
+
+  func setKind(_ kind: SetKind, set index: Int, of exerciseID: UUID) {
+    mutate(exerciseID) { exercise in
+      if exercise.sets.indices.contains(index) { exercise.sets[index].kind = kind }
     }
   }
 
@@ -236,15 +315,19 @@ final class GymViewModel {
     }
   }
 
+  /// Folgesätze derselben Art mit gleichem Gewicht ziehen mit; das lässt sich rückgängig machen.
   func setWeight(_ weight: Double, set index: Int, of exerciseID: UUID) {
-    mutate(exerciseID) { exercise in
-      guard exercise.sets.indices.contains(index) else { return }
-      let old = exercise.sets[index].weightKg
-      exercise.sets[index].weightKg = max(0, weight)
-      // Folgesätze mit gleichem Gewicht mitziehen – meist bleibt das Gewicht über alle Sätze gleich.
-      for later in exercise.sets.indices where later > index && !exercise.sets[later].done {
-        if abs(exercise.sets[later].weightKg - old) < 0.01 { exercise.sets[later].weightKg = max(0, weight) }
-      }
+    guard var session = active, let exercise = session.exercises.first(where: { $0.id == exerciseID }) else {
+      return
+    }
+    let before = session
+    let assisted = ExerciseUnits.allowsAssistance(gym.exercise(exercise.exerciseID))
+    let moved = WorkoutEdits.setWeight(
+      weight, set: index, of: exerciseID, allowsNegative: assisted, in: &session)
+    setActive(session)
+    if moved > 0 {
+      undoSession = before
+      undoLabel = moved == 1 ? "1 Folgesatz mitgeändert" : "\(moved) Folgesätze mitgeändert"
     }
   }
 
@@ -270,10 +353,19 @@ final class GymViewModel {
       exercise.sets[index].done = true
       rest = exercise.restSeconds
     }
-    guard let rest, let session = active else { return }
+    guard let rest, let session = active,
+      let exerciseIndex = session.exercises.firstIndex(where: { $0.id == exerciseID })
+    else { return }
     lastDone = (exerciseID, index)
-    // Übung fertig: weiter mit der nächsten offenen ab hier; alles fertig: Abschluss.
-    focusExerciseID = WorkoutFlow.current(in: session, preferring: exerciseID).map { session.exercises[$0.exercise].id }
+    restExtended = false
+    // Übung fertig: weiter mit der nächsten offenen ab hier; im Supersatz ohne Pause zur Partnerübung.
+    let next = WorkoutFlow.afterCompleting(exercise: exerciseIndex, in: session)
+    focusExerciseID = next.focus.map { session.exercises[$0].id }
+    guard next.rest else {
+      restEndsAt = nil
+      RestAlarm.schedule(at: nil)
+      return
+    }
     restSeconds = rest
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
     RestAlarm.schedule(at: restEndsAt)
@@ -308,6 +400,19 @@ final class GymViewModel {
     restEndsAt = nil
     RestAlarm.schedule(at: nil)
     restFinishedCount += 1
+  }
+
+  /// ±15 s während der Pause: gilt für die laufende Pause, die weiteren Sätze dieser Übung und – über den
+  /// Rückgabewert, den die Ansicht in den Einstellungen speichert – für das nächste Mal.
+  func adjustRestAndRemember(by seconds: TimeInterval, now: Date = .now) -> (exerciseID: String, seconds: Int)? {
+    adjustRest(by: seconds, now: now)
+    guard let last = lastDone, var session = active,
+      let index = session.exercises.firstIndex(where: { $0.id == last.exercise })
+    else { return nil }
+    let rest = min(max(session.exercises[index].restSeconds + Int(seconds), 15), RestAdvisor.maximumSeconds)
+    session.exercises[index].restSeconds = rest
+    setActive(session)
+    return (session.exercises[index].exerciseID, rest)
   }
 
   /// Laufende Pause verlängern oder verkürzen (z. B. ±15 Sekunden).
@@ -347,10 +452,10 @@ final class GymViewModel {
     if completingOpenSets { session = WorkoutFlow.completingOpenSets(session) }
     session.exercises = session.exercises.compactMap { exercise in
       var exercise = exercise
-      exercise.sets = exercise.doneSets
+      exercise.sets = exercise.loggedSets
       return exercise.sets.isEmpty ? nil : exercise
     }
-    guard !session.exercises.isEmpty else {
+    guard session.doneSetCount > 0 else {
       message = "Noch kein Satz abgehakt – nichts zu speichern."
       return nil
     }
@@ -376,7 +481,10 @@ final class GymViewModel {
     }
     message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
     finished = FinishedWorkout(
-      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status)
+      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status,
+      exerciseIDs: session.exercises.map(\.exerciseID),
+      volumeChange: SessionComparison.volumeChangePercent(
+        session, previous: SessionComparison.previous(of: session, in: sessions)))
     return record
   }
 
@@ -444,6 +552,10 @@ struct FinishedWorkout: Equatable {
   var summary: WorkoutFlow.Summary
   var records: [String]
   var status: String
+  /// Für „Nächstes Mal“ (Progression nach dem Speichern).
+  var exerciseIDs: [String] = []
+  /// Volumen gegenüber der letzten gleichen Einheit in %.
+  var volumeChange: Int?
 }
 
 extension Array {

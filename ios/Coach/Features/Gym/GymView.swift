@@ -12,6 +12,8 @@ struct GymView: View {
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @State private var viewModel = GymViewModel()
   @State private var showWorkout = false
+  /// Fokus wurde für die laufende Einheit eingeschaltet.
+  @State private var focusOn = false
 
   private var refreshKey: String {
     "\(records.count)-\(records.first?.savedToHealth ?? false)-\(activities.count)-\(days.first?.dayKey ?? "")-"
@@ -46,9 +48,12 @@ struct GymView: View {
           Section { Text(message).font(.footnote) }
         }
 
-        GymHintsSection(viewModel: viewModel)
-
         Section {
+          NavigationLink {
+            GymAnalysisView(viewModel: viewModel)
+          } label: {
+            Label("Auswertung", systemImage: "chart.bar.xaxis")
+          }
           NavigationLink {
             RoutinesView(viewModel: viewModel) { routine in
               viewModel.start(routine)
@@ -64,12 +69,9 @@ struct GymView: View {
           }
         }
 
-        ProgressSection(viewModel: viewModel)
-        VolumeSection(viewModel: viewModel)
-
         if !records.isEmpty {
-          Section("Verlauf") {
-            ForEach(records.prefix(30)) { record in
+          Section("Letzte Einheiten") {
+            ForEach(records.prefix(3)) { record in
               if let session = record.session {
                 NavigationLink {
                   SessionDetailView(record: record, session: session)
@@ -78,9 +80,8 @@ struct GymView: View {
                 }
               }
             }
-            .onDelete { offsets in
-              for index in offsets { context.delete(records[index]) }
-              try? context.save()
+            if records.count > 3 {
+              NavigationLink("Alle \(records.count) Einheiten") { GymHistoryView() }
             }
           }
         }
@@ -100,9 +101,13 @@ struct GymView: View {
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
       }
-      // Fokus während der Einheit: beim Start an, nach Beenden oder Verwerfen aus (Kurzbefehle der Person).
-      .onChange(of: viewModel.active != nil) { _, isActive in
-        guard model.settings.gym.focusShortcuts, let url = WorkoutFocus.url(turningOn: isActive) else { return }
+      // Fokus während der Einheit (Kurzbefehle der Person): an nach dem ersten Satz – der kurze Wechsel in die
+      // Kurzbefehle-App fällt dann in die Pause statt in den Start –, aus nach Beenden oder Verwerfen.
+      .onChange(of: viewModel.active?.doneSetCount ?? -1) { _, count in
+        guard model.settings.gym.focusShortcuts else { return }
+        let wanted = count > 0 || (focusOn && count >= 0)
+        guard wanted != focusOn, let url = WorkoutFocus.url(turningOn: wanted) else { return }
+        focusOn = wanted
         UIApplication.shared.open(url)
       }
       // Bildschirm an, solange eine Einheit läuft – auch wenn sie gerade ausgeblendet ist.
@@ -113,7 +118,8 @@ struct GymView: View {
   }
 }
 
-/// Krafttraining für Profile ohne Saisonplan: laut Wochenplan heute dran? Start mit einer eigenen Routine.
+/// Krafttraining für Profile ohne Saisonplan: eine Karte „Nächste Einheit“ (Rotation der eigenen Routinen) mit
+/// großem Start-Knopf, darunter die übrigen Routinen als Leiste.
 private struct PersonalGymSection: View {
   let viewModel: GymViewModel
   let start: (Routine?) -> Void
@@ -123,35 +129,61 @@ private struct PersonalGymSection: View {
     let day = CalendarDay(date: .now)
     let today = model.settings.schedule(inWeekOf: day).slots(on: Weekday(day: day)).filter { $0.sport == .strength }
     let routines = model.settings.gym.routines
+    let next = RoutineRotation.next(routines: routines, sessions: viewModel.sessions)
     Section {
-      if let slot = today.first {
+      if let next {
+        VStack(alignment: .leading, spacing: 6) {
+          Text(today.isEmpty ? "Nächste Einheit" : "Heute laut Wochenplan").font(.caption).foregroundStyle(.secondary)
+          Text(next.name).font(.title2.bold())
+          Text("\(next.items.count) Übungen · ca. \(RoutineRotation.estimatedMinutes(next)) min")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+          Text(next.items.map(\.name).joined(separator: " · ")).font(.footnote).foregroundStyle(.secondary)
+          if let days = viewModel.daysSinceLegs, days >= 7, !next.setsPerGroup.keys.contains(.legs) {
+            Label("Beine seit \(days) Tagen nicht trainiert", systemImage: "figure.walk")
+              .font(.footnote)
+              .foregroundStyle(.orange)
+          }
+          if viewModel.recovered == false {
+            Label(
+              "Erholung heute eingeschränkt: Gewichte halten, ggf. weniger Sätze.",
+              systemImage: "exclamationmark.triangle"
+            )
+            .font(.footnote)
+            .foregroundStyle(.orange)
+          }
+          Button {
+            start(next)
+          } label: {
+            Label("Starten", systemImage: "play.fill").font(.headline).frame(maxWidth: .infinity, minHeight: 50)
+          }
+          .buttonStyle(.borderedProminent)
+          .buttonBorderShape(.roundedRectangle(radius: 14))
+          .padding(.top, 4)
+        }
+        .padding(.vertical, 4)
+      } else if let slot = today.first {
         VStack(alignment: .leading, spacing: 4) {
           Text(slot.title).font(.title3.bold())
           Text(slot.guide).font(.footnote).foregroundStyle(.secondary)
         }
-      } else {
-        Text("Heute steht laut deinem Wochenplan kein Krafttraining an.").foregroundStyle(.secondary)
       }
-      if viewModel.recovered == false {
-        Label(
-          "Erholung heute eingeschränkt: Gewichte halten, ggf. weniger Sätze.", systemImage: "exclamationmark.triangle"
-        )
-        .font(.footnote)
-        .foregroundStyle(.orange)
-      }
-      ForEach(routines) { routine in
-        Button {
-          start(routine)
-        } label: {
-          Label(routine.name, systemImage: "play.circle")
+      ScrollView(.horizontal, showsIndicators: false) {
+        HStack(spacing: 8) {
+          ForEach(routines.filter { $0.id != next?.id }) { routine in
+            Button(routine.name, systemImage: "play.circle") { start(routine) }
+              .buttonStyle(.bordered)
+          }
+          Button("Freies Training", systemImage: "plus") { start(nil) }
+            .buttonStyle(.bordered)
         }
+        .padding(.vertical, 2)
       }
-      Button("Freies Training") { start(nil) }
-    } header: {
-      Text("Heute")
     } footer: {
       if routines.isEmpty {
         Text("Lege unter „Routinen“ deine Einheiten an oder übernimm einen Vorschlag passend zu deinem Plan.")
+      } else {
+        Text("Die nächste Einheit folgt der Reihenfolge deiner Routinen nach der zuletzt trainierten.")
       }
     }
   }
@@ -178,7 +210,13 @@ private struct TodaySection: View {
             .foregroundStyle(.orange)
           }
         }
-        Button("Einheit starten") { start(workout) }.bold()
+        Button {
+          start(workout)
+        } label: {
+          Label("Einheit starten", systemImage: "play.fill").font(.headline).frame(maxWidth: .infinity, minHeight: 50)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.roundedRectangle(radius: 14))
       } else {
         Text("Heute steht laut Plan kein Krafttraining an.").foregroundStyle(.secondary)
       }
@@ -377,5 +415,80 @@ private struct SessionDetailView: View {
       }
     }
     .navigationTitle(session.title)
+  }
+}
+
+/// Auswertung: Hinweise, Trainingskalender, Fortschritt je Übung, Sätze je Muskel.
+private struct GymAnalysisView: View {
+  let viewModel: GymViewModel
+
+  var body: some View {
+    List {
+      CalendarSection(viewModel: viewModel)
+      GymHintsSection(viewModel: viewModel)
+      ProgressSection(viewModel: viewModel)
+      VolumeSection(viewModel: viewModel)
+    }
+    .navigationTitle("Auswertung")
+  }
+}
+
+/// Einheiten je Woche (8 Wochen) und Serie.
+private struct CalendarSection: View {
+  let viewModel: GymViewModel
+
+  var body: some View {
+    let weeks = GymCalendar.weeks(sessions: viewModel.sessions, today: viewModel.today)
+    let streak = GymCalendar.streak(sessions: viewModel.sessions, today: viewModel.today)
+    Section {
+      Chart(weeks) { week in
+        BarMark(x: .value("Woche", Formatters.day(week.monday)), y: .value("Einheiten", week.sessions))
+          .foregroundStyle(.tint)
+      }
+      .chartYAxis { AxisMarks(values: .automatic(desiredCount: 3)) }
+      .frame(height: 140)
+      .accessibilityLabel("Einheiten je Woche, letzte 8 Wochen")
+      Label(
+        streak == 1 ? "1 Woche in Folge trainiert" : "\(streak) Wochen in Folge trainiert",
+        systemImage: streak > 0 ? "flame.fill" : "flame")
+    } header: {
+      Text("Kalender")
+    }
+  }
+}
+
+/// Alle Einheiten; Löschen erst nach Rückfrage – eine Einheit ist Verlauf und Grundlage der Progression.
+private struct GymHistoryView: View {
+  @Environment(\.modelContext) private var context
+  @Query(sort: \GymSessionRecord.start, order: .reverse) private var records: [GymSessionRecord]
+  @State private var pendingDelete: IndexSet?
+
+  var body: some View {
+    List {
+      ForEach(records) { record in
+        if let session = record.session {
+          NavigationLink {
+            SessionDetailView(record: record, session: session)
+          } label: {
+            SessionRow(session: session, savedToHealth: record.savedToHealth)
+          }
+        }
+      }
+      .onDelete { offsets in pendingDelete = offsets }
+    }
+    .navigationTitle("Verlauf")
+    .confirmationDialog(
+      "Einheit löschen?",
+      isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+      titleVisibility: .visible
+    ) {
+      Button("Löschen", role: .destructive) {
+        for index in pendingDelete ?? [] where records.indices.contains(index) { context.delete(records[index]) }
+        try? context.save()
+        pendingDelete = nil
+      }
+    } message: {
+      Text("Sätze, Bestleistungen und die Progression dieser Einheit gehen verloren.")
+    }
   }
 }
