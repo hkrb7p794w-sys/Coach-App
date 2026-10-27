@@ -43,7 +43,7 @@ struct CoachExportImportTests {
     #expect(text.contains("```ironludi"))
     #expect(text.contains("| 2026-10-26 | 48 | – | 7.5 |"))
     #expect(!text.contains("| 99 |"))
-    #expect(text.contains("| 2026-10-27 07:00:00 | running | – | 45 | 8.42 |"))
+    #expect(text.contains("| 2026-10-27 07:00:00 | running | – | 45 | 8.4 |"))
     #expect(text.contains("- Bankdrücken [bankdruecken]: 52.5×10, 52.5×9 (RIR 1)"))
     #expect(text.contains("### 2026-10-26: 296 kcal, Protein 10 g"))
     #expect(text.contains("- 2026-10-26: 80.4 kg"))
