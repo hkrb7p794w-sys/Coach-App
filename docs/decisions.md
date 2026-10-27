@@ -2,6 +2,21 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Schlaf-Coach und Chat (Runde 3)
+
+- **Schlaf-Coach (Vorbild Whoop):** Schlafbedarf heute Nacht = Ziel (7–9 h, Watson et al. 2015) plus ein Viertel
+  des Defizits der letzten 7 Nächte, höchstens 60 Minuten (Praxiswert); mehr Schlaf verbesserte Leistung bei
+  Sportlern (Mah et al. 2011, PMID 21731144). Schlafenszeit = Weckzeit − Bedarf − 15 Minuten Einschlafen. Streuung
+  der Einschlafzeit > 60 Minuten löst einen Hinweis auf feste Zeiten aus (Windred et al. 2024). Einschlaf- und
+  Aufwachzeit kommen aus `sleepStartTimestampLocal`/`sleepEndTimestampLocal` (Connect) bzw. Start + Versatz
+  (Personal API). Optionale Erinnerung 30 Minuten vorher.
+- **Chat mit dem Coach:** Worker-Aufgabe `coach_chat`. Die App schickt Fakten aus ihren Regeln (Tagesampel,
+  Plan, Laufwoche, Schlaf, Ernährungsziel, Gewichtstrend, Form, Wochenbericht) und die letzten 6 Nachrichten.
+  Im Modus „reduziert“ nur Einordnungen (z. B. „Schlaf im Schnitt unter 7 Stunden“, „Gewicht leicht fallend“),
+  keine Rohwerte. Antworten mit Zahlen, die nicht in der Anfrage stehen, verwirft der Worker; die App zeigt dann
+  einen Hinweis statt einer Antwort. Bei Beschwerden rät der Coach zu ärztlicher Abklärung, keine Diagnosen.
+  Der Verlauf wird nicht gespeichert.
+
 ## 2026-10-27 – Vergleich mit Bezahl-Apps, Runde 2
 
 - **Screenshots in CI** (`screenshots.yml`, Label `screenshots`): UI-Test mit Beispieldaten (`-demo`, nur im Speicher,

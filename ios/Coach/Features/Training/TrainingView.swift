@@ -35,6 +35,13 @@ struct TrainingView: View {
             title: "Herzfrequenz", symbol: "heart.fill", color: .red,
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
+          HubRow(
+            title: "Schlaf-Coach", symbol: "moon.stars.fill", color: .indigo,
+            value: SleepCoach.report(
+              days: days.compactMap(\.metrics), settings: settings.sleep, goal: settings.profile.goal, today: today
+            ).map { "\(SleepCoach.clock($0.bedtimeMinutes)) Uhr" } ?? "–",
+            caption: "Schlafenszeit heute"
+          ) { SleepCoachView() }
           let form = FitnessForm.series(activities: activities.compactMap(\.activity), today: today)
           HubRow(
             title: "Fitness & Form", symbol: "chart.line.uptrend.xyaxis", color: .blue,
