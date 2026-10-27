@@ -175,7 +175,7 @@ struct ChatView: View {
       garminProfile: model.sync.profile, day: today, hasGarminData: !metrics.isEmpty)
     let eaten = meals.filter { $0.dayKey == today.iso }.flatMap(\.items)
     if !eaten.isEmpty { facts.eatenKilocalories = NutritionSummary.totals(eaten)[.kcal] }
-    facts.weightTrend = WeightTrend.trend(WeightTrend.merged(settings.weights + model.sync.weights), today: today)
+    facts.weightTrend = WeightTrend.trend(WeightTrend.merged(model.allWeights), today: today)
     let form = FitnessForm.series(activities: allActivities, today: today)
     if FitnessForm.isReliable(form), let percent = form.last?.formPercent {
       facts.formZone = FitnessForm.Zone.of(percent)

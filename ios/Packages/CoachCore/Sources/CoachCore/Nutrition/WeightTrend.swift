@@ -3,7 +3,7 @@ import Foundation
 /// Eine Wägung (eigene Eingabe oder von Garmin).
 public struct WeightEntry: Codable, Equatable, Hashable, Sendable, Identifiable {
   public enum Source: String, Codable, Sendable {
-    case manual, garmin
+    case manual, garmin, health
   }
 
   public var day: CalendarDay
@@ -32,11 +32,18 @@ public enum WeightTrend {
   public static let maxStepKilocalories = 250.0
   public static let maxTotalKilocalories = 500.0
 
-  /// Ein Wert pro Tag, eigene Eingaben vor Garmin.
+  /// Ein Wert pro Tag: eigene Eingaben vor Garmin, Garmin vor Apple Health.
   public static func merged(_ entries: [WeightEntry]) -> [WeightEntry] {
+    func rank(_ source: WeightEntry.Source) -> Int {
+      switch source {
+      case .manual: 2
+      case .garmin: 1
+      case .health: 0
+      }
+    }
     var byDay: [CalendarDay: WeightEntry] = [:]
     for entry in entries where (25...300).contains(entry.kilograms) {
-      if let existing = byDay[entry.day], existing.source == .manual, entry.source == .garmin { continue }
+      if let existing = byDay[entry.day], rank(existing.source) > rank(entry.source) { continue }
       byDay[entry.day] = entry
     }
     return byDay.values.sorted { $0.day < $1.day }

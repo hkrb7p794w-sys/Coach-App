@@ -56,8 +56,9 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - io.github.hkrb7p794w.coach.refresh
         NSHealthShareUsageDescription: >-
-          Coach liest Workouts, Schlaf und Herzfrequenz, um Erholung und Training
-          einzuordnen.
+          Coach liest Workouts, Schlaf, Herzfrequenz, Schritte, Kalorien, VO2max und
+          Gewicht aus Apple Health (z. B. von der Apple Watch), um Erholung, Training
+          und Ernährung einzuordnen.
         NSHealthUpdateUsageDescription: >-
           Coach speichert deine Krafttrainings als Workouts in Health.
         NSCameraUsageDescription: >-

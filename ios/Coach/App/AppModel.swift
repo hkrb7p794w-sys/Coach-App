@@ -12,6 +12,7 @@ final class AppModel {
   let container: ModelContainer
   let garmin: GarminClient
   let sync: GarminSyncService
+  let health: HealthImportService
   let ai: AIClient
   let settings: CoachSettings
   let reminders: ReminderService
@@ -33,6 +34,7 @@ final class AppModel {
     container = CoachSchema.makeContainer(inMemory: inMemory)
     garmin = GarminClient(secrets: secrets, connect: GarminConnectSession(secrets: secrets, defaults: defaults))
     sync = GarminSyncService(client: garmin, context: container.mainContext, defaults: defaults)
+    health = HealthImportService(context: container.mainContext, defaults: defaults)
     ai = AIClient(secrets: secrets, defaults: defaults)
     settings = CoachSettings(defaults: defaults)
     // In Tests (inMemory) ohne Mitteilungszentrale.
@@ -66,24 +68,37 @@ final class AppModel {
     lastReport?.finishedAt ?? sync.lastSync
   }
 
-  /// Beim Öffnen der App: nur abrufen, wenn ein Key da ist und der letzte Abruf länger her ist.
-  func syncIfDue() async {
-    guard !isDemo, garmin.isConfigured, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) else { return }
-    await syncNow()
+  /// Gewicht aus eigenen Eingaben, Garmin und Apple Health (Vorrang in `WeightTrend.merged`).
+  var allWeights: [WeightEntry] {
+    settings.weights + sync.weights + health.weights
   }
 
+  /// Beim Öffnen der App: nur abrufen, wenn eine Quelle verbunden ist und der letzte Abruf länger her ist.
+  func syncIfDue() async {
+    guard !isDemo else { return }
+    if garmin.isConfigured, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) {
+      await syncNow()
+    } else if health.isEnabled, SyncPlan.isDue(lastSync: health.lastImport, now: .now) {
+      await health.importNow(garminConnected: garmin.isConfigured)
+    }
+  }
+
+  /// Erst Garmin, dann Apple Health: Health ergänzt nur, was Garmin nicht liefert.
   func syncNow() async {
     guard !isSyncing, !isDemo else { return }
     isSyncing = true
     defer { isSyncing = false }
-    do {
-      lastReport = try await sync.sync()
-      lastError = nil
-    } catch let error as GarminAPIError {
-      lastError = error.message
-    } catch {
-      lastError = error.localizedDescription
+    if garmin.isConfigured {
+      do {
+        lastReport = try await sync.sync()
+        lastError = nil
+      } catch let error as GarminAPIError {
+        lastError = error.message
+      } catch {
+        lastError = error.localizedDescription
+      }
     }
+    await health.importNow(garminConnected: garmin.isConfigured)
   }
 
   /// Hintergrundaktualisierung: iOS entscheidet, wann (und ob) sie läuft.
