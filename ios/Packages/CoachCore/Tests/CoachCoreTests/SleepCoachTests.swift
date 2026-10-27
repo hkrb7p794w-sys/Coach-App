@@ -66,6 +66,6 @@ struct SleepCoachTests {
     ])
     let metrics = GarminMetricsParser.sleep(json)[CalendarDay(year: 2026, month: 11, day: 11)]
     #expect(metrics?.sleepStartMinutes == 1_395)
-    #expect(metrics?.sleepEndMinutes == 1_395 + 450 - 1_440)
+    #expect(metrics?.sleepEndMinutes == 405)
   }
 }
