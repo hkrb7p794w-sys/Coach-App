@@ -37,6 +37,8 @@ final class AIClient {
   private let secrets: any SecretStore
   private let defaults: UserDefaults
   private let session: URLSession
+  /// Eigene Quellen aus den Einstellungen; gehen bei jeder passenden Aufgabe als belegte Regeln mit.
+  var userSources: () -> [UserSource] = { [] }
 
   init(secrets: any SecretStore, defaults: UserDefaults = .standard, session: URLSession = .shared) {
     self.secrets = secrets
@@ -90,6 +92,7 @@ final class AIClient {
   }
 
   func run(task: String, input: [String: JSONValue] = [:], images: [Image] = []) async throws -> AIResponse {
+    let input = UserSources.inject(userSources(), into: input, task: task)
     var body: [String: JSONValue] = ["task": .string(task), "input": .object(input)]
     if !images.isEmpty {
       body["images"] = .array(

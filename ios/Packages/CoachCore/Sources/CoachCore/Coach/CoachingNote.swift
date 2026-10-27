@@ -69,9 +69,11 @@ public enum CoachingNote {
       })
   }
 
-  /// Liest `"quellen": ["id", …]` aus der KI-Antwort; nur bekannte Regeln.
+  /// Liest `"quellen": ["id", …]` aus der KI-Antwort; nur bekannte Regeln und eigene Quellen (`UserSources`).
   public static func sources(from output: JSONValue) -> [String] {
-    (output["quellen"]?.arrayValue ?? []).compactMap(\.stringValue).filter { Evidence.rulesByID[$0] != nil }
+    (output["quellen"]?.arrayValue ?? []).compactMap(\.stringValue).filter {
+      Evidence.rulesByID[$0] != nil || UserSources.isUserID($0)
+    }
   }
 
   /// Erholungsblock: im Modus „reduziert“ ohne Rohwerte (wie `vitals_block` im Altbestand).

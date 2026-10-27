@@ -5,14 +5,20 @@ import SwiftUI
 struct EvidenceDisclosure: View {
   let ruleIDs: [String]
   var title = "Wissenschaftliche Grundlage"
+  @Environment(AppModel.self) private var model
 
   var body: some View {
     var seen = Set<String>()
-    let rules = Evidence.rules(ruleIDs.filter { seen.insert($0).inserted })
-    if !rules.isEmpty {
+    let unique = ruleIDs.filter { seen.insert($0).inserted }
+    let rules = Evidence.rules(unique)
+    let own = model.settings.userSources.filter { unique.contains($0.evidenceID) }
+    if !rules.isEmpty || !own.isEmpty {
       DisclosureGroup {
         ForEach(rules) { rule in
           EvidenceRuleRow(rule: rule)
+        }
+        ForEach(own) { source in
+          UserSourceRow(source: source)
         }
       } label: {
         Label(title, systemImage: "book.closed")
@@ -70,6 +76,8 @@ struct StrengthBadge: View {
 
 /// Alle Regeln der App mit ihren Quellen (Einstellungen › Wissenschaftliche Grundlagen).
 struct EvidenceLibraryView: View {
+  @Environment(AppModel.self) private var model
+
   var body: some View {
     List {
       Section {
@@ -79,6 +87,11 @@ struct EvidenceLibraryView: View {
         )
         .font(.footnote)
         .foregroundStyle(.secondary)
+      }
+      Section {
+        NavigationLink("Eigene Quellen (\(model.settings.userSources.count))") { UserSourcesView() }
+      } footer: {
+        Text("Eigene Studien ergänzen, die die KI zusätzlich berücksichtigt.")
       }
       ForEach(Evidence.rules) { rule in
         Section { EvidenceRuleRow(rule: rule) }

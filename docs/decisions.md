@@ -2,6 +2,16 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Eigene wissenschaftliche Quellen
+
+- Einstellungen › Coach › „Eigene wissenschaftliche Quellen“: Kurzbeleg, DOI/PMID/Link, Kernaussage (höchstens
+  300 Zeichen) und Themen. Die App hängt passende Quellen bei jeder KI-Anfrage an die belegten Regeln an
+  (`UserSources.inject`, höchstens 8, nach den Regeln der App); der Worker behandelt sie wie die eingebauten
+  Regeln (Prompt-Abschnitt „Belegte Regeln“, Quellenprüfung der Antwort). Dafür war keine Worker-Änderung nötig.
+- Sie ändern nur Formulierung und Begründung der KI. Tagesampel, Ziele, Progression und Schutzgrenzen bleiben bei
+  den geprüften Regeln („Regeln entscheiden, KI formuliert“); eigene Quellen sind als solche gekennzeichnet.
+- Auch der Export für externe KIs enthält sie.
+
 ## 2026-10-27 – Abnehm-Prognose und Fokus während der Einheit
 
 - Prognose (`WeightForecast`) im Gewichtsverlauf, nur beim Abnehmen: erwartetes Gewicht nach 4, 8 und 12 Wochen
