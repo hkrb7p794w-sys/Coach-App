@@ -2,6 +2,19 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – GymBook-Verlauf importieren, App heißt IronLudi
+
+- Import aus dem GymBook-Backup (`.database`, SQLite/Core Data, GymBook 7.1.9): `ZEXERCISELOG` je Satz mit
+  `ZDAY`, `ZTIME` (Sekunden seit Mitternacht), `ZFREQUENCYVALUE` (Wiederholungen bzw. Sekunden),
+  `ZQUANTITYVALUE` (kg), `ZSKIPPED`; Übung aus `ZEXERCISE`, Routine aus `ZWORKOUT`. Gelesen mit der SQLite-
+  Bibliothek von iOS, nur lesend und aus einer Kopie. Ausgelassene Sätze und Ausdauer-Einträge entfallen.
+- Übungen mit gleichem Bewegungsablauf werden der Bibliothek zugeordnet (`GymBookImport.mapping`), damit
+  Progression und Verlauf zusammenpassen; Varianten mit anderem Gerät (z. B. Multipresse) werden eigene Übungen.
+- Jede Einheit bekommt eine feste ID aus Tag und Routine: erneutes Importieren legt nichts doppelt an; Tage, die
+  schon in der App erfasst sind, werden übersprungen. Die Backup-Daten kommen nicht ins Repo.
+- Angezeigter Name „IronLudi“ (`CFBundleDisplayName`, Texte, SideStore-Quelle). Bundle-ID und Dateiname der IPA
+  bleiben, sonst sähe SideStore eine neue App und die Daten auf dem iPhone wären weg.
+
 ## 2026-10-27 – Erinnerungen: Ausrüstung am Vorabend, Wochenplanung am Sonntag
 
 - Lokale Mitteilungen (`UNCalendarNotificationTrigger`) wie die Trainings-Erinnerungen, ohne Server und ohne

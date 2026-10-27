@@ -48,7 +48,7 @@ public enum HealthAccessDiagnosis: Equatable, Sendable {
         "Die installierte App hat kein HealthKit-Entitlement (SideStore mit kostenloser Apple-ID "
         + "entfernt es). Die App läuft ohne HealthKit weiter; Garmin-Daten kommen über das Backend."
     case .denied:
-      return "Bitte in Einstellungen › Apps › Health › Datenzugriff › Coach freigeben."
+      return "Bitte in Einstellungen › Apps › Health › Datenzugriff › IronLudi freigeben."
     case .notDetermined:
       return "Tippe auf „HealthKit prüfen“."
     case .working(let count?):
