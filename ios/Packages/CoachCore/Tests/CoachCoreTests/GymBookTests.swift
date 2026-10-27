@@ -15,7 +15,9 @@ struct GymBookTests {
     #expect(bench?.weightKg == 52.5)
     #expect(routines[3].items.last?.upperReps == 60)
     // Ältere gespeicherte Routinen ohne Startgewicht bleiben lesbar.
-    let old = #"{"id":"6F2C1C4E-9A57-4B4B-9E6D-6F0B2C8C2B11","exerciseID":"plank","name":"Plank","sets":2,"lowerReps":20,"upperReps":60,"restSeconds":60}"#
+    let old =
+      #"{"id":"6F2C1C4E-9A57-4B4B-9E6D-6F0B2C8C2B11","exerciseID":"plank","name":"Plank","sets":2,"#
+      + #""lowerReps":20,"upperReps":60,"restSeconds":60}"#
     let decoded = try? JSONDecoder().decode(RoutineItem.self, from: Data(old.utf8))
     #expect(decoded?.weightKg == nil)
   }
