@@ -1,9 +1,11 @@
 import CoachCore
+import SwiftData
 import SwiftUI
 
 /// Plan-Reiter für Profile ohne Saisonplan: die eigene Woche, Ziel und Hinweise zum Plan.
 struct MyWeekView: View {
   @Environment(AppModel.self) private var model
+  @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
   @State private var editing = false
   @State private var guideSlot: SessionSlot?
 
@@ -13,6 +15,9 @@ struct MyWeekView: View {
     let today = Weekday(day: day)
     let thisWeek = model.settings.schedule(inWeekOf: day)
     let adjustments = model.settings.planAdjustments
+    let monday = PlanAdjustments.monday(of: day)
+    let runWeek = RunPlanner.week(
+      profile: profile, schedule: thisWeek, monday: monday, activities: activities.compactMap(\.activity))
     NavigationStack {
       List {
         GoalHeader(profile: profile)
@@ -21,7 +26,8 @@ struct MyWeekView: View {
           ForEach(Weekday.allCases) { weekday in
             WeekDayRow(
               weekday: weekday, slots: thisWeek.slots(on: weekday), isToday: weekday == today,
-              note: adjustments.note(for: weekday, inWeekOf: day), select: { guideSlot = $0 }
+              note: adjustments.note(for: weekday, inWeekOf: day),
+              runs: runWeek?.sessions.filter { $0.weekday == weekday } ?? [], select: { guideSlot = $0 }
             ) {
               if weekday.rawValue >= today.rawValue {
                 PlanDayMenu(day: day.adding(days: weekday.rawValue - today.rawValue))
@@ -29,12 +35,20 @@ struct MyWeekView: View {
             }
           }
         } header: {
-          Text("Diese Woche")
+          if let runWeek {
+            Text("Diese Woche · \(runWeek.phase.label) · \(runWeek.totalMinutes) min Laufen")
+          } else {
+            Text("Diese Woche")
+          }
         } footer: {
           if profile.schedule.isEmpty {
             Text("Noch kein Wochenplan. Tippe oben auf „Bearbeiten“.")
           } else if !adjustments.changes(inWeekOf: day).isEmpty {
             Text("Änderungen gelten nur für diese Woche; danach gilt wieder dein Wochenplan.")
+          } else if let runWeek {
+            Text(
+              "Laufminuten aus deinem Schnitt der letzten vier Wochen (\(runWeek.baselineMinutes) min): höchstens "
+                + "10 % mehr, jede vierte Woche leichter, vor einem Wettkampf weniger.")
           }
         }
 
@@ -83,6 +97,7 @@ private struct WeekDayRow<Actions: View>: View {
   let slots: [SessionSlot]
   let isToday: Bool
   let note: String?
+  var runs: [RunPlanner.Session] = []
   let select: (SessionSlot) -> Void
   @ViewBuilder let actions: () -> Actions
 
@@ -111,8 +126,13 @@ private struct WeekDayRow<Actions: View>: View {
               HStack(alignment: .top, spacing: 10) {
                 SportIcon(symbol: slot.sport.symbol, color: slot.sport.color, size: 28)
                 VStack(alignment: .leading, spacing: 2) {
-                  Text(slot.title).font(.subheadline.weight(.medium))
-                  Text(slot.guide).font(.caption).foregroundStyle(.secondary)
+                  if let run = runs.first(where: { $0.slot == slot }) {
+                    Text("\(slot.title) · \(run.minutes) min").font(.subheadline.weight(.medium))
+                    Text(run.detail).font(.caption).foregroundStyle(.secondary)
+                  } else {
+                    Text(slot.title).font(.subheadline.weight(.medium))
+                    Text(slot.guide).font(.caption).foregroundStyle(.secondary)
+                  }
                   Label("Ausführlich", systemImage: "info.circle").font(.caption).foregroundStyle(Color.accentColor)
                 }
               }
