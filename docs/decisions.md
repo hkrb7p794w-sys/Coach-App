@@ -2,6 +2,32 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Sicherungen gegen unpassende Empfehlungen
+
+- **Frage des Nutzers:** Wie stellen wir sicher, dass Pläne, Vorschläge und Rezepte zu den Angaben passen und nicht
+  irreführen? Umgesetzt sind vier Sicherungen und ein Prüfbericht.
+- **Eingabeprüfung (`InputCheck`):** unplausible Körperdaten, Zielgewicht in die falsche Richtung, Wettkampf in der
+  Vergangenheit. Zielzeit bzw. Zielpace werden mit der Wettkampfprognose der Uhr verglichen (zwischen zwei Strecken
+  log-log interpoliert): bis 3 % schneller realistisch, bis 10 % ehrgeizig, darüber sehr ehrgeizig. Die Schwellen sind
+  Praxiswerte und als solche gekennzeichnet.
+- **Gewichtsverlauf (`WeightTrend`):** Formeln für den Energiebedarf liegen im Einzelfall oft daneben, und der Körper
+  reagiert verzögert (Hall et al. 2011, PMID 21872751). Die App vergleicht deshalb den Trend (lineare Regression über
+  28 Tage, mindestens 8 Wägungen über 14 Tage) mit dem geplanten Tempo und schlägt Anpassungen von höchstens 250 kcal
+  pro Schritt und ±500 kcal insgesamt vor; die Person übernimmt sie selbst. Abnehmen über 1 % pro Woche löst immer
+  „mehr essen“ aus. Tägliches Wiegen half beim Abnehmen (Steinberg et al. 2013, PMID 23512320; 2015, PMID 25683820).
+  Wägungen kommen manuell oder aus Garmin Connect (`/weight-service/weight/range/{start}/{end}?includeAll=true`,
+  Gewicht in Gramm; Pfad aus python-garminconnect 0.3.20, am echten Konto noch zu prüfen).
+- **Laufumfang (`LoadCheck`):** Warnung, wenn die letzten 7 Tage mehr als 30 % über dem Schnitt der drei Wochen davor
+  liegen und mindestens 5 km mehr sind (Nielsen et al. 2014, PMID 25155475; die 10-%-Regel schützte nicht, Buist et
+  al. 2007).
+- **Rezepte:** Zutaten mit versteckten Allergenen oder tierischen Bestandteilen (Pesto, Worcestersauce, Mayonnaise,
+  Fischsauce …) werden erkannt; Nährwerte je 100 g, die nicht zu 4/4/9 kcal je g passen oder physikalisch unmöglich
+  sind, führen zum Verwerfen des Rezepts.
+- **Prüfbericht (`coach-report`):** sechs Musterpersonen (u. a. Untergewicht mit Abnehmwunsch, vegane
+  Halbmarathonläuferin mit Nussallergie, Saisonplan) werden in jeder PR durchgerechnet; feste Schutzregeln
+  (REDs-Untergrenze, Abnehmtempo, Protein 1,4–2,2 g/kg, BMI-Sperre, Ruhetag, Pause bei schlechter Erholung,
+  Rezeptprüfung) müssen eingehalten sein, sonst schlagen die Tests fehl. Der Bericht steht als PR-Kommentar.
+
 ## 2026-10-26 – Einheiten ausführlich erklärt
 
 - **Wunsch des Nutzers:** Einheiten wie die Schwimmtrainings nicht nur kurz zusammenfassen, sondern in der App
