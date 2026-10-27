@@ -27,30 +27,30 @@ struct PlanDayActions: View {
 
   @ViewBuilder
   private func buttons(schedule: WeekSchedule, weekday: Weekday, options: [Weekday], note: String?) -> some View {
-      if !schedule.slots(on: weekday).isEmpty {
-        if !options.isEmpty {
-          Menu {
-            ForEach(options) { target in
-              Button(target == suggested ? "\(target.long) (empfohlen)" : target.long) {
-                model.reminders.move(day, to: target)
-              }
+    if !schedule.slots(on: weekday).isEmpty {
+      if !options.isEmpty {
+        Menu {
+          ForEach(options) { target in
+            Button(target == suggested ? "\(target.long) (empfohlen)" : target.long) {
+              model.reminders.move(day, to: target)
             }
-          } label: {
-            Label("Verschieben", systemImage: "arrow.turn.down.right")
           }
-          .buttonStyle(.bordered)
-        }
-        Button("Diese Woche auslassen", systemImage: "forward.end") {
-          model.reminders.skip(day)
+        } label: {
+          Label("Verschieben", systemImage: "arrow.turn.down.right")
         }
         .buttonStyle(.bordered)
       }
-      if note != nil {
-        Button("Rückgängig", systemImage: "arrow.uturn.backward") {
-          model.settings.planAdjustments.undo(weekday, inWeekOf: day)
-        }
-        .buttonStyle(.bordered)
+      Button("Diese Woche auslassen", systemImage: "forward.end") {
+        model.reminders.skip(day)
       }
+      .buttonStyle(.bordered)
+    }
+    if note != nil {
+      Button("Rückgängig", systemImage: "arrow.uturn.backward") {
+        model.settings.planAdjustments.undo(weekday, inWeekOf: day)
+      }
+      .buttonStyle(.bordered)
+    }
   }
 
   private func moveOptions(schedule: WeekSchedule) -> [Weekday] {
