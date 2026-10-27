@@ -68,7 +68,12 @@ public enum WorkoutEdits {
       candidate.id != exerciseID && candidate.group == current.group
         && candidate.equipment.contains { equipment.contains($0) || $0 == .bodyweight }
     }
-    .sorted { ($0.compound != current.compound, $0.name) < ($1.compound != current.compound, $1.name) }
+    .sorted { (rank($0, current), $0.name) < (rank($1, current), $1.name) }
+  }
+
+  /// Gleiche Art (Grund- oder Isolationsübung) zuerst.
+  private static func rank(_ candidate: ExerciseInfo, _ current: ExerciseInfo) -> Int {
+    candidate.compound == current.compound ? 0 : 1
   }
 
   /// Aufwärmsätze vor die Arbeitssätze setzen (nur, solange die Übung noch nicht begonnen ist).
