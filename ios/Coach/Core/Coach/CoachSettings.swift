@@ -20,6 +20,7 @@ final class CoachSettings {
   static let recipesKey = "coach.recipes"
   static let weightsKey = "coach.weights"
   static let sleepKey = "coach.sleep"
+  static let importedNotesKey = "coach.importedNotes"
 
   private let defaults: UserDefaults
 
@@ -91,6 +92,11 @@ final class CoachSettings {
     didSet { save(sleep, forKey: Self.sleepKey) }
   }
 
+  /// Hinweise aus dem letzten Import einer KI-Antwort (manueller KI-Coach).
+  var importedNotes: ImportedNotes? {
+    didSet { save(importedNotes, forKey: Self.importedNotesKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -138,6 +144,9 @@ final class CoachSettings {
     sleep =
       defaults.data(forKey: Self.sleepKey).flatMap { try? JSONDecoder().decode(SleepSettings.self, from: $0) }
       ?? SleepSettings()
+    importedNotes = defaults.data(forKey: Self.importedNotesKey).flatMap {
+      try? JSONDecoder().decode(ImportedNotes.self, from: $0)
+    }
     weights =
       defaults.data(forKey: Self.weightsKey).flatMap { try? JSONDecoder().decode([WeightEntry].self, from: $0) } ?? []
     var migrated = false
@@ -266,4 +275,10 @@ extension CalendarDay {
   var localDate: Date {
     Calendar.current.date(from: DateComponents(year: year, month: month, day: day, hour: 12)) ?? .now
   }
+}
+
+/// Hinweise einer externen KI mit Datum des Imports.
+struct ImportedNotes: Codable, Equatable, Hashable {
+  var day: CalendarDay
+  var texts: [String]
 }

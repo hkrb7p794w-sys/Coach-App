@@ -2,6 +2,19 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Manueller KI-Coach (Export und Import)
+
+- Export: eine Markdown-Datei je Zeitraum (7/30/90/365 Tage oder eigener Zeitraum) mit Profil, Plan, Routinen,
+  Tageswerten, Aktivitäten, Krafteinheiten mit allen Sätzen, Ernährung und Gewicht. Markdown, weil ChatGPT,
+  Gemini und Claude Tabellen und Text darin zuverlässig lesen; eine Datei, damit alles gebündelt hochgeladen wird.
+  Oben steht die Anleitung für die KI samt Antwortformat und unten die Liste der erlaubten Übungs-IDs.
+- Import: die Antwort einfügen; die App liest den Codeblock ```ironludi``` (JSON) mit `routinen`, `wochenplan`
+  und `hinweise`. Es gilt weiter „Regeln entscheiden“: dieselbe Prüfung wie beim KI-Trainingsplan
+  (`GymCoach.validatePlan`: bekannte Übungen, Ausstattung, Sätze 1–5, Pausen, Wochenvolumen), Wochenplan nur im
+  eigenen Plan mit `ScheduleCheck`-Hinweisen, Übernahme erst nach Vorschau. Ernährungsziele werden nicht
+  importiert, weil sie an die Schutzgrenzen (`GoalRules`) gebunden sind.
+- Die Export-Datei enthält Gesundheitsdaten; die App weist darauf hin und teilt sie nur über das iOS-Teilen-Menü.
+
 ## 2026-10-27 – „Heute“ aufgeräumt, Erinnerungen kennen Erledigtes
 
 - „Heute“ zeigt oben nur, was heute zählt: Empfehlung, Einheiten, Coach-Notiz, Warnungen, abends die

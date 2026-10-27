@@ -39,6 +39,8 @@ private struct SettingsForm: View {
           NavigationLink("Ernährung") { NutritionSettingsView() }
           NavigationLink("Begleiter & Rangliste") { MotivationSettingsView() }
           NavigationLink("Wissenschaftliche Grundlagen") { EvidenceLibraryView() }
+          NavigationLink("Daten für KI exportieren") { CoachExportView() }
+          NavigationLink("KI-Antwort importieren") { CoachImportView() }
         }
         Section("Diagnose") {
           NavigationLink("Garmin-Diagnose") { GarminDiagnosticsView() }
