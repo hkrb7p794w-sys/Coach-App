@@ -353,6 +353,9 @@ private struct ValueControl: View {
   let minus: () -> Void
   let plus: () -> Void
   let edit: () -> Void
+  /// Wächst mit der Schriftgröße der Person (Dynamic Type).
+  @ScaledMetric(relativeTo: .largeTitle) private var size = 52
+  @ScaledMetric(relativeTo: .largeTitle) private var height = 84
 
   var body: some View {
     HStack(spacing: 12) {
@@ -361,7 +364,7 @@ private struct ValueControl: View {
         VStack(spacing: 0) {
           HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(text)
-              .font(.system(size: text.count > 6 ? 30 : 52, weight: .bold, design: .rounded))
+              .font(.system(size: text.count > 6 ? size * 0.6 : size, weight: .bold, design: .rounded))
               .monospacedDigit()
               .minimumScaleFactor(0.5)
               .lineLimit(1)
@@ -369,7 +372,7 @@ private struct ValueControl: View {
           }
           Text(label).font(.caption).foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity, minHeight: 84)
+        .frame(maxWidth: .infinity, minHeight: height)
         .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 16))
       }
       .buttonStyle(.plain)
@@ -385,12 +388,13 @@ private struct RoundButton: View {
   let systemImage: String
   let label: String
   let action: () -> Void
+  @ScaledMetric(relativeTo: .title2) private var size = 60
 
   var body: some View {
     Button(action: action) {
       Image(systemName: systemImage)
         .font(.title2.bold())
-        .frame(width: 60, height: 60)
+        .frame(width: size, height: size)
         .background(.fill.tertiary, in: Circle())
     }
     .buttonStyle(.plain)
@@ -418,8 +422,11 @@ private struct ExerciseNotes: View {
       if let last = viewModel.lastTime(of: exercise.exerciseID) {
         Text(last)
       }
+      // Was die Progression für heute vorschlägt – sichtbar statt nur vorbefüllt.
       if let progress = viewModel.progress.first(where: { $0.exerciseID == exercise.exerciseID }) {
-        Text(progress.headline)
+        Text(GymTarget.text(for: progress, recovered: viewModel.recovered))
+          .font(.subheadline.weight(.medium))
+          .foregroundStyle(.primary)
       }
       let working = exercise.sets.filter { $0.kind != .warmup }.map(\.weightKg).max() ?? 0
       let shown = set.flatMap { exercise.sets[safe: $0]?.weightKg } ?? working
@@ -1121,12 +1128,29 @@ private struct FinishWorkoutSheet: View {
       Image(systemName: "checkmark.seal.fill").font(.system(size: 48)).foregroundStyle(.green)
       Text(finished.title).font(.title2.bold())
       SummaryGrid(summary: finished.summary)
+      if let change = finished.volumeChange {
+        Label(
+          "\(abs(change)) % \(change >= 0 ? "mehr" : "weniger") Volumen als beim letzten Mal",
+          systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right")
+        .font(.subheadline)
+      }
       if !finished.records.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
           Text("Bestleistungen").font(.headline)
           ForEach(finished.records, id: \.self) { record in
             Label(record, systemImage: "trophy.fill").foregroundStyle(.primary)
           }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      NextTimeList(exerciseIDs: finished.exerciseIDs, viewModel: viewModel)
+      if !viewModel.hints.isEmpty {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Hinweise").font(.headline)
+          ForEach(viewModel.hints, id: \.self) { hint in
+            Text("• \(hint)").font(.subheadline)
+          }
+          Text(viewModel.hintSource).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
@@ -1154,6 +1178,28 @@ private struct FinishWorkoutSheet: View {
     await viewModel.finish(
       context: context, writer: HealthWorkoutWriter(), garmin: model.garmin.connect, completingOpenSets: completing)
     await model.refreshReminders()
+  }
+}
+
+/// „Nächstes Mal“ je Übung: die Entscheidung der Progression, sobald die neue Einheit eingerechnet ist.
+private struct NextTimeList: View {
+  let exerciseIDs: [String]
+  let viewModel: GymViewModel
+
+  var body: some View {
+    let items = exerciseIDs.compactMap { id in viewModel.progress.first { $0.exerciseID == id } }
+    if !items.isEmpty {
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Nächstes Mal").font(.headline)
+        ForEach(items) { item in
+          VStack(alignment: .leading, spacing: 2) {
+            Text(item.name).font(.subheadline.bold())
+            Text(item.headline).font(.subheadline).foregroundStyle(.secondary)
+          }
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
   }
 }
 

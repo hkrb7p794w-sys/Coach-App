@@ -2,6 +2,21 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Gym: Start und Abschluss
+
+Dritter PR der UX-Prüfung:
+- **Ziel sichtbar**: Die Fokus-Karte zeigt, was die Progression vorschlägt („Ziel heute: 62,5 kg × 6–10 (+2,5 kg) –
+  letztes Mal 60 × 10/10/10“, `GymTarget`). Abweichungen muss niemand begründen: Die Progression rechnet ohnehin mit
+  dem, was tatsächlich eingetragen wird.
+- **Nächste Einheit**: eine Karte mit großem Start-Knopf; im persönlichen Modus die Routine nach der zuletzt trainierten
+  (`RoutineRotation`), mit Dauer und Hinweis „Beine seit n Tagen“. Andere Routinen als Leiste darunter.
+- **Abschluss**: Volumen gegenüber der letzten gleichen Einheit, „Nächstes Mal“ je Übung und die Hinweise (KI oder
+  Regeln) – sie stehen nicht mehr vor dem Training auf der Startseite.
+- **Auswertung** als eigene Seite: Kalender (Einheiten je Woche, Serie), Hinweise, Fortschritt, Sätze je Muskel. Die
+  Startseite zeigt nur noch die letzten 3 Einheiten, der ganze Verlauf liegt dahinter.
+- **Fokus per Kurzbefehl** schaltet erst nach dem ersten Satz ein – der kurze App-Wechsel fällt in die Pause.
+- **Große Schrift**: Werte und ± Knöpfe wachsen mit Dynamic Type (`@ScaledMetric`).
+
 ## 2026-10-27 – Gym: Satzarten, Supersätze, Gerät belegt
 
 Zweiter PR der UX-Prüfung:

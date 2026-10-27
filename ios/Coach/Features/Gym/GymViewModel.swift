@@ -481,7 +481,10 @@ final class GymViewModel {
     }
     message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
     finished = FinishedWorkout(
-      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status)
+      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status,
+      exerciseIDs: session.exercises.map(\.exerciseID),
+      volumeChange: SessionComparison.volumeChangePercent(
+        session, previous: SessionComparison.previous(of: session, in: sessions)))
     return record
   }
 
@@ -549,6 +552,10 @@ struct FinishedWorkout: Equatable {
   var summary: WorkoutFlow.Summary
   var records: [String]
   var status: String
+  /// Für „Nächstes Mal“ (Progression nach dem Speichern).
+  var exerciseIDs: [String] = []
+  /// Volumen gegenüber der letzten gleichen Einheit in %.
+  var volumeChange: Int?
 }
 
 extension Array {

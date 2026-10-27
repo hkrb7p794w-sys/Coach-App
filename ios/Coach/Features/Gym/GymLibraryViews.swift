@@ -312,8 +312,8 @@ struct EquipmentSettingsView: View {
           "iOS lässt Apps den Fokus nicht selbst schalten – das übernehmen zwei Kurzbefehle. Einmal einrichten: "
             + "Kurzbefehle-App › + › Aktion „Fokus festlegen“ › Fokus (z. B. „Fitness“ oder „Nicht stören“) "
             + "einschalten, Name „\(WorkoutFocus.onShortcut)“. Einen zweiten mit „ausschalten“ und dem Namen "
-            + "„\(WorkoutFocus.offShortcut)“. Beim Start und beim Beenden einer Einheit wechselt IronLudi kurz in "
-            + "die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus durchkommen, legst du in "
+            + "„\(WorkoutFocus.offShortcut)“. Nach dem ersten erledigten Satz (also in der Pause) und beim Beenden "
+            + "wechselt IronLudi kurz in die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus durchkommen, legst du in "
             + "Einstellungen › Fokus fest.")
       }
       Section {
