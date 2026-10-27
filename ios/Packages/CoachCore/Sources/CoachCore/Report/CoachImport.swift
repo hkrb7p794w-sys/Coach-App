@@ -166,3 +166,120 @@ public enum CoachImport {
     }
   }
 }
+
+// MARK: - Auswahl
+
+extension CoachImport {
+  /// Was mit einer vorgeschlagenen Routine passiert.
+  public enum RoutineChoice: String, CaseIterable, Sendable, Identifiable {
+    /// Gleichnamige bestehende Routine überschreiben.
+    case replace
+    /// Zusätzlich anlegen; bestehende bleiben unverändert.
+    case add
+    /// Nicht übernehmen.
+    case skip
+
+    public var id: String { rawValue }
+
+    public var label: String {
+      switch self {
+      case .replace: "Bestehende ersetzen"
+      case .add: "Zusätzlich anlegen"
+      case .skip: "Nicht übernehmen"
+      }
+    }
+  }
+
+  /// Entscheidung der Person, was aus dem Vorschlag übernommen wird.
+  public struct Selection: Equatable, Sendable {
+    public var routines: [UUID: RoutineChoice] = [:]
+    /// Alle bisherigen Routinen löschen und nur die übernommenen behalten.
+    public var replaceAllRoutines = false
+    public var schedule = true
+    public var scheduleScope: ScheduleScope = .permanent
+    /// Tage, deren Vorschlag übernommen wird (die anderen bleiben wie bisher).
+    public var scheduleDays: Set<Weekday> = []
+    /// Indizes der übernommenen Hinweise.
+    public var notes: Set<Int> = []
+
+    public init() {}
+
+    /// Vorschlag: gleichnamige Routinen ersetzen, neue hinzufügen; Wochenplan und Hinweise wie von der KI.
+    public static func defaults(
+      for preview: Preview, existing: [Routine], currentSchedule: WeekSchedule = WeekSchedule()
+    ) -> Selection {
+      var selection = Selection()
+      let names = Set(existing.map(\.name))
+      for routine in preview.routines {
+        selection.routines[routine.id] = names.contains(routine.name) ? .replace : .add
+      }
+      selection.replaceAllRoutines = preview.routineMode == .replace
+      selection.schedule = preview.schedule != nil
+      selection.scheduleScope = preview.scheduleScope
+      if let schedule = preview.schedule {
+        selection.scheduleDays = Set(changedDays(schedule, from: currentSchedule))
+      }
+      selection.notes = Set(preview.notes.indices)
+      return selection
+    }
+
+    public func choice(for routine: Routine) -> RoutineChoice { routines[routine.id] ?? .add }
+  }
+
+  /// Routinen nach der Auswahl. Beim Hinzufügen bekommt ein schon vorhandener Name den Zusatz „(KI)“.
+  public static func routines(_ preview: Preview, selection: Selection, existing: [Routine]) -> [Routine] {
+    var result = selection.replaceAllRoutines ? [] : existing
+    for routine in preview.routines {
+      switch selection.choice(for: routine) {
+      case .skip:
+        continue
+      case .replace:
+        if let index = result.firstIndex(where: { $0.name == routine.name }) {
+          result[index] = routine
+        } else {
+          result.append(routine)
+        }
+      case .add:
+        var routine = routine
+        let names = Set(result.map(\.name))
+        if names.contains(routine.name) {
+          var counter = 1
+          var name = "\(routine.name) (KI)"
+          while names.contains(name) {
+            counter += 1
+            name = "\(routine.name) (KI \(counter))"
+          }
+          routine.name = name
+        }
+        result.append(routine)
+      }
+    }
+    return result
+  }
+
+  /// Tage, an denen der Vorschlag vom bisherigen Plan abweicht.
+  public static func changedDays(_ proposal: WeekSchedule, from current: WeekSchedule) -> [Weekday] {
+    Weekday.allCases.filter { proposal.slots(on: $0) != current.slots(on: $0) }
+  }
+
+  /// Wochenplan nach der Auswahl: gewählte Tage aus dem Vorschlag, die anderen wie bisher.
+  public static func schedule(_ preview: Preview, selection: Selection, current: WeekSchedule) -> WeekSchedule? {
+    guard selection.schedule, let proposal = preview.schedule else { return nil }
+    var result = current
+    for weekday in selection.scheduleDays { result.set(proposal.slots(on: weekday), on: weekday) }
+    return result == current ? nil : result
+  }
+
+  /// Übernommene Hinweise in der Reihenfolge der KI.
+  public static func notes(_ preview: Preview, selection: Selection) -> [String] {
+    preview.notes.indices.filter { selection.notes.contains($0) }.map { preview.notes[$0] }
+  }
+
+  /// Gibt es überhaupt etwas zu übernehmen?
+  public static func hasChanges(_ preview: Preview, selection: Selection) -> Bool {
+    selection.replaceAllRoutines
+      || preview.routines.contains { selection.choice(for: $0) != .skip }
+      || (selection.schedule && preview.schedule != nil && !selection.scheduleDays.isEmpty)
+      || !selection.notes.isEmpty
+  }
+}

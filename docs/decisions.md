@@ -14,6 +14,9 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   eigenen Plan mit `ScheduleCheck`-Hinweisen, Übernahme erst nach Vorschau. Ernährungsziele werden nicht
   importiert, weil sie an die Schutzgrenzen (`GoalRules`) gebunden sind.
 - Die Export-Datei enthält Gesundheitsdaten; die App weist darauf hin und teilt sie nur über das iOS-Teilen-Menü.
+- Übernommen wird nur, was die Person auswählt (`CoachImport.Selection`): je Routine „bestehende ersetzen“, „zusätzlich
+  anlegen“ (bei gleichem Namen mit Zusatz „(KI)“) oder „nicht übernehmen“, optional alle bisherigen löschen; beim
+  Wochenplan je geändertem Tag mit Vergleich bisher/neu und Wahl dauerhaft oder nur nächste Woche; Hinweise einzeln.
 
 ## 2026-10-27 – „Heute“ aufgeräumt, Erinnerungen kennen Erledigtes
 

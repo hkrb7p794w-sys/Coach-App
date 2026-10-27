@@ -104,3 +104,67 @@ struct CoachExportImportTests {
     #expect(notes == ["Mehr trinken"])
   }
 }
+
+struct CoachImportSelectionTests {
+  func routine(_ name: String) -> Routine {
+    let item = RoutineItem(
+      exerciseID: "bankdruecken", name: "Bankdrücken", sets: 3, lowerReps: 6, upperReps: 10, restSeconds: 120)
+    return Routine(name: name, items: [item])
+  }
+
+  @Test func defaultsReplaceSameNameAndAddNew() {
+    let existing = [routine("Push A"), routine("Lower")]
+    var preview = CoachImport.Preview()
+    preview.routines = [routine("Push A"), routine("Ganzkörper")]
+    preview.notes = ["a", "b"]
+    let selection = CoachImport.Selection.defaults(for: preview, existing: existing)
+    #expect(selection.choice(for: preview.routines[0]) == .replace)
+    #expect(selection.choice(for: preview.routines[1]) == .add)
+    let result = CoachImport.routines(preview, selection: selection, existing: existing)
+    #expect(result.map(\.name) == ["Push A", "Lower", "Ganzkörper"])
+    #expect(result[0].id == preview.routines[0].id)
+    #expect(CoachImport.notes(preview, selection: selection) == ["a", "b"])
+  }
+
+  @Test func personDecidesPerItem() {
+    let existing = [routine("Push A"), routine("Lower")]
+    var preview = CoachImport.Preview()
+    preview.routines = [routine("Push A"), routine("Ganzkörper")]
+    preview.notes = ["a", "b"]
+    var selection = CoachImport.Selection.defaults(for: preview, existing: existing)
+    selection.routines[preview.routines[0].id] = .add
+    selection.routines[preview.routines[1].id] = .skip
+    selection.notes = [1]
+    let result = CoachImport.routines(preview, selection: selection, existing: existing)
+    #expect(result.map(\.name) == ["Push A", "Lower", "Push A (KI)"])
+    #expect(result[0].id == existing[0].id)
+    #expect(CoachImport.notes(preview, selection: selection) == ["b"])
+
+    selection.replaceAllRoutines = true
+    #expect(CoachImport.routines(preview, selection: selection, existing: existing).map(\.name) == ["Push A"])
+
+    var nothing = CoachImport.Selection()
+    nothing.schedule = false
+    for routine in preview.routines { nothing.routines[routine.id] = .skip }
+    #expect(!CoachImport.hasChanges(preview, selection: nothing))
+  }
+
+  @Test func scheduleOnlyChosenDays() {
+    var current = WeekSchedule()
+    current.set([SessionSlot(.run)], on: .tuesday)
+    current.set([SessionSlot(.strength)], on: .thursday)
+    var proposal = current
+    proposal.set([SessionSlot(.run, .hard)], on: .tuesday)
+    proposal.set([], on: .thursday)
+    var preview = CoachImport.Preview()
+    preview.schedule = proposal
+    var selection = CoachImport.Selection.defaults(for: preview, existing: [], currentSchedule: current)
+    #expect(selection.scheduleDays == [.tuesday, .thursday])
+    selection.scheduleDays = [.tuesday]
+    let result = CoachImport.schedule(preview, selection: selection, current: current)
+    #expect(result?.slots(on: .tuesday) == [SessionSlot(.run, .hard)])
+    #expect(result?.slots(on: .thursday) == [SessionSlot(.strength)])
+    selection.scheduleDays = []
+    #expect(CoachImport.schedule(preview, selection: selection, current: current) == nil)
+  }
+}
