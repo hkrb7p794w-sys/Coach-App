@@ -42,6 +42,9 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
   public var trainingReadinessLevel: String?
   public var trainingStatus: String?
   public var enduranceScore: Double?
+  /// Einschlaf- und Aufwachzeit in Minuten nach Mitternacht (Ortszeit), z. B. 23:30 → 1410.
+  public var sleepStartMinutes: Double?
+  public var sleepEndMinutes: Double?
 
   public init(day: CalendarDay) {
     self.day = day
@@ -86,6 +89,8 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
     result.trainingReadinessLevel = other.trainingReadinessLevel ?? trainingReadinessLevel
     result.trainingStatus = other.trainingStatus ?? trainingStatus
     result.enduranceScore = other.enduranceScore ?? enduranceScore
+    result.sleepStartMinutes = other.sleepStartMinutes ?? sleepStartMinutes
+    result.sleepEndMinutes = other.sleepEndMinutes ?? sleepEndMinutes
     return result
   }
 
@@ -160,7 +165,29 @@ public enum GarminMetricsParser {
       metrics.spo2Average = positive(record.first("averageSpO2Value", "averageSpo2Value"))
       metrics.spo2Lowest = positive(record.first("lowestSpO2Value", "lowestSpo2Value"))
       metrics.sleepStress = nonNegative(record.first("avgSleepStress"))
+      // Connect: `sleepStartTimestampLocal` (ms, Ortszeit als UTC kodiert); Personal API: Start in s + Versatz.
+      if let local = record.first("sleepStartTimestampLocal")?.doubleValue {
+        metrics.sleepStartMinutes = minutesOfDay(milliseconds: local)
+      } else if let start = record.first("startTimeInSeconds")?.doubleValue {
+        metrics.sleepStartMinutes = minutesOfDay(
+          milliseconds: (start + (record.first("startTimeOffsetInSeconds")?.doubleValue ?? 0)) * 1000)
+      }
+      if let local = record.first("sleepEndTimestampLocal")?.doubleValue {
+        metrics.sleepEndMinutes = minutesOfDay(milliseconds: local)
+      } else if let start = record.first("startTimeInSeconds")?.doubleValue,
+        let duration = record.first("durationInSeconds")?.doubleValue
+      {
+        let offset = record.first("startTimeOffsetInSeconds")?.doubleValue ?? 0
+        metrics.sleepEndMinutes = minutesOfDay(milliseconds: (start + duration + offset) * 1000)
+      }
     }
+  }
+
+  /// Minuten nach Mitternacht aus einem Zeitstempel, dessen Uhrzeit bereits Ortszeit ist.
+  static func minutesOfDay(milliseconds: Double) -> Double? {
+    guard milliseconds > 0 else { return nil }
+    let seconds = (milliseconds / 1000).truncatingRemainder(dividingBy: 86_400)
+    return (seconds / 60).rounded()
   }
 
   /// `/wellness-service/wellness/bodyBattery/reports/daily`: je Tag ggf. eine Werteliste

@@ -5,6 +5,8 @@
  *
  * Regel aus dem Altbestand: Die Regeln entscheiden, die KI formuliert nur.
  */
+
+import { CHAT_SYSTEM, chatPrompt, groundChat } from "./chat";
 import {
   evidenceBlock,
   evidenceFrom,
@@ -147,6 +149,14 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.2,
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: gymHintsPrompt(input) }),
     ground: groundedPoints,
+  },
+  /** Chat mit dem Coach, nur aus den Fakten der App. */
+  coach_chat: {
+    json: true,
+    allowImages: false,
+    temperature: 0.3,
+    build: (input) => ({ system: CHAT_SYSTEM, prompt: chatPrompt(input) }),
+    ground: groundChat,
   },
   /** Rezeptideen für die kommende Woche zu den Tageszielen der App. */
   weekly_recipes: {

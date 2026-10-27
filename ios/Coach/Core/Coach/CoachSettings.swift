@@ -19,6 +19,7 @@ final class CoachSettings {
   static let gymKey = "coach.gym"
   static let recipesKey = "coach.recipes"
   static let weightsKey = "coach.weights"
+  static let sleepKey = "coach.sleep"
 
   private let defaults: UserDefaults
 
@@ -85,6 +86,11 @@ final class CoachSettings {
     didSet { save(weights, forKey: Self.weightsKey) }
   }
 
+  /// Schlaf-Coach: Ziel, Weckzeit, Erinnerung.
+  var sleep: SleepSettings {
+    didSet { save(sleep, forKey: Self.sleepKey) }
+  }
+
   /// Eigene HFmax und Schwellen-HF (0 = automatisch).
   var heartRate: HeartRateOverrides {
     didSet { save(heartRate, forKey: Self.heartRateKey) }
@@ -129,6 +135,9 @@ final class CoachSettings {
     recipes =
       defaults.data(forKey: Self.recipesKey).flatMap { try? JSONDecoder().decode(RecipePreferences.self, from: $0) }
       ?? RecipePreferences()
+    sleep =
+      defaults.data(forKey: Self.sleepKey).flatMap { try? JSONDecoder().decode(SleepSettings.self, from: $0) }
+      ?? SleepSettings()
     weights =
       defaults.data(forKey: Self.weightsKey).flatMap { try? JSONDecoder().decode([WeightEntry].self, from: $0) } ?? []
     var migrated = false

@@ -74,6 +74,7 @@ enum DemoData {
       metrics.hrvBaselineHigh = 70
       metrics.sleepSeconds = (7.2 + wave * 0.08) * 3_600
       metrics.sleepScore = 78 + wave
+      metrics.sleepStartMinutes = (1_380 + wave * 9).truncatingRemainder(dividingBy: 1_440)
       metrics.bodyBatteryHigh = 88 + wave
       metrics.bodyBatteryLow = 22
       metrics.bodyBatteryLatest = 64

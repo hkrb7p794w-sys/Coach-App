@@ -10,6 +10,7 @@ struct TodayView: View {
   @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
   @State private var viewModel = TodayViewModel()
   @State private var showSettings = false
+  @State private var showChat = false
 
   private var refreshKey: String {
     let settings = model.settings
@@ -35,6 +36,7 @@ struct TodayView: View {
             snapshot: snapshot, activities: activities.compactMap(\.activity),
             gymDays: Set(gymSessions.compactMap { $0.session?.day }))
           LoadWarningSection(activities: activities.compactMap(\.activity), today: snapshot.plan.today)
+          SleepTonightSection(days: days.compactMap(\.metrics))
           if model.settings.profile.mode == .season {
             RecommendationSection(snapshot: snapshot)
             if let today = snapshot.today {
@@ -65,10 +67,14 @@ struct TodayView: View {
       .navigationTitle("Heute")
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
+          Button("Coach fragen", systemImage: "bubble.left.and.text.bubble.right") { showChat = true }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
           Button("Einstellungen", systemImage: "gearshape") { showSettings = true }
         }
       }
       .sheet(isPresented: $showSettings) { SettingsView() }
+      .sheet(isPresented: $showChat) { ChatView(snapshot: viewModel.snapshot) }
       .refreshable {
         await model.syncNow()
         if model.settings.profile.mode == .season {
