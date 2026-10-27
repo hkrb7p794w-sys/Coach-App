@@ -105,6 +105,10 @@ struct GymView: View {
         guard model.settings.gym.focusShortcuts, let url = WorkoutFocus.url(turningOn: isActive) else { return }
         UIApplication.shared.open(url)
       }
+      // Bildschirm an, solange eine Einheit läuft – auch wenn sie gerade ausgeblendet ist.
+      .onChange(of: viewModel.active != nil && model.settings.gym.keepsScreenOn, initial: true) { _, on in
+        UIApplication.shared.isIdleTimerDisabled = on
+      }
     }
   }
 }

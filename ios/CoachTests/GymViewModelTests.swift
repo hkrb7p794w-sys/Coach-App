@@ -123,4 +123,42 @@ struct GymViewModelTests {
     #expect(viewModel.active?.exercises.first?.sets.first?.rir == 2)
     #expect(viewModel.hints.isEmpty == false)
   }
+
+  @Test func uncheckKeepsRestAndCanBeUndone() throws {
+    let viewModel = try makeViewModel()
+    viewModel.update(sessions: [], activities: [], days: [], now: now)
+    viewModel.startEmpty(now: now)
+    let bench = try #require(ExerciseLibrary.byID["bankdruecken"])
+    viewModel.addExercise(bench)
+    let exercise = try #require(viewModel.active?.exercises.first)
+    viewModel.complete(set: 0, of: exercise.id, now: now)
+    viewModel.complete(set: 1, of: exercise.id, now: now)
+    let rest = viewModel.restEndsAt
+    #expect(rest != nil)
+
+    // Versehentlich den ersten Satz ent-haken: Pause läuft weiter, Rückgängig stellt ihn wieder her.
+    viewModel.toggleDone(set: 0, of: exercise.id, now: now)
+    #expect(viewModel.restEndsAt == rest)
+    #expect(viewModel.active?.exercises.first?.sets[0].done == false)
+    #expect(viewModel.undoLabel == "Satz 1 wieder offen")
+    viewModel.undo()
+    #expect(viewModel.active?.exercises.first?.sets[0].done == true)
+    #expect(viewModel.undoLabel == nil)
+  }
+
+  @Test func finishCanCompleteForgottenSets() async throws {
+    let viewModel = try makeViewModel()
+    let container = CoachSchema.makeContainer(inMemory: true)
+    viewModel.update(sessions: [], activities: [], days: [], now: now)
+    viewModel.startEmpty(now: now)
+    let bench = try #require(ExerciseLibrary.byID["bankdruecken"])
+    viewModel.addExercise(bench)
+    let exercise = try #require(viewModel.active?.exercises.first)
+    viewModel.complete(set: 0, of: exercise.id, now: now)
+    await viewModel.finish(
+      context: container.mainContext, writer: StubWriter(), completingOpenSets: true, now: now.addingTimeInterval(1800))
+    #expect(viewModel.active == nil)
+    #expect(viewModel.finished?.summary.doneSets == 3)
+    #expect(viewModel.finished?.summary.minutes == 30)
+  }
 }
