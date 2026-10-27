@@ -186,10 +186,11 @@ public enum CoachExport {
       "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for day in days {
-      let cells = [
+      let values: [Double?] = [
         day.restingHeartRate, day.hrvLastNightAverage, day.sleepHours, day.sleepScore, day.bodyBatteryHigh,
         day.stressAverage, day.steps, day.activeKilocalories, day.vo2Max,
-      ].map { $0.map(number) ?? "–" }
+      ]
+      let cells: [String] = values.map { value in value.map(number) ?? "–" }
       lines.append("| \(day.day.iso) | " + cells.joined(separator: " | ") + " |")
     }
     lines.append("")
@@ -204,13 +205,14 @@ public enum CoachExport {
       "|---|---|---|---|---|---|---|---|---|",
     ]
     for activity in activities {
-      let cells = [
-        activity.startLocal ?? "–", activity.typeKey ?? "–", activity.name ?? "–",
-        activity.durationSeconds.map { number(($0 / 60).rounded()) } ?? "–",
-        activity.distanceMeters.map { number(($0 / 10).rounded() / 100) } ?? "–",
-        activity.averageHeartRate.map(number) ?? "–", activity.maxHeartRate.map(number) ?? "–",
-        activity.trainingLoad.map(number) ?? "–", activity.aerobicTrainingEffect.map(number) ?? "–",
+      let minutes = activity.durationSeconds.map { ($0 / 60).rounded() }
+      let kilometers = activity.distanceMeters.map { ($0 / 10).rounded() / 100 }
+      let numbers: [Double?] = [
+        minutes, kilometers, activity.averageHeartRate, activity.maxHeartRate, activity.trainingLoad,
+        activity.aerobicTrainingEffect,
       ]
+      let texts: [String] = [activity.startLocal ?? "–", activity.typeKey ?? "–", activity.name ?? "–"]
+      let cells: [String] = texts + numbers.map { value in value.map(number) ?? "–" }
       lines.append("| " + cells.map { $0.replacingOccurrences(of: "|", with: "/") }.joined(separator: " | ") + " |")
     }
     lines.append("")

@@ -122,9 +122,11 @@ public enum CoachImport {
           schedule.set(slots, on: weekday)
         }
         preview.schedule = schedule
-        let missing = Set(TrainingSport.allCases.filter { sport in
-          Weekday.allCases.contains { schedule.slots(on: $0).contains { $0.sport == sport } }
-        }).subtracting(profile.sports)
+        let missing = Set(
+          TrainingSport.allCases.filter { sport in
+            Weekday.allCases.contains { schedule.slots(on: $0).contains { $0.sport == sport } }
+          }
+        ).subtracting(profile.sports)
         for sport in missing.sorted(by: { $0.rawValue < $1.rawValue }) {
           preview.ruleNotes.append("\(sport.label) steht im Plan, ist aber nicht in deinem Profil gewählt.")
         }
