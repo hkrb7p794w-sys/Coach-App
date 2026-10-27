@@ -284,6 +284,8 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var uploadsToGarmin: Bool = true
   /// Fokus „Nicht stören“ bzw. „Fitness“ per Kurzbefehl ein- und ausschalten (`WorkoutFocus`).
   public var focusShortcuts: Bool = false
+  /// Bildschirm während der Einheit nicht sperren.
+  public var keepsScreenOn: Bool = true
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -303,6 +305,7 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     tracksRIR = (try? container.decodeIfPresent(Bool.self, forKey: .tracksRIR)) ?? true
     uploadsToGarmin = (try? container.decodeIfPresent(Bool.self, forKey: .uploadsToGarmin)) ?? true
     focusShortcuts = (try? container.decodeIfPresent(Bool.self, forKey: .focusShortcuts)) ?? false
+    keepsScreenOn = (try? container.decodeIfPresent(Bool.self, forKey: .keepsScreenOn)) ?? true
   }
 
   /// Übung zur ID inklusive eigener Übungen.

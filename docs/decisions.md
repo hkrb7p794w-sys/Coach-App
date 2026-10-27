@@ -2,6 +2,22 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Gym im Training: Fokus-Karte statt Formular
+
+Ergebnis der UX-Prüfung (drei PRs, dies ist der erste):
+- **Fokus-Karte** als Standard: nur der nächste offene Satz, Gewicht und Wiederholungen groß, ± Knöpfe mit 60 pt,
+  „Satz erledigt“ im Daumenbereich. Danach springt die Karte selbst weiter (`WorkoutFlow`, getestet); übersprungene
+  Übungen kommen am Ende dran. Die Liste aller Übungen bleibt per Umschalter erreichbar.
+- **Ziffernblock** statt Stepper: Tippen auf eine Zahl öffnet einen großen Block mit Schnelltasten (±Schritt,
+  +5, +10, „wie Satz n“). 60 → 80 kg sind 3 statt 8 Tipps.
+- **RIR** ist keine Pflicht mehr nach jedem Satz, sondern eine freiwillige Frage mit großen Knöpfen in der Pause.
+- **Ent-Haken** beendet keine laufende Pause mehr und lässt sich (wie Satz/Übung löschen) rückgängig machen.
+- **Beenden** speichert nicht mehr sofort: Zusammenfassung, vergessene Sätze (eingetragen, nicht abgehakt) lassen
+  sich übernehmen; danach Bestleistungen und Status.
+- **Bildschirm an** während der Einheit (`isIdleTimerDisabled`, abschaltbar), Vibration beim Abhaken und am
+  Pausenende. Apple: <https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled>,
+  <https://developer.apple.com/documentation/swiftui/view/sensoryfeedback(_:trigger:)>.
+
 ## 2026-10-27 – Eigene wissenschaftliche Quellen
 
 - Einstellungen › Coach › „Eigene wissenschaftliche Quellen“: Kurzbeleg, DOI/PMID/Link, Kernaussage (höchstens

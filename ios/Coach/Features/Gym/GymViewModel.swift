@@ -22,6 +22,17 @@ final class GymViewModel {
   private(set) var active: GymSession?
   /// Pausenende nach dem letzten abgehakten Satz.
   private(set) var restEndsAt: Date?
+  /// Länge der laufenden Pause (für den Fortschrittsring).
+  private(set) var restSeconds = 0
+  /// Zuletzt abgehakter Satz – in der Pause wird dafür RIR abgefragt.
+  private(set) var lastDone: (exercise: UUID, set: Int)?
+  /// Übung, die die Person auf der Fokus-Karte gewählt hat (`nil` = automatisch der nächste offene Satz).
+  var focusExerciseID: UUID?
+  /// Rückgängig für die letzte Änderung, die etwas wegnimmt (Ent-Haken, Satz oder Übung löschen).
+  private(set) var undoLabel: String?
+  private var undoSession: GymSession?
+  /// Ergebnis der zuletzt beendeten Einheit (Abschluss-Bildschirm).
+  private(set) var finished: FinishedWorkout?
   var message: String?
   private(set) var isSaving = false
   /// KI-Hinweise zur Gewichtssteigerung (oder regelbasierter Ersatz).
@@ -198,8 +209,10 @@ final class GymViewModel {
   }
 
   func removeExercise(_ id: UUID) {
-    guard var session = active else { return }
+    guard var session = active, let exercise = session.exercises.first(where: { $0.id == id }) else { return }
+    rememberUndo("\(exercise.name) entfernt")
     session.exercises.removeAll { $0.id == id }
+    if focusExerciseID == id { focusExerciseID = nil }
     setActive(session)
   }
 
@@ -211,6 +224,7 @@ final class GymViewModel {
   }
 
   func removeSet(_ index: Int, from exerciseID: UUID) {
+    rememberUndo("Satz \(index + 1) gelöscht")
     mutate(exerciseID) { exercise in
       if exercise.sets.indices.contains(index) { exercise.sets.remove(at: index) }
     }
@@ -234,15 +248,51 @@ final class GymViewModel {
     }
   }
 
+  /// Abhaken startet die Pause; Ent-Haken lässt eine laufende Pause in Ruhe und lässt sich rückgängig machen.
   func toggleDone(set index: Int, of exerciseID: UUID, now: Date = .now) {
+    guard let exercise = active?.exercises.first(where: { $0.id == exerciseID }),
+      exercise.sets.indices.contains(index)
+    else { return }
+    if exercise.sets[index].done {
+      rememberUndo("Satz \(index + 1) wieder offen")
+      mutate(exerciseID) { $0.sets[index].done = false }
+      if lastDone?.exercise == exerciseID, lastDone?.set == index { lastDone = nil }
+    } else {
+      complete(set: index, of: exerciseID, now: now)
+    }
+  }
+
+  /// „Satz erledigt“: abhaken, Pause starten, Fokus bleibt bei der Übung.
+  func complete(set index: Int, of exerciseID: UUID, now: Date = .now) {
     var rest: Int?
     mutate(exerciseID) { exercise in
-      guard exercise.sets.indices.contains(index) else { return }
-      exercise.sets[index].done.toggle()
-      if exercise.sets[index].done { rest = exercise.restSeconds }
+      guard exercise.sets.indices.contains(index), !exercise.sets[index].done else { return }
+      exercise.sets[index].done = true
+      rest = exercise.restSeconds
     }
-    restEndsAt = rest.map { now.addingTimeInterval(TimeInterval($0)) }
+    guard let rest, let session = active else { return }
+    lastDone = (exerciseID, index)
+    // Übung fertig: weiter mit der nächsten offenen ab hier; alles fertig: Abschluss.
+    focusExerciseID = WorkoutFlow.current(in: session, preferring: exerciseID).map { session.exercises[$0.exercise].id }
+    restSeconds = rest
+    restEndsAt = now.addingTimeInterval(TimeInterval(rest))
     RestAlarm.schedule(at: restEndsAt)
+  }
+
+  func undo() {
+    guard let undoSession else { return }
+    setActive(undoSession)
+    clearUndo()
+  }
+
+  func clearUndo() {
+    undoLabel = nil
+    undoSession = nil
+  }
+
+  private func rememberUndo(_ label: String) {
+    undoSession = active
+    undoLabel = label
   }
 
   func skipRest() {
@@ -250,26 +300,51 @@ final class GymViewModel {
     RestAlarm.schedule(at: nil)
   }
 
+  /// Zählt hoch, wenn eine Pause im Vordergrund abläuft (Vibration).
+  private(set) var restFinishedCount = 0
+
+  /// Pause im Vordergrund abgelaufen: Banner weg, kurze Vibration statt Mitteilung.
+  func restFinished() {
+    restEndsAt = nil
+    RestAlarm.schedule(at: nil)
+    restFinishedCount += 1
+  }
+
   /// Laufende Pause verlängern oder verkürzen (z. B. ±15 Sekunden).
   func adjustRest(by seconds: TimeInterval, now: Date = .now) {
     guard let end = restEndsAt else { return }
     let adjusted = end.addingTimeInterval(seconds)
     restEndsAt = adjusted > now ? adjusted : nil
+    restSeconds = max(0, restSeconds + Int(seconds))
     RestAlarm.schedule(at: restEndsAt)
   }
 
   func cancelActive() {
     setActive(nil)
-    restEndsAt = nil
+    resetFlow()
     RestAlarm.schedule(at: nil)
+  }
+
+  private func resetFlow() {
+    restEndsAt = nil
+    lastDone = nil
+    focusExerciseID = nil
+    clearUndo()
+  }
+
+  /// Nach dem Abschluss-Bildschirm.
+  func dismissFinished() {
+    finished = nil
   }
 
   /// Speichert die Einheit lokal und – wenn möglich – in Apple Health.
   @discardableResult
   func finish(
-    context: ModelContext, writer: any WorkoutSaving, garmin: GarminConnectSession? = nil, now: Date = .now
+    context: ModelContext, writer: any WorkoutSaving, garmin: GarminConnectSession? = nil,
+    completingOpenSets: Bool = false, now: Date = .now
   ) async -> GymSessionRecord? {
     guard var session = active else { return nil }
+    if completingOpenSets { session = WorkoutFlow.completingOpenSets(session) }
     session.exercises = session.exercises.compactMap { exercise in
       var exercise = exercise
       exercise.sets = exercise.doneSets
@@ -292,13 +367,16 @@ final class GymViewModel {
       return nil
     }
     setActive(nil)
-    restEndsAt = nil
+    resetFlow()
+    RestAlarm.schedule(at: nil)
     let records = GymStats.newRecords(in: session, before: sessions)
     var status = await Self.saveToHealth(record, session: session, context: context, writer: writer)
     if gym.uploadsToGarmin, let garmin, garmin.isLoggedIn {
       status += "\n" + (await Self.uploadToGarmin(record, session: session, context: context, garmin: garmin))
     }
     message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
+    finished = FinishedWorkout(
+      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status)
     return record
   }
 
@@ -358,6 +436,14 @@ final class GymViewModel {
   func history(of exerciseID: String) -> [GymStats.Point] {
     GymStats.history(of: exerciseID, sessions: sessions)
   }
+}
+
+/// Was der Abschluss-Bildschirm nach dem Speichern zeigt.
+struct FinishedWorkout: Equatable {
+  var title: String
+  var summary: WorkoutFlow.Summary
+  var records: [String]
+  var status: String
 }
 
 extension Array {

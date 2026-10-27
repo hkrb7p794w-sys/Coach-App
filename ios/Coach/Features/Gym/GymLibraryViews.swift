@@ -268,8 +268,14 @@ struct EquipmentSettingsView: View {
         Toggle("Wiederholungen in Reserve abfragen", isOn: $settings.gym.tracksRIR)
       } footer: {
         Text(
-          "Nach jedem Satz kurz schätzen, wie viele Wiederholungen noch gegangen wären (RIR). Bleiben in allen "
-            + "Sätzen 4 oder mehr übrig, schlägt die App sofort mehr Gewicht vor.")
+          "In der Pause nach jedem Satz kurz antippen, wie viele Wiederholungen noch gegangen wären (RIR) – "
+            + "freiwillig, das Abhaken bleibt ein Tipp. Bleiben in allen Sätzen 4 oder mehr übrig, schlägt die "
+            + "App sofort mehr Gewicht vor.")
+      }
+      Section {
+        Toggle("Bildschirm anlassen", isOn: $settings.gym.keepsScreenOn)
+      } footer: {
+        Text("Während einer Einheit sperrt sich das iPhone nicht – kein Entsperren mit verschwitzten Händen.")
       }
       Section {
         Toggle("Fokus während der Einheit", isOn: $settings.gym.focusShortcuts)
