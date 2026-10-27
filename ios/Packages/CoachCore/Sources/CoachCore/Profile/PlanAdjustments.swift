@@ -18,12 +18,48 @@ public struct PlanChange: Codable, Equatable, Hashable, Sendable {
   public var isSkip: Bool { to == nil }
 }
 
+/// Eigener Plan für genau eine Woche (aus „Nächste Woche planen“); ersetzt dort den Wochenplan.
+public struct WeekPlan: Codable, Equatable, Hashable, Sendable {
+  /// Montag der Woche.
+  public var week: CalendarDay
+  public var schedule: WeekSchedule
+
+  public init(week: CalendarDay, schedule: WeekSchedule) {
+    self.week = week
+    self.schedule = schedule
+  }
+}
+
 /// Alle Ausnahmen, gespeichert in der Reihenfolge, in der sie gemacht wurden.
 public struct PlanAdjustments: Codable, Equatable, Hashable, Sendable {
   public private(set) var changes: [PlanChange]
+  public private(set) var weekPlans: [WeekPlan]
 
-  public init(changes: [PlanChange] = []) {
+  public init(changes: [PlanChange] = [], weekPlans: [WeekPlan] = []) {
     self.changes = changes
+    self.weekPlans = weekPlans
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    changes = try container.decodeIfPresent([PlanChange].self, forKey: .changes) ?? []
+    // Ältere Daten ohne Wochenpläne bleiben lesbar.
+    weekPlans = (try? container.decodeIfPresent([WeekPlan].self, forKey: .weekPlans)) ?? []
+  }
+
+  /// Eigener Plan der Woche, die `day` enthält, falls angelegt.
+  public func weekPlan(inWeekOf day: CalendarDay) -> WeekSchedule? {
+    let monday = Self.monday(of: day)
+    return weekPlans.first { $0.week == monday }?.schedule
+  }
+
+  /// Plan für genau diese Woche festlegen. Entspricht er dem Wochenplan, wird nichts gespeichert. Ausnahmen
+  /// (Auslassen/Verschieben) der Woche gehen in dem neuen Plan auf und werden entfernt.
+  public mutating func setWeekPlan(_ schedule: WeekSchedule, base: WeekSchedule, inWeekOf day: CalendarDay) {
+    let monday = Self.monday(of: day)
+    weekPlans.removeAll { $0.week == monday }
+    changes.removeAll { $0.week == monday }
+    if schedule != base { weekPlans.append(WeekPlan(week: monday, schedule: schedule)) }
   }
 
   public static func monday(of day: CalendarDay) -> CalendarDay {
@@ -37,7 +73,7 @@ public struct PlanAdjustments: Codable, Equatable, Hashable, Sendable {
 
   /// Der Plan der Woche, die `day` enthält, mit allen Ausnahmen dieser Woche.
   public func schedule(_ base: WeekSchedule, inWeekOf day: CalendarDay) -> WeekSchedule {
-    var result = base
+    var result = weekPlan(inWeekOf: day) ?? base
     for change in changes(inWeekOf: day) {
       let moved = result.slots(on: change.from)
       guard !moved.isEmpty else { continue }
@@ -70,12 +106,14 @@ public struct PlanAdjustments: Codable, Equatable, Hashable, Sendable {
   public mutating func reset(weekOf day: CalendarDay) {
     let monday = Self.monday(of: day)
     changes.removeAll { $0.week == monday }
+    weekPlans.removeAll { $0.week == monday }
   }
 
   /// Ausnahmen vergangener Wochen entfernen (sie wirken nicht mehr).
   public mutating func prune(before day: CalendarDay) {
     let monday = Self.monday(of: day)
     changes.removeAll { $0.week < monday }
+    weekPlans.removeAll { $0.week < monday }
   }
 
   /// Wurde an diesem Tag etwas ausgelassen oder weggeschoben?
@@ -175,5 +213,77 @@ public enum ReminderPlanner {
       : "Schau in der App, was heute ansteht."
     guard let lead, !lead.isEmpty else { return base }
     return "\(lead) \(base)"
+  }
+}
+
+/// Erinnerung zu einer festen Uhrzeit, die nicht am Trainingstag selbst kommt: Ausrüstung am Vorabend,
+/// Wochenplanung am Sonntag.
+public struct ScheduledNote: Equatable, Sendable, Identifiable {
+  public enum Kind: String, Sendable {
+    case equipment, weekPlanning
+  }
+
+  public var kind: Kind
+  public var day: CalendarDay
+  public var hour: Int
+  public var minute: Int
+  public var title: String
+  public var body: String
+
+  public var id: String { "coach.reminder.\(kind.rawValue).\(day.iso)" }
+}
+
+extension ReminderPlanner {
+  public static let equipmentHour = 18
+
+  /// Schwimmen mit Ausrüstung (Pull-Buoy, Paddles, Flossen, Schnorchel): Erinnerung am Vorabend um 18 Uhr.
+  /// Nur der Saisonplan kennt die Ausrüstung je Einheit; im eigenen Wochenplan gibt es keine Angabe dazu.
+  public static func swimEquipment(
+    schedule: SeasonSchedule, config: SeasonConfig, decisions: CompetitionDecisions, today: CalendarDay,
+    minutesNow: Int, days: Int = 14
+  ) -> [ScheduledNote] {
+    (1...max(days, 1)).compactMap { offset in
+      let training = today.adding(days: offset)
+      let evening = training.adding(days: -1)
+      if evening == today, minutesNow >= equipmentHour * 60 { return nil }
+      let plan = TodayPlan(
+        schedule: schedule, config: config, decisions: decisions, today: training, level: nil, advice: "",
+        done: TodayPlan.Done(), gymDays: [], runZones: nil)
+      guard plan.items.contains(where: { $0.sport == .swim && !$0.done }),
+        let week = schedule.week(containing: training)
+      else { return nil }
+      let equipment = SwimStepText.equipment(in: week.ss ?? [])
+      guard !equipment.isEmpty else { return nil }
+      let list = ListFormat.german(equipment)
+      return ScheduledNote(
+        kind: .equipment, day: evening, hour: equipmentHour, minute: 0,
+        title: "Morgen Schwimmen: \(list) einpacken",
+        body: "Für die Schwimmeinheit morgen brauchst du \(list). Am besten gleich in die Tasche legen.")
+    }
+  }
+
+  /// Sonntags „Nächste Woche planen“ (heute nur, wenn die Uhrzeit noch nicht vorbei ist).
+  public static func weekPlanning(
+    mode: UserProfile.Mode, today: CalendarDay, minutesNow: Int, hour: Int, minute: Int, days: Int = 14
+  ) -> [ScheduledNote] {
+    (0..<days).compactMap { offset in
+      let day = today.adding(days: offset)
+      guard day.weekdayIndex == 6 else { return nil }
+      if offset == 0, minutesNow >= hour * 60 + minute { return nil }
+      let body =
+        mode == .personal
+        ? "Leg fest, an welchen Tagen du nächste Woche trainierst – Termine, Wetter, Erholung."
+        : "Schau dir die Einheiten der nächsten Woche an und plane, wann du sie unterbringst."
+      return ScheduledNote(
+        kind: .weekPlanning, day: day, hour: hour, minute: minute, title: "Nächste Woche planen", body: body)
+    }
+  }
+}
+
+enum ListFormat {
+  /// „A“, „A und B“, „A, B und C“.
+  static func german(_ items: [String]) -> String {
+    guard let last = items.last else { return "" }
+    return items.count == 1 ? last : items.dropLast().joined(separator: ", ") + " und " + last
   }
 }

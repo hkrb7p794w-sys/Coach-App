@@ -2,6 +2,18 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Erinnerungen: Ausrüstung am Vorabend, Wochenplanung am Sonntag
+
+- Lokale Mitteilungen (`UNCalendarNotificationTrigger`) wie die Trainings-Erinnerungen, ohne Server und ohne
+  Push-Berechtigung (SideStore). Geplant werden jeweils 14 Tage; iOS erlaubt höchstens 64 ausstehende Mitteilungen,
+  Quelle: <https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app>.
+- Schwimm-Ausrüstung: am Vorabend um 18 Uhr, wenn die Schwimmeinheit des Saisonplans Ausrüstung braucht
+  (`eq` in den Schwimmschritten: Pull-Buoy, Paddles, Flossen, Schnorchel). Der eigene Wochenplan kennt keine
+  Ausrüstung je Einheit, dort gibt es diese Erinnerung nicht.
+- Sonntags „Nächste Woche planen“ (Uhrzeit einstellbar, Standard 18 Uhr). Antippen öffnet die Wochenplanung:
+  eigener Wochenplan → die Tage der nächsten Woche nur für diese Woche ändern (`WeekPlan` in `PlanAdjustments`,
+  der Wochenplan bleibt); Saisonplan → Einheiten und Ausrüstung der nächsten Woche.
+
 ## 2026-10-27 – Apple Health und Apple Watch als zweite Quelle
 
 - Import aus HealthKit (`HealthImportService`, Zuordnung in `CoachCore/Health/HealthImport`): Schlaf mit Phasen,

@@ -13,6 +13,7 @@ final class ReminderService: NSObject {
   static let doneAction = "coach.done"
   static let moveAction = "coach.move"
   static let skipAction = "coach.skip"
+  static let planningCategory = "coach.weekPlanning"
   static let identifierPrefix = "coach.reminder."
 
   enum Permission: Equatable {
@@ -22,6 +23,8 @@ final class ReminderService: NSObject {
   private(set) var permission: Permission = .unknown
   /// Tag, für den die App das Verschieben anbieten soll (aus einer Mitteilung geöffnet).
   var pendingDay: CalendarDay?
+  /// „Nächste Woche planen“ aus der Sonntags-Mitteilung geöffnet.
+  var showsWeekPlanning = false
 
   private let settings: CoachSettings
   private let center: UNUserNotificationCenter?
@@ -44,6 +47,7 @@ final class ReminderService: NSObject {
         identifier: Self.plainCategory,
         actions: [UNNotificationAction(identifier: Self.doneAction, title: "Erledigt", options: [])],
         intentIdentifiers: []),
+      UNNotificationCategory(identifier: Self.planningCategory, actions: [], intentIdentifiers: []),
     ])
   }
 
@@ -52,16 +56,18 @@ final class ReminderService: NSObject {
     guard let center else { return }
     let status = await center.notificationSettings().authorizationStatus
     var allowed = status == .authorized || status == .provisional || status == .ephemeral
-    if status == .notDetermined, settings.reminders.enabled {
+    let config = settings.reminders
+    let wanted = config.enabled || config.equipment || config.weekPlanning
+    if status == .notDetermined, wanted {
       allowed = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
     }
     permission = allowed ? .allowed : (status == .notDetermined ? .unknown : .denied)
 
     let pending = await center.pendingNotificationRequests().map(\.identifier)
     center.removePendingNotificationRequests(withIdentifiers: pending.filter { $0.hasPrefix(Self.identifierPrefix) })
-    guard allowed, settings.reminders.enabled else { return }
+    guard allowed else { return }
 
-    for reminder in reminders(seasonSchedule: seasonSchedule, now: now) {
+    for reminder in config.enabled ? reminders(seasonSchedule: seasonSchedule, now: now) : [] {
       let content = UNMutableNotificationContent()
       content.title = reminder.title
       content.body = ReminderPlanner.body(for: reminder, lead: CompanionVoice.reminderLead(settings.companion))
@@ -74,6 +80,40 @@ final class ReminderService: NSObject {
       let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
       try? await center.add(UNNotificationRequest(identifier: reminder.id, content: content, trigger: trigger))
     }
+
+    // Ausrüstung am Vorabend und Wochenplanung am Sonntag (iOS erlaubt höchstens 64 geplante Mitteilungen).
+    for note in notes(seasonSchedule: seasonSchedule, now: now) {
+      let content = UNMutableNotificationContent()
+      content.title = note.title
+      content.body = note.body
+      content.sound = .default
+      if note.kind == .weekPlanning { content.categoryIdentifier = Self.planningCategory }
+      content.userInfo = ["day": note.day.iso, "kind": note.kind.rawValue]
+      var components = DateComponents(year: note.day.year, month: note.day.month, day: note.day.day)
+      components.hour = note.hour
+      components.minute = note.minute
+      let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+      try? await center.add(UNNotificationRequest(identifier: note.id, content: content, trigger: trigger))
+    }
+  }
+
+  func notes(seasonSchedule: SeasonSchedule?, now: Date = .now) -> [ScheduledNote] {
+    let today = CalendarDay(date: now)
+    let parts = Calendar.current.dateComponents([.hour, .minute], from: now)
+    let minutesNow = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+    let config = settings.reminders
+    var result: [ScheduledNote] = []
+    if config.equipment, settings.profile.mode == .season, let seasonSchedule {
+      result += ReminderPlanner.swimEquipment(
+        schedule: seasonSchedule, config: settings.season, decisions: settings.competitionDecisions, today: today,
+        minutesNow: minutesNow)
+    }
+    if config.weekPlanning {
+      result += ReminderPlanner.weekPlanning(
+        mode: settings.profile.mode, today: today, minutesNow: minutesNow, hour: config.planningHour,
+        minute: config.planningMinute)
+    }
+    return result
   }
 
   func reminders(seasonSchedule: SeasonSchedule?, now: Date = .now) -> [TrainingReminder] {
@@ -105,8 +145,13 @@ final class ReminderService: NSObject {
     center?.removeDeliveredNotifications(withIdentifiers: [Self.identifierPrefix + day.iso])
   }
 
-  private func handle(action: String, dayText: String) {
-    guard let day = CalendarDay(iso: dayText) else { return }
+  private func handle(action: String, dayText: String, kind: String?) {
+    if kind == ScheduledNote.Kind.weekPlanning.rawValue {
+      showsWeekPlanning = true
+      return
+    }
+    // Ausrüstungs-Erinnerung: nur die App öffnen.
+    guard kind == nil, let day = CalendarDay(iso: dayText) else { return }
     switch action {
     case Self.skipAction: skip(day)
     case Self.doneAction: break
@@ -120,8 +165,9 @@ extension ReminderService: UNUserNotificationCenterDelegate {
     _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
   ) async {
     let action = response.actionIdentifier
-    let day = response.notification.request.content.userInfo["day"] as? String ?? ""
-    await handle(action: action, dayText: day)
+    let info = response.notification.request.content.userInfo
+    let day = info["day"] as? String ?? ""
+    await handle(action: action, dayText: day, kind: info["kind"] as? String)
   }
 
   /// Auch bei geöffneter App als Banner zeigen.

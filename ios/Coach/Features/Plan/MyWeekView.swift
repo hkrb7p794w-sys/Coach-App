@@ -7,6 +7,7 @@ struct MyWeekView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
   @State private var editing = false
+  @State private var planningNextWeek = false
   @State private var guideSlot: SessionSlot?
 
   var body: some View {
@@ -56,11 +57,15 @@ struct MyWeekView: View {
       }
       .navigationTitle("Plan")
       .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Button("Nächste Woche", systemImage: "calendar.badge.plus") { planningNextWeek = true }
+        }
         ToolbarItem(placement: .topBarTrailing) {
           Button("Bearbeiten") { editing = true }
         }
       }
       .sheet(isPresented: $editing) { ScheduleEditorSheet() }
+      .sheet(isPresented: $planningNextWeek) { NextWeekPlanSheet() }
       .navigationDestination(item: $guideSlot) { slot in SessionGuideView(slot: slot) }
     }
   }

@@ -41,7 +41,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 23 | Schlaf-Coach (Schlafenszeit, Regelmäßigkeit, Erinnerung) und Chat mit dem Coach aus den eigenen Daten | fertig (PR 31) |
 | 24 | Aktivitätsdetails wie in Garmin Connect: Karte, Verlauf, Runden, Laufdynamik, Schwimmwerte, Trainingseffekt | fertig (PR 32) |
 | 25 | Gym ersetzt GymBook: eigene Pläne, Übertragung nach Garmin Connect mit Sätzen, KI-Trainingsplan mit Fragebogen, Hinweise zu Stillstand und Volumen | fertig (PR 33) |
-| 26 | Apple Health / Apple Watch als zweite Quelle: Schlaf, Ruhepuls, Kalorien, VO2max, Gewicht, Workouts (Garmin hat Vorrang) | in Arbeit (PR 34) |
+| 26 | Apple Health / Apple Watch als zweite Quelle: Schlaf, Ruhepuls, Kalorien, VO2max, Gewicht, Workouts (Garmin hat Vorrang) | fertig (PR 34) |
+| 27 | Erinnerungen: Schwimm-Ausrüstung am Vorabend, sonntags „Nächste Woche planen“ mit Wochenplanung | in Arbeit (PR 35) |
 
 Später, erst auf Zuruf und wenn alles andere läuft: (Apple Health ist seit PR 34 umgesetzt)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
