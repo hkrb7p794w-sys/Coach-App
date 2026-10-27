@@ -58,9 +58,14 @@ struct TodayView: View {
           Section("Letzte Aktivitäten") {
             ForEach(activities.prefix(5)) { record in
               if let activity = record.activity {
-                ActivityRow(activity: activity)
+                NavigationLink {
+                  ActivityDetailView(record: record)
+                } label: {
+                  ActivitySummaryRow(activity: activity)
+                }
               }
             }
+            NavigationLink("Alle Aktivitäten") { ActivityListView() }
           }
         }
       }
@@ -382,26 +387,6 @@ struct SyncStatusSection: View {
           .font(.footnote)
           .foregroundStyle(.secondary)
       }
-    }
-  }
-}
-
-private struct ActivityRow: View {
-  let activity: GarminActivity
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(activity.name ?? activity.typeKey ?? "Aktivität").font(.headline)
-      HStack(spacing: 12) {
-        if let day = activity.day { Text(Formatters.day(day)) }
-        if let seconds = activity.durationSeconds { Text(Formatters.duration(seconds)) }
-        if let meters = activity.distanceMeters, meters > 0 {
-          Text(Formatters.number(meters / 1000, unit: "km", digits: 1))
-        }
-        if let load = activity.trainingLoad { Text("Belastung \(Int(load.rounded()))") }
-      }
-      .font(.subheadline)
-      .foregroundStyle(.secondary)
     }
   }
 }

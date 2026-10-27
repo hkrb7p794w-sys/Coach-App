@@ -2,6 +2,18 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Aktivitätsdetails wie in Garmin Connect
+
+- **Wunsch des Nutzers:** Bei erfassten Einheiten alle Details sehen, die auch die Garmin-App zeigt.
+- **Quellen:** Aktivitätsliste (`/activitylist-service/…`, jetzt mit Bewegungszeit, Tempo, Höhe, Kadenz,
+  Laufdynamik, Leistung, Schwimmwerten, Temperatur, Trainingseffekt-Schwerpunkt), beim Öffnen ergänzt aus
+  `/activity-service/activity/{id}` (`summaryDTO`), dazu die FIT-Datei für Karte, Verlauf und Runden. Feldnamen wie in
+  python-garminconnect bzw. FIT-SDK-Profil (`record`: Position, Höhe, Kadenz, Temperatur; `lap`: Tempo, Auf-/Abstieg,
+  Kadenz, Leistung, kcal). Die FIT-Datei bleibt im Cache (offline).
+- **Darstellung:** Übersicht als Kacheln, Karte mit Strecke, Diagramme (Herzfrequenz, Pace umgekehrt wie bei Garmin,
+  Höhe, Kadenz, Leistung), Rundentabelle, danach alle Abschnitte. Nur vorhandene Werte erscheinen. Laufkadenz aus
+  FIT (ein Fuß) wird auf Schritte pro Minute verdoppelt.
+
 ## 2026-10-27 – Schlaf-Coach und Chat (Runde 3)
 
 - **Schlaf-Coach (Vorbild Whoop):** Schlafbedarf heute Nacht = Ziel (7–9 h, Watson et al. 2015) plus ein Viertel

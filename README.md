@@ -38,7 +38,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 20 | Einheiten ausführlich erklärt (Ablauf, Gefühl, Fehler, Glossar) | fertig (PR 23) |
 | 21 | Sicherungen: Eingabeprüfung (Zielzeit gegen Prognose), Gewichtsverlauf mit Nachsteuerung, Laufumfang-Warnung, strengere Rezeptprüfung, Prüfbericht mit Musterpersonen in jeder PR | fertig (PR 24, Makros PR 25) |
 | 22 | Vergleich mit Bezahl-Apps: Screenshots in CI, gemessener Verbrauch, Fitness/Form, Wochenbericht, Laufplan mit Steigerung, Gym-Komfort | fertig (PR 26) |
-| 23 | Schlaf-Coach (Schlafenszeit, Regelmäßigkeit, Erinnerung) und Chat mit dem Coach aus den eigenen Daten | in Arbeit (PR 31) |
+| 23 | Schlaf-Coach (Schlafenszeit, Regelmäßigkeit, Erinnerung) und Chat mit dem Coach aus den eigenen Daten | fertig (PR 31) |
+| 24 | Aktivitätsdetails wie in Garmin Connect: Karte, Verlauf, Runden, Laufdynamik, Schwimmwerte, Trainingseffekt | in Arbeit (PR 32) |
 
 Später, erst auf Zuruf und wenn alles andere läuft: Apple Watch bzw. Apple Health als weitere Quelle,
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

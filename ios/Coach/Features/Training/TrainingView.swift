@@ -36,6 +36,10 @@ struct TrainingView: View {
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
           HubRow(
+            title: "Aktivitäten", symbol: "list.bullet.rectangle", color: .gray,
+            value: "\(activities.count)", caption: "von Garmin"
+          ) { ActivityListView() }
+          HubRow(
             title: "Schlaf-Coach", symbol: "moon.stars.fill", color: .indigo,
             value: SleepCoach.report(
               days: days.compactMap(\.metrics), settings: settings.sleep, goal: settings.profile.goal, today: today

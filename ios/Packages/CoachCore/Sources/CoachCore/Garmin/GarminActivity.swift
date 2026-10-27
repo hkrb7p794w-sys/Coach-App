@@ -22,6 +22,42 @@ public struct GarminActivity: Codable, Equatable, Sendable, Identifiable {
   public var vo2Max: Double?
   /// Sekunden in den fünf Herzfrequenzzonen der Uhr (`hrTimeInZone_1` … `_5`).
   public var secondsInZones: [Double]?
+  // Weitere Werte der Aktivitätsliste, wie sie Garmin Connect in der Übersicht zeigt.
+  public var movingSeconds: Double?
+  public var elapsedSeconds: Double?
+  /// m/s
+  public var averageSpeed: Double?
+  public var maxSpeed: Double?
+  public var elevationLoss: Double?
+  public var minElevation: Double?
+  public var maxElevation: Double?
+  /// Schritte pro Minute (Laufen) bzw. Umdrehungen pro Minute (Rad).
+  public var averageCadence: Double?
+  public var maxCadence: Double?
+  /// cm
+  public var strideLength: Double?
+  /// ms
+  public var groundContactTime: Double?
+  /// cm
+  public var verticalOscillation: Double?
+  /// %
+  public var verticalRatio: Double?
+  public var maxPower: Double?
+  public var steps: Double?
+  /// m
+  public var poolLength: Double?
+  public var lengths: Double?
+  public var strokes: Double?
+  public var swolf: Double?
+  /// Züge pro Minute
+  public var strokeRate: Double?
+  public var minTemperature: Double?
+  public var maxTemperature: Double?
+  public var lapCount: Double?
+  /// Garmins Einordnung, z. B. `TEMPO`, `AEROBIC_BASE`, `VO2MAX`.
+  public var trainingEffectLabel: String?
+  public var locationName: String?
+  public var activeKilocalories: Double?
 
   public init(id: Int64) {
     self.id = id
@@ -58,6 +94,35 @@ public struct GarminActivity: Codable, Equatable, Sendable, Identifiable {
 }
 
 public enum GarminActivityParser {
+  /// `/activity-service/activity/{id}`: Werte stehen unter `summaryDTO`, die Art unter `activityTypeDTO`.
+  /// Ergänzt fehlende Werte von `base`; vorhandene Werte bleiben.
+  public static func detail(_ json: JSONValue, base: GarminActivity) -> GarminActivity {
+    guard case .object(let top) = json else { return base }
+    var record = top
+    if case .object(let summary)? = top["summaryDTO"] {
+      for (key, value) in summary { record[key] = value }
+    }
+    if let type = top["activityTypeDTO"]?["typeKey"] { record["activityType"] = .object(["typeKey": type]) }
+    record["activityId"] = .number(Double(base.id))
+    guard let detail = activity(record) else { return base }
+    return merged(base, filledFrom: detail)
+  }
+
+  /// Fehlende Felder von `base` aus `other` (über die Codable-Darstellung, damit kein Feld vergessen wird).
+  static func merged(_ base: GarminActivity, filledFrom other: GarminActivity) -> GarminActivity {
+    guard let baseData = try? JSONEncoder().encode(base), let otherData = try? JSONEncoder().encode(other),
+      var baseObject = (try? JSONSerialization.jsonObject(with: baseData)) as? [String: Any],
+      let otherObject = (try? JSONSerialization.jsonObject(with: otherData)) as? [String: Any]
+    else { return base }
+    for (key, value) in otherObject where baseObject[key] == nil || baseObject[key] is NSNull {
+      baseObject[key] = value
+    }
+    guard let data = try? JSONSerialization.data(withJSONObject: baseObject),
+      let result = try? JSONDecoder().decode(GarminActivity.self, from: data)
+    else { return base }
+    return result
+  }
+
   /// `/activitylist-service/activities/search/activities` – Liste (oder Objekt mit Liste) von
   /// Aktivitäten mit `activityId`.
   public static func activities(_ json: JSONValue) -> [GarminActivity] {
@@ -76,12 +141,42 @@ public enum GarminActivityParser {
     activity.maxHeartRate = record["maxHR"]?.doubleValue
     activity.calories = record["calories"]?.doubleValue
     activity.trainingLoad = record["activityTrainingLoad"]?.doubleValue
-    activity.aerobicTrainingEffect = record["aerobicTrainingEffect"]?.doubleValue
+    activity.aerobicTrainingEffect = (record["aerobicTrainingEffect"] ?? record["trainingEffect"])?.doubleValue
     activity.anaerobicTrainingEffect = record["anaerobicTrainingEffect"]?.doubleValue
     activity.averagePower = record["avgPower"]?.doubleValue
-    activity.normalizedPower = record["normPower"]?.doubleValue
+    activity.normalizedPower = (record["normPower"] ?? record["normalizedPower"])?.doubleValue
     activity.elevationGain = record["elevationGain"]?.doubleValue
     activity.vo2Max = record["vO2MaxValue"]?.doubleValue
+    activity.movingSeconds = record["movingDuration"]?.doubleValue
+    activity.elapsedSeconds = record["elapsedDuration"]?.doubleValue
+    activity.averageSpeed = record["averageSpeed"]?.doubleValue
+    activity.maxSpeed = record["maxSpeed"]?.doubleValue
+    activity.elevationLoss = record["elevationLoss"]?.doubleValue
+    activity.minElevation = record["minElevation"]?.doubleValue
+    activity.maxElevation = record["maxElevation"]?.doubleValue
+    activity.averageCadence =
+      (record["averageRunningCadenceInStepsPerMinute"] ?? record["averageRunCadence"]
+      ?? record["averageBikingCadenceInRevPerMinute"] ?? record["averageBikeCadence"])?.doubleValue
+    activity.maxCadence =
+      (record["maxRunningCadenceInStepsPerMinute"] ?? record["maxRunCadence"]
+      ?? record["maxBikingCadenceInRevPerMinute"] ?? record["maxBikeCadence"])?.doubleValue
+    activity.strideLength = (record["avgStrideLength"] ?? record["strideLength"])?.doubleValue
+    activity.groundContactTime = (record["avgGroundContactTime"] ?? record["groundContactTime"])?.doubleValue
+    activity.verticalOscillation = (record["avgVerticalOscillation"] ?? record["verticalOscillation"])?.doubleValue
+    activity.verticalRatio = (record["avgVerticalRatio"] ?? record["verticalRatio"])?.doubleValue
+    activity.maxPower = record["maxPower"]?.doubleValue
+    activity.steps = record["steps"]?.doubleValue
+    activity.poolLength = record["poolLength"]?.doubleValue
+    activity.lengths = record["activeLengths"]?.doubleValue
+    activity.strokes = record["totalNumberOfStrokes"]?.doubleValue ?? record["strokes"]?.doubleValue
+    activity.swolf = record["averageSwolf"]?.doubleValue
+    activity.strokeRate = record["averageSwimCadenceInStrokesPerMinute"]?.doubleValue
+    activity.minTemperature = record["minTemperature"]?.doubleValue
+    activity.maxTemperature = record["maxTemperature"]?.doubleValue
+    activity.lapCount = record["lapCount"]?.doubleValue
+    activity.trainingEffectLabel = record["trainingEffectLabel"]?.stringValue
+    activity.locationName = record["locationName"]?.stringValue
+    activity.activeKilocalories = record["activeKilocalories"]?.doubleValue
     let zones = (1...5).compactMap { record["hrTimeInZone_\($0)"]?.doubleValue }
     if zones.count == 5, zones.reduce(0, +) > 0 { activity.secondsInZones = zones }
     return activity
