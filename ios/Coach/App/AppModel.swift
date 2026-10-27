@@ -40,6 +40,8 @@ final class AppModel {
     // In Tests (inMemory) ohne Mitteilungszentrale.
     reminders = ReminderService(settings: settings, center: inMemory ? nil : .current())
     league = LeagueService(ai: ai, settings: settings)
+    let current = self.settings
+    ai.userSources = { current.userSources }
   }
 
   /// Planerfüllung für Begleiter und Rangliste. Im Saisonplan gelten die festen Einheiten als geplant.

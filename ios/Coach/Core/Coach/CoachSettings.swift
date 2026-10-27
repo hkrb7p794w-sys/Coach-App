@@ -21,6 +21,7 @@ final class CoachSettings {
   static let weightsKey = "coach.weights"
   static let sleepKey = "coach.sleep"
   static let importedNotesKey = "coach.importedNotes"
+  static let userSourcesKey = "coach.userSources"
 
   private let defaults: UserDefaults
 
@@ -92,6 +93,11 @@ final class CoachSettings {
     didSet { save(sleep, forKey: Self.sleepKey) }
   }
 
+  /// Eigene wissenschaftliche Quellen, die die KI zusätzlich berücksichtigt.
+  var userSources: [UserSource] {
+    didSet { save(userSources, forKey: Self.userSourcesKey) }
+  }
+
   /// Hinweise aus dem letzten Import einer KI-Antwort (manueller KI-Coach).
   var importedNotes: ImportedNotes? {
     didSet { save(importedNotes, forKey: Self.importedNotesKey) }
@@ -144,6 +150,9 @@ final class CoachSettings {
     sleep =
       defaults.data(forKey: Self.sleepKey).flatMap { try? JSONDecoder().decode(SleepSettings.self, from: $0) }
       ?? SleepSettings()
+    userSources =
+      defaults.data(forKey: Self.userSourcesKey).flatMap { try? JSONDecoder().decode([UserSource].self, from: $0) }
+      ?? []
     importedNotes = defaults.data(forKey: Self.importedNotesKey).flatMap {
       try? JSONDecoder().decode(ImportedNotes.self, from: $0)
     }

@@ -41,11 +41,12 @@ public enum CoachExport {
     public var gym: [GymSession]
     public var meals: [Meal]
     public var weights: [WeightEntry]
+    public var userSources: [UserSource]
 
     public init(
       profile: UserProfile, schedule: WeekSchedule, routines: [Routine], custom: [ExerciseInfo],
       equipment: Set<Equipment>, metrics: [DailyMetrics], activities: [GarminActivity], gym: [GymSession],
-      meals: [Meal], weights: [WeightEntry]
+      meals: [Meal], weights: [WeightEntry], userSources: [UserSource] = []
     ) {
       self.profile = profile
       self.schedule = schedule
@@ -57,6 +58,7 @@ public enum CoachExport {
       self.gym = gym
       self.meals = meals
       self.weights = weights
+      self.userSources = userSources
     }
   }
 
@@ -73,6 +75,7 @@ public enum CoachExport {
     lines += gym(input.gym.filter { inRange($0.day) }.sorted { $0.start < $1.start })
     lines += meals(input.meals.filter { inRange($0.day) })
     lines += weights(input.weights.filter { inRange($0.day) }.sorted { $0.day < $1.day })
+    lines += sources(input.userSources)
     lines += exerciseList(input)
     return lines.joined(separator: "\n")
   }
@@ -265,6 +268,15 @@ public enum CoachExport {
     let merged = WeightTrend.merged(entries)
     guard !merged.isEmpty else { return [] }
     return ["## Gewicht", ""] + merged.map { "- \($0.day.iso): \(number($0.kilograms)) kg" } + [""]
+  }
+
+  /// Eigene Quellen, damit die externe KI sie ebenfalls berücksichtigt.
+  static func sources(_ sources: [UserSource]) -> [String] {
+    let valid = sources.filter(\.isValid)
+    guard !valid.isEmpty else { return [] }
+    return ["## Eigene wissenschaftliche Quellen (bitte berücksichtigen)", ""]
+      + valid.map { "- \($0.citation)" + ($0.reference.isEmpty ? "" : " (\($0.reference))") + ": \($0.statement)" }
+      + [""]
   }
 
   static func exerciseList(_ input: Input) -> [String] {

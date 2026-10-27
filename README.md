@@ -47,7 +47,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 29 | Übungsverlauf mit Zeitraum, Zoom mit zwei Fingern und bewegter Last je Einheit | fertig (PR 37) |
 | 30 | Manueller KI-Coach: Export aller Daten eines Zeitraums für ChatGPT/Gemini/Claude, Import der Antwort mit Regelprüfung | fertig (PR 38) |
 | 31 | KI-Import mit Auswahl: je Routine ersetzen/zusätzlich/weglassen, Wochenplan je Tag, Hinweise einzeln | fertig (PR 39) |
-| 32 | Abnehm-Prognose (4/8/12 Wochen, Zieldatum, geschätztes Defizit) und Fokus während der Krafteinheit | in Arbeit (PR 40) |
+| 32 | Abnehm-Prognose (4/8/12 Wochen, Zieldatum, geschätztes Defizit) und Fokus während der Krafteinheit | fertig (PR 40) |
+| 33 | Eigene wissenschaftliche Quellen in den Einstellungen, von der KI (Gemini Flash) mitberücksichtigt | in Arbeit (PR 41) |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

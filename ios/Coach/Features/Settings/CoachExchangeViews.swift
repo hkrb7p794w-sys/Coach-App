@@ -74,7 +74,7 @@ struct CoachExportView: View {
         CalendarDay(iso: record.dayKey).map {
           CoachExport.Meal(day: $0, category: record.category.label, title: record.title, items: record.items)
         }
-      }, weights: model.allWeights)
+      }, weights: model.allWeights, userSources: settings.userSources)
     let text = CoachExport.markdown(input, from: range.start, to: range.end)
     let url = FileManager.default.temporaryDirectory
       .appendingPathComponent("IronLudi-Export-\(range.start.iso)-bis-\(range.end.iso).md")
