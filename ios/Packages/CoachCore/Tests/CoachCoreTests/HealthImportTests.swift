@@ -59,12 +59,12 @@ struct HealthImportTests {
     let nights = HealthImport.sleep(samples, timeZone: berlin)
     let night = nights[CalendarDay(year: 2026, month: 10, day: 21)]
     #expect(nights.count == 1)
-    #expect(night?.sleepSeconds == 7 * 3_600 + 15 * 60)
+    #expect(night?.sleepSeconds == 26_100)
     #expect(night?.deepSleepSeconds == 3_600)
     #expect(night?.remSleepSeconds == 5_400)
     #expect(night?.awakeSleepSeconds == 900)
-    #expect(night?.sleepStartMinutes == 23 * 60)
-    #expect(night?.sleepEndMinutes == 6 * 60 + 30)
+    #expect(night?.sleepStartMinutes == 1_380)
+    #expect(night?.sleepEndMinutes == 390)
   }
 
   @Test func overlappingSamplesCountOnce() {
@@ -72,7 +72,7 @@ struct HealthImportTests {
       HealthImport.SleepSample(start: date(20, 23), end: date(21, 3), stage: .asleep, source: "a"),
       HealthImport.SleepSample(start: date(21, 2), end: date(21, 6), stage: .asleep, source: "a"),
     ]
-    #expect(HealthImport.asleepSeconds(samples) == 7 * 3_600)
+    #expect(HealthImport.asleepSeconds(samples) == 25_200)
   }
 
   @Test func workoutsAreDeduplicatedAgainstGarminAndOwnApp() {

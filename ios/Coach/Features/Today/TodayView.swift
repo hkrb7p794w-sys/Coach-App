@@ -28,8 +28,9 @@ struct TodayView: View {
           Section {
             Text(
               "Melde dich in den Einstellungen mit deinem Garmin-Konto an oder schalte den Import aus Apple Health "
-                + "(Apple Watch) ein.")
-              .foregroundStyle(.secondary)
+                + "(Apple Watch) ein."
+            )
+            .foregroundStyle(.secondary)
           }
         }
 
