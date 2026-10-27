@@ -202,6 +202,20 @@ public enum PersonaReport {
         rule: "Protein 1,4–2,2 g je kg", passed: proteins.allSatisfy { (1.39...2.21).contains($0) },
         detail: "\(GermanFormat.number(((proteins.first ?? 0) * 10).rounded() / 10)) g/kg"))
 
+    // Makros müssen zur Energie passen und Fett im Bereich 20–35 % liegen (ACSM 2016).
+    let shares = result.week.map { day -> (fat: Double, gap: Double) in
+      let values = day.targets.values
+      let kcal = max(values[.kcal] ?? 1, 1)
+      let fromMacros = 4 * (values[.protein] ?? 0) + 4 * (values[.carbs] ?? 0) + 9 * (values[.fat] ?? 0)
+      return (9 * (values[.fat] ?? 0) / kcal, abs(fromMacros - kcal))
+    }
+    let lowestFat = shares.map(\.fat).min() ?? 0
+    checks.append(
+      PersonaCheck(
+        rule: "Fett 20–35 % der Energie, Makros ergeben die Tagesenergie",
+        passed: shares.allSatisfy { (0.195...0.355).contains($0.fat) && $0.gap <= 15 },
+        detail: "niedrigster Fettanteil \(Int((lowestFat * 100).rounded())) %"))
+
     if GoalRules.bmi(body) < GoalRules.minimumBMI, persona.profile.goal.losesWeight {
       checks.append(
         PersonaCheck(
@@ -272,8 +286,8 @@ public enum PersonaReport {
       }
       lines += ["", "### Ziel", ""]
       let assessment = result.assessment
-      let rate = assessment.weeklyChangePercent.map { "\(GermanFormat.number($0)) % pro Woche" } ?? "Gewicht halten"
-      lines.append("- Ernährung: \(assessment.nutritionGoal.label), \(rate)")
+      let rate = assessment.weeklyChangePercent.map { ", \(GermanFormat.number($0)) % pro Woche" } ?? ""
+      lines.append("- Ernährung: \(assessment.nutritionGoal.label)\(rate)")
       for note in assessment.notes { lines.append("- \(note)") }
       lines += [
         "", "### Woche", "", "| Tag | Einheiten | Tagestyp | kcal | Protein | KH | Fett |",
