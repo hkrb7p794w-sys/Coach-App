@@ -22,7 +22,14 @@ final class AppModel {
   private(set) var lastReport: SyncReport?
   private(set) var lastError: String?
 
-  init(inMemory: Bool = false, secrets: any SecretStore = KeychainStore(), defaults: UserDefaults = .standard) {
+  /// Screenshot-Modus mit Beispieldaten: kein Abruf, keine Mitteilungen.
+  let isDemo: Bool
+
+  init(
+    inMemory: Bool = false, secrets: any SecretStore = KeychainStore(), defaults: UserDefaults = .standard,
+    isDemo: Bool = false
+  ) {
+    self.isDemo = isDemo
     container = CoachSchema.makeContainer(inMemory: inMemory)
     garmin = GarminClient(secrets: secrets, connect: GarminConnectSession(secrets: secrets, defaults: defaults))
     sync = GarminSyncService(client: garmin, context: container.mainContext, defaults: defaults)
@@ -51,7 +58,7 @@ final class AppModel {
 
   /// Erinnerungen der nächsten 14 Tage neu planen (nach Änderungen am Plan und beim Öffnen der App).
   func refreshReminders() async {
-    guard settings.profile.onboardingDone else { return }
+    guard settings.profile.onboardingDone, !isDemo else { return }
     await reminders.refresh(seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil)
   }
 
@@ -61,12 +68,12 @@ final class AppModel {
 
   /// Beim Öffnen der App: nur abrufen, wenn ein Key da ist und der letzte Abruf länger her ist.
   func syncIfDue() async {
-    guard garmin.isConfigured, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) else { return }
+    guard !isDemo, garmin.isConfigured, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) else { return }
     await syncNow()
   }
 
   func syncNow() async {
-    guard !isSyncing else { return }
+    guard !isSyncing, !isDemo else { return }
     isSyncing = true
     defer { isSyncing = false }
     do {

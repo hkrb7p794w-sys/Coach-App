@@ -79,7 +79,27 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: "YES"
+  CoachUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: CoachUITests
+    dependencies:
+      - target: Coach
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: Coach
 schemes:
+  # Nur für den Workflow „Screenshots“: UI-Test mit Beispieldaten.
+  Screenshots:
+    build:
+      targets:
+        Coach: all
+        CoachUITests: [test]
+    test:
+      targets:
+        - CoachUITests
   Coach:
     build:
       targets:
