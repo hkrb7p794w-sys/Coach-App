@@ -12,6 +12,8 @@ final class GymSessionRecord {
   var payload: Data
   /// In Apple Health gespeichert.
   var savedToHealth: Bool
+  /// Als Krafttraining nach Garmin Connect übertragen.
+  var uploadedToGarmin: Bool = false
 
   init(session: GymSession, savedToHealth: Bool = false) {
     id = session.id

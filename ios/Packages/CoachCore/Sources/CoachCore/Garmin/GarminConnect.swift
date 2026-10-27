@@ -237,6 +237,22 @@ public enum GarminConnect {
     return Request(
       method: "GET", url: url(apiBase, path, query.map { ($0.name, $0.value) }), headers: headers, body: nil)
   }
+
+  /// Aktivitätsdatei hochladen (`/upload-service/upload`, Formularfeld `file`, wie python-garminconnect
+  /// `upload_activity`). Garmin antwortet mit `detailedImportResult`; 409 heißt „schon vorhanden“.
+  public static func uploadRequest(fit: Data, fileName: String, token: Token, boundary: String) -> Request {
+    var headers = nativeHeaders
+    headers["Authorization"] = "Bearer \(token.accessToken)"
+    headers["Accept"] = "application/json"
+    headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
+    var body = Data()
+    body.append(Data("--\(boundary)\r\n".utf8))
+    body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".utf8))
+    body.append(Data("Content-Type: application/octet-stream\r\n\r\n".utf8))
+    body.append(fit)
+    body.append(Data("\r\n--\(boundary)--\r\n".utf8))
+    return Request(method: "POST", url: url(apiBase, "/upload-service/upload"), headers: headers, body: body)
+  }
 }
 
 /// Endpunkte, die es nur über den Garmin-Connect-Zugang gibt (python-garminconnect `api/base.py`).

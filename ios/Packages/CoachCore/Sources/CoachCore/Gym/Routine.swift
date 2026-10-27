@@ -9,10 +9,12 @@ public struct RoutineItem: Codable, Equatable, Hashable, Sendable, Identifiable 
   public var lowerReps: Int
   public var upperReps: Int
   public var restSeconds: Int
+  /// Startgewicht, solange es für die Übung noch keinen Verlauf gibt (z. B. aus GymBook übernommen).
+  public var weightKg: Double?
 
   public init(
     id: UUID = UUID(), exerciseID: String, name: String, sets: Int, lowerReps: Int, upperReps: Int,
-    restSeconds: Int
+    restSeconds: Int, weightKg: Double? = nil
   ) {
     self.id = id
     self.exerciseID = exerciseID
@@ -21,6 +23,7 @@ public struct RoutineItem: Codable, Equatable, Hashable, Sendable, Identifiable 
     self.lowerReps = max(lowerReps, 1)
     self.upperReps = max(upperReps, lowerReps, 1)
     self.restSeconds = restSeconds
+    self.weightKg = weightKg
   }
 
   public var repRange: ClosedRange<Int> { lowerReps...upperReps }
@@ -72,6 +75,57 @@ extension [Routine] {
 /// mittleren Bereich: Muskelaufbau gelingt über ein breites Lastspektrum (Schoenfeld et al. 2017), Grundübungen
 /// etwas schwerer. Sätze je Übung nach Erfahrung (Einsteiger 2, sonst 3).
 public enum RoutineTemplates {
+  /// Die vier Pläne aus GymBook (Stand 27.10.2026, aus den Screenshots des Nutzers): je 2 Sätze à 12 Wiederholungen,
+  /// Planks 2 × 60 Sekunden, mit den zuletzt genutzten Gewichten als Startwert.
+  public static var gymBook: [Routine] {
+    func item(_ id: String, _ name: String, _ weight: Double?, reps: Int = 12, rest: Int = 90) -> RoutineItem {
+      RoutineItem(
+        exerciseID: id, name: name, sets: 2, lowerReps: reps == 60 ? 60 : 10, upperReps: reps, restSeconds: rest,
+        weightKg: weight)
+    }
+    return [
+      Routine(
+        name: "Lower",
+        items: [
+          item("beinbeugen", "Beinbeugen Sitzend", 110),
+          item("beinstrecken", "Beinstrecken", 120),
+          item("beinpresse", "Beinpressen Sitzend", 149, rest: 120),
+          item("wadenheben", "Fersenheben am Gerät Stehend", 117),
+          item("crunch_geraet", "Crunches am Gerät", 90),
+        ]),
+      Routine(
+        name: "Push & Pull B",
+        items: [
+          item("hammer_curl_kabel", "Curls in Hammerhaltung am Kabel", 22.5),
+          item("trizeps_kabel_schraegbank", "Armstrecken am Tiefen Kabel auf Schrägbank", 32.5),
+          item("latziehen", "Lat-Ziehen mit Breitem Griff", 85, rest: 120),
+          item("bankdruecken", "Bankdrücken mit Langhantel", 52.5, rest: 120),
+          item("reverse_fly_kabel", "Reverse-Flyings am Hohen Kabel", 7.5),
+          item("dips_barren", "Dips am Barren", 79),
+        ]),
+      Routine(
+        name: "Pull A",
+        items: [
+          item("rudern_kabel", "Enges Rudern am Kabel Sitzend", 110, rest: 120),
+          item("kabel_curl_liegend", "Curls am Kabel liegend", 50),
+          item("latziehen_einarmig", "Einarmiges Lat-Ziehen", 52.5),
+          item("hammer_curl_kabel", "Curls in Hammerhaltung am Kabel", 22.5),
+          item("face_pull", "Face-Pulls am Kabel Sitzend", 45),
+          item("crunch_kabel", "Crunches am Kabel Kniend", 65),
+        ]),
+      Routine(
+        name: "Push A",
+        items: [
+          item("fliegende_kabel_hoch", "Flyings am Hohen Kabel", 22.5),
+          item("trizeps_kabel_schraegbank", "Armstrecken am Tiefen Kabel auf Schrägbank", 32.5),
+          item("bankdruecken", "Bankdrücken mit Langhantel", 52.5, rest: 120),
+          item("seitheben_kabel", "Einarmiges Seitwärtsheben am Tiefen Kabel", 13.75),
+          item("dips_barren", "Dips am Barren", 79),
+          item("plank", "Planks", nil, reps: 60),
+        ]),
+    ]
+  }
+
   /// Je Platz Übungen in Reihenfolge der Vorliebe; die erste machbare wird genommen.
   static let slots: [String: (name: String, slots: [[String]])] = [
     "ganzkoerper_a": (
@@ -226,6 +280,8 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var equipment: Set<Equipment>
   /// Wiederholungen in Reserve je Satz abfragen.
   public var tracksRIR: Bool
+  /// Beendete Einheiten als Krafttraining nach Garmin Connect übertragen.
+  public var uploadsToGarmin: Bool = true
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -243,6 +299,7 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     customExercises = (try? container.decodeIfPresent([ExerciseInfo].self, forKey: .customExercises)) ?? []
     equipment = (try? container.decodeIfPresent(Set<Equipment>.self, forKey: .equipment)) ?? Equipment.gym
     tracksRIR = (try? container.decodeIfPresent(Bool.self, forKey: .tracksRIR)) ?? true
+    uploadsToGarmin = (try? container.decodeIfPresent(Bool.self, forKey: .uploadsToGarmin)) ?? true
   }
 
   /// Übung zur ID inklusive eigener Übungen.

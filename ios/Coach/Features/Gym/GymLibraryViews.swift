@@ -288,6 +288,13 @@ struct EquipmentSettingsView: View {
           "Nach jedem Satz kurz schätzen, wie viele Wiederholungen noch gegangen wären (RIR). Bleiben in allen "
             + "Sätzen 4 oder mehr übrig, schlägt die App sofort mehr Gewicht vor.")
       }
+      Section {
+        Toggle("Nach Garmin Connect übertragen", isOn: $settings.gym.uploadsToGarmin)
+      } footer: {
+        Text(
+          "Beendete Einheiten erscheinen in Garmin Connect als Krafttraining mit Übung, Wiederholungen und Gewicht "
+            + "je Satz. Nur mit Garmin-Konto. Zeichnest du dieselbe Einheit auch mit der Uhr auf, gibt es sie doppelt.")
+      }
     }
     .navigationTitle("Ausstattung")
   }
@@ -317,6 +324,24 @@ struct RoutinesView: View {
         Button("Neue Routine", systemImage: "plus") { editing = Routine(name: "Neue Routine", items: []) }
       } header: {
         Text("Meine Routinen")
+      }
+      Section {
+        let gymBook = RoutineTemplates.gymBook
+        ForEach(gymBook) { routine in
+          VStack(alignment: .leading, spacing: 4) {
+            Text(routine.name).font(.headline)
+            Text(routine.items.map(\.name).joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+          }
+        }
+        Button("Alle GymBook-Pläne übernehmen", systemImage: "square.and.arrow.down") {
+          let existing = Set(model.settings.gym.routines.map(\.name))
+          model.settings.gym.routines += gymBook.filter { !existing.contains($0.name) }
+        }
+        .disabled(gymBook.allSatisfy { routine in settings.gym.routines.contains { $0.name == routine.name } })
+      } header: {
+        Text("Aus GymBook")
+      } footer: {
+        Text("Deine vier Pläne aus GymBook mit den zuletzt genutzten Gewichten als Startwert.")
       }
       Section {
         ForEach(suggestions) { routine in

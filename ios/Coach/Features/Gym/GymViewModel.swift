@@ -95,7 +95,7 @@ final class GymViewModel {
   func start(_ routine: Routine, now: Date = .now) {
     let exercises = routine.items.map { item -> LoggedExercise in
       let info = gym.exercise(item.exerciseID)
-      let suggestion = prefill(for: item.exerciseID, range: item.repRange, startWeight: nil)
+      let suggestion = prefill(for: item.exerciseID, range: item.repRange, startWeight: item.weightKg)
       return LoggedExercise(
         exerciseID: item.exerciseID, name: item.name, group: info?.group ?? .other,
         sets: (0..<item.sets).map { index in
@@ -261,7 +261,10 @@ final class GymViewModel {
   }
 
   /// Speichert die Einheit lokal und – wenn möglich – in Apple Health.
-  func finish(context: ModelContext, writer: any WorkoutSaving, now: Date = .now) async {
+  @discardableResult
+  func finish(
+    context: ModelContext, writer: any WorkoutSaving, garmin: GarminConnectSession? = nil, now: Date = .now
+  ) async -> GymSessionRecord? {
     guard var session = active else { return }
     session.exercises = session.exercises.compactMap { exercise in
       var exercise = exercise
@@ -270,7 +273,7 @@ final class GymViewModel {
     }
     guard !session.exercises.isEmpty else {
       message = "Noch kein Satz abgehakt – nichts zu speichern."
-      return
+      return nil
     }
     session.end = now
     isSaving = true
@@ -282,13 +285,35 @@ final class GymViewModel {
       try context.save()
     } catch {
       message = "Speichern fehlgeschlagen: \(error.localizedDescription)"
-      return
+      return nil
     }
     setActive(nil)
     restEndsAt = nil
     let records = GymStats.newRecords(in: session, before: sessions)
-    let health = await Self.saveToHealth(record, session: session, context: context, writer: writer)
-    message = records.isEmpty ? health : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + health
+    var status = await Self.saveToHealth(record, session: session, context: context, writer: writer)
+    if gym.uploadsToGarmin, let garmin, garmin.isLoggedIn {
+      status += "\n" + (await Self.uploadToGarmin(record, session: session, context: context, garmin: garmin))
+    }
+    message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
+    return record
+  }
+
+  /// Überträgt die Einheit als FIT-Krafttraining (Übung, Wiederholungen, Gewicht je Satz) nach Garmin Connect.
+  static func uploadToGarmin(
+    _ record: GymSessionRecord, session: GymSession, context: ModelContext, garmin: GarminConnectSession
+  ) async -> String {
+    let fit = StrengthFitExport.fit(session)
+    let name = "coach-kraft-\(session.day.iso)-\(session.id.uuidString.prefix(8)).fit"
+    do {
+      let created = try await garmin.upload(fit: fit, fileName: name)
+      record.uploadedToGarmin = true
+      try? context.save()
+      return created ? "Nach Garmin Connect übertragen." : "War in Garmin Connect schon vorhanden."
+    } catch let error as GarminAPIError {
+      return "Garmin: \(error.message)"
+    } catch {
+      return "Garmin: \(error.localizedDescription)"
+    }
   }
 
   /// Gibt eine Meldung für die Anzeige zurück.
