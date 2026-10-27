@@ -23,9 +23,15 @@ struct GymOverviewTests {
     #expect(GymTarget.text(for: progress(.build, weight: 0, next: nil), recovered: nil).contains("Wiederholungen"))
   }
 
+  func noon(_ day: CalendarDay) -> Date {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .current
+    return calendar.date(from: DateComponents(year: day.year, month: day.month, day: day.day, hour: 12)) ?? .now
+  }
+
   func session(_ key: String?, daysAgo: Int, weight: Double = 50) -> GymSession {
     GymSession(
-      workoutKey: key, title: "x", start: today.adding(days: -daysAgo).localNoon,
+      workoutKey: key, title: "x", start: noon(today.adding(days: -daysAgo)),
       exercises: [
         LoggedExercise(
           exerciseID: "bankdruecken", name: "Bankdrücken", group: .chest,
