@@ -24,6 +24,9 @@ private struct SettingsForm: View {
     NavigationStack {
       Form {
         profileSection
+        if model.settings.profile.mode == .personal {
+          InputIssuesSection(issues: profileIssues)
+        }
         ReminderSettingsSection()
         connectSection
         garminSection
@@ -55,6 +58,14 @@ private struct SettingsForm: View {
         if viewModel.isBusy { ProgressView() }
       }
     }
+  }
+
+  private var profileIssues: [InputIssue] {
+    let today = CalendarDay(date: .now)
+    let body = model.settings.nutrition.profile(garmin: model.sync.profile, on: today)
+    return InputCheck.body(body)
+      + InputCheck.goals(
+        profile: model.settings.profile, body: body, predictions: model.sync.racePredictions, today: today)
   }
 
   private var profileSection: some View {

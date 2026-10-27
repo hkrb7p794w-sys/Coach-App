@@ -124,6 +124,8 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
   /// Gewünschte Gewichtsänderung in % des Körpergewichts pro Woche (negativ = abnehmen). Kommt aus dem Profil und
   /// hat Vorrang vor dem festen Prozentsatz des Ziels.
   public var weeklyWeightChangePercent: Double?
+  /// Vom Nutzer übernommene Anpassung aus dem Gewichtsverlauf (kcal pro Tag, ±500).
+  public var energyAdjustmentKilocalories: Double = 0
 
   public init() {}
 
@@ -138,6 +140,8 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
     age = try? container.decodeIfPresent(Int.self, forKey: .age)
     isFemale = try? container.decodeIfPresent(Bool.self, forKey: .isFemale)
     weeklyWeightChangePercent = try? container.decodeIfPresent(Double.self, forKey: .weeklyWeightChangePercent)
+    energyAdjustmentKilocalories = min(
+      max((try? container.decodeIfPresent(Double.self, forKey: .energyAdjustmentKilocalories)) ?? 0, -500), 500)
   }
 
   /// Einstellungen haben Vorrang, dann Garmin-Profil, dann Standardwerte.
@@ -284,7 +288,7 @@ public enum NutritionPlanner {
       adjustPercent = max(-25, min(15, dailyKilocalories / dayEnergy * 100))
     }
     let goalPercent = adjustPercent * dayType.goalScale
-    var energy = dayEnergy * (1 + goalPercent / 100)
+    var energy = dayEnergy * (1 + goalPercent / 100) + settings.energyAdjustmentKilocalories
 
     // Energieverfügbarkeit bei Defizit nicht unter 30 kcal/kg fettfreie Masse (IOC-Konsensus REDs 2023).
     let bodyFat = settings.bodyFatPercent ?? (profile.isFemale ? 25 : 15)

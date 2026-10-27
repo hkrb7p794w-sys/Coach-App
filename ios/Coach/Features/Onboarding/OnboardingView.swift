@@ -254,6 +254,7 @@ struct OnboardingView: View {
           EvidenceDisclosure(ruleIDs: assessment.evidenceIDs)
         }
       }
+      InputIssuesSection(issues: inputIssues)
     }
   }
 
@@ -308,6 +309,7 @@ struct OnboardingView: View {
           ForEach(assessment.notes, id: \.self) { Text($0).font(.subheadline) }
         }
       }
+      InputIssuesSection(issues: inputIssues)
       Section {
         Text(
           "Die App prüft täglich deine Erholung (Garmin) gegen deinen Wochenplan und schlägt vor, Einheiten zu "
@@ -397,6 +399,15 @@ struct OnboardingView: View {
   private var bodyIsValid: Bool {
     guard let weight = number(weight), let height = number(height), let age = Int(age) else { return false }
     return (30...250).contains(weight) && (120...230).contains(height) && (14...100).contains(age)
+  }
+
+  /// Eingabeprüfung: Körperdaten bei Tippfehlern, sonst Ziele gegen Körperdaten und die Prognose der Uhr.
+  private var inputIssues: [InputIssue] {
+    guard let weight = number(weight), let height = number(height), let age = Int(age) else { return [] }
+    let body = BodyProfile(weightKilograms: weight, heightCentimeters: height, age: age, isFemale: isFemale)
+    guard bodyIsValid else { return InputCheck.body(body) }
+    return InputCheck.goals(
+      profile: draft, body: body, predictions: model.sync.racePredictions, today: CalendarDay(date: .now))
   }
 
   private var currentAssessment: GoalAssessment? {

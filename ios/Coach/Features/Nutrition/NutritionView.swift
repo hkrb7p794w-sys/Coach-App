@@ -41,6 +41,11 @@ struct NutritionView: View {
         reviewSection
         Section {
           NavigationLink {
+            WeightTrendView()
+          } label: {
+            Label("Gewichtsverlauf", systemImage: "scalemass")
+          }
+          NavigationLink {
             RecipesView()
           } label: {
             Label("Rezeptideen für die kommende Woche", systemImage: "frying.pan")

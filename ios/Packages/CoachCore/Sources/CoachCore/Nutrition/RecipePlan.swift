@@ -205,8 +205,13 @@ public enum RecipePlanner {
         let problems = violations(recipe, diet: diet, allergens: allergens)
         if !problems.isEmpty {
           notes.append("„\(recipe.title)“ verworfen: enthält \(problems.joined(separator: ", ")).")
+          return false
         }
-        return problems.isEmpty
+        if let item = recipe.ingredients.first(where: implausible) {
+          notes.append("„\(recipe.title)“ verworfen: unstimmige Nährwerte bei „\(item.name)“.")
+          return false
+        }
+        return true
       }
       guard !recipes.isEmpty else {
         if before == 0 { notes.append("\(Weekday(day: target.day).long): keine Rezepte erhalten.") }
@@ -290,6 +295,28 @@ public enum RecipePlanner {
   static let soy = ["soja", "tofu", "edamame", "tempeh", "miso"]
   static let sesame = ["sesam", "tahin"]
 
+  /// Zutaten mit typischerweise versteckten Allergenen bzw. tierischen Bestandteilen.
+  static let hidden: [(keyword: String, allergens: Set<Allergen>, animal: String?)] = [
+    ("pesto", [.lactose, .nuts], "Milchprodukte"),
+    ("worcester", [.fish], "Fisch"),
+    ("caesar", [.fish, .egg, .lactose], "Fisch"),
+    ("mayonnaise", [.egg], "Ei"),
+    ("mayo", [.egg], "Ei"),
+    ("remoulade", [.egg], "Ei"),
+    ("aioli", [.egg], "Ei"),
+    ("marzipan", [.nuts], nil),
+    ("nougat", [.nuts, .lactose], "Milchprodukte"),
+    ("praline", [.nuts], nil),
+    ("hummus", [.sesame], nil),
+    ("sojasauce", [.soy, .gluten], nil),
+    ("sojasoße", [.soy, .gluten], nil),
+    ("teriyaki", [.soy, .gluten], nil),
+    ("fischsauce", [.fish], "Fisch"),
+    ("austernsauce", [.shellfish], "Fisch"),
+    ("milchschokolade", [.lactose], "Milchprodukte"),
+    ("panko", [.gluten], nil),
+  ]
+
   static func words(_ text: String) -> [String] {
     text.lowercased().split { !$0.isLetter }.map(String.init)
   }
@@ -332,6 +359,19 @@ public enum RecipePlanner {
         if contains(name, ["honig"]) { result.append("Honig") }
       }
     }
+    for item in hidden where lower.contains(item.keyword) {
+      if let animal = item.animal, !plantBased {
+        let conflict =
+          switch animal {
+          case "Fisch": diet == .vegetarian || diet == .vegan
+          default: diet == .vegan
+          }
+        if conflict { result.append(animal) }
+      }
+      for allergen in item.allergens.sorted(by: { $0.rawValue < $1.rawValue }) where allergens.contains(allergen) {
+        result.append(allergen.label)
+      }
+    }
     for allergen in allergens.sorted(by: { $0.rawValue < $1.rawValue }) {
       let hit: Bool =
         switch allergen {
@@ -347,13 +387,32 @@ public enum RecipePlanner {
         }
       if hit { result.append(allergen.label) }
     }
-    return result
+    var seen = Set<String>()
+    return result.filter { seen.insert($0).inserted }
   }
 
   public static func violations(_ recipe: Recipe, diet: Diet, allergens: Set<Allergen>) -> [String] {
     var seen = Set<String>()
     return recipe.ingredients.flatMap { violations($0.name, diet: diet, allergens: allergens) }
       .filter { seen.insert($0).inserted }
+  }
+
+  /// Unstimmige Nährwerte je 100 g: mehr als 900 kcal, mehr als 100 g eines Makronährstoffs, zusammen über 105 g
+  /// oder Energie, die nicht zu Protein, Kohlenhydraten und Fett passt (4/4/9 kcal je g, ±25 % bzw. ±40 kcal).
+  public static func implausible(_ item: MealItem) -> Bool {
+    let values = item.per100g
+    let kcal = values[.kcal] ?? 0
+    let protein = values[.protein]
+    let carbs = values[.carbs]
+    let fat = values[.fat]
+    if kcal > 900 || kcal < 0 { return true }
+    for value in [protein, carbs, fat].compactMap({ $0 }) where value > 100 || value < 0 { return true }
+    if (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) > 105 { return true }
+    if let protein, let carbs, let fat {
+      let fromMacros = 4 * protein + 4 * carbs + 9 * fat
+      if abs(kcal - fromMacros) > max(0.25 * max(kcal, fromMacros), 40) { return true }
+    }
+    return false
   }
 
   // MARK: Auswertung bisheriger Mahlzeiten und Einkaufsliste

@@ -63,6 +63,40 @@ jobs:
           echo "Lint: ${{ steps.lint.outcome }}, Tests: ${{ steps.test.outcome }}"
           exit 1
 
+  # Prüfbericht der Musterpersonen (PersonaReport) als ein PR-Kommentar, der bei jedem Push aktualisiert wird.
+  persona-report:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    timeout-minutes: 20
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Bericht erzeugen
+        run: swift run --package-path ios/Packages/CoachCore coach-report > persona-report.md
+
+      - name: gh installieren
+        run: |
+          apt-get update -qq && apt-get install -y -qq gh > /dev/null
+
+      - name: Kommentar schreiben oder aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          { echo "📋 Prüfbericht"; echo; cat persona-report.md; } > comment.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("📋 Prüfbericht"))][0].id // empty')
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@comment.md > /dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md > /dev/null
+          fi
+
   report:
     needs: lint-test
     if: failure() && github.event_name == 'pull_request'

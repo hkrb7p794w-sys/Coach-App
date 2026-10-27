@@ -250,6 +250,8 @@ public enum ConnectEndpoint: Equatable, Sendable {
   /// `v2/dailysummaries` und `dailySleep` sind dort nicht sicher verfügbar).
   case userSummary(displayName: String, day: CalendarDay)
   case dailySleepData(displayName: String, day: CalendarDay)
+  /// Wägungen eines Zeitraums (Waage, Garmin-App oder Eingabe in Connect).
+  case weightRange(start: CalendarDay, end: CalendarDay)
 
   public var path: String {
     switch self {
@@ -262,6 +264,7 @@ public enum ConnectEndpoint: Equatable, Sendable {
       "/metrics-service/metrics/racepredictions/latest/" + Self.safe(name)
     case .userSummary(let name, _): "/usersummary-service/usersummary/daily/" + Self.safe(name)
     case .dailySleepData(let name, _): "/wellness-service/wellness/dailySleepData/" + Self.safe(name)
+    case .weightRange(let start, let end): "/weight-service/weight/range/\(start.iso)/\(end.iso)"
     }
   }
 
@@ -274,6 +277,8 @@ public enum ConnectEndpoint: Equatable, Sendable {
         GarminRequest.QueryItem(name: "date", value: day.iso),
         GarminRequest.QueryItem(name: "nonSleepBufferMinutes", value: "60"),
       ]
+    case .weightRange:
+      [GarminRequest.QueryItem(name: "includeAll", value: "true")]
     default:
       []
     }

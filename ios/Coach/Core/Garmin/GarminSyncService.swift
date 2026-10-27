@@ -42,6 +42,7 @@ final class GarminSyncService {
   static let profileDateKey = "garmin.profileDate"
   static let activityBackfillKey = "garmin.activityBackfill"
   static let racePredictionsKey = "garmin.racePredictions"
+  static let weightsKey = "garmin.weights"
 
   init(
     client: GarminClient, context: ModelContext, defaults: UserDefaults = .standard,
@@ -60,6 +61,11 @@ final class GarminSyncService {
   /// Wettkampfprognosen der Uhr (nur über das Garmin-Konto).
   var racePredictions: RacePredictions? {
     defaults.data(forKey: Self.racePredictionsKey).flatMap { try? JSONDecoder().decode(RacePredictions.self, from: $0) }
+  }
+
+  /// Wägungen aus Garmin Connect (letzte 120 Tage).
+  var weights: [WeightEntry] {
+    defaults.data(forKey: Self.weightsKey).flatMap { try? JSONDecoder().decode([WeightEntry].self, from: $0) } ?? []
   }
 
   var profile: GarminProfile? {
@@ -221,6 +227,15 @@ final class GarminSyncService {
         let predictions = RacePredictions(json: json), let data = try? JSONEncoder().encode(predictions)
       {
         defaults.set(data, forKey: Self.racePredictionsKey)
+      }
+    }
+    if let json = await fetchConnect(.weightRange(start: today.adding(days: -27), end: today), report: &report) {
+      let start = today.adding(days: -119)
+      let fresh = WeightTrend.garminEntries(json)
+      let freshDays = Set(fresh.map(\.day))
+      let kept = weights.filter { $0.day >= start && !freshDays.contains($0.day) }
+      if let data = try? JSONEncoder().encode((kept + fresh).sorted { $0.day < $1.day }) {
+        defaults.set(data, forKey: Self.weightsKey)
       }
     }
     return maps
