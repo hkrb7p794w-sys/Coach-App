@@ -18,6 +18,14 @@ hier notieren und als PR beheben.
       Garmin-Diagnose?
 - [ ] **KI-Funktionen:** Coach-Notiz, Gym-Tipps, KI-Trainingsplan, Chat – Antworten sinnvoll, keine erfundenen
       Zahlen?
+- [ ] **Gym im Training (Fokus-Karte):** Einheit starten → Satz erledigt springt richtig weiter, Ziffernblock und
+      ± Knöpfe gut treffbar, Pause mit RIR-Frage, Rückgängig nach Ent-Haken, Beenden mit vergessenen Sätzen.
+- [ ] **Satzarten und Supersätze:** Aufwärmsätze einfügen (zählen nicht für Volumen/Rekorde), Supersatz A1/A2 ohne
+      Pause dazwischen, Später/Ersetzen/Reihenfolge, Klimmzug mit Unterstützung, Rückfrage bei 625 kg.
+- [ ] **Start und Auswertung:** Karte „Nächste Einheit“ schlägt die richtige Routine vor; Abschluss mit Vergleich und
+      „Nächstes Mal“; Auswertung mit Kalender und Serie.
+- [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
+      Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 
 ## Gestrichen
 
