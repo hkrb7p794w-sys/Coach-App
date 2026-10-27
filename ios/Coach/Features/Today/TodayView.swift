@@ -334,6 +334,14 @@ private struct WeekOverviewView: View {
         PersonalWeekSections(snapshot: snapshot, activities: activities, gymDays: gymDays)
       }
       MotivationSections(snapshot: snapshot, activities: activities, gymDays: gymDays, showsCompanion: false)
+      if let imported = model.settings.importedNotes {
+        Section {
+          ForEach(imported.texts, id: \.self) { Label($0, systemImage: "sparkles").font(.subheadline) }
+          Button("Hinweise entfernen", role: .destructive) { model.settings.importedNotes = nil }
+        } header: {
+          Text("Vom KI-Coach (Import vom \(Formatters.shortDate(imported.day)))")
+        }
+      }
       if !records.isEmpty {
         Section("Letzte Aktivitäten") {
           ForEach(records) { record in
