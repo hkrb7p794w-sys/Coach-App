@@ -11,10 +11,12 @@ public struct RoutineItem: Codable, Equatable, Hashable, Sendable, Identifiable 
   public var restSeconds: Int
   /// Startgewicht, solange es für die Übung noch keinen Verlauf gibt (z. B. aus GymBook übernommen).
   public var weightKg: Double?
+  /// Mit der folgenden Übung als Supersatz (abwechselnd, Pause nach der Runde).
+  public var supersetWithNext: Bool = false
 
   public init(
     id: UUID = UUID(), exerciseID: String, name: String, sets: Int, lowerReps: Int, upperReps: Int,
-    restSeconds: Int, weightKg: Double? = nil
+    restSeconds: Int, weightKg: Double? = nil, supersetWithNext: Bool = false
   ) {
     self.id = id
     self.exerciseID = exerciseID
@@ -24,6 +26,20 @@ public struct RoutineItem: Codable, Equatable, Hashable, Sendable, Identifiable 
     self.upperReps = max(upperReps, lowerReps, 1)
     self.restSeconds = restSeconds
     self.weightKg = weightKg
+    self.supersetWithNext = supersetWithNext
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decode(UUID.self, forKey: .id)
+    exerciseID = try container.decode(String.self, forKey: .exerciseID)
+    name = try container.decode(String.self, forKey: .name)
+    sets = try container.decode(Int.self, forKey: .sets)
+    lowerReps = try container.decode(Int.self, forKey: .lowerReps)
+    upperReps = try container.decode(Int.self, forKey: .upperReps)
+    restSeconds = try container.decode(Int.self, forKey: .restSeconds)
+    weightKg = try? container.decodeIfPresent(Double.self, forKey: .weightKg)
+    supersetWithNext = (try? container.decodeIfPresent(Bool.self, forKey: .supersetWithNext)) ?? false
   }
 
   public var repRange: ClosedRange<Int> { lowerReps...upperReps }
@@ -286,6 +302,15 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var focusShortcuts: Bool = false
   /// Bildschirm während der Einheit nicht sperren.
   public var keepsScreenOn: Bool = true
+  /// Langhantelstange in kg (Standard 20) und vorhandene Scheiben für den Scheibenrechner.
+  public var barKg: Double = PlateCalculator.standardBar
+  public var plates: [Double] = PlateCalculator.standardPlates
+  /// Andere Stange je Übung (z. B. SZ-Stange 10 kg für Curls).
+  public var bars: [String: Double] = [:]
+  /// Notiz je Übung (Sitzhöhe, Griffbreite, Gerätenummer).
+  public var notes: [String: String] = [:]
+  /// Gemerkte Pause je Übung in Sekunden (aus ±15 s während der Einheit).
+  public var restOverrides: [String: Int] = [:]
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -306,7 +331,15 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     uploadsToGarmin = (try? container.decodeIfPresent(Bool.self, forKey: .uploadsToGarmin)) ?? true
     focusShortcuts = (try? container.decodeIfPresent(Bool.self, forKey: .focusShortcuts)) ?? false
     keepsScreenOn = (try? container.decodeIfPresent(Bool.self, forKey: .keepsScreenOn)) ?? true
+    barKg = (try? container.decodeIfPresent(Double.self, forKey: .barKg)) ?? PlateCalculator.standardBar
+    plates = (try? container.decodeIfPresent([Double].self, forKey: .plates)) ?? PlateCalculator.standardPlates
+    bars = (try? container.decodeIfPresent([String: Double].self, forKey: .bars)) ?? [:]
+    notes = (try? container.decodeIfPresent([String: String].self, forKey: .notes)) ?? [:]
+    restOverrides = (try? container.decodeIfPresent([String: Int].self, forKey: .restOverrides)) ?? [:]
   }
+
+  /// Stange für eine Übung.
+  public func bar(for exerciseID: String) -> Double { bars[exerciseID] ?? barKg }
 
   /// Übung zur ID inklusive eigener Übungen.
   public func exercise(_ id: String) -> ExerciseInfo? {

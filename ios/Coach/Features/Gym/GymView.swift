@@ -12,6 +12,7 @@ struct GymView: View {
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @State private var viewModel = GymViewModel()
   @State private var showWorkout = false
+  @State private var pendingDelete: IndexSet?
 
   private var refreshKey: String {
     "\(records.count)-\(records.first?.savedToHealth ?? false)-\(activities.count)-\(days.first?.dayKey ?? "")-"
@@ -78,14 +79,25 @@ struct GymView: View {
                 }
               }
             }
-            .onDelete { offsets in
-              for index in offsets { context.delete(records[index]) }
-              try? context.save()
-            }
+            // Erst nach Rückfrage löschen – eine Einheit ist Verlauf und Grundlage der Progression.
+            .onDelete { offsets in pendingDelete = offsets }
           }
         }
       }
       .navigationTitle("Gym")
+      .confirmationDialog(
+        "Einheit löschen?",
+        isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+        titleVisibility: .visible
+      ) {
+        Button("Löschen", role: .destructive) {
+          for index in pendingDelete ?? [] where records.indices.contains(index) { context.delete(records[index]) }
+          try? context.save()
+          pendingDelete = nil
+        }
+      } message: {
+        Text("Sätze, Bestleistungen und die Progression dieser Einheit gehen verloren.")
+      }
       .task(id: refreshKey) {
         viewModel.update(
           sessions: records.compactMap(\.session),

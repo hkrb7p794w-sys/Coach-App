@@ -44,7 +44,7 @@ public enum GymStats {
         day: day, topWeightKg: sets.map(\.weightKg).max() ?? 0,
         oneRepMaxKg: sets.compactMap { estimatedOneRepMax(weightKg: $0.weightKg, reps: $0.reps) }.max(),
         bestReps: sets.map(\.reps).max() ?? 0,
-        volumeKg: sets.reduce(0) { $0 + $1.weightKg * Double($1.reps) }, sets: sets)
+        volumeKg: sets.reduce(0) { $0 + $1.loadKg * Double($1.reps) }, sets: sets)
     }
   }
 

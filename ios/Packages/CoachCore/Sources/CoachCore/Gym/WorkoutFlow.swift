@@ -35,7 +35,50 @@ public enum WorkoutFlow {
       copy.exercises[position.exercise].sets.indices.contains(position.set)
     else { return nil }
     copy.exercises[position.exercise].sets[position.set].done = true
-    return current(in: copy, preferring: copy.exercises[position.exercise].id)
+    let next = afterCompleting(exercise: position.exercise, in: copy)
+    return current(in: copy, preferring: next.focus.map { copy.exercises[$0].id })
+  }
+
+  /// Nach dem Abhaken eines Satzes von Übung `index` (Satz ist schon abgehakt): welche Übung kommt, und startet
+  /// eine Pause? Im Supersatz geht es ohne Pause zur nächsten Übung der Gruppe; Pause erst nach der Runde.
+  public static func afterCompleting(exercise index: Int, in session: GymSession) -> (focus: Int?, rest: Bool) {
+    let exercises = session.exercises
+    guard exercises.indices.contains(index) else { return (nil, true) }
+    let members = supersetMembers(of: index, in: session)
+    if members.count > 1, let position = members.firstIndex(of: index) {
+      let order = members[(position + 1)...] + members[..<position]
+      if let next = order.first(where: { exercises[$0].sets.contains { !$0.done } }) {
+        // Weiter hinten in der Gruppe: ohne Pause; zurück zur ersten Übung: neue Runde nach der Pause.
+        return (next, next < index)
+      }
+    }
+    let next = current(in: session, preferring: exercises[index].id)
+    return (next?.exercise, true)
+  }
+
+  /// Indizes der Übungen im selben Supersatz (nur die Übung selbst, wenn sie keinem angehört).
+  public static func supersetMembers(of index: Int, in session: GymSession) -> [Int] {
+    guard session.exercises.indices.contains(index), let id = session.exercises[index].supersetID else {
+      return [index]
+    }
+    return session.exercises.indices.filter { session.exercises[$0].supersetID == id }
+  }
+
+  /// Kürzel wie „A1“, „A2“, „B1“ für Übungen in Supersätzen (Reihenfolge des ersten Auftretens).
+  public static func supersetLabels(in session: GymSession) -> [UUID: String] {
+    var letters: [UUID: Character] = [:]
+    var counts: [UUID: Int] = [:]
+    var result: [UUID: String] = [:]
+    let groups = Dictionary(grouping: session.exercises.compactMap(\.supersetID), by: { $0 })
+    for exercise in session.exercises {
+      guard let id = exercise.supersetID, (groups[id]?.count ?? 0) > 1 else { continue }
+      if letters[id] == nil {
+        letters[id] = Character(UnicodeScalar(UInt8(65 + min(letters.count, 25))))
+      }
+      counts[id, default: 0] += 1
+      result[exercise.id] = "\(letters[id] ?? "A")\(counts[id] ?? 1)"
+    }
+    return result
   }
 
   /// Fortschritt einer Übung, z. B. „2/4“.
