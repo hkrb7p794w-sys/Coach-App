@@ -2,6 +2,21 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Live-Aktivität für die laufende Einheit
+
+- Pause, nächster Satz und „Satz erledigt“ / „Weiter“ auf dem Sperrbildschirm und in der Dynamic Island
+  (ActivityKit, Widget-Erweiterung `CoachWidgets`). Die Knöpfe sind `LiveActivityIntent`s; deren `perform()` läuft im
+  Prozess der App, die dafür bei Bedarf im Hintergrund gestartet wird. Die App bindet die Knöpfe deshalb schon beim
+  Start an die (gemeinsame) Einheit `GymViewModel.shared`.
+  Apple: <https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities>,
+  <https://developer.apple.com/documentation/appintents/liveactivityintent>.
+- Kein besonderes Entitlement nötig, nur `NSSupportsLiveActivities`. Abschaltbar in Gym › Ausstattung und in den
+  iOS-Einstellungen.
+- **Preis bei SideStore:** Jede App-Erweiterung braucht eine eigene App-ID; mit kostenloser Apple-ID sind es höchstens
+  10 App-IDs je 7 Tage (AltStore-FAQ: <https://faq.altstore.io/altstore-classic/app-ids>). IronLudi braucht damit 2
+  statt 1. Falls die Installation daran scheitert: Erweiterung aus `project.yml` entfernen, die App funktioniert
+  unverändert (Pause dann wie bisher per Mitteilung).
+
 ## 2026-10-27 – Gym: Start und Abschluss
 
 Dritter PR der UX-Prüfung:

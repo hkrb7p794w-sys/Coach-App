@@ -10,7 +10,7 @@ struct GymView: View {
   @Query(sort: \GymSessionRecord.start, order: .reverse) private var records: [GymSessionRecord]
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
-  @State private var viewModel = GymViewModel()
+  @State private var viewModel = GymViewModel.shared
   @State private var showWorkout = false
   /// Fokus wurde für die laufende Einheit eingeschaltet.
   @State private var focusOn = false
@@ -109,6 +109,11 @@ struct GymView: View {
         guard wanted != focusOn, let url = WorkoutFocus.url(turningOn: wanted) else { return }
         focusOn = wanted
         UIApplication.shared.open(url)
+      }
+      // Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm.
+      .onChange(of: viewModel.liveState, initial: true) { _, state in
+        WorkoutActivityController.update(
+          state, title: viewModel.active?.title ?? "", enabled: model.settings.gym.liveActivity)
       }
       // Bildschirm an, solange eine Einheit läuft – auch wenn sie gerade ausgeblendet ist.
       .onChange(of: viewModel.active != nil && model.settings.gym.keepsScreenOn, initial: true) { _, on in

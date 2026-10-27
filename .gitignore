@@ -10,6 +10,7 @@
 # iOS / Xcode (Projekt wird von XcodeGen erzeugt)
 ios/*.xcodeproj/
 ios/Coach/Resources/Info.plist
+ios/CoachWidgets/Info.plist
 ios/Coach/Resources/Coach.entitlements
 xcuserdata/
 DerivedData/

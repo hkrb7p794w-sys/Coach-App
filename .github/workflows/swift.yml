@@ -25,7 +25,7 @@ jobs:
       run:
         shell: bash
     env:
-      SOURCES: ios/Coach ios/CoachTests ios/Packages/CoachCore
+      SOURCES: ios/Coach ios/CoachTests ios/Packages/CoachCore ios/Shared ios/CoachWidgets
     steps:
       - uses: actions/checkout@v7
 
