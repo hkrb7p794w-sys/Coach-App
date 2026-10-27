@@ -69,7 +69,6 @@ struct ExerciseDetailView: View {
   let exerciseID: String
   let viewModel: GymViewModel
   @Environment(AppModel.self) private var model
-  @State private var showOneRepMax = true
 
   var body: some View {
     let gym = model.settings.gym
@@ -124,24 +123,7 @@ struct ExerciseDetailView: View {
           }
         }
         if history.count > 1 {
-          Section {
-            Picker("Anzeige", selection: $showOneRepMax) {
-              Text("Geschätztes 1RM").tag(true)
-              Text("Höchstgewicht").tag(false)
-            }
-            .pickerStyle(.segmented)
-            Chart(history) { point in
-              let value = showOneRepMax ? (point.oneRepMaxKg ?? point.topWeightKg) : point.topWeightKg
-              LineMark(x: .value("Tag", point.day.localDate, unit: .day), y: .value("kg", value))
-              PointMark(x: .value("Tag", point.day.localDate, unit: .day), y: .value("kg", value))
-            }
-            .chartYScale(domain: .automatic(includesZero: false))
-            .frame(height: 180)
-          } header: {
-            Text("Verlauf")
-          } footer: {
-            Text("1RM geschätzt nach Epley aus Sätzen mit bis zu 12 Wiederholungen.")
-          }
+          ExerciseHistoryCharts(history: history)
         }
         Section("Einheiten") {
           ForEach(history.reversed()) { point in

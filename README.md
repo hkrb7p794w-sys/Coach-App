@@ -43,7 +43,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 25 | Gym ersetzt GymBook: eigene Pläne, Übertragung nach Garmin Connect mit Sätzen, KI-Trainingsplan mit Fragebogen, Hinweise zu Stillstand und Volumen | fertig (PR 33) |
 | 26 | Apple Health / Apple Watch als zweite Quelle: Schlaf, Ruhepuls, Kalorien, VO2max, Gewicht, Workouts (Garmin hat Vorrang) | fertig (PR 34) |
 | 27 | Erinnerungen: Schwimm-Ausrüstung am Vorabend, sonntags „Nächste Woche planen“ mit Wochenplanung; GymBook-Verlauf importieren; Name IronLudi | fertig (PR 35) |
-| 28 | „Heute“ aufgeräumt (Woche, Ziele, Verlauf eine Ebene tiefer), Erinnerungen kennen erledigte Einheiten | in Arbeit (PR 36) |
+| 28 | „Heute“ aufgeräumt (Woche, Ziele, Verlauf eine Ebene tiefer), Erinnerungen kennen erledigte Einheiten | fertig (PR 36) |
+| 29 | Übungsverlauf mit Zeitraum, Zoom mit zwei Fingern und bewegter Last je Einheit | in Arbeit (PR 37) |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
