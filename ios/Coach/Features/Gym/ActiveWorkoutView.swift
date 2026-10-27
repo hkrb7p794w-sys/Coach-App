@@ -1131,7 +1131,8 @@ private struct FinishWorkoutSheet: View {
       if let change = finished.volumeChange {
         Label(
           "\(abs(change)) % \(change >= 0 ? "mehr" : "weniger") Volumen als beim letzten Mal",
-          systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right")
+          systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
+        )
         .font(.subheadline)
       }
       if !finished.records.isEmpty {

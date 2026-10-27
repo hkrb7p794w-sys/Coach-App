@@ -25,7 +25,7 @@ struct GymOverviewTests {
 
   func session(_ key: String?, daysAgo: Int, weight: Double = 50) -> GymSession {
     GymSession(
-      workoutKey: key, title: "x", start: today.adding(days: -daysAgo).localDate,
+      workoutKey: key, title: "x", start: today.adding(days: -daysAgo).localNoon,
       exercises: [
         LoggedExercise(
           exerciseID: "bankdruecken", name: "Bankdrücken", group: .chest,
