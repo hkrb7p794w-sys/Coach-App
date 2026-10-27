@@ -61,6 +61,7 @@ struct ActiveWorkoutView: View {
           Button("Beenden") {
             Task {
               await viewModel.finish(context: context, writer: HealthWorkoutWriter(), garmin: model.garmin.connect)
+              await model.refreshReminders()
               if viewModel.active == nil { dismiss() }
             }
           }

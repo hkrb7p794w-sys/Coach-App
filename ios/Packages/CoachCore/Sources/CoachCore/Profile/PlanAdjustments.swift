@@ -172,14 +172,44 @@ public struct TrainingReminder: Equatable, Sendable, Identifiable {
   }
 }
 
+/// Was schon trainiert wurde (Aktivitäten aus Garmin/Health, Krafteinheiten der App): Erinnerungen für
+/// Erledigtes entfallen.
+public struct TrainingLog: Sendable {
+  public var activities: [GarminActivity]
+  public var gymDays: Set<CalendarDay>
+
+  public init(activities: [GarminActivity] = [], gymDays: Set<CalendarDay> = []) {
+    self.activities = activities
+    self.gymDays = gymDays
+  }
+
+  /// Tage mit mindestens 15 Minuten Training oder einer Krafteinheit.
+  public var trainedDays: Set<CalendarDay> {
+    Set(activities.filter { ($0.durationSeconds ?? 0) >= 900 }.compactMap(\.day)).union(gymDays)
+  }
+
+  /// Saisonplan-Tag mit dem bis `today` Erledigten dieser Woche.
+  func seasonPlan(
+    schedule: SeasonSchedule, config: SeasonConfig, decisions: CompetitionDecisions, day: CalendarDay,
+    today: CalendarDay
+  ) -> TodayPlan {
+    let progress = TodayPlan.done(activities: activities, gymDays: gymDays, weekOf: day, upTo: today)
+    return TodayPlan(
+      schedule: schedule, config: config, decisions: decisions, today: day, level: nil, advice: "",
+      done: progress.done, gymDays: progress.strengthDays, runZones: nil)
+  }
+}
+
 public enum ReminderPlanner {
   /// Erinnerungen für die kommenden `days` Tage ab `today` (iOS erlaubt höchstens 64 geplante Mitteilungen).
   /// Heute nur, wenn die Uhrzeit noch nicht vorbei ist und noch nicht trainiert wurde.
   public static func personal(
-    profile: UserProfile, adjustments: PlanAdjustments, today: CalendarDay, includeToday: Bool, days: Int = 14
+    profile: UserProfile, adjustments: PlanAdjustments, today: CalendarDay, includeToday: Bool, days: Int = 14,
+    log: TrainingLog = TrainingLog()
   ) -> [TrainingReminder] {
-    (0..<days).compactMap { offset in
-      if offset == 0, !includeToday { return nil }
+    let trainedToday = log.trainedDays.contains(today)
+    return (0..<days).compactMap { offset in
+      if offset == 0, !includeToday || trainedToday { return nil }
       let day = today.adding(days: offset)
       let slots = adjustments.schedule(profile.schedule, inWeekOf: day).slots(on: Weekday(day: day))
       guard !slots.isEmpty else { return nil }
@@ -191,15 +221,13 @@ public enum ReminderPlanner {
   /// (der Saisonplan verteilt offene Einheiten selbst).
   public static func season(
     schedule: SeasonSchedule, config: SeasonConfig, decisions: CompetitionDecisions, today: CalendarDay,
-    includeToday: Bool, days: Int = 14
+    includeToday: Bool, days: Int = 14, log: TrainingLog = TrainingLog()
   ) -> [TrainingReminder] {
     (0..<days).compactMap { offset in
       if offset == 0, !includeToday { return nil }
       let day = today.adding(days: offset)
-      let plan = TodayPlan(
-        schedule: schedule, config: config, decisions: decisions, today: day, level: nil, advice: "",
-        done: TodayPlan.Done(), gymDays: [], runZones: nil)
-      let titles = plan.items.filter { $0.sport != .rest }.map(\.title)
+      let plan = log.seasonPlan(schedule: schedule, config: config, decisions: decisions, day: day, today: today)
+      let titles = plan.items.filter { $0.sport != .rest && !$0.done }.map(\.title)
       guard !titles.isEmpty else { return nil }
       return TrainingReminder(day: day, titles: titles, canAdjust: false)
     }
@@ -240,15 +268,15 @@ extension ReminderPlanner {
   /// Nur der Saisonplan kennt die Ausrüstung je Einheit; im eigenen Wochenplan gibt es keine Angabe dazu.
   public static func swimEquipment(
     schedule: SeasonSchedule, config: SeasonConfig, decisions: CompetitionDecisions, today: CalendarDay,
-    minutesNow: Int, days: Int = 14
+    minutesNow: Int, days: Int = 14, log: TrainingLog = TrainingLog()
   ) -> [ScheduledNote] {
     (1...max(days, 1)).compactMap { offset in
       let training = today.adding(days: offset)
       let evening = training.adding(days: -1)
       if evening == today, minutesNow >= equipmentHour * 60 { return nil }
-      let plan = TodayPlan(
-        schedule: schedule, config: config, decisions: decisions, today: training, level: nil, advice: "",
-        done: TodayPlan.Done(), gymDays: [], runZones: nil)
+      // Schon geschwommen (z. B. am Dienstag): Am Donnerstag stehen dann die Beine an, keine Erinnerung.
+      let plan = log.seasonPlan(
+        schedule: schedule, config: config, decisions: decisions, day: training, today: today)
       guard plan.items.contains(where: { $0.sport == .swim && !$0.done }),
         let week = schedule.week(containing: training)
       else { return nil }

@@ -62,3 +62,57 @@ struct ReminderExtrasTests {
     #expect(ListFormat.german(["Pull-Buoy", "Paddles", "Flossen"]) == "Pull-Buoy, Paddles und Flossen")
   }
 }
+
+struct ReminderDoneTests {
+  let monday = CalendarDay(year: 2026, month: 10, day: 26)
+
+  func activity(_ typeKey: String, on day: CalendarDay, minutes: Double = 40) -> GarminActivity {
+    var activity = GarminActivity(id: Int64(day.day))
+    activity.typeKey = typeKey
+    activity.startLocal = "\(day.iso) 07:00:00"
+    activity.durationSeconds = minutes * 60
+    activity.distanceMeters = 2_000
+    return activity
+  }
+
+  @Test func swimDoneOnTuesdaySkipsThursdayEquipment() throws {
+    let schedule = try #require(SeasonSchedule.load())
+    let tuesday = monday.adding(days: 1)
+    let without = ReminderPlanner.swimEquipment(
+      schedule: schedule, config: .standard, decisions: [:], today: tuesday, minutesNow: 600, days: 7)
+    #expect(without.map(\.day) == [tuesday.adding(days: 1)])
+    let log = TrainingLog(activities: [activity("lap_swimming", on: tuesday)])
+    let with = ReminderPlanner.swimEquipment(
+      schedule: schedule, config: .standard, decisions: [:], today: tuesday, minutesNow: 600, days: 7, log: log)
+    #expect(with.isEmpty)
+  }
+
+  @Test func trainedTodayCancelsTodaysReminder() {
+    var profile = UserProfile(sports: [.run])
+    var week = WeekSchedule()
+    week.set([SessionSlot(.run)], on: .monday)
+    week.set([SessionSlot(.run)], on: .wednesday)
+    profile.schedule = week
+    let log = TrainingLog(activities: [activity("running", on: monday)])
+    let reminders = ReminderPlanner.personal(
+      profile: profile, adjustments: PlanAdjustments(), today: monday, includeToday: true, days: 3, log: log)
+    #expect(reminders.map(\.day) == [monday.adding(days: 2)])
+    // Kurzes Training (unter 15 Minuten) zählt nicht.
+    let short = TrainingLog(activities: [activity("running", on: monday, minutes: 10)])
+    let still = ReminderPlanner.personal(
+      profile: profile, adjustments: PlanAdjustments(), today: monday, includeToday: true, days: 3, log: short)
+    #expect(still.first?.day == monday)
+  }
+
+  @Test func seasonReminderDropsDoneUnits() throws {
+    let schedule = try #require(SeasonSchedule.load())
+    let before = ReminderPlanner.season(
+      schedule: schedule, config: .standard, decisions: [:], today: monday, includeToday: true, days: 1)
+    let after = ReminderPlanner.season(
+      schedule: schedule, config: .standard, decisions: [:], today: monday, includeToday: true, days: 1,
+      log: TrainingLog(gymDays: [monday]))
+    // Montag ist Push; mit erledigter Krafteinheit bleibt davon nichts in der Erinnerung.
+    #expect(before.first?.titles.isEmpty == false)
+    #expect((after.first?.titles.count ?? 0) < (before.first?.titles.count ?? 0))
+  }
+}

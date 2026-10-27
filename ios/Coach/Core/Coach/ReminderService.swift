@@ -52,7 +52,7 @@ final class ReminderService: NSObject {
   }
 
   /// Fragt beim ersten Mal nach der Erlaubnis und plant die Erinnerungen der nächsten 14 Tage neu.
-  func refresh(seasonSchedule: SeasonSchedule?, now: Date = .now) async {
+  func refresh(seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), now: Date = .now) async {
     guard let center else { return }
     let status = await center.notificationSettings().authorizationStatus
     var allowed = status == .authorized || status == .provisional || status == .ephemeral
@@ -67,7 +67,7 @@ final class ReminderService: NSObject {
     center.removePendingNotificationRequests(withIdentifiers: pending.filter { $0.hasPrefix(Self.identifierPrefix) })
     guard allowed else { return }
 
-    for reminder in config.enabled ? reminders(seasonSchedule: seasonSchedule, now: now) : [] {
+    for reminder in config.enabled ? reminders(seasonSchedule: seasonSchedule, log: log, now: now) : [] {
       let content = UNMutableNotificationContent()
       content.title = reminder.title
       content.body = ReminderPlanner.body(for: reminder, lead: CompanionVoice.reminderLead(settings.companion))
@@ -82,7 +82,7 @@ final class ReminderService: NSObject {
     }
 
     // Ausrüstung am Vorabend und Wochenplanung am Sonntag (iOS erlaubt höchstens 64 geplante Mitteilungen).
-    for note in notes(seasonSchedule: seasonSchedule, now: now) {
+    for note in notes(seasonSchedule: seasonSchedule, log: log, now: now) {
       let content = UNMutableNotificationContent()
       content.title = note.title
       content.body = note.body
@@ -97,7 +97,7 @@ final class ReminderService: NSObject {
     }
   }
 
-  func notes(seasonSchedule: SeasonSchedule?, now: Date = .now) -> [ScheduledNote] {
+  func notes(seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), now: Date = .now) -> [ScheduledNote] {
     let today = CalendarDay(date: now)
     let parts = Calendar.current.dateComponents([.hour, .minute], from: now)
     let minutesNow = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
@@ -106,7 +106,7 @@ final class ReminderService: NSObject {
     if config.equipment, settings.profile.mode == .season, let seasonSchedule {
       result += ReminderPlanner.swimEquipment(
         schedule: seasonSchedule, config: settings.season, decisions: settings.competitionDecisions, today: today,
-        minutesNow: minutesNow)
+        minutesNow: minutesNow, log: log)
     }
     if config.weekPlanning {
       result += ReminderPlanner.weekPlanning(
@@ -116,7 +116,9 @@ final class ReminderService: NSObject {
     return result
   }
 
-  func reminders(seasonSchedule: SeasonSchedule?, now: Date = .now) -> [TrainingReminder] {
+  func reminders(
+    seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), now: Date = .now
+  ) -> [TrainingReminder] {
     let today = CalendarDay(date: now)
     let parts = Calendar.current.dateComponents([.hour, .minute], from: now)
     let minutesNow = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
@@ -124,12 +126,13 @@ final class ReminderService: NSObject {
     switch settings.profile.mode {
     case .personal:
       return ReminderPlanner.personal(
-        profile: settings.profile, adjustments: settings.planAdjustments, today: today, includeToday: includeToday)
+        profile: settings.profile, adjustments: settings.planAdjustments, today: today, includeToday: includeToday,
+        log: log)
     case .season:
       guard let seasonSchedule else { return [] }
       return ReminderPlanner.season(
         schedule: seasonSchedule, config: settings.season, decisions: settings.competitionDecisions, today: today,
-        includeToday: includeToday)
+        includeToday: includeToday, log: log)
     }
   }
 

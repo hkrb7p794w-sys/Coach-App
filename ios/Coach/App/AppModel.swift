@@ -59,9 +59,24 @@ final class AppModel {
   }
 
   /// Erinnerungen der nächsten 14 Tage neu planen (nach Änderungen am Plan und beim Öffnen der App).
+  /// Nach jedem Abruf und jeder Krafteinheit erneut: Erinnerungen für schon Erledigtes entfallen.
   func refreshReminders() async {
     guard settings.profile.onboardingDone, !isDemo else { return }
-    await reminders.refresh(seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil)
+    await reminders.refresh(
+      seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil, log: trainingLog())
+  }
+
+  /// Aktivitäten und Krafteinheiten dieser und der letzten Woche.
+  func trainingLog(now: Date = .now) -> TrainingLog {
+    let today = CalendarDay(date: now)
+    let start = today.adding(days: -today.weekdayIndex - 7).iso
+    let context = container.mainContext
+    let activityQuery = FetchDescriptor<ActivityRecord>(predicate: #Predicate { $0.dayKey >= start })
+    let gymQuery = FetchDescriptor<GymSessionRecord>(predicate: #Predicate { $0.dayKey >= start })
+    let activities = (try? context.fetch(activityQuery)) ?? []
+    let gym = (try? context.fetch(gymQuery)) ?? []
+    return TrainingLog(
+      activities: activities.compactMap(\.activity), gymDays: Set(gym.compactMap { CalendarDay(iso: $0.dayKey) }))
   }
 
   var lastSync: Date? {
@@ -99,6 +114,7 @@ final class AppModel {
       }
     }
     await health.importNow(garminConnected: garmin.isConfigured)
+    await refreshReminders()
   }
 
   /// Hintergrundaktualisierung: iOS entscheidet, wann (und ob) sie läuft.

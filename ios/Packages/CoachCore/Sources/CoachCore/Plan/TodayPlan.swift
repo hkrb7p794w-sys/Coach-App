@@ -82,6 +82,28 @@ public struct TodayPlan: Equatable, Sendable {
 
   public static let dayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
+  /// Erledigtes der Woche von `day` bis einschließlich `upTo`: Garmin-/Health-Aktivitäten (Rad nur mit Distanz)
+  /// und Krafteinheiten aus Garmin und App. Liefert auch die Krafttage für `gymDays`.
+  public static func done(
+    activities: [GarminActivity], gymDays: some Sequence<CalendarDay>, weekOf day: CalendarDay, upTo: CalendarDay
+  ) -> (done: Done, strengthDays: Set<CalendarDay>) {
+    let monday = day.adding(days: -day.weekdayIndex)
+    let last = min(upTo, monday.adding(days: 6))
+    guard monday <= last else { return (Done(), []) }
+    let week = activities.filter { activity in
+      guard let day = activity.day else { return false }
+      return monday <= day && day <= last
+    }
+    let strengthDays = Set(
+      week.filter { $0.sport == .strength }.compactMap(\.day) + gymDays.filter { monday <= $0 && $0 <= last })
+    let done = Done(
+      swim: week.filter { $0.sport == .swim }.count,
+      run: week.filter { $0.sport == .run }.count,
+      bike: week.filter { $0.sport == .bike && ($0.distanceMeters ?? 0) > 0 }.count,
+      strength: strengthDays.count)
+    return (done, strengthDays)
+  }
+
   public var phase: String
   public var focus: String
   public var weekIndex: Int
