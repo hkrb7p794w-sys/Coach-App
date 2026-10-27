@@ -272,6 +272,24 @@ struct EquipmentSettingsView: View {
             + "Sätzen 4 oder mehr übrig, schlägt die App sofort mehr Gewicht vor.")
       }
       Section {
+        Toggle("Fokus während der Einheit", isOn: $settings.gym.focusShortcuts)
+        if settings.gym.focusShortcuts {
+          Button("Fokus jetzt testen", systemImage: "moon.fill") {
+            if let url = WorkoutFocus.url(turningOn: true) { UIApplication.shared.open(url) }
+          }
+        }
+      } header: {
+        Text("Keine Störungen beim Training")
+      } footer: {
+        Text(
+          "iOS lässt Apps den Fokus nicht selbst schalten – das übernehmen zwei Kurzbefehle. Einmal einrichten: "
+            + "Kurzbefehle-App › + › Aktion „Fokus festlegen“ › Fokus (z. B. „Fitness“ oder „Nicht stören“) "
+            + "einschalten, Name „\(WorkoutFocus.onShortcut)“. Einen zweiten mit „ausschalten“ und dem Namen "
+            + "„\(WorkoutFocus.offShortcut)“. Beim Start und beim Beenden einer Einheit wechselt IronLudi kurz in "
+            + "die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus durchkommen, legst du in "
+            + "Einstellungen › Fokus fest.")
+      }
+      Section {
         Toggle("Nach Garmin Connect übertragen", isOn: $settings.gym.uploadsToGarmin)
       } footer: {
         Text(

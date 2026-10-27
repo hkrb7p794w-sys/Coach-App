@@ -84,6 +84,9 @@ struct WeightTrendView: View {
           .foregroundStyle(.secondary)
         }
       }
+      if let forecast {
+        forecastSection(forecast)
+      }
       if let expenditure {
         expenditureSection(expenditure.result, formula: expenditure.formula)
       }
@@ -93,6 +96,46 @@ struct WeightTrendView: View {
       historySection
     }
     .navigationTitle("Gewichtsverlauf")
+  }
+
+  /// Prognose beim Abnehmen aus dem geplanten Tempo (gesund: 0,5–1 % pro Woche, höchstens 25 % Defizit).
+  private var forecast: WeightForecast.Result? {
+    guard let percent = plan.percent, percent < 0 else { return nil }
+    let settings = model.settings
+    let body = settings.nutrition.profile(garmin: model.sync.profile, on: today)
+    let current = entries.last?.kilograms ?? body.weightKilograms
+    return WeightForecast.compute(
+      currentKilograms: current, weeklyChangePercent: percent, heightCentimeters: body.heightCentimeters,
+      maintenanceKilocalories: NutritionPlanner.mifflinStJeor(body) * settings.nutrition.activityFactor,
+      target: settings.profile.targets.targetWeightKilograms, today: today)
+  }
+
+  private func forecastSection(_ forecast: WeightForecast.Result) -> some View {
+    Section {
+      LabeledContent("Tempo", value: "\(GermanFormat.number(forecast.weeklyKilograms)) kg pro Woche")
+      LabeledContent("Geschätztes Defizit", value: "etwa \(Int(forecast.dailyDeficit)) kcal pro Tag")
+      ForEach(forecast.points) { point in
+        LabeledContent(
+          "In \(point.weeks) Wochen (\(Formatters.shortDate(point.day)))",
+          value: "\(GermanFormat.number(point.kilograms)) kg")
+      }
+      if let target = forecast.target, let weeks = forecast.weeksToTarget, let day = forecast.targetDay {
+        LabeledContent(
+          "Ziel \(GermanFormat.number(target)) kg", value: "in etwa \(weeks) Wochen (\(Formatters.day(day)))")
+      }
+    } header: {
+      Text("Prognose")
+    } footer: {
+      VStack(alignment: .leading, spacing: 6) {
+        Text(
+          "Gesund und nachhaltig: etwa 0,5 % des Körpergewichts pro Woche, höchstens 1 %, das Defizit höchstens "
+            + "ein Viertel des Bedarfs und nie unter BMI 18,5 (\(GermanFormat.number(forecast.floorKilograms)) kg). "
+            + "7.700 kcal je kg sind eine Näherung – Wasser und Anpassung des Stoffwechsels verschieben den "
+            + "Verlauf, deshalb steuert die App anhand deiner Wägungen nach."
+            + (forecast.deficitCapped ? " Dein Wunschtempo wurde auf ein Viertel des Bedarfs begrenzt." : ""))
+        EvidenceDisclosure(ruleIDs: ["weightloss.rate", "weightloss.protein", "weightloss.exercise"])
+      }
+    }
   }
 
   private var entrySection: some View {
