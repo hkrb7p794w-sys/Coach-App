@@ -10,6 +10,15 @@ public struct FitRecord: Equatable, Sendable {
   public var power: Double?
   /// Meter seit Start.
   public var distance: Double?
+  /// Höhe in Metern.
+  public var altitude: Double?
+  /// Kadenz laut Uhr (Laufen: Schritte eines Fußes pro Minute, Rad: Umdrehungen pro Minute).
+  public var cadence: Double?
+  /// Position in Grad.
+  public var latitude: Double?
+  public var longitude: Double?
+  /// °C
+  public var temperature: Double?
 
   public init(
     timestamp: Double, heartRate: Double? = nil, speed: Double? = nil, power: Double? = nil, distance: Double? = nil
@@ -38,6 +47,16 @@ public struct FitLap: Codable, Equatable, Sendable {
   public var averageHeartRate: Double?
   public var maxHeartRate: Double?
   public var intensity: Intensity?
+  /// m/s
+  public var averageSpeed: Double?
+  public var maxSpeed: Double?
+  public var ascentMeters: Double?
+  public var descentMeters: Double?
+  /// Wie `FitRecord.cadence`.
+  public var averageCadence: Double?
+  public var averagePower: Double?
+  public var maxPower: Double?
+  public var calories: Double?
 
   public init(
     timerSeconds: Double?, distanceMeters: Double?, averageHeartRate: Double? = nil, maxHeartRate: Double? = nil,
@@ -72,6 +91,8 @@ public struct FitActivity: Equatable, Sendable {
 /// Entwicklerfelder (werden übersprungen). Feldnummern laut FIT-SDK-Profil: `record` (20): 253 Zeit,
 /// 3 Herzfrequenz, 5 Distanz (1/100 m), 6 Tempo (1/1000 m/s), 7 Leistung, 73 erweitertes Tempo;
 /// `lap` (19): 2 Start, 7 Gesamtzeit, 8 Uhrzeit (1/1000 s), 9 Distanz (1/100 m), 15/16 Ø/max HF, 23 Art.
+/// Für die Detailansicht außerdem `record`: 0/1 Position (Semicircles), 2/78 Höhe (1/5 m − 500), 4/53 Kadenz,
+/// 13 Temperatur; `lap`: 11 kcal, 13/14 Ø/max Tempo, 17 Ø Kadenz, 19/20 Ø/max Leistung, 21/22 Auf-/Abstieg.
 public enum FitDecoder {
   public enum Failure: Error, Equatable {
     case notFit
@@ -186,6 +207,11 @@ public enum FitDecoder {
     return values
   }
 
+  /// Vorzeichenbehafteter 32-Bit-Wert aus dem vorzeichenlos gelesenen Rohwert.
+  static func signed32(_ value: Double) -> Double {
+    value >= 2_147_483_648 ? value - 4_294_967_296 : value
+  }
+
   static func apply(_ global: Int, _ values: [Int: Double], to activity: inout FitActivity) {
     switch global {
     case 20:
@@ -197,6 +223,19 @@ public enum FitDecoder {
           speed: (values[73] ?? values[6]).map { $0 / 1000 },
           power: values[7],
           distance: values[5].map { $0 / 100 }))
+      var record = activity.records[activity.records.count - 1]
+      if let altitude = values[78] ?? values[2] { record.altitude = altitude / 5 - 500 }
+      if let cadence = values[4] { record.cadence = cadence + (values[53] ?? 0) / 128 }
+      if let latitude = values[0], let longitude = values[1] {
+        let lat = signed32(latitude) * 180 / 2_147_483_648
+        let lon = signed32(longitude) * 180 / 2_147_483_648
+        if abs(lat) <= 90, abs(lon) <= 180, lat != 0 || lon != 0 {
+          record.latitude = lat
+          record.longitude = lon
+        }
+      }
+      if let temperature = values[13] { record.temperature = temperature > 127 ? temperature - 256 : temperature }
+      activity.records[activity.records.count - 1] = record
     case 19:
       var lap = FitLap(
         timerSeconds: values[8].map { $0 / 1000 },
@@ -206,6 +245,14 @@ public enum FitDecoder {
         intensity: values[23].flatMap { FitLap.Intensity(rawValue: Int($0)) })
       lap.startTime = values[2]
       lap.elapsedSeconds = values[7].map { $0 / 1000 }
+      lap.averageSpeed = values[13].map { $0 / 1000 }
+      lap.maxSpeed = values[14].map { $0 / 1000 }
+      lap.ascentMeters = values[21]
+      lap.descentMeters = values[22]
+      lap.averageCadence = values[17]
+      lap.averagePower = values[19]
+      lap.maxPower = values[20]
+      lap.calories = values[11]
       activity.laps.append(lap)
     default:
       break
