@@ -47,6 +47,9 @@ final class GymViewModel {
   private(set) var sessions: [GymSession] = []
   private let defaults: UserDefaults
 
+  /// Eine Einheit für App und Live-Aktivität (deren Knöpfe laufen auch ohne geöffnete Gym-Ansicht).
+  static let shared = GymViewModel()
+
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
     active = defaults.data(forKey: Self.activeKey).flatMap { try? JSONDecoder().decode(GymSession.self, from: $0) }
@@ -369,6 +372,33 @@ final class GymViewModel {
     restSeconds = rest
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
     RestAlarm.schedule(at: restEndsAt)
+  }
+
+  /// Nächster offener Satz wie auf der Fokus-Karte.
+  var currentPosition: WorkoutFlow.Position? {
+    active.flatMap { WorkoutFlow.current(in: $0, preferring: focusExerciseID) }
+  }
+
+  /// „Satz erledigt“ aus der Live-Aktivität.
+  func completeCurrent(now: Date = .now) {
+    guard let position = currentPosition, let session = active else { return }
+    complete(set: position.set, of: session.exercises[position.exercise].id, now: now)
+  }
+
+  /// Inhalt der Live-Aktivität; `nil` ohne laufende Einheit.
+  var liveState: WorkoutActivityAttributes.ContentState? {
+    guard let session = active else { return nil }
+    guard let position = currentPosition else {
+      return .init(
+        exercise: "Alle Sätze erledigt", detail: "\(session.doneSetCount) Sätze – Einheit beenden",
+        restEndsAt: restEndsAt, doneSets: session.doneSetCount, allDone: true)
+    }
+    let exercise = session.exercises[position.exercise]
+    let set = exercise.sets[position.set]
+    let values = set.weightKg != 0 ? "\(GermanFormat.number(set.weightKg)) kg × \(set.reps)" : "\(set.reps) Wdh."
+    return .init(
+      exercise: exercise.name, detail: "Satz \(position.set + 1) von \(exercise.sets.count) · \(values)",
+      restEndsAt: restEndsAt, doneSets: session.doneSetCount, allDone: false)
   }
 
   func undo() {

@@ -133,6 +133,10 @@ jobs:
               if [ -d "$item" ]; then ldid -S "$item/$(basename "$item" .framework)"; else ldid -S "$item"; fi
             done
           fi
+          # Widget-Erweiterung (Live-Aktivität) ebenfalls pseudo-signieren.
+          if [ -d "$APP/PlugIns" ]; then
+            for ext in "$APP"/PlugIns/*.appex; do ldid -S "$ext/$(basename "$ext" .appex)"; done
+          fi
           ldid -Sios/Coach/Resources/Coach.entitlements "$APP/Coach"
           echo "Entitlements der IPA:" | tee -a "$LOG"
           ldid -e "$APP/Coach" | tee -a "$LOG"

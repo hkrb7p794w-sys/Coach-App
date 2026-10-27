@@ -311,6 +311,8 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var notes: [String: String] = [:]
   /// Gemerkte Pause je Übung in Sekunden (aus ±15 s während der Einheit).
   public var restOverrides: [String: Int] = [:]
+  /// Pause und nächster Satz als Live-Aktivität auf dem Sperrbildschirm.
+  public var liveActivity: Bool = true
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -336,6 +338,7 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     bars = (try? container.decodeIfPresent([String: Double].self, forKey: .bars)) ?? [:]
     notes = (try? container.decodeIfPresent([String: String].self, forKey: .notes)) ?? [:]
     restOverrides = (try? container.decodeIfPresent([String: Int].self, forKey: .restOverrides)) ?? [:]
+    liveActivity = (try? container.decodeIfPresent(Bool.self, forKey: .liveActivity)) ?? true
   }
 
   /// Stange für eine Übung.

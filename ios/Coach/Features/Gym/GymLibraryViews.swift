@@ -295,8 +295,12 @@ struct EquipmentSettingsView: View {
       }
       Section {
         Toggle("Bildschirm anlassen", isOn: $settings.gym.keepsScreenOn)
+        Toggle("Pause auf dem Sperrbildschirm", isOn: $settings.gym.liveActivity)
       } footer: {
-        Text("Während einer Einheit sperrt sich das iPhone nicht – kein Entsperren mit verschwitzten Händen.")
+        Text(
+          "Während einer Einheit sperrt sich das iPhone nicht – kein Entsperren mit verschwitzten Händen. Auf dem "
+            + "Sperrbildschirm und in der Dynamic Island stehen Pause und nächster Satz, mit „Satz erledigt“ zum "
+            + "Antippen (Live-Aktivität; in den iOS-Einstellungen unter IronLudi abschaltbar).")
       }
       Section {
         Toggle("Fokus während der Einheit", isOn: $settings.gym.focusShortcuts)

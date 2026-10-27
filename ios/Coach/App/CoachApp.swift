@@ -5,6 +5,11 @@ struct CoachApp: App {
   @State private var model = DemoData.isRequested ? DemoData.makeModel() : AppModel()
   @Environment(\.scenePhase) private var scenePhase
 
+  init() {
+    // Früh anbinden: Tippt man „Satz erledigt“ auf dem Sperrbildschirm, startet iOS die App ggf. im Hintergrund.
+    WorkoutActivityController.connect(GymViewModel.shared)
+  }
+
   var body: some Scene {
     let appModel = model
     WindowGroup {

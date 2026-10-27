@@ -11,6 +11,7 @@ Gebaut wird ausschließlich in GitHub Actions, installiert per SideStore (kosten
 |---|---|
 | `ios/project.yml` | XcodeGen-Spezifikation (das `.xcodeproj` wird erzeugt, nicht eingecheckt) |
 | `ios/Coach/` | SwiftUI-App, MVVM: `App/`, `Features/<Bereich>/` (View + ViewModel), `Core/` (Health, API, Persistenz, UI-Bausteine) |
+| `ios/CoachWidgets/`, `ios/Shared/` | Widget-Erweiterung für die Live-Aktivität der Gym-Einheit; `Shared` gehört zu App und Erweiterung |
 | `ios/CoachTests/` | App-Tests (Swift Testing), laufen nur im Simulator (macOS) |
 | `ios/Packages/CoachCore/` | Reine Logik **ohne** Apple-Frameworks – testbar auf Linux mit `swift test` |
 | `worker/` | Cloudflare Worker (TypeScript): KI-Weiterleitung Gemini → Groq, Prompts in `src/tasks.ts` |
@@ -47,8 +48,8 @@ Altbestand (nur lesen, Logik übernehmen, keine HA-/MQTT-Teile): `hkrb7p794w-sys
 cd worker && npm ci && npm run lint && npm run typecheck && npm test
 
 # Swift (Linux oder Mac, Swift 6.2)
-swift format lint --strict --recursive --configuration ios/.swift-format ios/Coach ios/CoachTests ios/Packages/CoachCore
-swift format --in-place --recursive --configuration ios/.swift-format ios/Coach ios/CoachTests ios/Packages/CoachCore
+swift format lint --strict --recursive --configuration ios/.swift-format ios/Coach ios/CoachTests ios/Packages/CoachCore ios/Shared ios/CoachWidgets
+swift format --in-place --recursive --configuration ios/.swift-format ios/Coach ios/CoachTests ios/Packages/CoachCore ios/Shared ios/CoachWidgets
 swift test --package-path ios/Packages/CoachCore
 
 # iOS-Projekt (nur macOS)
