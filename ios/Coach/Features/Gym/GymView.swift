@@ -100,6 +100,11 @@ struct GymView: View {
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
       }
+      // Fokus während der Einheit: beim Start an, nach Beenden oder Verwerfen aus (Kurzbefehle der Person).
+      .onChange(of: viewModel.active != nil) { _, isActive in
+        guard model.settings.gym.focusShortcuts, let url = WorkoutFocus.url(turningOn: isActive) else { return }
+        UIApplication.shared.open(url)
+      }
     }
   }
 }

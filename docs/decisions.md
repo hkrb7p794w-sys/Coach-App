@@ -2,6 +2,19 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Abnehm-Prognose und Fokus während der Einheit
+
+- Prognose (`WeightForecast`) im Gewichtsverlauf, nur beim Abnehmen: erwartetes Gewicht nach 4, 8 und 12 Wochen
+  und bis zum Zielgewicht mit dem dafür geschätzten Defizit pro Tag. Grundlage sind dieselben Grenzen wie bei den
+  Ernährungszielen: Tempo aus `GoalRules` (Standard 0,5 %, höchstens 1 % des Körpergewichts pro Woche, Garthe et
+  al. 2011), Defizit höchstens 25 % des Bedarfs, nie unter BMI 18,5. Das Tempo bezieht sich auf das jeweils
+  aktuelle Gewicht (pro Woche etwas weniger kg). 7.700 kcal je kg sind eine Näherung; wegen Wasser und Anpassung
+  des Stoffwechsels (Hall et al. 2011) steuert die App über die Wägungen nach (`WeightTrend`).
+- Fokus: iOS erlaubt Apps nicht, einen Fokus zu schalten. Die App startet beim Beginn und Ende einer Krafteinheit
+  zwei Kurzbefehle der Person über `shortcuts://x-callback-url/run-shortcut` (Aktion „Fokus festlegen“) und
+  kehrt über `coach://gym` zurück. Quelle: <https://support.apple.com/guide/shortcuts/run-a-shortcut-from-a-url-apd624386f42/ios>.
+  Standardmäßig aus, weil die Kurzbefehle einmal eingerichtet werden müssen.
+
 ## 2026-10-27 – Manueller KI-Coach (Export und Import)
 
 - Export: eine Markdown-Datei je Zeitraum (7/30/90/365 Tage oder eigener Zeitraum) mit Profil, Plan, Routinen,

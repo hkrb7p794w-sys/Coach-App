@@ -282,6 +282,8 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var tracksRIR: Bool
   /// Beendete Einheiten als Krafttraining nach Garmin Connect übertragen.
   public var uploadsToGarmin: Bool = true
+  /// Fokus „Nicht stören“ bzw. „Fitness“ per Kurzbefehl ein- und ausschalten (`WorkoutFocus`).
+  public var focusShortcuts: Bool = false
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -300,6 +302,7 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     equipment = (try? container.decodeIfPresent(Set<Equipment>.self, forKey: .equipment)) ?? Equipment.gym
     tracksRIR = (try? container.decodeIfPresent(Bool.self, forKey: .tracksRIR)) ?? true
     uploadsToGarmin = (try? container.decodeIfPresent(Bool.self, forKey: .uploadsToGarmin)) ?? true
+    focusShortcuts = (try? container.decodeIfPresent(Bool.self, forKey: .focusShortcuts)) ?? false
   }
 
   /// Übung zur ID inklusive eigener Übungen.
