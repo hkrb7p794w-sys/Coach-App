@@ -159,14 +159,20 @@ public enum RunPlanner {
     }
     switch level {
     case .beginner:
-      return ["6 × 1 Minute zügig, 2 Minuten gehen oder traben.", "8 × 1 Minute zügig, 2 Minuten traben.",
-        "5 × 2 Minuten zügig, 2 Minuten traben."][min(week, 2)]
+      return [
+        "6 × 1 Minute zügig, 2 Minuten gehen oder traben.", "8 × 1 Minute zügig, 2 Minuten traben.",
+        "5 × 2 Minuten zügig, 2 Minuten traben.",
+      ][min(week, 2)]
     case .intermediate:
-      return ["5 × 3 Minuten zügig, 2 Minuten Trabpause.", "4 × 4 Minuten zügig, 3 Minuten Trabpause.",
-        "3 × 8 Minuten an der Schwelle, 2 Minuten Trabpause."][min(week, 2)]
+      return [
+        "5 × 3 Minuten zügig, 2 Minuten Trabpause.", "4 × 4 Minuten zügig, 3 Minuten Trabpause.",
+        "3 × 8 Minuten an der Schwelle, 2 Minuten Trabpause.",
+      ][min(week, 2)]
     case .advanced:
-      return ["6 × 3 Minuten zügig, 2 Minuten Trabpause.", "5 × 4 Minuten zügig, 3 Minuten Trabpause.",
-        "3 × 10 Minuten an der Schwelle, 2 Minuten Trabpause."][min(week, 2)]
+      return [
+        "6 × 3 Minuten zügig, 2 Minuten Trabpause.", "5 × 4 Minuten zügig, 3 Minuten Trabpause.",
+        "3 × 10 Minuten an der Schwelle, 2 Minuten Trabpause.",
+      ][min(week, 2)]
     }
   }
 }
