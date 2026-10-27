@@ -2,6 +2,18 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-10-27 – Energie entscheidet über die Makros (Bewertungsrunde 1)
+
+- **Fund im Prüfbericht:** An Trainingstagen lag Fett bei 14–18 % der Energie und die Summe der Makros über der
+  Tagesenergie (z. B. 3.350 kcal am Langlauf-Tag einer Einsteigerin mit Abnehmziel). Ursache: Kohlenhydrate nach
+  Tagestyp (bis 8 g/kg) wurden unabhängig von der Energie gesetzt, geplante Einheiten zählten mit 0 kcal.
+- **Neu:** Geplante Einheiten gehen mit (MET − 1) × kg × Stunden in die Energie ein (MET 5 Kraft, 7 Ausdauer;
+  Compendium, Ainsworth et al. 2011, PMID 21681120; Dauer leicht 45, moderat 60, hart 90 Minuten als Annahme, bis
+  Garmin die echte Einheit liefert). Die Kohlenhydrate werden gekürzt, bis Fett 20 % behält, aber nie unter die
+  Untergrenze der Spanne nach Thomas et al. 2016 (moderat 5, hoch 6, sehr hoch 8 g/kg). Bewusste Abweichung von
+  `targets.py` im Altbestand.
+- Der Prüfbericht prüft jetzt zusätzlich „Fett 20–35 %, Makros ergeben die Tagesenergie“.
+
 ## 2026-10-27 – Sicherungen gegen unpassende Empfehlungen
 
 - **Frage des Nutzers:** Wie stellen wir sicher, dass Pläne, Vorschläge und Rezepte zu den Angaben passen und nicht
