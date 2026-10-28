@@ -24,6 +24,8 @@ final class CoachSettings {
   static let userSourcesKey = "coach.userSources"
   static let ownRecipesKey = "coach.ownRecipes"
   static let pantryKey = "coach.pantry"
+  static let illnessKey = "coach.illnessDay"
+  static let handledMissedKey = "coach.handledMissed"
 
   private let defaults: UserDefaults
 
@@ -110,6 +112,16 @@ final class CoachSettings {
     didSet { save(pantry, forKey: Self.pantryKey) }
   }
 
+  /// Zuletzt „war krank“ gemeldet: die nächsten Tage höchstens locker (`MissedSessions`).
+  var illnessDay: CalendarDay? {
+    didSet { save(illnessDay, forKey: Self.illnessKey) }
+  }
+
+  /// Verpasste Einheiten, über die schon entschieden wurde (nachholen, streichen, krank).
+  var handledMissed: [String] {
+    didSet { save(handledMissed, forKey: Self.handledMissedKey) }
+  }
+
   /// Hinweise aus dem letzten Import einer KI-Antwort (manueller KI-Coach).
   var importedNotes: ImportedNotes? {
     didSet { save(importedNotes, forKey: Self.importedNotesKey) }
@@ -169,6 +181,12 @@ final class CoachSettings {
       defaults.data(forKey: Self.ownRecipesKey).flatMap { try? JSONDecoder().decode([OwnRecipe].self, from: $0) }
       ?? []
     pantry = defaults.data(forKey: Self.pantryKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+    illnessDay = defaults.data(forKey: Self.illnessKey).flatMap {
+      try? JSONDecoder().decode(CalendarDay.self, from: $0)
+    }
+    handledMissed =
+      defaults.data(forKey: Self.handledMissedKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) }
+      ?? []
     importedNotes = defaults.data(forKey: Self.importedNotesKey).flatMap {
       try? JSONDecoder().decode(ImportedNotes.self, from: $0)
     }

@@ -207,7 +207,13 @@ public enum ReminderPlanner {
     profile: UserProfile, adjustments: PlanAdjustments, today: CalendarDay, includeToday: Bool, days: Int = 14,
     log: TrainingLog = TrainingLog()
   ) -> [TrainingReminder] {
-    let trainedToday = log.trainedDays.contains(today)
+    // Nur wenn die geplanten Einheiten wirklich gemacht sind (gleiche Sportart, genug Dauer), entfällt die Erinnerung.
+    let planned = SessionMatcher.planned(
+      schedule: adjustments.schedule(profile.schedule, inWeekOf: today), monday: PlanAdjustments.monday(of: today)
+    ).filter { $0.day == today }
+    let trainedToday = SessionMatcher.match(
+      planned: planned, activities: log.activities, gymDays: log.gymDays, today: today
+    ).allCounted(on: today)
     return (0..<days).compactMap { offset in
       if offset == 0, !includeToday || trainedToday { return nil }
       let day = today.adding(days: offset)

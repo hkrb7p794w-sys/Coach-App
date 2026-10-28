@@ -6,7 +6,10 @@ import SwiftUI
 struct MyWeekView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
+  @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
+  @Environment(\.modelContext) private var context
   @State private var editing = false
+  @State private var addingManual = false
   @State private var planningNextWeek = false
   @State private var guideSlot: SessionSlot?
 
@@ -17,21 +20,40 @@ struct MyWeekView: View {
     let thisWeek = model.settings.schedule(inWeekOf: day)
     let adjustments = model.settings.planAdjustments
     let monday = PlanAdjustments.monday(of: day)
-    let runWeek = RunPlanner.week(
-      profile: profile, schedule: thisWeek, monday: monday, activities: activities.compactMap(\.activity))
+    let all = activities.compactMap(\.activity)
+    let runWeek = RunPlanner.week(profile: profile, schedule: thisWeek, monday: monday, activities: all)
+    let sessions = TodayViewModel.sessionWeek(
+      settings: model.settings, activities: all, gymDays: gymSessions.compactMap { $0.session?.day }, today: day)
     NavigationStack {
       List {
         GoalHeader(profile: profile)
 
         Section {
           ForEach(Weekday.allCases) { weekday in
+            let date = monday.adding(days: weekday.rawValue)
             WeekDayRow(
               weekday: weekday, slots: thisWeek.slots(on: weekday), isToday: weekday == today,
               note: adjustments.note(for: weekday, inWeekOf: day),
-              runs: runWeek?.sessions.filter { $0.weekday == weekday } ?? [], select: { guideSlot = $0 }
+              runs: runWeek?.sessions.filter { $0.weekday == weekday } ?? [],
+              results: sessions.results(on: date), select: { guideSlot = $0 }
             ) {
               if weekday.rawValue >= today.rawValue {
-                PlanDayMenu(day: day.adding(days: weekday.rawValue - today.rawValue))
+                PlanDayMenu(day: date)
+              }
+            }
+            .swipeActions(edge: .trailing) {
+              if weekday.rawValue >= today.rawValue, !thisWeek.slots(on: weekday).isEmpty,
+                !sessions.allCounted(on: date)
+              {
+                Button("Auslassen", systemImage: "forward.end", role: .destructive) { model.reminders.skip(date) }
+                if let target = PlanMoveAdvisor.options(
+                  for: weekday, schedule: thisWeek, profile: profile, today: day, limit: 1
+                ).first {
+                  Button("Auf \(target.short)", systemImage: "arrow.turn.down.right") {
+                    model.reminders.move(date, to: target)
+                  }
+                  .tint(.blue)
+                }
               }
             }
           }
@@ -53,6 +75,22 @@ struct MyWeekView: View {
           }
         }
 
+        WeekTotalsSection(
+          totals: SessionMatcher.totals(
+            planned: sessions.results.map(\.planned), activities: all, monday: monday),
+          counts: sessions.results)
+
+        ExtraActivitiesSection(
+          records: activities.filter { record in
+            sessions.extraIDs.contains(record.garminID)
+              || (ManualActivity.isManual(record.garminID)
+                && (CalendarDay(iso: record.dayKey).map { $0 >= monday } ?? false))
+          },
+          delete: { record in
+            context.delete(record)
+            try? context.save()
+          })
+
         ScheduleHintsSection(hints: ScheduleCheck.hints(schedule: profile.schedule, profile: profile))
       }
       .navigationTitle("Plan")
@@ -61,10 +99,14 @@ struct MyWeekView: View {
           Button("Nächste Woche", systemImage: "calendar.badge.plus") { planningNextWeek = true }
         }
         ToolbarItem(placement: .topBarTrailing) {
+          Button("Training nachtragen", systemImage: "plus") { addingManual = true }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
           Button("Bearbeiten") { editing = true }
         }
       }
       .sheet(isPresented: $editing) { ScheduleEditorSheet() }
+      .sheet(isPresented: $addingManual) { ManualActivitySheet() }
       .sheet(isPresented: $planningNextWeek) { NextWeekPlanSheet() }
       .navigationDestination(item: $guideSlot) { slot in SessionGuideView(slot: slot) }
     }
@@ -103,6 +145,7 @@ private struct WeekDayRow<Actions: View>: View {
   let isToday: Bool
   let note: String?
   var runs: [RunPlanner.Session] = []
+  var results: [SessionResult] = []
   let select: (SessionSlot) -> Void
   @ViewBuilder let actions: () -> Actions
   @Environment(\.dynamicTypeSize) private var typeSize
@@ -130,7 +173,8 @@ private struct WeekDayRow<Actions: View>: View {
           if let note {
             Text(note).font(.caption).foregroundStyle(.orange)
           }
-          ForEach(slots) { slot in
+          ForEach(Array(slots.enumerated()), id: \.offset) { index, slot in
+            let result = results.first { $0.planned.index == index }
             Button {
               select(slot)
             } label: {
@@ -143,6 +187,17 @@ private struct WeekDayRow<Actions: View>: View {
                   } else {
                     Text(slot.title).font(.subheadline.weight(.medium))
                     Text(slot.guide).font(.caption).foregroundStyle(.secondary)
+                  }
+                  if let result {
+                    HStack(spacing: 8) {
+                      SessionStatusBadge(status: result.status)
+                      if result.actualMinutes != nil || result.status != .planned {
+                        Text(result.compareText).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                      }
+                    }
+                    if let note = result.intensityNote {
+                      Text(note).font(.caption).foregroundStyle(.orange)
+                    }
                   }
                   Label("Ausführlich", systemImage: "info.circle").font(.caption).foregroundStyle(Color.accentColor)
                 }
@@ -158,6 +213,69 @@ private struct WeekDayRow<Actions: View>: View {
     }
     .padding(.vertical, 4)
     .accessibilityElement(children: .contain)
+  }
+}
+
+/// Soll gegen Ist je Sportart und wie viele Einheiten geschafft sind.
+private struct WeekTotalsSection: View {
+  let totals: [(sport: TrainingSport, planned: Int, actual: Int)]
+  let counts: [SessionResult]
+
+  var body: some View {
+    if !totals.isEmpty {
+      let done = counts.filter(\.status.counts).count
+      Section {
+        ForEach(totals.indices, id: \.self) { index in
+          let total = totals[index]
+          VStack(alignment: .leading, spacing: 4) {
+            HStack {
+              Label(total.sport.label, systemImage: total.sport.symbol)
+              Spacer()
+              Text("\(total.actual) / \(total.planned) min").monospacedDigit().foregroundStyle(.secondary)
+            }
+            .font(.subheadline)
+            if total.planned > 0 {
+              ProgressView(value: min(Double(total.actual) / Double(total.planned), 1))
+                .tint(total.sport.color)
+            }
+          }
+          .accessibilityElement(children: .combine)
+        }
+      } header: {
+        Text("Soll / Ist · \(done) von \(counts.count) Einheiten")
+      } footer: {
+        Text(
+          "Erledigt heißt: gleiche Sportart, mindestens \(Int(SessionMatcher.doneShare * 100)) % der geplanten "
+            + "Dauer. Rad statt Lauf zählt als „anders gemacht“, ein Spaziergang hakt keinen Lauf ab.")
+      }
+    }
+  }
+}
+
+/// Training ohne Platz im Plan und nachgetragene Einheiten (die sich hier wieder löschen lassen).
+private struct ExtraActivitiesSection: View {
+  let records: [ActivityRecord]
+  let delete: (ActivityRecord) -> Void
+
+  var body: some View {
+    if !records.isEmpty {
+      Section("Außerplanmäßig und nachgetragen") {
+        ForEach(records) { record in
+          if let activity = record.activity {
+            NavigationLink {
+              ActivityDetailView(record: record)
+            } label: {
+              ActivitySummaryRow(activity: activity)
+            }
+            .swipeActions {
+              if ManualActivity.isManual(record.garminID) {
+                Button("Löschen", role: .destructive) { delete(record) }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

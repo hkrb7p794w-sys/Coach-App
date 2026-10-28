@@ -5,6 +5,28 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-10-28 – Training: Soll/Ist je Einheit, verpasste Einheiten, Nachtragen
+
+Erster PR der UX-Prüfung von Training und Plan (`CoachCore/Profile/SessionMatch.swift`):
+- **„Erledigt“ heißt gleiche Sportart, mindestens 60 % der geplanten Dauer.** Bisher zählte jede Aktivität ab
+  15 Minuten am Tag; ein Spaziergang hakte so den Intervalllauf ab. Unter 15 Minuten zählt weiterhin nichts,
+  unter 60 % der Dauer = „teilweise“, andere Ausdauer-Sportart = „anders gemacht“ (Rad statt Lauf), Krafteinheiten aus
+  der App zählen als Kraft. Die Dauer kommt aus dem Laufplan, sonst aus Standardwerten (locker 45, intensiv 50,
+  lang 90, Kraft 45 min). Die Schwelle ist eine Produktentscheidung, keine Studie: Sie soll „früh abgebrochen“ von
+  „gemacht“ trennen. Geplant intensiv, aber locker gelaufen, wird als Hinweis gezeigt (`SessionKind.isHard`),
+  nicht als „verpasst“.
+- **Erinnerung und „Geschafft“** nutzen dieselbe Zuordnung (`ReminderPlanner.personal`, `TodayViewModel`).
+- **Verpasste Einheiten** (nur persönliches Profil; der Saisonplan hat seine eigene Logik in `TodayPlan`):
+  am nächsten Tag eine Karte mit „Nachholen“, „Doch gemacht – nachtragen“, „Streichen“ und „War krank“.
+  Nachholen höchstens einmal pro Woche und nur auf einen Tag ohne fordernde Ausdauer direkt daneben – nicht alles
+  nachholen ist üblicher Trainerrat, gestaute Belastung erhöht das Risiko (Gabbett 2016,
+  <https://doi.org/10.1136/bjsports-2015-095788>). „War krank“ begrenzt die Empfehlung zwei Tage lang auf „locker“
+  (Schutzgrenze, keine Diagnose).
+- **Nachtragen ohne Uhr:** Belastung = Minuten × Anstrengung 1–10 („session RPE“, Foster et al. 2001,
+  <https://pubmed.ncbi.nlm.nih.gov/11708692/>), geteilt durch 4, damit sie grob in der Spanne der
+  Garmin-Belastung liegt. Nachgetragene Einheiten haben eigene negative IDs unterhalb der Apple-Health-IDs, werden
+  nie an Garmin geschickt und lassen sich im Plan wieder löschen.
+
 ## 2026-10-28 – Ernährung: Rezepte und Planung
 
 Dritter PR der UX-Prüfung der Ernährung:

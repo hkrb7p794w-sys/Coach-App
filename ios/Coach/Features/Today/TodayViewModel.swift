@@ -17,6 +17,8 @@ final class TodayViewModel {
     let today: TodayPlan?
     /// Empfehlung aus dem eigenen Wochenplan (nur bei persönlichem Profil).
     let advice: ScheduleAdvice?
+    /// Soll/Ist je Einheit dieser Woche (nur bei persönlichem Profil).
+    var sessions: SessionMatcher.Week?
   }
 
   private struct CachedNote: Codable {
@@ -69,13 +71,17 @@ final class TodayViewModel {
         recommendation: recommendation, hasMetrics: metrics != nil)
     }
     var advice: ScheduleAdvice?
+    var sessions: SessionMatcher.Week?
     if settings.profile.mode == .personal {
-      let trainedToday =
-        activities.contains { $0.day == today && ($0.durationSeconds ?? 0) >= 900 } || gymDays.contains(today)
+      // „Geschafft“ nur, wenn die geplanten Einheiten wirklich gemacht sind (Sportart, Dauer), nicht bei irgendeiner
+      // Aktivität.
+      let week = Self.sessionWeek(settings: settings, activities: activities, gymDays: gymDays, today: today)
+      sessions = week
+      let recovery = MissedSessions.cappedRecovery(
+        metrics == nil ? nil : recommendation.level, sickDay: settings.illnessDay, today: today)
       advice = ScheduleAdvisor.advice(
         profile: settings.profile, schedule: settings.schedule(inWeekOf: today), day: today,
-        recovery: metrics == nil ? nil : recommendation.level,
-        trainedToday: trainedToday)
+        recovery: recovery, trainedToday: week.allCounted(on: today))
     }
     snapshot = Snapshot(
       metrics: metrics,
@@ -84,9 +90,23 @@ final class TodayViewModel {
       plan: plan,
       week: week,
       today: todayPlan,
-      advice: advice
+      advice: advice,
+      sessions: sessions
     )
     showCachedOrFallback()
+  }
+
+  /// Soll/Ist der Woche: Plan mit Ausnahmen, Laufminuten aus dem Laufplan, Aktivitäten und Krafteinheiten.
+  static func sessionWeek(
+    settings: CoachSettings, activities: [GarminActivity], gymDays: [CalendarDay], today: CalendarDay
+  ) -> SessionMatcher.Week {
+    let monday = PlanAdjustments.monday(of: today)
+    let schedule = settings.schedule(inWeekOf: today)
+    let runWeek = RunPlanner.week(
+      profile: settings.profile, schedule: schedule, monday: monday, activities: activities)
+    let runMinutes = Dictionary(grouping: runWeek?.sessions ?? [], by: \.weekday).mapValues { $0.map(\.minutes) }
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday, runMinutes: runMinutes)
+    return SessionMatcher.match(planned: planned, activities: activities, gymDays: Set(gymDays), today: today)
   }
 
   /// Erledigtes der Woche: Garmin-Aktivitäten (Rad nur mit Distanz) und Krafteinheiten aus Garmin und App.
