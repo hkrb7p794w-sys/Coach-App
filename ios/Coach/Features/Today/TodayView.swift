@@ -47,7 +47,10 @@ struct TodayView: View {
             CoachNoteSection(viewModel: viewModel)
           } else {
             PersonalTodaySections(snapshot: snapshot, activities: allActivities, gymDays: gymDays, showsWeek: false)
+            CoachNoteSection(viewModel: viewModel)
           }
+          PostWorkoutSection(
+            records: activities.filter { $0.dayKey == snapshot.plan.today.iso }, sessions: snapshot.sessions)
           LoadWarningSection(activities: allActivities, today: snapshot.plan.today)
           // Die Schlafenszeit erst am Abend zeigen.
           if Calendar.current.component(.hour, from: .now) >= 17 {
@@ -98,9 +101,7 @@ struct TodayView: View {
       .sheet(isPresented: $showChat) { ChatView(snapshot: viewModel.snapshot) }
       .refreshable {
         await model.syncNow()
-        if model.settings.profile.mode == .season {
-          await viewModel.loadNote(ai: model.ai, settings: model.settings)
-        }
+        await viewModel.loadNote(ai: model.ai, settings: model.settings)
       }
       .task(id: refreshKey) {
         viewModel.update(
@@ -109,9 +110,7 @@ struct TodayView: View {
           settings: model.settings,
           gymDays: gymSessions.compactMap { $0.session?.day }
         )
-        if model.settings.profile.mode == .season {
-          await viewModel.loadNote(ai: model.ai, settings: model.settings)
-        }
+        await viewModel.loadNote(ai: model.ai, settings: model.settings)
       }
     }
   }
@@ -310,7 +309,7 @@ private struct CoachNoteSection: View {
       }
       EvidenceDisclosure(ruleIDs: viewModel.noteEvidence)
     } header: {
-      Text("Coach-Notiz")
+      Text(model.settings.profile.mode == .season ? "Coach-Notiz" : "Warum?")
     }
   }
 }

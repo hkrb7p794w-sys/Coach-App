@@ -16,6 +16,7 @@ import {
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
 import { labelPrompt, mealPrompt, nutritionReviewPrompt } from "./nutrition";
+import { personalNotePrompt } from "./personal";
 import { athleteProfile } from "./profile";
 import { checkMealNow, checkRecipes, mealNowPrompt, weeklyRecipesPrompt } from "./recipes";
 import { list, text } from "./tasks-util";
@@ -125,6 +126,14 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: false,
     temperature: 0.2,
     build: (input) => ({ system: GROUNDING_SYSTEM, prompt: dailyNotePrompt(input) }),
+    ground: groundedPoints,
+  },
+  /** Tagesnotiz für das persönliche Profil (ohne Saisonplan). */
+  personal_note: {
+    json: true,
+    allowImages: false,
+    temperature: 0.2,
+    build: (input) => ({ system: GROUNDING_SYSTEM, prompt: personalNotePrompt(input) }),
     ground: groundedPoints,
   },
   /** Mahlzeit per Foto und/oder Text in Positionen mit Nährwerten zerlegen. */

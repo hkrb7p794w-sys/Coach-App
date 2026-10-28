@@ -372,7 +372,7 @@ private struct SessionRow: View {
   }
 }
 
-private struct SessionDetailView: View {
+struct SessionDetailView: View {
   let record: GymSessionRecord
   let session: GymSession
   @Environment(\.modelContext) private var context

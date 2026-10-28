@@ -26,6 +26,8 @@ final class CoachSettings {
   static let pantryKey = "coach.pantry"
   static let illnessKey = "coach.illnessDay"
   static let handledMissedKey = "coach.handledMissed"
+  static let effortsKey = "coach.efforts"
+  static let closedReviewsKey = "coach.closedReviews"
 
   private let defaults: UserDefaults
 
@@ -122,6 +124,16 @@ final class CoachSettings {
     didSet { save(handledMissed, forKey: Self.handledMissedKey) }
   }
 
+  /// Anstrengung 1–10 je Aktivität (Schlüssel: Aktivitäts-ID).
+  var efforts: [String: Int] {
+    didSet { save(efforts, forKey: Self.effortsKey) }
+  }
+
+  /// Aktivitäten, deren „Nach dem Training“-Karte geschlossen wurde.
+  var closedReviews: [String] {
+    didSet { save(closedReviews, forKey: Self.closedReviewsKey) }
+  }
+
   /// Hinweise aus dem letzten Import einer KI-Antwort (manueller KI-Coach).
   var importedNotes: ImportedNotes? {
     didSet { save(importedNotes, forKey: Self.importedNotesKey) }
@@ -187,6 +199,10 @@ final class CoachSettings {
     handledMissed =
       defaults.data(forKey: Self.handledMissedKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) }
       ?? []
+    efforts =
+      defaults.data(forKey: Self.effortsKey).flatMap { try? JSONDecoder().decode([String: Int].self, from: $0) } ?? [:]
+    closedReviews =
+      defaults.data(forKey: Self.closedReviewsKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
     importedNotes = defaults.data(forKey: Self.importedNotesKey).flatMap {
       try? JSONDecoder().decode(ImportedNotes.self, from: $0)
     }

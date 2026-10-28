@@ -34,6 +34,8 @@ hier notieren und als PR beheben.
       Summen je Sportart, Wischen (auslassen/verschieben); Karte „Verpasst“ auf Heute; Training nachtragen und löschen.
 - [ ] **Gym-Einstellungen:** Pausen je Übung und Standard, „Pause starten“ ohne Automatik, Aufwärm-Vorschlag
       abschaltbar, Abhaken nach Eingabe; Einstellungen › Disziplinen (Gym, Laufen, Rad, Schwimmen, Ernährung, Schlaf).
+- [ ] **Training Verlauf:** Aktivitäten zeigt Gym-App + Garmin-Kraft einmal; Karte „Nach dem Training“ (1–10,
+      „Übernehmen“ ändert morgen auf locker, „Rückgängig“); „Warum?“ im persönlichen Profil; Zonenbalken im Detail.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

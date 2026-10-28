@@ -37,7 +37,7 @@ struct TrainingView: View {
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
           HubRow(
             title: "Aktivitäten", symbol: "list.bullet.rectangle", color: .gray,
-            value: "\(activities.count)", caption: "von Garmin"
+            value: "\(activities.count)", caption: "alle Quellen"
           ) { ActivityListView() }
           HubRow(
             title: "Schlaf-Coach", symbol: "moon.stars.fill", color: .indigo,
