@@ -87,5 +87,30 @@ extension StubbedNetworkTests {
       #expect(viewModel.errorMessage?.contains("Barcode") == true)
       #expect(viewModel.draft == nil)
     }
+
+    @Test func quickLogOnPickedDayAndUndo() throws {
+      let (container, settings) = try environment()
+      let context = container.mainContext
+      let viewModel = NutritionViewModel()
+      viewModel.update(meals: [], activities: [], settings: settings, profile: nil, hasGarminData: false, now: friday)
+      // Donnerstag nachtragen.
+      let thursday = CalendarDay(year: 2026, month: 10, day: 22)
+      viewModel.selectedDay = thursday
+      viewModel.log(
+        title: "Skyr", category: .snack, items: [.quick(kilocalories: 150, protein: 25)], context: context,
+        foods: [], now: friday)
+      let meals = try context.fetch(FetchDescriptor<MealRecord>())
+      #expect(meals.first?.dayKey == thursday.iso)
+      #expect(CalendarDay(date: meals.first?.createdAt ?? .now) == thursday)
+      #expect(viewModel.lastLogged?.label == "Skyr eingetragen")
+      viewModel.undoLastLog(context: context)
+      #expect(try context.fetch(FetchDescriptor<MealRecord>()).isEmpty)
+
+      viewModel.log(
+        title: "Wasser", category: .snack, items: [.water(milliliters: 250)], context: context, foods: [], now: friday)
+      let water = try context.fetch(FetchDescriptor<MealRecord>())
+      #expect(water.first?.isWater == true)
+      #expect(NutritionViewModel.entries(water).isEmpty)
+    }
   }
 }

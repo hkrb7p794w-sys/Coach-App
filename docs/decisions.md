@@ -2,6 +2,21 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+
+## 2026-10-28 – Ernährung: schnell eintragen
+
+Erster PR der UX-Prüfung der Ernährung (Ziel: wiederkehrendes Essen in unter 3 Sekunden):
+- **Schnell-Leiste**: die häufigsten Mahlzeiten der aktuellen Tageszeit (letzte 60 Tage, gleiche Lebensmittel und
+  Mengen auf 10 g gerundet, `MealSuggestions`) und „wie gestern“ – ein Tipp trägt ein, „Rückgängig“ 5 Sekunden lang.
+- **Suche** über eigene Lebensmittel und frühere Mahlzeiten (`FoodSearch`, ohne Groß-/Kleinschreibung und Umlaute,
+  Wortanfang und Häufigkeit zuerst). Antippen öffnet den Entwurf, „+“ trägt sofort ein.
+- **Wochenstreifen und Zeitpunkt**: jeder Tag der Woche ist auswählbar (ansehen, nachtragen); im Entwurf lässt sich
+  der Zeitpunkt wählen, die Mahlzeit folgt der Uhrzeit.
+- **Rest auf einen Blick**: Ring mit übrigen kcal, Protein/KH/Fett als „noch … g“ bzw. „… g drüber“
+  (`NutritionBudget`); alle Nährstoffe unter „Alle Nährstoffe“.
+- **Nur Kalorien** (Schätzung ohne Lebensmittel) und **Wasser** per Glas-Knopf (+250 ml, gedrückt halten für andere
+  Mengen); Wasser erscheint nicht als Mahlzeit.
+
 ## 2026-10-27 – Live-Aktivität für die laufende Einheit
 
 - Pause, nächster Satz und „Satz erledigt“ / „Weiter“ auf dem Sperrbildschirm und in der Dynamic Island

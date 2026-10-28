@@ -34,6 +34,12 @@ final class MealRecord {
     get { (try? JSONDecoder().decode([MealItem].self, from: itemsPayload)) ?? [] }
     set { itemsPayload = (try? JSONEncoder().encode(newValue)) ?? itemsPayload }
   }
+
+  /// Nur Wasser (Glas-Knopf) – erscheint nicht in der Mahlzeitenliste.
+  var isWater: Bool {
+    let items = self.items
+    return !items.isEmpty && items.allSatisfy { $0.isDrink && $0.name == "Wasser" }
+  }
 }
 
 /// Eigenes bzw. zuletzt genutztes Lebensmittel (auch Open-Food-Facts-Zwischenspeicher je Barcode).
