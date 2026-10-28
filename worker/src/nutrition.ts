@@ -82,6 +82,8 @@ Regeln:
   "als Snack", "Mittagessen") -> fruehstueck, mittagessen, abendessen, snack; bei reinen Getränken
   oder Supplements -> sonstiges. Sonst null (dann entscheidet die Uhrzeit).
 - titel: kurzer deutscher Titel (max. 40 Zeichen).
+- Mehrere Mahlzeiten in einer Eingabe (z. B. Frühstück und Mittag): alle Positionen in EIN JSON-Objekt mit einer
+  gemeinsamen items-Liste; titel fasst zusammen, kategorie null.
 - hinweis: ein kurzer Satz zu Unsicherheiten (z. B. verdeckte Zutaten, Ölmenge), sonst "".
 ${hasImage ? `${PHOTO_RULES}\n` : ""}${diet ? `${diet}\n` : ""}Häufige eigene Lebensmittel des Nutzers (Namen so übernehmen, wenn sie passen): ${personal}
 
@@ -149,4 +151,28 @@ Antwortformat (JSON): {"name": str, "portion_name": str|null, "portion_g": numbe
 "naehrwerte_100g": {"kcal": number|null, "protein_g": number|null, "carbs_g": number|null,
 "sugar_g": number|null, "fat_g": number|null, "satfat_g": number|null, "fiber_g": number|null,
 "sodium_mg": number|null}}`;
+}
+
+/**
+ * Mehrere Mahlzeiten als Liste von Objekten (statt einem) zu einer zusammenführen: Positionen hintereinander,
+ * Titel und Hinweise verbunden. Ein einzelnes Objekt bleibt unverändert.
+ */
+export function mergeMeals(output: unknown): unknown {
+  const meals = Array.isArray(output) ? output : null;
+  if (!meals) return output;
+  const objects = meals.filter(
+    (meal): meal is Record<string, unknown> =>
+      typeof meal === "object" && meal !== null && !Array.isArray(meal),
+  );
+  if (objects.length === 0) return output;
+  if (objects.length === 1) return objects[0];
+  const titles = objects.map((meal) => text(meal.titel, 40)).filter(Boolean);
+  const hints = objects.map((meal) => text(meal.hinweis, 200)).filter(Boolean);
+  const categories = new Set(objects.map((meal) => meal.kategorie ?? null));
+  return {
+    titel: titles.join(" + ").slice(0, 40) || "Mahlzeiten",
+    kategorie: categories.size === 1 ? [...categories][0] : null,
+    hinweis: hints.join(" "),
+    items: objects.flatMap((meal) => (Array.isArray(meal.items) ? meal.items : [])),
+  };
 }
