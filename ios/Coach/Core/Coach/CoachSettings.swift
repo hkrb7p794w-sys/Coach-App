@@ -181,7 +181,9 @@ final class CoachSettings {
       defaults.data(forKey: Self.ownRecipesKey).flatMap { try? JSONDecoder().decode([OwnRecipe].self, from: $0) }
       ?? []
     pantry = defaults.data(forKey: Self.pantryKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
-    illnessDay = defaults.data(forKey: Self.illnessKey).flatMap { try? JSONDecoder().decode(CalendarDay.self, from: $0) }
+    illnessDay = defaults.data(forKey: Self.illnessKey).flatMap {
+      try? JSONDecoder().decode(CalendarDay.self, from: $0)
+    }
     handledMissed =
       defaults.data(forKey: Self.handledMissedKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) }
       ?? []

@@ -68,6 +68,8 @@ public struct SessionResult: Equatable, Sendable, Identifiable {
 public enum SessionMatcher {
   /// Ab diesem Anteil der geplanten Dauer gilt die Einheit als erledigt, darunter als „teilweise“.
   public static let doneShare = 0.6
+  /// Kürzere Aktivitäten (Weg zur Arbeit, Einrollen) zählen für keine Einheit.
+  public static let minimumSeconds: Double = 900
 
   /// Dauer, wenn der Plan keine nennt (der Laufplan liefert eigene Minuten).
   public static func defaultMinutes(_ slot: SessionSlot) -> Int {
@@ -132,7 +134,7 @@ public enum SessionMatcher {
     let days = Set(planned.map(\.day)).union(activities.compactMap(\.day))
     for day in days.sorted() {
       let sessions = planned.filter { $0.day == day }.sorted { $0.index < $1.index }
-      let candidates = activities.filter { $0.day == day }
+      let candidates = activities.filter { $0.day == day && ($0.durationSeconds ?? 0) >= minimumSeconds }
         .sorted { ($0.durationSeconds ?? 0) > ($1.durationSeconds ?? 0) }
       var gymAvailable = gymDays.contains(day)
       var open: [PlannedSession] = []
@@ -152,7 +154,7 @@ public enum SessionMatcher {
         // Ersatz: andere Ausdauer-Sportart (Rad statt Lauf), nicht Kraft oder Spaziergang.
         if session.slot.sport.isEndurance,
           let activity = candidates.first(where: {
-            !used.contains($0.id) && sport($0.sport).isEndurance && ($0.durationSeconds ?? 0) >= 900
+            !used.contains($0.id) && sport($0.sport).isEndurance
           })
         {
           used.insert(activity.id)
@@ -226,11 +228,12 @@ public enum MissedSessions {
       moved.set(moved.slots(on: target) + [session.slot], on: target)
       let busy = !schedule.slots(on: target).isEmpty
       return !busy && !PlanMoveAdvisor.createsBackToBack(moved, around: target)
-    } ?? candidates.first { target in
-      var moved = schedule
-      moved.set(moved.slots(on: target) + [session.slot], on: target)
-      return !PlanMoveAdvisor.createsBackToBack(moved, around: target)
     }
+      ?? candidates.first { target in
+        var moved = schedule
+        moved.set(moved.slots(on: target) + [session.slot], on: target)
+        return !PlanMoveAdvisor.createsBackToBack(moved, around: target)
+      }
   }
 
   /// Nach Krankheit: Erholung höchstens „locker“ für die nächsten Tage.

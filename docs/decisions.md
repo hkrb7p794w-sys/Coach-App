@@ -9,11 +9,12 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 Erster PR der UX-Prüfung von Training und Plan (`CoachCore/Profile/SessionMatch.swift`):
 - **„Erledigt“ heißt gleiche Sportart, mindestens 60 % der geplanten Dauer.** Bisher zählte jede Aktivität ab
-  15 Minuten am Tag; ein Spaziergang hakte so den Intervalllauf ab. Kürzer = „teilweise“, andere Ausdauer-Sportart
-  ab 15 Minuten = „anders gemacht“ (Rad statt Lauf), Krafteinheiten aus der App zählen als Kraft. Die Dauer kommt
-  aus dem Laufplan, sonst aus Standardwerten (locker 45, intensiv 50, lang 90, Kraft 45 min). Die Schwelle ist eine
-  Produktentscheidung, keine Studie: Sie soll „früh abgebrochen“ von „gemacht“ trennen. Geplant intensiv, aber
-  locker gelaufen, wird als Hinweis gezeigt (`SessionKind.isHard`), nicht als „verpasst“.
+  15 Minuten am Tag; ein Spaziergang hakte so den Intervalllauf ab. Unter 15 Minuten zählt weiterhin nichts,
+  unter 60 % der Dauer = „teilweise“, andere Ausdauer-Sportart = „anders gemacht“ (Rad statt Lauf), Krafteinheiten aus
+  der App zählen als Kraft. Die Dauer kommt aus dem Laufplan, sonst aus Standardwerten (locker 45, intensiv 50,
+  lang 90, Kraft 45 min). Die Schwelle ist eine Produktentscheidung, keine Studie: Sie soll „früh abgebrochen“ von
+  „gemacht“ trennen. Geplant intensiv, aber locker gelaufen, wird als Hinweis gezeigt (`SessionKind.isHard`),
+  nicht als „verpasst“.
 - **Erinnerung und „Geschafft“** nutzen dieselbe Zuordnung (`ReminderPlanner.personal`, `TodayViewModel`).
 - **Verpasste Einheiten** (nur persönliches Profil; der Saisonplan hat seine eigene Logik in `TodayPlan`):
   am nächsten Tag eine Karte mit „Nachholen“, „Doch gemacht – nachtragen“, „Streichen“ und „War krank“.

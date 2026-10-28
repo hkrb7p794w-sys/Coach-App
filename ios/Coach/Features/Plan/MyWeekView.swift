@@ -83,7 +83,8 @@ struct MyWeekView: View {
         ExtraActivitiesSection(
           records: activities.filter { record in
             sessions.extraIDs.contains(record.garminID)
-              || (ManualActivity.isManual(record.garminID) && (CalendarDay(iso: record.dayKey).map { $0 >= monday } ?? false))
+              || (ManualActivity.isManual(record.garminID)
+                && (CalendarDay(iso: record.dayKey).map { $0 >= monday } ?? false))
           },
           delete: { record in
             context.delete(record)
