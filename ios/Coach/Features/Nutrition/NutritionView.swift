@@ -15,9 +15,10 @@ struct NutritionView: View {
   @State private var viewModel = NutritionViewModel()
   @State private var sheet: Sheet?
   @State private var photoItem: PhotosPickerItem?
+  @State private var query = ""
 
   enum Sheet: String, Identifiable {
-    case text, camera, barcode
+    case text, camera, barcode, quick
     var id: String { rawValue }
   }
 
@@ -28,16 +29,38 @@ struct NutritionView: View {
   private var refreshKey: String {
     let settings = model.settings
     return "\(meals.count)-\(meals.last?.itemsPayload.count ?? 0)-\(activities.count)-"
-      + "\(settings.season.hashValue)-\(settings.nutrition.goal.rawValue)-\(settings.nutrition.weightKilograms ?? 0)"
+      + "\(settings.season.hashValue)-\(settings.nutrition.goal.rawValue)-\(settings.nutrition.weightKilograms ?? 0)-"
+      + "\(viewModel.day.iso)"
   }
 
   var body: some View {
     NavigationStack {
       List {
-        if let targets = viewModel.targets {
-          TargetsSection(targets: targets, totals: viewModel.totals)
+        if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+          searchResults
+        } else {
+          Section {
+            DayStrip(selected: viewModel.day, today: viewModel.today) { day in
+              viewModel.selectedDay = day == viewModel.today ? nil : day
+            }
+          }
+          if let targets = viewModel.targets {
+            BudgetSection(targets: targets, totals: viewModel.totals, water: waterCount) { milliliters in
+              logWater(milliliters)
+            }
+          }
+          QuickSection(
+            entries: NutritionViewModel.entries(meals), day: viewModel.day,
+            category: NutritionViewModel.category(at: .now)
+          ) { title, category, items, label in
+            viewModel.log(
+              title: title, category: category, items: items, context: context, foods: foods, label: label)
+          }
+          mealsSection
+          if let targets = viewModel.targets {
+            TargetsSection(targets: targets, totals: viewModel.totals)
+          }
         }
-        mealsSection
         reviewSection
         Section {
           NavigationLink {
@@ -52,8 +75,10 @@ struct NutritionView: View {
           }
         }
       }
-      .navigationTitle("Ernährung")
+      .navigationTitle(viewModel.day == viewModel.today ? "Ernährung" : Formatters.day(viewModel.day))
+      .searchable(text: $query, prompt: "Lebensmittel oder Mahlzeit suchen")
       .toolbar { addMenu }
+      .safeAreaInset(edge: .bottom) { undoBar }
       .overlay {
         if viewModel.isWorking {
           ProgressView("Wird ausgewertet …")
@@ -86,6 +111,10 @@ struct NutritionView: View {
         case .barcode:
           BarcodeEntry { code in
             Task { await viewModel.lookup(barcode: code, foods: foods, context: context) }
+          }
+        case .quick:
+          QuickEntrySheet { title, category, item in
+            viewModel.log(title: title, category: category, items: [item], context: context, foods: foods)
           }
         }
       }
@@ -124,6 +153,7 @@ struct NutritionView: View {
         }
         Button("Beschreiben", systemImage: "text.bubble") { sheet = .text }
         Button("Barcode", systemImage: "barcode.viewfinder") { sheet = .barcode }
+        Button("Nur Kalorien (Schätzung)", systemImage: "bolt") { sheet = .quick }
         Button("Manuell", systemImage: "square.and.pencil") { viewModel.newManualDraft() }
       } label: {
         Label("Erfassen", systemImage: "plus")
@@ -131,24 +161,128 @@ struct NutritionView: View {
     }
   }
 
-  private var mealsSection: some View {
-    Section("Mahlzeiten") {
-      if todaysMeals.isEmpty {
-        Text("Noch nichts erfasst. Über „+“ per Foto, Text, Barcode oder manuell.")
+  /// Mahlzeiten nach Kategorie mit Summe je Kategorie; Wasser steht beim Wasser-Balken.
+  @ViewBuilder private var mealsSection: some View {
+    let shown = todaysMeals.filter { !$0.isWater }
+    if shown.isEmpty {
+      Section("Mahlzeiten") {
+        Text("Noch nichts erfasst. Oben ein Vorschlag mit einem Tipp – oder über „+“ per Foto, Text oder Barcode.")
           .foregroundStyle(.secondary)
       }
-      ForEach(MealCategory.allCases, id: \.self) { category in
-        ForEach(todaysMeals.filter { $0.category == category }) { meal in
-          Button {
-            viewModel.edit(meal)
-          } label: {
-            MealRow(meal: meal)
+    }
+    ForEach(MealCategory.allCases, id: \.self) { category in
+      let items = shown.filter { $0.category == category }
+      if !items.isEmpty {
+        Section {
+          ForEach(items) { meal in
+            Button {
+              viewModel.edit(meal)
+            } label: {
+              MealRow(meal: meal)
+            }
+            .buttonStyle(.plain)
+            .swipeActions {
+              Button("Löschen", role: .destructive) { viewModel.delete(meal, context: context) }
+            }
           }
-          .buttonStyle(.plain)
-          .swipeActions {
-            Button("Löschen", role: .destructive) { viewModel.delete(meal, context: context) }
+        } header: {
+          let kcal = NutritionSummary.totals(items.flatMap(\.items))[.kcal] ?? 0
+          HStack {
+            Text(category.label)
+            Spacer()
+            Text("\(Int(kcal.rounded())) kcal").monospacedDigit()
           }
         }
+      }
+    }
+  }
+
+  // MARK: - Suche
+
+  /// Eigene Lebensmittel und frühere Mahlzeiten; Antippen öffnet den Entwurf, „+“ trägt sofort ein.
+  @ViewBuilder private var searchResults: some View {
+    let foodCandidates = foods.map {
+      FoodSearch.Candidate(id: "food:\($0.key)", title: $0.name, useCount: $0.useCount, lastUsed: $0.lastUsed)
+    }
+    let entries = NutritionViewModel.entries(meals)
+    let mealGroups = Dictionary(
+      grouping: entries.filter { $0.items.count > 1 }, by: { FoodSearch.normalized($0.title) })
+    let mealCandidates = mealGroups.compactMap { key, group -> FoodSearch.Candidate? in
+      guard let last = group.max(by: { $0.date < $1.date }) else { return nil }
+      return FoodSearch.Candidate(id: "meal:\(key)", title: last.title, useCount: group.count, lastUsed: last.date)
+    }
+    let foundFoods = FoodSearch.rank(foodCandidates, query: query)
+    let foundMeals = FoodSearch.rank(mealCandidates, query: query, limit: 6)
+    if foundFoods.isEmpty && foundMeals.isEmpty {
+      Section {
+        Text("Nichts gefunden. Über „+“ beschreiben, fotografieren oder Barcode scannen.").foregroundStyle(.secondary)
+      }
+    }
+    if !foundMeals.isEmpty {
+      Section("Frühere Mahlzeiten") {
+        ForEach(foundMeals) { candidate in
+          if let meal = mealGroups[String(candidate.id.dropFirst(5))]?.max(by: { $0.date < $1.date }) {
+            QuickRow(title: meal.title, detail: Self.summary(meal.items)) {
+              let category = NutritionViewModel.category(at: .now)
+              viewModel.log(title: meal.title, category: category, items: meal.items, context: context, foods: foods)
+              query = ""
+            }
+          }
+        }
+      }
+    }
+    if !foundFoods.isEmpty {
+      Section("Lebensmittel") {
+        ForEach(foundFoods) { candidate in
+          if let item = foods.first(where: { "food:\($0.key)" == candidate.id })?.item {
+            QuickRow(title: item.name, detail: Self.summary([item])) {
+              let category = NutritionViewModel.category(at: .now)
+              viewModel.log(title: item.name, category: category, items: [item], context: context, foods: foods)
+              query = ""
+            } open: {
+              viewModel.draft(with: item)
+              query = ""
+            }
+          }
+        }
+      }
+    }
+  }
+
+  static func summary(_ items: [MealItem]) -> String {
+    let totals = NutritionSummary.totals(items)
+    let grams = items.count == 1 ? "\(GermanFormat.number(items[0].grams)) \(items[0].isDrink ? "ml" : "g") · " : ""
+    return "\(grams)\(Int((totals[.kcal] ?? 0).rounded())) kcal · \(Int((totals[.protein] ?? 0).rounded())) g Protein"
+  }
+
+  // MARK: - Wasser und Rückgängig
+
+  private var waterCount: Double {
+    NutritionSummary.totals(todaysMeals.filter(\.isWater).flatMap(\.items))[.water] ?? 0
+  }
+
+  private func logWater(_ milliliters: Double) {
+    viewModel.log(
+      title: "Wasser", category: NutritionViewModel.category(at: .now), items: [.water(milliliters: milliliters)],
+      context: context, foods: [], label: "\(Int(milliliters)) ml Wasser")
+  }
+
+  @ViewBuilder private var undoBar: some View {
+    if let last = viewModel.lastLogged {
+      HStack {
+        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+        Text(last.label).font(.subheadline).lineLimit(1)
+        Spacer()
+        Button("Rückgängig") { viewModel.undoLastLog(context: context) }.bold()
+      }
+      .padding(.horizontal, 16)
+      .frame(minHeight: 48)
+      .background(.regularMaterial, in: Capsule())
+      .padding(.horizontal)
+      .padding(.bottom, 4)
+      .task(id: last.label) {
+        try? await Task.sleep(for: .seconds(5))
+        if !Task.isCancelled { viewModel.clearLastLogged() }
       }
     }
   }
@@ -189,6 +323,209 @@ struct NutritionView: View {
   }
 }
 
+/// Wochenstreifen: Tag antippen zum Ansehen und Nachtragen.
+private struct DayStrip: View {
+  let selected: CalendarDay
+  let today: CalendarDay
+  let select: (CalendarDay) -> Void
+  @State private var weekOffset = 0
+
+  var body: some View {
+    let monday = today.adding(days: -today.weekdayIndex + weekOffset * 7)
+    HStack(spacing: 4) {
+      Button {
+        weekOffset -= 1
+      } label: {
+        Image(systemName: "chevron.left").frame(width: 32, height: 44)
+      }
+      .accessibilityLabel("Vorige Woche")
+      ForEach(0..<7, id: \.self) { offset in
+        let day = monday.adding(days: offset)
+        Button {
+          select(day)
+        } label: {
+          VStack(spacing: 2) {
+            Text(Weekday(day: day).short).font(.caption2)
+            Text("\(day.day)").font(.subheadline.bold()).monospacedDigit()
+          }
+          .frame(maxWidth: .infinity, minHeight: 44)
+          .background(
+            day == selected ? AnyShapeStyle(.tint.opacity(0.2)) : AnyShapeStyle(.clear),
+            in: RoundedRectangle(cornerRadius: 10)
+          )
+          .foregroundStyle(today < day ? .secondary : .primary)
+        }
+        .disabled(today < day)
+        .accessibilityLabel(Formatters.day(day))
+      }
+      Button {
+        weekOffset += 1
+      } label: {
+        Image(systemName: "chevron.right").frame(width: 32, height: 44)
+      }
+      .disabled(weekOffset >= 0)
+      .accessibilityLabel("Nächste Woche")
+    }
+    .buttonStyle(.borderless)
+  }
+}
+
+/// Auf einen Blick: übrige kcal im Ring, Protein/KH/Fett als „noch … g“, Wasser mit Glas-Knopf.
+private struct BudgetSection: View {
+  let targets: NutritionTargets
+  let totals: NutrientValues
+  let water: Double
+  let addWater: (Double) -> Void
+
+  var body: some View {
+    Section {
+      HStack(spacing: 20) {
+        if let kcal = NutritionBudget.line(.kcal, targets: targets.values, totals: totals) {
+          CalorieRing(line: kcal)
+        }
+        VStack(alignment: .leading, spacing: 10) {
+          ForEach(NutritionBudget.main, id: \.self) { nutrient in
+            if let line = NutritionBudget.line(nutrient, targets: targets.values, totals: totals) {
+              MacroBar(line: line)
+            }
+          }
+        }
+      }
+      .padding(.vertical, 6)
+      if let target = targets.values[.water] {
+        HStack {
+          Image(systemName: "drop.fill").foregroundStyle(.cyan)
+          Text("Wasser \(GermanFormat.decimal(water / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
+            .monospacedDigit()
+          Spacer()
+          Menu {
+            ForEach([150.0, 330, 500, 750], id: \.self) { amount in
+              Button("\(Int(amount)) ml") { addWater(amount) }
+            }
+          } label: {
+            Label("+250 ml", systemImage: "plus")
+              .font(.subheadline.bold())
+              .padding(.horizontal, 12)
+              .frame(minHeight: 40)
+              .background(.cyan.opacity(0.15), in: Capsule())
+          } primaryAction: {
+            addWater(250)
+          }
+          .accessibilityHint("Gedrückt halten für andere Mengen")
+        }
+      }
+    } header: {
+      Text("\(targets.dayType.label) · \(targets.source.rawValue)")
+    }
+  }
+}
+
+private struct CalorieRing: View {
+  let line: NutritionBudget.Line
+
+  var body: some View {
+    ZStack {
+      Circle().stroke(.fill.tertiary, lineWidth: 12)
+      Circle()
+        .trim(from: 0, to: line.progress)
+        .stroke(line.isOver ? Color.red : Color.accentColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+        .rotationEffect(.degrees(-90))
+      VStack(spacing: 0) {
+        Text("\(Int(abs(line.remaining).rounded()))")
+          .font(.title2.bold())
+          .monospacedDigit()
+          .minimumScaleFactor(0.6)
+        Text(line.remaining >= 0 ? "kcal übrig" : "kcal drüber").font(.caption2).foregroundStyle(.secondary)
+      }
+    }
+    .frame(width: 112, height: 112)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(
+      "\(Int(abs(line.remaining).rounded())) Kilokalorien \(line.remaining >= 0 ? "übrig" : "über dem Ziel")")
+  }
+}
+
+private struct MacroBar: View {
+  let line: NutritionBudget.Line
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      HStack {
+        Text(line.nutrient.label).font(.subheadline)
+        Spacer()
+        Text(NutritionBudget.remainingText(line))
+          .font(.subheadline.bold())
+          .monospacedDigit()
+          .foregroundStyle(line.isOver ? .red : .primary)
+      }
+      ProgressView(value: line.progress).tint(line.isOver ? .red : .accentColor)
+    }
+  }
+}
+
+/// Häufigstes zur Tageszeit und „wie gestern“ – ein Tipp trägt ein.
+private struct QuickSection: View {
+  let entries: [MealEntry]
+  let day: CalendarDay
+  let category: MealCategory
+  let log: (String, MealCategory, [MealItem], String?) -> Void
+
+  var body: some View {
+    let suggestions = MealSuggestions.frequent(entries, category: category, today: day, limit: 4)
+    let yesterday = MealSuggestions.yesterday(entries, category: category, today: day)
+    if !suggestions.isEmpty || !yesterday.isEmpty {
+      Section {
+        if !yesterday.isEmpty {
+          QuickRow(
+            title: "Wie gestern: \(yesterday.map(\.title).joined(separator: ", "))",
+            detail: NutritionView.summary(yesterday.flatMap(\.items))
+          ) {
+            log(
+              yesterday.map(\.title).joined(separator: ", "), category, yesterday.flatMap(\.items),
+              "\(category.label) wie gestern eingetragen")
+          }
+        }
+        ForEach(suggestions) { suggestion in
+          QuickRow(title: suggestion.title, detail: NutritionView.summary(suggestion.items)) {
+            log(suggestion.title, category, suggestion.items, nil)
+          }
+        }
+      } header: {
+        Text("Schnell: \(category.label)")
+      }
+    }
+  }
+}
+
+/// Zeile mit großem „+“ (sofort eintragen); optional öffnet Antippen den Entwurf.
+private struct QuickRow: View {
+  let title: String
+  let detail: String
+  let add: () -> Void
+  var open: (() -> Void)?
+
+  var body: some View {
+    HStack {
+      Button {
+        (open ?? add)()
+      } label: {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(title).lineLimit(2)
+          Text(detail).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .buttonStyle(.plain)
+      Button(action: add) {
+        Image(systemName: "plus.circle.fill").font(.title).frame(width: 48, height: 48)
+      }
+      .buttonStyle(.borderless)
+      .accessibilityLabel("\(title) eintragen")
+    }
+  }
+}
+
+/// Alle Nährstoffe mit Ziel – unter „Mehr“, damit oben nur das Wichtige steht.
 private struct TargetsSection: View {
   static let primary: [Nutrient] = [.kcal, .protein, .carbs, .fat, .fiber, .water]
   let targets: NutritionTargets
@@ -196,16 +533,11 @@ private struct TargetsSection: View {
 
   var body: some View {
     Section {
-      ForEach(Self.primary, id: \.self) { nutrient in
-        NutrientRow(nutrient: nutrient, actual: totals[nutrient], target: targets.values[nutrient])
-      }
-      DisclosureGroup("Weitere Nährstoffe") {
-        ForEach(Nutrient.allCases.filter { !Self.primary.contains($0) }, id: \.self) { nutrient in
+      DisclosureGroup("Alle Nährstoffe") {
+        ForEach(Self.primary + Nutrient.allCases.filter { !Self.primary.contains($0) }, id: \.self) { nutrient in
           NutrientRow(nutrient: nutrient, actual: totals[nutrient], target: targets.values[nutrient])
         }
       }
-    } header: {
-      Text("\(targets.dayType.label) · \(targets.source.rawValue)")
     } footer: {
       Text(
         "Grundumsatz \(Int(targets.basalMetabolicRate)) kcal, Training \(Int(targets.exerciseKilocalories)) kcal, "
@@ -260,6 +592,68 @@ private struct MealRow: View {
       )
       .font(.caption)
       .foregroundStyle(.secondary)
+    }
+  }
+}
+
+/// „Nur Kalorien“: Restaurant, Kantine, unterwegs – Schätzung ohne Lebensmittel.
+private struct QuickEntrySheet: View {
+  let save: (String, MealCategory, MealItem) -> Void
+  @Environment(\.dismiss) private var dismiss
+  @State private var name = ""
+  @State private var category = NutritionViewModel.category(at: .now)
+  @State private var kcal: Double?
+  @State private var protein: Double?
+  @State private var carbs: Double?
+  @State private var fat: Double?
+
+  var body: some View {
+    NavigationStack {
+      Form {
+        Section {
+          number("Kalorien", "kcal", $kcal)
+          number("Protein", "g", $protein)
+          number("Kohlenhydrate", "g", $carbs)
+          number("Fett", "g", $fat)
+        } footer: {
+          Text("Nur Kalorien reichen; Makros helfen bei der Tagesbilanz. Wird als Schätzung markiert.")
+        }
+        Section {
+          TextField("Was war es? (optional)", text: $name)
+          Picker("Mahlzeit", selection: $category) {
+            ForEach(MealCategory.allCases, id: \.self) { Text($0.label).tag($0) }
+          }
+        }
+      }
+      .navigationTitle("Nur Kalorien")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
+        ToolbarItem(placement: .confirmationAction) {
+          Button("Eintragen") {
+            let title = name.trimmingCharacters(in: .whitespaces)
+            let item = MealItem.quick(
+              name: title.isEmpty ? "Schnell-Eintrag" : title, kilocalories: kcal ?? 0, protein: protein,
+              carbs: carbs, fat: fat)
+            save(title.isEmpty ? "Schnell-Eintrag" : title, category, item)
+            dismiss()
+          }
+          .disabled((kcal ?? 0) <= 0)
+        }
+      }
+    }
+    .presentationDetents([.medium, .large])
+  }
+
+  private func number(_ label: String, _ unit: String, _ value: Binding<Double?>) -> some View {
+    HStack {
+      Text(label)
+      Spacer()
+      TextField("0", value: value, format: .number.precision(.fractionLength(0)))
+        .keyboardType(.numberPad)
+        .multilineTextAlignment(.trailing)
+        .frame(maxWidth: 100)
+      Text(unit).foregroundStyle(.secondary)
     }
   }
 }

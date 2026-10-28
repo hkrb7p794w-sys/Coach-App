@@ -17,6 +17,16 @@ struct MealEditor: View {
           Picker("Mahlzeit", selection: $draft.category) {
             ForEach(MealCategory.allCases, id: \.self) { Text($0.label).tag($0) }
           }
+          // Nachtragen: Zeitpunkt wählen, die Mahlzeit folgt der Uhrzeit.
+          DatePicker(
+            "Zeitpunkt",
+            selection: Binding(
+              get: { draft.date ?? viewModel.timestamp() },
+              set: { date in
+                draft.date = date
+                draft.category = NutritionViewModel.category(at: date)
+              }),
+            in: ...Date.now.addingTimeInterval(3_600))
           if !draft.hint.isEmpty {
             Label(draft.hint, systemImage: "info.circle").font(.footnote).foregroundStyle(.secondary)
           }

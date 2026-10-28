@@ -53,6 +53,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 35 | Gym: Satzarten (Aufwärmen zählt nicht), Supersätze, Später/Ersetzen/Reihenfolge, Plausibilität, Pausen merken, Stange/Scheiben, Notizen | fertig (PR 43) |
 | 36 | Gym: Ziel sichtbar, Karte „Nächste Einheit“, Abschluss mit Vergleich und „Nächstes Mal“, Auswertung mit Kalender | fertig (PR 43) |
 | 37 | Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm, „Satz erledigt“ ohne Entsperren | fertig (PR 44) |
+| 38 | Ernährung schnell eintragen: Vorschläge zur Tageszeit, „wie gestern“, Suche, Wochenstreifen, Rest-Ring, nur Kalorien, Wasser | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

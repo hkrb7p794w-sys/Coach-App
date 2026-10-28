@@ -14,9 +14,17 @@ final class NutritionViewModel {
     var category: MealCategory
     var hint: String
     var items: [MealItem]
+    /// Zeitpunkt; `nil` = gewählter Tag zur aktuellen Uhrzeit.
+    var date: Date?
   }
 
-  private(set) var day = CalendarDay(date: .now)
+  /// Heute laut letzter Aktualisierung.
+  private(set) var today = CalendarDay(date: .now)
+  /// Im Wochenstreifen gewählter Tag; `nil` = heute.
+  var selectedDay: CalendarDay?
+  var day: CalendarDay { selectedDay ?? today }
+  /// Zuletzt per Schnell-Leiste eingetragen – für „Rückgängig“.
+  private(set) var lastLogged: (record: MealRecord, label: String)?
   private(set) var targets: NutritionTargets?
   private(set) var totals = NutrientValues()
   private(set) var isWorking = false
@@ -36,7 +44,9 @@ final class NutritionViewModel {
     meals: [MealRecord], activities: [GarminActivity], settings: CoachSettings, profile: GarminProfile?,
     hasGarminData: Bool, now: Date = .now
   ) {
-    day = CalendarDay(date: now)
+    today = CalendarDay(date: now)
+    if selectedDay == today { selectedDay = nil }
+    let day = self.day
     let todaysActivities = activities.filter { $0.day == day }
     // Saisonplan: Musterwoche aus dem Plan; persönliches Profil: die eigenen Einheiten des Wochentags.
     let planItems: [TemplateItem]
@@ -59,9 +69,57 @@ final class NutritionViewModel {
     draft = Draft(title: "", category: Self.category(at: now), hint: "", items: [item])
   }
 
+  /// Entwurf mit einem bekannten Lebensmittel (Suche), Menge wie zuletzt.
+  func draft(with item: MealItem, now: Date = .now) {
+    var fresh = item
+    fresh.id = UUID()
+    draft = Draft(title: item.name, category: Self.category(at: now), hint: "", items: [fresh])
+  }
+
+  /// Zeitpunkt für einen Eintrag am gewählten Tag: heute jetzt, sonst derselbe Tag zur aktuellen Uhrzeit.
+  func timestamp(now: Date = .now) -> Date {
+    guard day != today else { return now }
+    let calendar = Calendar.current
+    let time = calendar.dateComponents([.hour, .minute], from: now)
+    return calendar.date(
+      from: DateComponents(year: day.year, month: day.month, day: day.day, hour: time.hour, minute: time.minute))
+      ?? day.localDate
+  }
+
+  /// Ein Tipp: Mahlzeit sofort eintragen (Schnell-Leiste, „wie gestern“, Suche, Wasser) – mit „Rückgängig“.
+  func log(
+    title: String, category: MealCategory, items: [MealItem], context: ModelContext, foods: [FoodRecord],
+    label: String? = nil, now: Date = .now
+  ) {
+    let fresh = items.map { item -> MealItem in
+      var copy = item
+      copy.id = UUID()
+      return copy
+    }
+    guard !fresh.isEmpty else { return }
+    let record = MealRecord(
+      day: day, category: category, title: title, hint: "", items: fresh, at: timestamp(now: now))
+    context.insert(record)
+    remember(fresh, context: context, foods: foods)
+    try? context.save()
+    lastLogged = (record, label ?? "\(title) eingetragen")
+  }
+
+  func undoLastLog(context: ModelContext) {
+    guard let record = lastLogged?.record else { return }
+    context.delete(record)
+    try? context.save()
+    lastLogged = nil
+  }
+
+  func clearLastLogged() {
+    lastLogged = nil
+  }
+
   func edit(_ record: MealRecord) {
     draft = Draft(
-      record: record, title: record.title, category: record.category, hint: record.hint, items: record.items)
+      record: record, title: record.title, category: record.category, hint: record.hint, items: record.items,
+      date: record.createdAt)
   }
 
   func analyze(text: String, photo: Data?, ai: AIClient, settings: CoachSettings, foods: [FoodRecord]) async {
@@ -124,9 +182,25 @@ final class NutritionViewModel {
       record.title = title
       record.category = draft.category
       record.items = items
+      if let date = draft.date {
+        record.createdAt = date
+        record.dayKey = CalendarDay(date: date).iso
+      }
     } else {
-      context.insert(MealRecord(day: day, category: draft.category, title: title, hint: draft.hint, items: items))
+      // Ohne eigenen Zeitpunkt: gewählter Tag zur aktuellen Uhrzeit.
+      let day = draft.date.map { CalendarDay(date: $0) } ?? self.day
+      context.insert(
+        MealRecord(
+          day: day, category: draft.category, title: title, hint: draft.hint, items: items,
+          at: draft.date ?? timestamp()))
     }
+    remember(items, context: context, foods: foods)
+    try? context.save()
+    self.draft = nil
+  }
+
+  /// Lebensmittel für Vorschläge, Suche und KI-Hinweise merken.
+  private func remember(_ items: [MealItem], context: ModelContext, foods: [FoodRecord]) {
     var known = Dictionary(foods.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
     for item in items {
       let key = FoodRecord.key(for: item)
@@ -138,8 +212,14 @@ final class NutritionViewModel {
       record.useCount += 1
       record.lastUsed = .now
     }
-    try? context.save()
-    self.draft = nil
+  }
+
+  /// Gespeicherte Mahlzeiten ohne SwiftData (für Vorschläge, Suche, Woche); Wasser zählt nicht als Mahlzeit.
+  static func entries(_ meals: [MealRecord]) -> [MealEntry] {
+    meals.compactMap { meal in
+      guard let day = CalendarDay(iso: meal.dayKey), !meal.isWater else { return nil }
+      return MealEntry(day: day, date: meal.createdAt, category: meal.category, title: meal.title, items: meal.items)
+    }
   }
 
   func delete(_ record: MealRecord, context: ModelContext) {
