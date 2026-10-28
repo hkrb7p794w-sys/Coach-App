@@ -432,10 +432,9 @@ private struct ExerciseNotes: View {
       let shown = set.flatMap { exercise.sets[safe: $0]?.weightKg } ?? working
       if let info {
         let bar = gym.bar(for: info.id)
-        let warmUp = WarmUp.steps(working: working, equipment: info.equipment, compound: info.compound, bar: bar)
-        let started = exercise.sets.contains { $0.done || $0.kind == .warmup }
-        if !warmUp.isEmpty, !started {
-          Text(WarmUp.text(warmUp))
+        let warmUp = gym.suggestsWarmUp ? WarmUp.suggestion(for: exercise, info: info, bar: bar) : []
+        if !warmUp.isEmpty {
+          Text("Optional · " + WarmUp.text(warmUp))
           if offersWarmUp {
             Button("Aufwärmsätze einfügen", systemImage: "flame") { viewModel.insertWarmUp(into: exercise.id) }
               .buttonStyle(.bordered)
@@ -799,6 +798,11 @@ private struct ExerciseMenu: View {
       }
       Section {
         Button("Satz hinzufügen", systemImage: "plus.circle") { viewModel.addSet(to: exercise.id) }
+        Picker(selection: restBinding) {
+          ForEach(RestText.options, id: \.self) { seconds in Text(RestText.format(seconds)).tag(seconds) }
+        } label: {
+          Label("Pause \(RestText.format(exercise.restSeconds))", systemImage: "timer")
+        }
         Button(gym.notes[exercise.exerciseID] == nil ? "Notiz …" : "Notiz ändern …", systemImage: "note.text") {
           note = gym.notes[exercise.exerciseID] ?? ""
           editsNote = true
@@ -846,6 +850,17 @@ private struct ExerciseMenu: View {
     (20, "Langhantel 20 kg"), (15, "Langhantel 15 kg"), (10, "SZ-Stange 10 kg"), (25, "Trap Bar 25 kg"),
     (7.5, "Kurze Stange 7,5 kg"),
   ]
+
+  /// Pause der Übung; gilt sofort und – gemerkt – auch beim nächsten Mal.
+  private var restBinding: Binding<Int> {
+    Binding(
+      get: { RestText.options.min { abs($0 - exercise.restSeconds) < abs($1 - exercise.restSeconds) } ?? 90 },
+      set: { seconds in
+        if let remembered = viewModel.setRest(seconds, of: exercise.id) {
+          model.settings.gym.restOverrides[remembered.exerciseID] = remembered.seconds
+        }
+      })
+  }
 
   private var barBinding: Binding<Double> {
     Binding(
@@ -1061,6 +1076,12 @@ private struct SetValuePad: View {
     switch target.field {
     case .weight: viewModel.setWeight(assisted ? -value : value, set: target.set, of: target.exerciseID)
     case .reps: viewModel.setReps(Int(value), set: target.set, of: target.exerciseID)
+    }
+    // Einstellung „Satz nach Eingabe abhaken“: abhaken und Pause starten, als hätte man „Satz erledigt“ getippt.
+    if model.settings.gym.completeOnEdit.completes(afterEditingReps: target.field == .reps),
+      exercise?.sets[safe: target.set]?.done == false
+    {
+      viewModel.complete(set: target.set, of: target.exerciseID)
     }
     dismiss()
   }

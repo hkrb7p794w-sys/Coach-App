@@ -32,6 +32,8 @@ hier notieren und als PR beheben.
       automatisch ausgewertet, Woche, Einkaufsliste nach Abteilung mit „Habe ich da“, großes „+“ unten.
 - [ ] **Training Soll/Ist:** Plan-Reiter zeigt je Einheit „erledigt/teilweise/anders gemacht/verpasst“ mit Soll/Ist,
       Summen je Sportart, Wischen (auslassen/verschieben); Karte „Verpasst“ auf Heute; Training nachtragen und löschen.
+- [ ] **Gym-Einstellungen:** Pausen je Übung und Standard, „Pause starten“ ohne Automatik, Aufwärm-Vorschlag
+      abschaltbar, Abhaken nach Eingabe; Einstellungen › Disziplinen (Gym, Laufen, Rad, Schwimmen, Ernährung, Schlaf).
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

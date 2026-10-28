@@ -27,6 +27,7 @@ private struct SettingsForm: View {
         if model.settings.profile.mode == .personal {
           InputIssuesSection(issues: profileIssues)
         }
+        DisciplineSettingsSection()
         ReminderSettingsSection()
         connectSection
         garminSection
@@ -34,9 +35,8 @@ private struct SettingsForm: View {
         aiSection
         Section("Coach") {
           if model.settings.profile.mode == .season {
-            NavigationLink("Saison & Ziele") { SeasonSettingsView() }
+            NavigationLink("Saison & Rennen") { SeasonSettingsView() }
           }
-          NavigationLink("Ernährung") { NutritionSettingsView() }
           NavigationLink("Begleiter & Rangliste") { MotivationSettingsView() }
           NavigationLink("Wissenschaftliche Grundlagen") { EvidenceLibraryView() }
           NavigationLink("Eigene wissenschaftliche Quellen") { UserSourcesView() }
@@ -196,6 +196,13 @@ private struct SettingsForm: View {
       if let status = viewModel.aiStatus {
         Text(status).font(.footnote).foregroundStyle(.secondary)
       }
+      Picker(
+        "Datenschutz",
+        selection: Binding(get: { model.settings.privacy }, set: { model.settings.privacy = $0 })
+      ) {
+        Text("Reduziert (empfohlen)").tag(PrivacyMode.reduced)
+        Text("Voll").tag(PrivacyMode.full)
+      }
       if let source = model.ai.sideStoreSourceURL {
         ShareLink(item: source) {
           Label("SideStore-Quelle teilen", systemImage: "square.and.arrow.up")
@@ -211,6 +218,7 @@ private struct SettingsForm: View {
     } footer: {
       Text(
         "Adresse und App-Token aus der Einrichtung des Cloudflare Workers (siehe docs/einrichtung.md). "
+          + "Datenschutz „reduziert“: An die KI gehen nur Einordnungen (z. B. „Schlaf kurz“), keine Rohwerte. "
           + "Die SideStore-Quelle ist privat: Wer den Link hat, kann die App laden – nur an Vertraute weitergeben."
       )
     }
@@ -229,15 +237,11 @@ private struct ReminderSettingsSection: View {
       if settings.reminders.enabled {
         DatePicker("Uhrzeit", selection: $settings.reminders.time, displayedComponents: .hourAndMinute)
       }
-      if settings.profile.mode == .season {
-        Toggle("Schwimm-Ausrüstung am Vorabend (18 Uhr)", isOn: $settings.reminders.equipment)
-      }
       Toggle("Sonntags „Nächste Woche planen“", isOn: $settings.reminders.weekPlanning)
       if settings.reminders.weekPlanning {
         DatePicker(
           "Uhrzeit am Sonntag", selection: $settings.reminders.planningTime, displayedComponents: .hourAndMinute)
       }
-      Toggle("Abends um 20 Uhr „Tag auswerten“", isOn: $settings.reminders.nutritionReview)
       if model.reminders.permission == .denied {
         Button("Mitteilungen in iOS erlauben") {
           if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
@@ -255,6 +259,7 @@ private struct ReminderSettingsSection: View {
       } else {
         Text("Erinnert an die festen Einheiten des Saisonplans.")
       }
+      Text("Erinnerungen zu einer Disziplin (Schwimm-Ausrüstung, Tag auswerten, Schlafenszeit) stehen dort.")
     }
   }
 }

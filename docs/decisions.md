@@ -5,6 +5,23 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-10-28 – Gym-Pausen, Aufwärmen, Abhaken; Einstellungen nach Disziplin
+
+Auf Wunsch des Nutzers:
+- **Pausen:** Standard je Art der Übung (Grundübung 2 min, Isolation 90 s), nach Aufwärmsätzen 60 s, je Übung
+  eigene Pause (Einstellungen › Gym › Je Übung oder Menü der Übung; die ±15 s während der Pause merken sie wie
+  bisher). Reihenfolge: Übung > Routine > Standard. Die Werte folgen den bisherigen Standards der App
+  (ACSM 2009: 2–3 min bei schweren Grundübungen, 1–2 min sonst); abschaltbar ist der automatische Start – dann
+  erscheint „Pause starten“.
+- **Aufwärmen:** Der Vorschlag (leere Stange, ~50/70/85 % des Arbeitsgewichts) erscheint nur vor dem ersten Satz
+  und lässt sich abschalten; eingefügte Aufwärmsätze zählen nicht für Volumen und Progression.
+- **Abhaken nach dem Eintippen:** wahlweise nie, nach den Wiederholungen oder nach jeder Eingabe über den
+  Ziffernblock; die ±-Knöpfe haken nie ab (sonst würde jeder Tipp den Satz beenden). Standard „nie“.
+- **Notizen je Übung** (Griff, Sitzhöhe, Bank) jetzt auch in den Einstellungen bearbeitbar, mit Stange je Übung.
+- **Einstellungen nach Disziplin:** Gym, Laufen, Rad, Schwimmen (nur gewählte Sportarten, im Saisonplan alle),
+  Ernährung, Schlaf. Testwerte (FTP, CSS, Paces) nur im Saisonplan, Herzfrequenz für alle. Der
+  KI-Datenschutzmodus steht beim KI-Worker – er war bisher nur im Saisonplan erreichbar.
+
 ## 2026-10-28 – Training: Soll/Ist je Einheit, verpasste Einheiten, Nachtragen
 
 Erster PR der UX-Prüfung von Training und Plan (`CoachCore/Profile/SessionMatch.swift`):

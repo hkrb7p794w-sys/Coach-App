@@ -289,6 +289,30 @@ public enum RoutineTemplates {
   }
 }
 
+/// Satz nach dem Eintippen von Werten automatisch abhaken (und die Pause starten).
+public enum CompleteOnEdit: String, Codable, CaseIterable, Sendable, Identifiable {
+  case off, afterReps, always
+
+  public var id: String { rawValue }
+
+  public var label: String {
+    switch self {
+    case .off: "Nie – ich tippe „Satz erledigt“"
+    case .afterReps: "Nach den Wiederholungen"
+    case .always: "Nach Gewicht oder Wiederholungen"
+    }
+  }
+
+  /// Ob eine Eingabe in diesem Feld den Satz abhakt.
+  public func completes(afterEditingReps reps: Bool) -> Bool {
+    switch self {
+    case .off: false
+    case .afterReps: reps
+    case .always: true
+    }
+  }
+}
+
 /// Gym-Einstellungen: eigene Routinen, eigene Übungen, Ausstattung.
 public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var routines: [Routine]
@@ -313,6 +337,17 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var restOverrides: [String: Int] = [:]
   /// Pause und nächster Satz als Live-Aktivität auf dem Sperrbildschirm.
   public var liveActivity: Bool = true
+  /// Standardpausen in Sekunden, wenn weder die Routine noch die Übung eine eigene haben.
+  public var restCompound: Int = 120
+  public var restIsolation: Int = 90
+  /// Pause nach Aufwärmsätzen (kürzer, sie ermüden kaum).
+  public var restWarmup: Int = 60
+  /// Nach „Satz erledigt“ die Pause sofort starten.
+  public var autoStartsRest: Bool = true
+  /// Vor dem ersten Arbeitssatz einer Grundübung Aufwärmsätze vorschlagen.
+  public var suggestsWarmUp: Bool = true
+  /// Satz nach dem Eintippen von Werten abhaken.
+  public var completeOnEdit: CompleteOnEdit = .off
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -339,6 +374,17 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     notes = (try? container.decodeIfPresent([String: String].self, forKey: .notes)) ?? [:]
     restOverrides = (try? container.decodeIfPresent([String: Int].self, forKey: .restOverrides)) ?? [:]
     liveActivity = (try? container.decodeIfPresent(Bool.self, forKey: .liveActivity)) ?? true
+    restCompound = (try? container.decodeIfPresent(Int.self, forKey: .restCompound)) ?? 120
+    restIsolation = (try? container.decodeIfPresent(Int.self, forKey: .restIsolation)) ?? 90
+    restWarmup = (try? container.decodeIfPresent(Int.self, forKey: .restWarmup)) ?? 60
+    autoStartsRest = (try? container.decodeIfPresent(Bool.self, forKey: .autoStartsRest)) ?? true
+    suggestsWarmUp = (try? container.decodeIfPresent(Bool.self, forKey: .suggestsWarmUp)) ?? true
+    completeOnEdit = (try? container.decodeIfPresent(CompleteOnEdit.self, forKey: .completeOnEdit)) ?? .off
+  }
+
+  /// Pause einer Übung: eigene Einstellung, sonst Standard nach Art der Übung.
+  public func rest(for exerciseID: String, compound: Bool) -> Int {
+    restOverrides[exerciseID] ?? (compound ? restCompound : restIsolation)
   }
 
   /// Stange für eine Übung.

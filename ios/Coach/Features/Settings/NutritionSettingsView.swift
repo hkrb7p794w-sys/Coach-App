@@ -4,6 +4,7 @@ import SwiftUI
 /// Ziel, Ernährungsweise und Körperwerte für die Tagesziele. Leere Körperwerte = Werte aus Garmin.
 struct NutritionSettingsView: View {
   @Environment(AppModel.self) private var model
+  @State private var showsRecipePreferences = false
 
   var body: some View {
     @Bindable var settings = model.settings
@@ -52,8 +53,16 @@ struct NutritionSettingsView: View {
       } footer: {
         Text("Leer lassen, um die Werte aus Garmin zu nutzen. Körperfett ohne Angabe: 15 % (Männer) bzw. 25 %.")
       }
+
+      Section {
+        Toggle("Abends um 20 Uhr „Tag auswerten“", isOn: $settings.reminders.nutritionReview)
+        Button("Rezept-Vorlieben …") { showsRecipePreferences = true }
+      } header: {
+        Text("Erinnerung und Rezepte")
+      }
     }
     .navigationTitle("Ernährung")
+    .sheet(isPresented: $showsRecipePreferences) { RecipePreferencesView() }
   }
 }
 

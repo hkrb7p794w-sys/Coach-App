@@ -69,7 +69,26 @@ public enum WarmUp {
     return []
   }
 
+  /// Vorschlag vor dem ersten Arbeitssatz: nur solange die Übung noch keine Aufwärm- und keine erledigten Sätze hat;
+  /// Gewichte aus dem schwersten geplanten Arbeitssatz.
+  public static func suggestion(for exercise: LoggedExercise, info: ExerciseInfo?, bar: Double) -> [Step] {
+    guard let info, !exercise.sets.contains(where: { $0.kind == .warmup || $0.done }) else { return [] }
+    let working = exercise.sets.filter { $0.kind != .warmup }.map(\.weightKg).max() ?? 0
+    return steps(working: working, equipment: info.equipment, compound: info.compound, bar: bar)
+  }
+
   public static func text(_ steps: [Step]) -> String {
     "Aufwärmen: " + steps.map { "\(GermanFormat.number($0.weightKg)) kg × \($0.reps)" }.joined(separator: " · ")
+  }
+}
+
+/// Pausenauswahl und -anzeige: „45 s“, „1:30 min“, „3 min“.
+public enum RestText {
+  public static let options = [30, 45, 60, 75, 90, 105, 120, 150, 180, 210, 240, 300]
+
+  public static func format(_ seconds: Int) -> String {
+    if seconds < 60 { return "\(seconds) s" }
+    let rest = seconds % 60
+    return rest == 0 ? "\(seconds / 60) min" : String(format: "%d:%02d min", seconds / 60, rest)
   }
 }

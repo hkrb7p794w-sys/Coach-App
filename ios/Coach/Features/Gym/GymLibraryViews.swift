@@ -19,6 +19,7 @@ struct ExerciseLibraryView: View {
       Section {
         Toggle("Nur mit meiner Ausstattung", isOn: $onlyAvailable)
         NavigationLink("Meine Ausstattung") { EquipmentSettingsView() }
+        NavigationLink("Gym-Einstellungen") { GymSettingsView() }
       }
       ForEach(MuscleGroup.allCases, id: \.self) { group in
         let inGroup = items.filter { $0.group == group }
@@ -265,14 +266,6 @@ struct EquipmentSettingsView: View {
         }
       }
       Section {
-        Toggle("Wiederholungen in Reserve abfragen", isOn: $settings.gym.tracksRIR)
-      } footer: {
-        Text(
-          "In der Pause nach jedem Satz kurz antippen, wie viele Wiederholungen noch gegangen wären (RIR) – "
-            + "freiwillig, das Abhaken bleibt ein Tipp. Bleiben in allen Sätzen 4 oder mehr übrig, schlägt die "
-            + "App sofort mehr Gewicht vor.")
-      }
-      Section {
         Picker("Langhantelstange", selection: $settings.gym.barKg) {
           ForEach([20.0, 15, 10, 7.5], id: \.self) { weight in Text("\(GermanFormat.number(weight)) kg").tag(weight) }
         }
@@ -291,41 +284,7 @@ struct EquipmentSettingsView: View {
       } footer: {
         Text(
           "Für den Scheibenrechner und die Aufwärmsätze. Eine andere Stange je Übung (z. B. SZ-Stange) stellst du "
-            + "während der Einheit im Menü der Übung ein.")
-      }
-      Section {
-        Toggle("Bildschirm anlassen", isOn: $settings.gym.keepsScreenOn)
-        Toggle("Pause auf dem Sperrbildschirm", isOn: $settings.gym.liveActivity)
-      } footer: {
-        Text(
-          "Während einer Einheit sperrt sich das iPhone nicht – kein Entsperren mit verschwitzten Händen. Auf dem "
-            + "Sperrbildschirm und in der Dynamic Island stehen Pause und nächster Satz, mit „Satz erledigt“ zum "
-            + "Antippen (Live-Aktivität; in den iOS-Einstellungen unter IronLudi abschaltbar).")
-      }
-      Section {
-        Toggle("Fokus während der Einheit", isOn: $settings.gym.focusShortcuts)
-        if settings.gym.focusShortcuts {
-          Button("Fokus jetzt testen", systemImage: "moon.fill") {
-            if let url = WorkoutFocus.url(turningOn: true) { UIApplication.shared.open(url) }
-          }
-        }
-      } header: {
-        Text("Keine Störungen beim Training")
-      } footer: {
-        Text(
-          "iOS lässt Apps den Fokus nicht selbst schalten – das übernehmen zwei Kurzbefehle. Einmal einrichten: "
-            + "Kurzbefehle-App › + › Aktion „Fokus festlegen“ › Fokus (z. B. „Fitness“ oder „Nicht stören“) "
-            + "einschalten, Name „\(WorkoutFocus.onShortcut)“. Einen zweiten mit „ausschalten“ und dem Namen "
-            + "„\(WorkoutFocus.offShortcut)“. Nach dem ersten erledigten Satz (also in der Pause) und beim Beenden "
-            + "wechselt IronLudi kurz in die Kurzbefehle-App und kommt sofort zurück. Welche Mitteilungen im Fokus "
-            + "durchkommen, legst du in Einstellungen › Fokus fest.")
-      }
-      Section {
-        Toggle("Nach Garmin Connect übertragen", isOn: $settings.gym.uploadsToGarmin)
-      } footer: {
-        Text(
-          "Beendete Einheiten erscheinen in Garmin Connect als Krafttraining mit Übung, Wiederholungen und Gewicht "
-            + "je Satz. Nur mit Garmin-Konto. Zeichnest du dieselbe Einheit auch mit der Uhr auf, gibt es sie doppelt.")
+            + "unter Einstellungen › Gym › Je Übung oder während der Einheit im Menü der Übung ein.")
       }
     }
     .navigationTitle("Ausstattung")
