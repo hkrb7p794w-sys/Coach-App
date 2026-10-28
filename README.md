@@ -57,7 +57,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 39 | Ernährung Mengen und Entwurf: Portionen, kompakter Entwurf, Rezepte über den Entwurf, Erfassen in einem Schritt, fehlende Nährwerte, unbekannte Barcodes | fertig (PR 47) |
 | 40 | Ernährung Planung: „Was jetzt?“, eigene Rezepte/Meal-Prep, Warteschlange ohne Netz, Woche, Einkaufsliste nach Abteilung, Erinnerung abends | fertig (PR 47) |
 | 41 | Training Soll/Ist: Zuordnung je Einheit (Sportart, Dauer), verpasste Einheiten (nachholen, streichen, krank), Wochen-To-do mit Summen und Wischen, Training nachtragen | fertig (PR 49) |
-| 42 | Training Verlauf: ein Feed für Garmin, Apple Health, Nachgetragenes und Gym (Doppelte zusammengeführt), Nach-dem-Training-Karte mit Anstrengung und Vorschlag für morgen, „Warum?“ auch im persönlichen Profil, Detail-Kopf mit Zonen, fehlende Daten | in Arbeit |
+| 42 | Training Verlauf: ein Feed für Garmin, Apple Health, Nachgetragenes und Gym (Doppelte zusammengeführt), Nach-dem-Training-Karte mit Anstrengung und Vorschlag für morgen, „Warum?“ auch im persönlichen Profil, Detail-Kopf mit Zonen, fehlende Daten | fertig (PR 50) |
+| 43 | Gym-Einstellungen: Pausen je Übung und Standard, Aufwärm-Vorschlag, Abhaken nach Eingabe; Einstellungen nach Disziplin | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
