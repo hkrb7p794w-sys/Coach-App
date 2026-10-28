@@ -3,6 +3,23 @@
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
+
+## 2026-10-28 – Ernährung: Mengen und Entwurf
+
+Zweiter PR der UX-Prüfung der Ernährung:
+- **Portionen** statt nur Gramm (`Portion`, `PortionGuess`): aus der KI-Angabe („2 Scheiben“ → Scheibe à 30 g), aus
+  Open Food Facts (`serving_size`, z. B. „1 Riegel (45 g)“) oder selbst festgelegt. Schnelltasten ½, 1, 1½, 2; Menge
+  und Portion merkt sich die App je Lebensmittel.
+- **Entwurf** als kompakte Zeilen mit ± (Portion bzw. 10 g), Summe oben mit „danach … kcal übrig“, unsichere
+  Schätzungen gelb, „Menge für alle“ (× ½, × 1½, × 2). Rezepte werden nicht mehr ungefragt eingetragen, sondern
+  öffnen diesen Entwurf.
+- **Erfassen** in einem Bildschirm: Kamera oder Foto plus Beschreibung (Diktat über die Tastatur), darunter Barcode,
+  nur Kalorien, manuell.
+- **Fehlende Nährwerte** zählen nicht mehr still als 0: „–“ = unbekannt, die Summe nennt Positionen ohne Makros;
+  weichen kcal und Makros (4/4/9, Ballaststoffe 2 kcal/g) um mehr als 15 % ab, weist die App darauf hin.
+- **Barcode unbekannt**: selbst anlegen oder die Nährwerttabelle fotografieren; die Worker-Aufgabe `nutrition_label`
+  liest nur ab (Temperatur 0), gespeichert wird unter dem Barcode.
+
 ## 2026-10-28 – Ernährung: schnell eintragen
 
 Erster PR der UX-Prüfung der Ernährung (Ziel: wiederkehrendes Essen in unter 3 Sekunden):
