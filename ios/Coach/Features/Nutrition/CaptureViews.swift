@@ -117,8 +117,9 @@ struct MissingBarcodeSheet: View {
     NavigationStack {
       Form {
         Section {
-          Text("Barcode \(barcode) ist bei Open Food Facts nicht bekannt. Einmal anlegen – beim nächsten Scan kennt "
-            + "die App das Produkt.")
+          Text(
+            "Barcode \(barcode) ist bei Open Food Facts nicht bekannt. Einmal anlegen – beim nächsten Scan kennt "
+              + "die App das Produkt.")
         }
         Section {
           if CameraPicker.isAvailable {
