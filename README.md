@@ -56,6 +56,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 38 | Ernährung schnell eintragen: Vorschläge zur Tageszeit, „wie gestern“, Suche, Wochenstreifen, Rest-Ring, nur Kalorien, Wasser | fertig (PR 46) |
 | 39 | Ernährung Mengen und Entwurf: Portionen, kompakter Entwurf, Rezepte über den Entwurf, Erfassen in einem Schritt, fehlende Nährwerte, unbekannte Barcodes | fertig (PR 47) |
 | 40 | Ernährung Planung: „Was jetzt?“, eigene Rezepte/Meal-Prep, Warteschlange ohne Netz, Woche, Einkaufsliste nach Abteilung, Erinnerung abends | fertig (PR 47) |
+| 41 | Training Soll/Ist: Zuordnung je Einheit (Sportart, Dauer), verpasste Einheiten (nachholen, streichen, krank), Wochen-To-do mit Summen und Wischen, Training nachtragen | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

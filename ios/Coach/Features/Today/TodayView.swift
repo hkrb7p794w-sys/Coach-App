@@ -16,7 +16,7 @@ struct TodayView: View {
     let settings = model.settings
     return "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(gymSessions.count)-"
       + "\(settings.season.hashValue)-\(settings.competitionDecisions.values.map(\.rawValue).sorted())-"
-      + "\(settings.profile.hashValue)"
+      + "\(settings.profile.hashValue)-\(settings.planAdjustments.hashValue)-\(settings.illnessDay?.iso ?? "")"
   }
 
   var body: some View {

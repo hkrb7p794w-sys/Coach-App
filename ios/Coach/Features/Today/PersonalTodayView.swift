@@ -15,6 +15,9 @@ struct PersonalTodaySections: View {
     if let advice = snapshot.advice {
       PersonalAdviceSection(snapshot: snapshot, advice: advice)
     }
+    if let sessions = snapshot.sessions {
+      MissedSessionSection(week: sessions)
+    }
     if showsWeek {
       PersonalWeekSections(snapshot: snapshot, activities: activities, gymDays: gymDays)
     }
@@ -30,8 +33,8 @@ struct PersonalWeekSections: View {
 
   var body: some View {
     PersonalWeekStrip(
-      schedule: model.settings.schedule(inWeekOf: snapshot.plan.today),
-      activityDays: Set(activities.compactMap(\.day)).union(gymDays))
+      schedule: model.settings.schedule(inWeekOf: snapshot.plan.today), sessions: snapshot.sessions,
+      activityDays: Set(activities.filter { ($0.durationSeconds ?? 0) >= 600 }.compactMap(\.day)).union(gymDays))
     PersonalGoalSection(profile: model.settings.profile, snapshot: snapshot, activities: activities)
   }
 }
@@ -139,13 +142,15 @@ private struct PersonalAdviceSection: View {
   }
 }
 
-/// Die sieben Tage der Woche: geplant, erledigt, frei.
+/// Die sieben Tage der Woche: geplant, erledigt (Soll/Ist je Einheit), frei.
 private struct PersonalWeekStrip: View {
   let schedule: WeekSchedule
+  let sessions: SessionMatcher.Week?
+  /// Tage mit Training (ab 10 Minuten) – an freien Tagen als Extra markiert.
   let activityDays: Set<CalendarDay>
 
   private enum DayState {
-    case done, today, planned, missed, rest
+    case done, partial, today, planned, missed, rest, extra
   }
 
   var body: some View {
@@ -162,10 +167,14 @@ private struct PersonalWeekStrip: View {
   }
 
   private func state(planned: Bool, day: CalendarDay, today: CalendarDay) -> DayState {
-    if activityDays.contains(day) { return .done }
-    if !planned { return .rest }
-    if day == today { return .today }
-    return day < today ? .missed : .planned
+    let results = sessions?.results(on: day) ?? []
+    guard planned, !results.isEmpty else { return activityDays.contains(day) ? .extra : .rest }
+    if results.allSatisfy({ $0.status == .done }) { return .done }
+    if results.allSatisfy(\.status.counts) { return .partial }
+    if results.contains(where: { $0.status == .missed }) {
+      return results.contains(where: \.status.counts) ? .partial : .missed
+    }
+    return day == today ? .today : .planned
   }
 
   private func dayCell(weekday: Weekday, day: CalendarDay, today: CalendarDay) -> some View {
@@ -190,9 +199,11 @@ private struct PersonalWeekStrip: View {
   private func fill(_ state: DayState) -> Color {
     switch state {
     case .done: .green
+    case .partial: .orange
+    case .extra: Color.green.opacity(0.25)
     case .today: Color.accentColor.opacity(0.15)
     case .planned: Color.secondary.opacity(0.15)
-    case .missed: Color.secondary.opacity(0.08)
+    case .missed: Color.red.opacity(0.12)
     case .rest: .clear
     }
   }
@@ -202,6 +213,12 @@ private struct PersonalWeekStrip: View {
     switch state {
     case .done:
       Image(systemName: "checkmark").font(.footnote.weight(.bold)).foregroundStyle(.white)
+    case .partial:
+      Image(systemName: "circle.lefthalf.filled").font(.footnote.weight(.bold)).foregroundStyle(.white)
+    case .extra:
+      Image(systemName: "plus").font(.footnote.weight(.bold)).foregroundStyle(.green)
+    case .missed:
+      Image(systemName: "xmark").font(.footnote.weight(.bold)).foregroundStyle(.red)
     case .rest:
       Text("–").foregroundStyle(.secondary)
     default:
@@ -214,8 +231,10 @@ private struct PersonalWeekStrip: View {
   private func label(_ state: DayState, slots: [SessionSlot]) -> String {
     switch state {
     case .done: "erledigt"
+    case .partial: "teilweise oder anders gemacht"
+    case .extra: "frei, außerplanmäßig trainiert"
     case .rest: "frei"
-    case .missed: "nicht gemacht"
+    case .missed: "verpasst"
     case .today, .planned: slots.map(\.title).joined(separator: ", ")
     }
   }
