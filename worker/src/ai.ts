@@ -35,5 +35,40 @@ export async function generate(request: GenerateRequest, env: Env, deps: Deps): 
 /** JSON aus einer Modellantwort, auch wenn sie in ```json … ``` eingepackt ist. */
 export function parseJsonOutput(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  return JSON.parse((fenced?.[1] ?? text).trim());
+  const body = (fenced?.[1] ?? text).trim();
+  try {
+    return JSON.parse(body);
+  } catch (error) {
+    // Manche Modelle liefern mehrere Objekte hintereinander („{…}\n{…}“), z. B. je Mahlzeit eines.
+    const values = topLevelValues(body);
+    if (values.length > 1) return values.map((value) => JSON.parse(value));
+    throw error;
+  }
+}
+
+/** Zerlegt Text in die obersten JSON-Objekte bzw. -Listen (Klammern außerhalb von Zeichenketten zählen). */
+function topLevelValues(text: string): string[] {
+  const values: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === "{" || char === "[") {
+      if (depth === 0) start = i;
+      depth++;
+    } else if ((char === "}" || char === "]") && depth > 0) {
+      depth--;
+      if (depth === 0 && start >= 0) values.push(text.slice(start, i + 1));
+    }
+  }
+  return depth === 0 ? values : [];
 }

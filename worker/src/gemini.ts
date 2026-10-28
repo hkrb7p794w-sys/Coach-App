@@ -89,7 +89,8 @@ function requestBody(request: GenerateRequest): unknown {
   };
 }
 
-export function extractText(body: unknown, model: string): string {
+/** `json`: Eine abgeschnittene JSON-Antwort (Budget aufgebraucht, Denk-Tokens zählen mit) ist unbrauchbar. */
+export function extractText(body: unknown, model: string, json = false): string {
   const typed = body as {
     candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
     promptFeedback?: { blockReason?: string };
@@ -111,6 +112,9 @@ export function extractText(body: unknown, model: string): string {
       `Gemini (${model}) hat leeren Text geliefert (finishReason: ${candidate.finishReason})`,
       true,
     );
+  }
+  if (json && candidate.finishReason === "MAX_TOKENS") {
+    throw new ProviderError(`Gemini (${model}): Antwort abgeschnitten (zu lang)`, false);
   }
   return text;
 }
@@ -156,7 +160,7 @@ async function tryModel(
       throw new ProviderError(`Gemini HTTP ${response.status} (${model}): ${detail}`, false, response.status);
     }
     try {
-      return { text: extractText(await response.json(), model), model, provider: "gemini" };
+      return { text: extractText(await response.json(), model, request.json), model, provider: "gemini" };
     } catch (error) {
       if (error instanceof ProviderError && error.retryable) {
         lastError = error;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { handle } from "../src/index";
-import { GROUPS, labelPrompt, mealPrompt, nutritionReviewPrompt } from "../src/nutrition";
+import { GROUPS, labelPrompt, mealPrompt, mergeMeals, nutritionReviewPrompt } from "../src/nutrition";
 import { findTask } from "../src/tasks";
 import { env, fakeDeps, geminiText } from "./helpers";
 
@@ -83,5 +83,38 @@ describe("nutrition_label", () => {
     const prompt = labelPrompt();
     expect(prompt).toContain("Nichts schätzen");
     expect(prompt).toContain("portion_g");
+  });
+});
+
+describe("mergeMeals", () => {
+  it("führt mehrere Mahlzeiten zu einer Liste zusammen", () => {
+    const merged = mergeMeals([
+      {
+        titel: "Frühstück",
+        kategorie: "fruehstueck",
+        hinweis: "Ölmenge geschätzt.",
+        items: [{ name: "Ei" }],
+      },
+      {
+        titel: "Mittag",
+        kategorie: "mittagessen",
+        hinweis: "",
+        items: [{ name: "Reis" }, { name: "Lachs" }],
+      },
+    ]);
+    expect(merged).toEqual({
+      titel: "Frühstück + Mittag",
+      kategorie: null,
+      hinweis: "Ölmenge geschätzt.",
+      items: [{ name: "Ei" }, { name: "Reis" }, { name: "Lachs" }],
+    });
+    const single = { titel: "Toast", kategorie: null, hinweis: "", items: [] };
+    expect(mergeMeals(single)).toBe(single);
+    expect(mergeMeals([single])).toBe(single);
+  });
+
+  it("bittet bei mehreren Mahlzeiten um ein Objekt und hat Budget dafür", () => {
+    expect(mealPrompt({ text: "Frühstück Ei, Mittag Reis" }, false)).toContain("EIN JSON-Objekt");
+    expect(findTask("meal_analyze")?.maxOutputTokens).toBeGreaterThanOrEqual(12000);
   });
 });

@@ -89,5 +89,7 @@ describe("worker", () => {
     expect(parseJsonOutput('{"a":1}')).toEqual({ a: 1 });
     expect(parseJsonOutput('Hier:\n```json\n{"a":2}\n```')).toEqual({ a: 2 });
     expect(() => parseJsonOutput("kein json")).toThrow();
+    expect(parseJsonOutput('{"a":"}{"}\n{"b":[1,2]}')).toEqual([{ a: "}{" }, { b: [1, 2] }]);
+    expect(() => parseJsonOutput('{"a": [1, 2')).toThrow();
   });
 });
