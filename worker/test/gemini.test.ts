@@ -95,6 +95,21 @@ describe("gemini", () => {
     expect(result.text).toBe("zweiter Versuch");
   });
 
+  it("meldet abgeschnittenes JSON statt es weiterzugeben", async () => {
+    const cut = () =>
+      jsonResponse(200, {
+        candidates: [
+          { content: { parts: [{ text: '{"items": [{"name": "Ei"' }] }, finishReason: "MAX_TOKENS" },
+        ],
+      });
+    await expect(generateWithGemini({ ...request, json: true }, env, fakeDeps([cut]))).rejects.toMatchObject({
+      retryable: false,
+      message: expect.stringContaining("abgeschnitten"),
+    });
+    const text = await generateWithGemini({ ...request, json: false }, env, fakeDeps([cut]));
+    expect(text.text).toContain("Ei");
+  });
+
   it("verlangt einen Key", async () => {
     await expect(
       generateWithGemini(request, { ...env, GEMINI_API_KEY: undefined }, fakeDeps([])),

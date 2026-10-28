@@ -15,7 +15,7 @@ import {
   POINTS_WITH_SOURCES,
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
-import { labelPrompt, mealPrompt, nutritionReviewPrompt } from "./nutrition";
+import { labelPrompt, mealPrompt, mergeMeals, nutritionReviewPrompt } from "./nutrition";
 import { personalNotePrompt } from "./personal";
 import { athleteProfile } from "./profile";
 import { checkMealNow, checkRecipes, mealNowPrompt, weeklyRecipesPrompt } from "./recipes";
@@ -141,7 +141,10 @@ export const TASKS: Record<string, TaskDefinition> = {
     json: true,
     allowImages: true,
     temperature: 0.2,
+    // Je Position rund 20 Nährwerte; mehrere Mahlzeiten in einer Eingabe sprengen sonst das Standardbudget.
+    maxOutputTokens: 12000,
     build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
+    ground: mergeMeals,
   },
   /** Nährwerttabelle vom Foto ablesen (Barcode unbekannt); nur Bild, keine Gesundheitsdaten. */
   nutrition_label: {

@@ -5,6 +5,16 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-10-28 – Mahlzeiten: mehrere in einer Eingabe
+
+- Fehler „KI-Antwort ist kein gültiges JSON“ bei mehreren Mahlzeiten auf einmal: `meal_analyze` lief mit dem
+  Standardbudget von 4.096 Ausgabe-Tokens; bei Gemini zählen die Denk-Tokens mit, und je Position kommen rund
+  20 Nährwerte dazu. Die Antwort wurde mitten im JSON abgeschnitten (`finishReason: MAX_TOKENS`).
+- Budget für `meal_analyze` auf 12.000 Tokens. Abgeschnittene JSON-Antworten meldet Gemini jetzt als Fehler
+  („Antwort abgeschnitten“), dann versucht es Groq.
+- Prompt: mehrere Mahlzeiten als ein Objekt mit gemeinsamer Liste. Liefert ein Modell trotzdem mehrere Objekte
+  (als Liste oder hintereinander), führt der Worker sie zusammen (`mergeMeals`, `parseJsonOutput`).
+
 ## 2026-10-28 – Gym: Stoppuhr für Halteübungen, Pause verkleinern
 
 Auf Wunsch des Nutzers:
