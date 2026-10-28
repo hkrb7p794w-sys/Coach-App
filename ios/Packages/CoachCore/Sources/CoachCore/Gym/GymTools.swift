@@ -92,3 +92,22 @@ public enum RestText {
     return rest == 0 ? "\(seconds / 60) min" : String(format: "%d:%02d min", seconds / 60, rest)
   }
 }
+
+/// Halteübungen (Plank, Wandsitzen): Stoppuhr statt Eintippen. Die gemessene Zeit wird übernommen und lässt sich
+/// danach korrigieren (zu spät gestoppt, Handy erst nach dem Hinlegen gestartet).
+public enum HoldTimer {
+  /// Auf ganze Sekunden gerundet, mindestens 1.
+  public static func seconds(from start: Date, to end: Date) -> Int {
+    max(1, Int(end.timeIntervalSince(start).rounded()))
+  }
+
+  /// Korrektur in ±1/±5 s, nie unter 1 s.
+  public static func corrected(_ seconds: Int, by delta: Int) -> Int {
+    max(1, seconds + delta)
+  }
+
+  /// „noch 12 s“ bis zum Ziel bzw. „+8 s über Ziel“.
+  public static func targetText(elapsed: Int, target: Int) -> String {
+    elapsed < target ? "noch \(target - elapsed) s bis \(target) s" : "+\(elapsed - target) s über Ziel"
+  }
+}

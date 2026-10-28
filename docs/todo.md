@@ -36,6 +36,8 @@ hier notieren und als PR beheben.
       abschaltbar, Abhaken nach Eingabe; Einstellungen › Disziplinen (Gym, Laufen, Rad, Schwimmen, Ernährung, Schlaf).
 - [ ] **Training Verlauf:** Aktivitäten zeigt Gym-App + Garmin-Kraft einmal; Karte „Nach dem Training“ (1–10,
       „Übernehmen“ ändert morgen auf locker, „Rückgängig“); „Warum?“ im persönlichen Profil; Zonenbalken im Detail.
+- [ ] **Gym Stoppuhr:** Plank: Start, Zeit läuft gegen das Ziel, Stopp übernimmt und startet die Pause, ±1/±5 s
+      korrigieren; Pausenkarte einklappen und wieder groß machen.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

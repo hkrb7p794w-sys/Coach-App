@@ -5,6 +5,16 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-10-28 – Gym: Stoppuhr für Halteübungen, Pause verkleinern
+
+Auf Wunsch des Nutzers:
+- **Halteübungen** (Übungen auf Zeit, z. B. Plank): Statt „Satz erledigt“ startet ein Knopf die Stoppuhr; sie läuft
+  sichtbar gegen das Ziel (Vibration beim Erreichen). „Stopp“ übernimmt die Zeit auf ganze Sekunden, hakt den Satz
+  ab und startet die Pause. Stoppfehler lassen sich danach mit −5/−1/+1/+5 s korrigieren (`HoldTimer`); der
+  Haken daneben trägt das Ziel ohne Stoppuhr ein. Ein laufender Pausen-Timer endet mit dem Start.
+- **Pause verkleinern:** Die Pausenkarte lässt sich auf eine Zeile (Restzeit, „Weiter“) einklappen; die Wahl gilt
+  für die nächsten Pausen (Ansichtszustand auf dem Gerät, keine Trainingseinstellung).
+
 ## 2026-10-28 – Gym-Pausen, Aufwärmen, Abhaken; Einstellungen nach Disziplin
 
 Auf Wunsch des Nutzers:

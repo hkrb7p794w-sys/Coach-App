@@ -72,3 +72,15 @@ struct GymRestSettingsTests {
     #expect(RestText.format(180) == "3 min")
   }
 }
+
+struct HoldTimerTests {
+  @Test func measuresAndCorrects() {
+    let start = Date(timeIntervalSince1970: 1_000)
+    #expect(HoldTimer.seconds(from: start, to: start.addingTimeInterval(44.6)) == 45)
+    #expect(HoldTimer.seconds(from: start, to: start.addingTimeInterval(0.2)) == 1)
+    #expect(HoldTimer.corrected(45, by: -5) == 40)
+    #expect(HoldTimer.corrected(3, by: -5) == 1)
+    #expect(HoldTimer.targetText(elapsed: 33, target: 45) == "noch 12 s bis 45 s")
+    #expect(HoldTimer.targetText(elapsed: 53, target: 45) == "+8 s über Ziel")
+  }
+}
