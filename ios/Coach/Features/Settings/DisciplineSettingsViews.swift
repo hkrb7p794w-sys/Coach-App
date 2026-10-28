@@ -13,15 +13,29 @@ struct DisciplineSettingsSection: View {
     }
     Section {
       if profile.mode == .season || profile.sports.contains(.strength) {
-        NavigationLink { GymSettingsView() } label: { Label("Gym", systemImage: "dumbbell.fill") }
+        NavigationLink {
+          GymSettingsView()
+        } label: {
+          Label("Gym", systemImage: "dumbbell.fill")
+        }
       }
       ForEach(endurance, id: \.self) { sport in
-        NavigationLink { EnduranceSettingsView(sport: sport) } label: {
+        NavigationLink {
+          EnduranceSettingsView(sport: sport)
+        } label: {
           Label(sport.shortLabel, systemImage: sport.symbol)
         }
       }
-      NavigationLink { NutritionSettingsView() } label: { Label("Ernährung", systemImage: "fork.knife") }
-      NavigationLink { SleepCoachView() } label: { Label("Schlaf", systemImage: "moon.stars.fill") }
+      NavigationLink {
+        NutritionSettingsView()
+      } label: {
+        Label("Ernährung", systemImage: "fork.knife")
+      }
+      NavigationLink {
+        SleepCoachView()
+      } label: {
+        Label("Schlaf", systemImage: "moon.stars.fill")
+      }
     } header: {
       Text("Disziplinen")
     }
@@ -159,10 +173,13 @@ struct ExerciseSettingsList: View {
         Text(exercise.name)
         let rest = gym.rest(for: exercise.id, compound: exercise.compound)
         let custom = gym.restOverrides[exercise.id] != nil
-        Text("Pause \(RestText.format(rest))\(custom ? "" : " (Standard)")" + (gym.notes[exercise.id].map { " · \($0)" } ?? ""))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
+        Text(
+          "Pause \(RestText.format(rest))\(custom ? "" : " (Standard)")"
+            + (gym.notes[exercise.id].map { " · \($0)" } ?? "")
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
       }
     }
   }
@@ -255,7 +272,8 @@ struct EnduranceSettingsView: View {
         } header: {
           Text("Testwerte")
         } footer: {
-          Text("Nach jedem Test aktualisieren – Watt- und Pace-Angaben im Plan und in der KI-Notiz rechnen sich daraus.")
+          Text(
+            "Nach jedem Test aktualisieren – Watt- und Pace-Angaben im Plan und in der KI-Notiz rechnen sich daraus.")
         }
       }
       if sport == .run || sport == .bike {
