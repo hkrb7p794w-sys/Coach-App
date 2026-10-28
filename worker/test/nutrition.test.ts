@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { handle } from "../src/index";
-import { GROUPS, mealPrompt, nutritionReviewPrompt } from "../src/nutrition";
+import { GROUPS, labelPrompt, mealPrompt, nutritionReviewPrompt } from "../src/nutrition";
 import { findTask } from "../src/tasks";
 import { env, fakeDeps, geminiText } from "./helpers";
 
@@ -73,5 +73,15 @@ describe("nutrition_review", () => {
     const prompt = nutritionReviewPrompt({});
     expect(prompt).toContain("noch nichts aufgezeichnet");
     expect(prompt).toContain("- keine Daten");
+  });
+});
+
+describe("nutrition_label", () => {
+  it("liest nur ab und nimmt Bilder an", () => {
+    expect(findTask("nutrition_label")?.allowImages).toBe(true);
+    expect(findTask("nutrition_label")?.temperature).toBe(0);
+    const prompt = labelPrompt();
+    expect(prompt).toContain("Nichts schätzen");
+    expect(prompt).toContain("portion_g");
   });
 });

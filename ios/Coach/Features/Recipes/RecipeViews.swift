@@ -156,6 +156,8 @@ private struct RecipeDaySection: View {
 struct RecipeDetailView: View {
   let recipe: Recipe
   let log: (Recipe) -> Void
+  @Query(sort: \FoodRecord.useCount, order: .reverse) private var foods: [FoodRecord]
+  @State private var nutrition = NutritionViewModel()
   @State private var logged = false
 
   var body: some View {
@@ -190,16 +192,25 @@ struct RecipeDetailView: View {
         }
       }
       Section {
-        Button(logged ? "Eingetragen" : "Heute als Mahlzeit eintragen", systemImage: logged ? "checkmark" : "plus") {
-          log(recipe)
-          logged = true
+        // Erst prüfen: Portion, Zutaten tauschen, Zeitpunkt – nichts landet ungefragt im Tagebuch.
+        Button(logged ? "Eingetragen" : "Als Mahlzeit eintragen …", systemImage: logged ? "checkmark" : "plus") {
+          nutrition.draft = NutritionViewModel.Draft(
+            title: recipe.title, category: NutritionViewModel.category(at: .now),
+            hint: "Aus Rezeptidee (Nährwerte KI-geschätzt)", items: recipe.ingredients)
         }
-        .disabled(logged)
       } footer: {
-        Text("Trägt die Zutaten mit ihren Nährwerten in dein Ernährungstagebuch von heute ein.")
+        Text("Öffnet den Entwurf: Menge (½, 2 Portionen), Zutaten und Zeitpunkt anpassen, dann speichern.")
       }
     }
     .navigationTitle(recipe.title)
+    .sheet(
+      item: $nutrition.draft,
+      onDismiss: {
+        if nutrition.lastSaved != nil { logged = true }
+      }
+    ) { draft in
+      MealEditor(draft: draft, viewModel: nutrition, foods: foods)
+    }
   }
 }
 

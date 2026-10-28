@@ -33,6 +33,10 @@ final class NutritionViewModel {
   private(set) var reviewSources: [String] = []
   var errorMessage: String?
   var draft: Draft?
+  /// Zeitpunkt des letzten Speicherns im Entwurf (z. B. Rezept „eingetragen“).
+  private(set) var lastSaved: Date?
+  /// Barcode ohne Treffer bei Open Food Facts – selbst anlegen oder Etikett fotografieren.
+  var missingBarcode: String?
 
   private let openFoodFacts: OpenFoodFactsClient
 
@@ -67,6 +71,34 @@ final class NutritionViewModel {
   func newManualDraft(now: Date = .now) {
     let item = MealItem(name: "", grams: 100, source: .manual, per100g: NutrientValues())
     draft = Draft(title: "", category: Self.category(at: now), hint: "", items: [item])
+  }
+
+  /// Unbekannter Barcode: leere Position mit Barcode – beim Speichern merkt sich die App das Produkt.
+  func draftForMissingBarcode(_ barcode: String, now: Date = .now) {
+    missingBarcode = nil
+    var item = MealItem(name: "", grams: 100, source: .manual, per100g: NutrientValues())
+    item.barcode = barcode
+    draft = Draft(title: "", category: Self.category(at: now), hint: "Werte vom Etikett je 100 g", items: [item])
+  }
+
+  /// Nährwerttabelle fotografiert: die KI liest Name, Werte je 100 g und Portion; gespeichert unter dem Barcode.
+  func readLabel(photo: Data, barcode: String?, ai: AIClient, now: Date = .now) async {
+    guard ai.isConfigured else {
+      errorMessage = AIClientError.notConfigured.localizedDescription
+      return
+    }
+    await work {
+      guard let jpeg = MealPhoto.jpeg(from: photo) else { throw AIClientError.http(200, "Foto nicht lesbar.") }
+      let response = try await ai.run(
+        task: "nutrition_label", input: [:], images: [AIClient.Image(mimeType: "image/jpeg", data: jpeg)])
+      guard var item = NutritionLabel.item(from: response.output) else {
+        throw AIClientError.http(200, "Auf dem Foto war keine Nährwerttabelle lesbar.")
+      }
+      item.barcode = barcode
+      draft = Draft(
+        title: item.name, category: Self.category(at: now), hint: "Vom Etikett gelesen – bitte kurz prüfen.",
+        items: [item])
+    }
   }
 
   /// Entwurf mit einem bekannten Lebensmittel (Suche), Menge wie zuletzt.
@@ -155,9 +187,14 @@ final class NutritionViewModel {
       if let cached = foods.first(where: { $0.key == key })?.item {
         item = cached
       } else {
-        let product = try await openFoodFacts.product(barcode: barcode)
-        item = product.item()
-        context.insert(FoodRecord(item: item))
+        do {
+          let product = try await openFoodFacts.product(barcode: barcode)
+          item = product.item()
+          context.insert(FoodRecord(item: item))
+        } catch OpenFoodFactsClient.LookupError.notFound {
+          missingBarcode = barcode
+          return
+        }
       }
       var fresh = item
       fresh.id = UUID()
@@ -197,6 +234,7 @@ final class NutritionViewModel {
     remember(items, context: context, foods: foods)
     try? context.save()
     self.draft = nil
+    lastSaved = .now
   }
 
   /// Lebensmittel für Vorschläge, Suche und KI-Hinweise merken.
@@ -208,6 +246,12 @@ final class NutritionViewModel {
       if known[key] == nil {
         context.insert(record)
         known[key] = record
+      } else if var stored = record.item {
+        // Menge und Portion merken („du nimmst meist 40 g“); eigene Nährwerte bleiben.
+        stored.grams = item.grams
+        stored.portion = item.portion ?? stored.portion
+        if stored.source == .ai, item.source != .ai { stored.per100g = item.per100g }
+        record.payload = (try? JSONEncoder().encode(stored)) ?? record.payload
       }
       record.useCount += 1
       record.lastUsed = .now

@@ -5,33 +5,76 @@ import UIKit
 import Vision
 import VisionKit
 
-/// Mahlzeit beschreiben, optional mit Foto.
-struct MealTextEntry: View {
+/// Ein Bildschirm für alles: Foto (Kamera oder Mediathek) und Beschreibung zusammen – „Foto + ohne Soße“ ist ein
+/// Vorgang. Diktieren geht über das Mikrofon der Tastatur. Darunter die anderen Wege.
+struct CaptureSheet: View {
+  enum Other { case barcode, quick, manual }
+
   let analyze: (String, Data?) async -> Void
+  let other: (Other) -> Void
   @State private var text = ""
   @State private var photoItem: PhotosPickerItem?
   @State private var photo: Data?
+  @State private var showsCamera = false
+  @FocusState private var focused: Bool
   @Environment(\.dismiss) private var dismiss
 
   var body: some View {
     NavigationStack {
       Form {
         Section {
-          TextField("z. B. 2 Rühreier, 1 Scheibe Vollkornbrot, Kaffee mit Milch", text: $text, axis: .vertical)
-            .lineLimit(3...8)
-        } footer: {
-          Text("Mengen nennen, wenn bekannt („200 g“, „1 Tasse“). Sonst schätzt die KI typische Portionen.")
-        }
-        Section {
-          PhotosPicker(selection: $photoItem, matching: .images) {
-            Label(photo == nil ? "Foto hinzufügen (optional)" : "Foto ausgewählt", systemImage: "photo")
+          HStack(spacing: 12) {
+            if CameraPicker.isAvailable {
+              Button {
+                showsCamera = true
+              } label: {
+                Label("Kamera", systemImage: "camera.fill").frame(maxWidth: .infinity, minHeight: 52)
+              }
+              .buttonStyle(.borderedProminent)
+            }
+            PhotosPicker(selection: $photoItem, matching: .images) {
+              Label("Foto", systemImage: "photo").frame(maxWidth: .infinity, minHeight: 52)
+            }
+            .buttonStyle(.bordered)
+          }
+          .listRowBackground(Color.clear)
+          if let photo, let image = UIImage(data: photo) {
+            HStack {
+              Image(uiImage: image).resizable().scaledToFill().frame(width: 64, height: 64).clipShape(
+                RoundedRectangle(cornerRadius: 10))
+              Text("Foto ausgewählt").foregroundStyle(.secondary)
+              Spacer()
+              Button("Entfernen", role: .destructive) {
+                self.photo = nil
+                photoItem = nil
+              }
+              .buttonStyle(.borderless)
+            }
           }
         }
+        Section {
+          TextField(
+            "z. B. 200 g Hähnchen, 1 EL Öl, 150 g Reis – oder „halbe Portion, ohne Soße“", text: $text,
+            axis: .vertical
+          )
+          .lineLimit(2...8)
+          .focused($focused)
+        } footer: {
+          Text("Mengen nennen, wenn bekannt. Mit dem Mikrofon der Tastatur diktieren – praktisch beim Kochen.")
+        }
+        Section {
+          Button("Barcode scannen", systemImage: "barcode.viewfinder") { choose(.barcode) }
+          Button("Nur Kalorien (Schätzung)", systemImage: "bolt") { choose(.quick) }
+          Button("Manuell eingeben", systemImage: "square.and.pencil") { choose(.manual) }
+        }
       }
-      .navigationTitle("Beschreiben")
+      .navigationTitle("Erfassen")
       .navigationBarTitleDisplayMode(.inline)
       .onChange(of: photoItem) { _, item in
         Task { photo = try? await item?.loadTransferable(type: Data.self) }
+      }
+      .fullScreenCover(isPresented: $showsCamera) {
+        CameraPicker { data in photo = data }.ignoresSafeArea()
       }
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
@@ -44,10 +87,77 @@ struct MealTextEntry: View {
             dismiss()
             Task { await analyze(text, photo) }
           }
+          .bold()
           .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty && photo == nil)
         }
       }
     }
+  }
+
+  /// Erst schließen, dann den nächsten Bildschirm öffnen (zwei Sheets gleichzeitig zeigt iOS nicht).
+  private func choose(_ choice: Other) {
+    dismiss()
+    Task {
+      try? await Task.sleep(for: .milliseconds(450))
+      other(choice)
+    }
+  }
+}
+
+/// Barcode ohne Treffer: selbst anlegen (Etikett abtippen) oder die Nährwerttabelle fotografieren.
+struct MissingBarcodeSheet: View {
+  let barcode: String
+  let create: () -> Void
+  let photograph: (Data) -> Void
+  @State private var showsCamera = false
+  @State private var photoItem: PhotosPickerItem?
+  @Environment(\.dismiss) private var dismiss
+
+  var body: some View {
+    NavigationStack {
+      Form {
+        Section {
+          Text("Barcode \(barcode) ist bei Open Food Facts nicht bekannt. Einmal anlegen – beim nächsten Scan kennt "
+            + "die App das Produkt.")
+        }
+        Section {
+          if CameraPicker.isAvailable {
+            Button("Nährwerttabelle fotografieren", systemImage: "camera") { showsCamera = true }
+          }
+          PhotosPicker(selection: $photoItem, matching: .images) {
+            Label("Foto der Tabelle wählen", systemImage: "photo")
+          }
+          Button("Werte selbst eintragen", systemImage: "square.and.pencil") {
+            dismiss()
+            Task {
+              try? await Task.sleep(for: .milliseconds(450))
+              create()
+            }
+          }
+        } footer: {
+          Text("Die KI liest die Werte je 100 g nur ab; du prüfst sie vor dem Speichern.")
+        }
+      }
+      .navigationTitle("Produkt unbekannt")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
+      }
+      .fullScreenCover(isPresented: $showsCamera) {
+        CameraPicker { data in finish(data) }.ignoresSafeArea()
+      }
+      .onChange(of: photoItem) { _, item in
+        Task {
+          if let data = try? await item?.loadTransferable(type: Data.self) { finish(data) }
+        }
+      }
+    }
+    .presentationDetents([.medium])
+  }
+
+  private func finish(_ data: Data) {
+    dismiss()
+    photograph(data)
   }
 }
 

@@ -15,7 +15,7 @@ import {
   POINTS_WITH_SOURCES,
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
-import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
+import { labelPrompt, mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
 import { checkRecipes, weeklyRecipesPrompt } from "./recipes";
 import { list, text } from "./tasks-util";
@@ -133,6 +133,13 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: true,
     temperature: 0.2,
     build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
+  },
+  /** Nährwerttabelle vom Foto ablesen (Barcode unbekannt); nur Bild, keine Gesundheitsdaten. */
+  nutrition_label: {
+    json: true,
+    allowImages: true,
+    temperature: 0,
+    build: () => ({ prompt: labelPrompt() }),
   },
   /** Ernährung und Training des Tages gemeinsam auswerten. */
   nutrition_review: {

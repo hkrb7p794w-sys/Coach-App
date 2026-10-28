@@ -14,11 +14,10 @@ struct NutritionView: View {
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @State private var viewModel = NutritionViewModel()
   @State private var sheet: Sheet?
-  @State private var photoItem: PhotosPickerItem?
   @State private var query = ""
 
   enum Sheet: String, Identifiable {
-    case text, camera, barcode, quick
+    case capture, barcode, quick
     var id: String { rawValue }
   }
 
@@ -87,27 +86,18 @@ struct NutritionView: View {
         }
       }
       .task(id: refreshKey) { refresh() }
-      .onChange(of: photoItem) { _, item in
-        guard let item else { return }
-        photoItem = nil
-        Task {
-          let data = try? await item.loadTransferable(type: Data.self)
-          await viewModel.analyze(text: "", photo: data, ai: model.ai, settings: model.settings, foods: foods)
-        }
-      }
       .sheet(item: $sheet) { sheet in
         switch sheet {
-        case .text:
-          MealTextEntry { text, photo in
+        case .capture:
+          CaptureSheet { text, photo in
             await viewModel.analyze(text: text, photo: photo, ai: model.ai, settings: model.settings, foods: foods)
-          }
-        case .camera:
-          CameraPicker { data in
-            Task {
-              await viewModel.analyze(text: "", photo: data, ai: model.ai, settings: model.settings, foods: foods)
+          } other: { choice in
+            switch choice {
+            case .barcode: self.sheet = .barcode
+            case .quick: self.sheet = .quick
+            case .manual: viewModel.newManualDraft()
             }
           }
-          .ignoresSafeArea()
         case .barcode:
           BarcodeEntry { code in
             Task { await viewModel.lookup(barcode: code, foods: foods, context: context) }
@@ -120,6 +110,19 @@ struct NutritionView: View {
       }
       .sheet(item: $viewModel.draft) { draft in
         MealEditor(draft: draft, viewModel: viewModel, foods: foods)
+      }
+      .sheet(
+        isPresented: Binding(
+          get: { viewModel.missingBarcode != nil }, set: { if !$0 { viewModel.missingBarcode = nil } })
+      ) {
+        if let barcode = viewModel.missingBarcode {
+          MissingBarcodeSheet(barcode: barcode) {
+            viewModel.draftForMissingBarcode(barcode)
+          } photograph: { data in
+            viewModel.missingBarcode = nil
+            Task { await viewModel.readLabel(photo: data, barcode: barcode, ai: model.ai) }
+          }
+        }
       }
       .alert(
         "Hinweis",
@@ -144,20 +147,7 @@ struct NutritionView: View {
 
   private var addMenu: some ToolbarContent {
     ToolbarItem(placement: .primaryAction) {
-      Menu {
-        if CameraPicker.isAvailable {
-          Button("Foto aufnehmen", systemImage: "camera") { sheet = .camera }
-        }
-        PhotosPicker(selection: $photoItem, matching: .images) {
-          Label("Foto auswählen", systemImage: "photo")
-        }
-        Button("Beschreiben", systemImage: "text.bubble") { sheet = .text }
-        Button("Barcode", systemImage: "barcode.viewfinder") { sheet = .barcode }
-        Button("Nur Kalorien (Schätzung)", systemImage: "bolt") { sheet = .quick }
-        Button("Manuell", systemImage: "square.and.pencil") { viewModel.newManualDraft() }
-      } label: {
-        Label("Erfassen", systemImage: "plus")
-      }
+      Button("Erfassen", systemImage: "plus") { sheet = .capture }
     }
   }
 

@@ -131,3 +131,22 @@ export function nutritionReviewPrompt(input: Record<string, unknown>): string {
       "Schreibe durchgängig in korrektem Deutsch mit echten Umlauten (ä, ö, ü, ß).",
   ].join("\n");
 }
+
+/** Nährwerttabelle vom Foto lesen (Barcode bei Open Food Facts unbekannt). Nur ablesen, nichts schätzen. */
+export function labelPrompt(): string {
+  return `Du liest die Nährwerttabelle einer Lebensmittelverpackung vom Foto ab und antwortest NUR mit JSON.
+
+Regeln:
+- Werte je 100 g bzw. 100 ml genau so übernehmen, wie sie auf dem Etikett stehen. Nichts schätzen, nichts runden.
+- Steht nur „je Portion“ da, auf 100 g umrechnen, wenn die Portionsgröße in Gramm angegeben ist; sonst null.
+- Energie in kcal (nicht kJ). Salz in Natrium umrechnen: Natrium mg = Salz g × 400.
+- Unleserliches oder Fehlendes als null.
+- name: Produktname mit Marke, falls lesbar, sonst "".
+- portion_name und portion_g: Portionsangabe vom Etikett (z. B. "Riegel", 45), sonst null.
+- getraenk: true bei Getränken.
+
+Antwortformat (JSON): {"name": str, "portion_name": str|null, "portion_g": number|null, "getraenk": bool,
+"naehrwerte_100g": {"kcal": number|null, "protein_g": number|null, "carbs_g": number|null,
+"sugar_g": number|null, "fat_g": number|null, "satfat_g": number|null, "fiber_g": number|null,
+"sodium_mg": number|null}}`;
+}
