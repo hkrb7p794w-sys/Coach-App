@@ -237,6 +237,7 @@ private struct ReminderSettingsSection: View {
         DatePicker(
           "Uhrzeit am Sonntag", selection: $settings.reminders.planningTime, displayedComponents: .hourAndMinute)
       }
+      Toggle("Abends um 20 Uhr „Tag auswerten“", isOn: $settings.reminders.nutritionReview)
       if model.reminders.permission == .denied {
         Button("Mitteilungen in iOS erlauben") {
           if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }

@@ -15,6 +15,8 @@ struct NutritionView: View {
   @State private var viewModel = NutritionViewModel()
   @State private var sheet: Sheet?
   @State private var query = ""
+  @State private var showsNow = false
+  @State private var savingRecipe: MealRecord?
 
   enum Sheet: String, Identifiable {
     case capture, barcode, quick
@@ -47,21 +49,49 @@ struct NutritionView: View {
             BudgetSection(targets: targets, totals: viewModel.totals, water: waterCount) { milliliters in
               logWater(milliliters)
             }
+            if viewModel.day == viewModel.today {
+              Section {
+                Button("Was esse ich jetzt?", systemImage: "sparkles") { showsNow = true }
+                  .font(.headline)
+              } footer: {
+                Text("Drei Ideen passend zu dem, was heute noch übrig ist – gern mit deinem Vorrat.")
+              }
+            }
+          }
+          if !viewModel.pending.isEmpty {
+            pendingSection
           }
           QuickSection(
             entries: NutritionViewModel.entries(meals), day: viewModel.day,
-            category: NutritionViewModel.category(at: .now)
+            category: NutritionViewModel.category(at: .now), ownRecipes: model.settings.ownRecipes
           ) { title, category, items, label in
             viewModel.log(
               title: title, category: category, items: items, context: context, foods: foods, label: label)
+          } logRecipe: { recipe in
+            logOwnRecipe(recipe, grams: nil)
           }
           mealsSection
           if let targets = viewModel.targets {
             TargetsSection(targets: targets, totals: viewModel.totals)
           }
         }
-        reviewSection
+        // Auswertung tagsüber nur in der Woche; abends (ab 18 Uhr) auch hier.
+        if Calendar.current.component(.hour, from: .now) >= 18 || !viewModel.reviewPoints.isEmpty {
+          reviewSection
+        }
         Section {
+          NavigationLink {
+            NutritionWeekView(summary: weekSummary, weights: model.allWeights, goal: model.settings.nutrition.goal) {
+              reviewSection
+            }
+          } label: {
+            Label("Woche und Auswertung", systemImage: "calendar")
+          }
+          NavigationLink {
+            OwnRecipesView { recipe, grams in logOwnRecipe(recipe, grams: grams) }
+          } label: {
+            Label("Eigene Rezepte und Meal-Prep", systemImage: "fork.knife")
+          }
           NavigationLink {
             WeightTrendView()
           } label: {
@@ -76,8 +106,7 @@ struct NutritionView: View {
       }
       .navigationTitle(viewModel.day == viewModel.today ? "Ernährung" : Formatters.day(viewModel.day))
       .searchable(text: $query, prompt: "Lebensmittel oder Mahlzeit suchen")
-      .toolbar { addMenu }
-      .safeAreaInset(edge: .bottom) { undoBar }
+      .safeAreaInset(edge: .bottom) { bottomBar }
       .overlay {
         if viewModel.isWorking {
           ProgressView("Wird ausgewertet …")
@@ -85,7 +114,34 @@ struct NutritionView: View {
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
       }
-      .task(id: refreshKey) { refresh() }
+      .task(id: refreshKey) {
+        refresh()
+        await viewModel.retryPending(ai: model.ai, settings: model.settings, foods: foods)
+      }
+      .sheet(isPresented: $showsNow) {
+        MealNowSheet(viewModel: viewModel, pantry: model.settings.pantry) { recipe in
+          showsNow = false
+          Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            viewModel.draft(from: recipe)
+          }
+        } generate: {
+          await viewModel.suggestNow(ai: model.ai, settings: model.settings, foods: foods)
+        }
+      }
+      .alert(
+        "Als eigenes Rezept speichern",
+        isPresented: Binding(get: { savingRecipe != nil }, set: { if !$0 { savingRecipe = nil } })
+      ) {
+        Button("Speichern") {
+          if let meal = savingRecipe {
+            model.settings.ownRecipes.append(OwnRecipe.from(meal: meal.title, items: meal.items))
+          }
+        }
+        Button("Abbrechen", role: .cancel) {}
+      } message: {
+        Text("Unter „Eigene Rezepte“ kannst du Portionen und gekochtes Gewicht für Meal-Prep festlegen.")
+      }
       .sheet(item: $sheet) { sheet in
         switch sheet {
         case .capture:
@@ -145,10 +201,79 @@ struct NutritionView: View {
     )
   }
 
-  private var addMenu: some ToolbarContent {
-    ToolbarItem(placement: .primaryAction) {
-      Button("Erfassen", systemImage: "plus") { sheet = .capture }
+  // MARK: - Unten: Rückgängig und großes „+“ in Daumenreichweite
+
+  private var bottomBar: some View {
+    HStack(alignment: .bottom, spacing: 12) {
+      undoBar
+      Spacer(minLength: 0)
+      Button {
+        sheet = .capture
+      } label: {
+        Image(systemName: "plus")
+          .font(.title.bold())
+          .foregroundStyle(.white)
+          .frame(width: 64, height: 64)
+          .background(Color.accentColor, in: Circle())
+          .shadow(radius: 4, y: 2)
+      }
+      .accessibilityLabel("Erfassen")
     }
+    .padding(.horizontal)
+    .padding(.bottom, 4)
+  }
+
+  private var pendingSection: some View {
+    Section {
+      ForEach(viewModel.pending) { item in
+        HStack {
+          Image(systemName: item.hasPhoto ? "photo" : "text.bubble")
+          Text(item.text.isEmpty ? "Foto" : item.text).lineLimit(1)
+          Spacer()
+          Text(item.created, style: .time).font(.caption).foregroundStyle(.secondary)
+        }
+        .swipeActions {
+          Button("Löschen", role: .destructive) { viewModel.removePending(item) }
+        }
+      }
+      Button("Jetzt auswerten", systemImage: "arrow.clockwise") {
+        Task { await viewModel.retryPending(ai: model.ai, settings: model.settings, foods: foods) }
+      }
+    } header: {
+      Text("Wartet auf Netz")
+    } footer: {
+      Text("Ohne Netz gespeichert. Wird automatisch ausgewertet, sobald die App wieder online ist.")
+    }
+  }
+
+  // MARK: - Eigene Rezepte und Woche
+
+  /// Portion (oder Gramm) vom Topf eintragen und den Vorrat verringern.
+  private func logOwnRecipe(_ recipe: OwnRecipe, grams: Double?) {
+    let item = recipe.item(grams: grams)
+    viewModel.log(
+      title: recipe.name, category: NutritionViewModel.category(at: .now), items: [item], context: context,
+      foods: foods)
+    if let index = model.settings.ownRecipes.firstIndex(where: { $0.id == recipe.id }) {
+      model.settings.ownRecipes[index].consume(grams: item.grams)
+    }
+  }
+
+  private var weekSummary: NutritionWeek.Summary {
+    let monday = viewModel.day.adding(days: -viewModel.day.weekdayIndex)
+    let all = activities.compactMap(\.activity)
+    var targets: [CalendarDay: NutrientValues] = [:]
+    for offset in 0..<7 {
+      let day = monday.adding(days: offset)
+      targets[day] =
+        NutritionViewModel.targets(
+          for: day, activities: all, settings: model.settings, profile: model.sync.profile,
+          hasGarminData: !days.isEmpty
+        ).values
+    }
+    return NutritionWeek.summary(
+      entries: NutritionViewModel.entries(meals), monday: monday, targets: targets,
+      trainedDays: Set(all.compactMap(\.day)), today: viewModel.today)
   }
 
   /// Mahlzeiten nach Kategorie mit Summe je Kategorie; Wasser steht beim Wasser-Balken.
@@ -173,6 +298,18 @@ struct NutritionView: View {
             .buttonStyle(.plain)
             .swipeActions {
               Button("Löschen", role: .destructive) { viewModel.delete(meal, context: context) }
+            }
+            .contextMenu {
+              Button("Erneut eintragen", systemImage: "arrow.clockwise") {
+                viewModel.repeatMeal(meal, context: context, foods: foods)
+              }
+              Menu("Verschieben nach", systemImage: "arrow.up.arrow.down") {
+                ForEach(MealCategory.allCases.filter { $0 != meal.category }, id: \.self) { target in
+                  Button(target.label) { viewModel.move(meal, to: target, context: context) }
+                }
+              }
+              Button("Als eigenes Rezept speichern", systemImage: "fork.knife") { savingRecipe = meal }
+              Button("Löschen", systemImage: "trash", role: .destructive) { viewModel.delete(meal, context: context) }
             }
           }
         } header: {
@@ -458,13 +595,24 @@ private struct QuickSection: View {
   let entries: [MealEntry]
   let day: CalendarDay
   let category: MealCategory
+  var ownRecipes: [OwnRecipe] = []
   let log: (String, MealCategory, [MealItem], String?) -> Void
+  let logRecipe: (OwnRecipe) -> Void
 
   var body: some View {
     let suggestions = MealSuggestions.frequent(entries, category: category, today: day, limit: 4)
     let yesterday = MealSuggestions.yesterday(entries, category: category, today: day)
-    if !suggestions.isEmpty || !yesterday.isEmpty {
+    let stock = ownRecipes.filter { ($0.remainingPortions ?? 0) >= 0.5 }
+    if !suggestions.isEmpty || !yesterday.isEmpty || !stock.isEmpty {
       Section {
+        ForEach(stock) { recipe in
+          QuickRow(
+            title: "\(recipe.name) · noch \(PortionGuess.format(recipe.remainingPortions ?? 0)) Portionen",
+            detail: NutritionView.summary([recipe.item()])
+          ) {
+            logRecipe(recipe)
+          }
+        }
         if !yesterday.isEmpty {
           QuickRow(
             title: "Wie gestern: \(yesterday.map(\.title).joined(separator: ", "))",

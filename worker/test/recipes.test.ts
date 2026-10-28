@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { handle } from "../src/index";
-import { checkRecipes, weeklyRecipesPrompt } from "../src/recipes";
+import { checkMealNow, checkRecipes, mealNowPrompt, weeklyRecipesPrompt } from "../src/recipes";
+import { findTask } from "../src/tasks";
 import { env, fakeDeps, jsonResponse } from "./helpers";
 
 const input = {
@@ -85,5 +86,32 @@ describe("weekly_recipes", () => {
     expect(response.status).toBe(200);
     const body = deps.calls[0]?.body as { generationConfig: { maxOutputTokens: number } };
     expect(body.generationConfig.maxOutputTokens).toBe(16000);
+  });
+});
+
+describe("meal_now", () => {
+  it("nennt das Ziel der Mahlzeit, Vorrat und Allergene", () => {
+    const prompt = mealNowPrompt({
+      mahlzeit: "abendessen",
+      kcal: 650,
+      protein_g: 45,
+      carbs_g: 60,
+      fat_g: 20,
+      diet: "vegetarisch",
+      allergens: ["Nüsse"],
+      pantry: ["Linsen", "Spinat"],
+    });
+    expect(prompt).toContain("Mahlzeit: Abendessen.");
+    expect(prompt).toContain("650 kcal, 45 g Protein");
+    expect(prompt).toContain("Vegetarisch");
+    expect(prompt).toContain("Nüsse");
+    expect(prompt).toContain("Linsen, Spinat");
+    expect(findTask("meal_now")?.allowImages).toBe(false);
+  });
+
+  it("begrenzt auf drei Gerichte und verlangt mindestens eins", () => {
+    const four = { gerichte: [1, 2, 3, 4].map((i) => ({ titel: `G${i}` })) };
+    expect((checkMealNow(four) as { gerichte: unknown[] }).gerichte).toHaveLength(3);
+    expect(() => checkMealNow({ gerichte: [] })).toThrow();
   });
 });

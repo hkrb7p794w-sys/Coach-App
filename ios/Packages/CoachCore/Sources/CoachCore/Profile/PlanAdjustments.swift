@@ -248,7 +248,7 @@ public enum ReminderPlanner {
 /// Wochenplanung am Sonntag.
 public struct ScheduledNote: Equatable, Sendable, Identifiable {
   public enum Kind: String, Sendable {
-    case equipment, weekPlanning
+    case equipment, weekPlanning, nutritionReview
   }
 
   public var kind: Kind

@@ -51,8 +51,17 @@ final class NutritionViewModel {
     today = CalendarDay(date: now)
     if selectedDay == today { selectedDay = nil }
     let day = self.day
-    let todaysActivities = activities.filter { $0.day == day }
-    // Saisonplan: Musterwoche aus dem Plan; persönliches Profil: die eigenen Einheiten des Wochentags.
+    targets = Self.targets(
+      for: day, activities: activities, settings: settings, profile: profile, hasGarminData: hasGarminData)
+    totals = NutritionSummary.totals(meals.filter { $0.dayKey == day.iso }.flatMap(\.items))
+  }
+
+  /// Tagesziele für einen Tag: Saisonplan aus der Musterwoche, persönliches Profil aus den eigenen Einheiten.
+  static func targets(
+    for day: CalendarDay, activities: [GarminActivity], settings: CoachSettings, profile: GarminProfile?,
+    hasGarminData: Bool
+  ) -> NutritionTargets {
+    let dayActivities = activities.filter { $0.day == day }
     let planItems: [TemplateItem]
     if settings.profile.mode == .season {
       let week = WeeklyVolume(activities: activities, weekContaining: day)
@@ -60,10 +69,84 @@ final class NutritionViewModel {
     } else {
       planItems = settings.schedule(inWeekOf: day).templateItems(on: Weekday(day: day))
     }
-    targets = NutritionPlanner.compute(
-      activities: todaysActivities, planItems: planItems, settings: settings.nutrition,
-      garminProfile: profile, day: day, hasGarminData: hasGarminData)
-    totals = NutritionSummary.totals(meals.filter { $0.dayKey == day.iso }.flatMap(\.items))
+    return NutritionPlanner.compute(
+      activities: dayActivities, planItems: planItems, settings: settings.nutrition, garminProfile: profile,
+      day: day, hasGarminData: hasGarminData)
+  }
+
+  // MARK: - Was jetzt?
+
+  private(set) var nowSuggestions: [Recipe] = []
+  private(set) var nowNotes: [String] = []
+
+  /// Drei Gerichte zu dem, was heute noch übrig ist; Ernährungsweise und Allergene prüft die App.
+  func suggestNow(ai: AIClient, settings: CoachSettings, foods: [FoodRecord], now: Date = .now) async {
+    guard let targets else { return }
+    guard ai.isConfigured else {
+      errorMessage = AIClientError.notConfigured.localizedDescription
+      return
+    }
+    var remaining = NutrientValues()
+    for nutrient in [Nutrient.kcal, .protein, .carbs, .fat] {
+      remaining[nutrient] = max(0, (targets.values[nutrient] ?? 0) - (totals[nutrient] ?? 0))
+    }
+    guard let kcal = MealNow.targetKilocalories(remaining: remaining[.kcal] ?? 0) else {
+      nowSuggestions = []
+      nowNotes = ["Heute ist kaum noch etwas übrig – höchstens ein kleiner, proteinreicher Snack."]
+      return
+    }
+    await work {
+      let input = MealNow.input(
+        remaining: remaining, category: Self.category(at: now), diet: settings.nutrition.diet,
+        preferences: settings.recipes, pantry: settings.pantry, favorites: foods.prefix(15).map(\.name))
+      let response = try await ai.run(task: "meal_now", input: input)
+      let result = MealNow.suggestions(
+        output: response.output, targetKilocalories: kcal, diet: settings.nutrition.diet,
+        allergens: settings.recipes.allergens)
+      nowSuggestions = result.recipes
+      nowNotes = result.notes
+      if result.recipes.isEmpty { errorMessage = "Keine passenden Vorschläge erhalten – bitte noch einmal." }
+    }
+  }
+
+  /// Vorschlag übernehmen: Entwurf zum Prüfen (Portion, Zutaten, Zeitpunkt).
+  func draft(
+    from recipe: Recipe, hint: String = "Vorschlag „Was jetzt?“ (Nährwerte KI-geschätzt)", now: Date = .now
+  ) {
+    draft = Draft(title: recipe.title, category: Self.category(at: now), hint: hint, items: recipe.ingredients)
+  }
+
+  // MARK: - Ohne Netz
+
+  /// Fotos und Beschreibungen, die ohne Netz nicht ausgewertet werden konnten.
+  private(set) var pending: [PendingAnalysis] = PendingAnalysis.load()
+
+  /// Nächste wartende Auswertung versuchen; bleibt bei Netzfehler in der Warteschlange.
+  func retryPending(ai: AIClient, settings: CoachSettings, foods: [FoodRecord]) async {
+    guard let next = pending.first, !isWorking, draft == nil, ai.isConfigured else { return }
+    let ok = await analyze(
+      text: next.text, photo: next.photo, ai: ai, settings: settings, foods: foods, queueOnNetworkError: false)
+    if ok { removePending(next) }
+  }
+
+  func removePending(_ item: PendingAnalysis) {
+    item.deletePhoto()
+    pending.removeAll { $0.id == item.id }
+    PendingAnalysis.save(pending)
+  }
+
+  // MARK: - Kopieren und verschieben
+
+  /// Mahlzeit heute (bzw. am gewählten Tag) erneut eintragen.
+  func repeatMeal(_ record: MealRecord, context: ModelContext, foods: [FoodRecord], now: Date = .now) {
+    log(
+      title: record.title, category: Self.category(at: now), items: record.items, context: context, foods: foods,
+      label: "\(record.title) erneut eingetragen", now: now)
+  }
+
+  func move(_ record: MealRecord, to category: MealCategory, context: ModelContext) {
+    record.category = category
+    try? context.save()
   }
 
   // MARK: - Erfassen
@@ -154,11 +237,17 @@ final class NutritionViewModel {
       date: record.createdAt)
   }
 
-  func analyze(text: String, photo: Data?, ai: AIClient, settings: CoachSettings, foods: [FoodRecord]) async {
+  /// KI-Analyse von Foto und/oder Text. Ohne Netz landet die Mahlzeit in der Warteschlange statt im Fehler.
+  @discardableResult
+  func analyze(
+    text: String, photo: Data?, ai: AIClient, settings: CoachSettings, foods: [FoodRecord],
+    queueOnNetworkError: Bool = true
+  ) async -> Bool {
     guard ai.isConfigured else {
       errorMessage = AIClientError.notConfigured.localizedDescription
-      return
+      return false
     }
+    var succeeded = false
     await work {
       let input: [String: JSONValue] = [
         "text": .string(text),
@@ -177,7 +266,22 @@ final class NutritionViewModel {
         hint: analysis.hint,
         items: analysis.items.map { self.preferKnownFood($0, foods: foods) }
       )
+      succeeded = true
     }
+    if !succeeded, queueOnNetworkError, isNetworkError {
+      pending.append(PendingAnalysis(text: text, photo: photo))
+      PendingAnalysis.save(pending)
+      errorMessage = "Ohne Netz gespeichert – wird ausgewertet, sobald du wieder online bist."
+    }
+    return succeeded
+  }
+
+  /// Der letzte Fehler war ein Netzwerkfehler (für die Warteschlange).
+  private var isNetworkError: Bool {
+    lastError.map { error in
+      if case .network = error as? AIClientError { return true }
+      return error is URLError
+    } ?? false
   }
 
   func lookup(barcode: String, foods: [FoodRecord], context: ModelContext) async {
@@ -360,14 +464,18 @@ final class NutritionViewModel {
     return merged
   }
 
+  private var lastError: (any Error)?
+
   private func work(_ operation: () async throws -> Void) async {
     guard !isWorking else { return }
     isWorking = true
     errorMessage = nil
     defer { isWorking = false }
+    lastError = nil
     do {
       try await operation()
     } catch {
+      lastError = error
       errorMessage = error.localizedDescription
     }
   }

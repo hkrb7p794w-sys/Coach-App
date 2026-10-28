@@ -217,25 +217,54 @@ struct RecipeDetailView: View {
 struct ShoppingListView: View {
   let viewModel: RecipeViewModel
   let servings: Int
+  @Environment(AppModel.self) private var model
 
   var body: some View {
     let items = viewModel.plan.map { RecipePlanner.shoppingList($0, servings: servings) } ?? []
+    let groups = Dictionary(grouping: items, by: \.aisle)
     List {
-      Section {
-        ForEach(items) { item in
-          Button {
-            viewModel.toggle(item)
-          } label: {
-            HStack {
-              Image(systemName: viewModel.checked.contains(item.id) ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(viewModel.checked.contains(item.id) ? .green : .secondary)
-              Text(item.name).strikethrough(viewModel.checked.contains(item.id))
-              Spacer()
-              Text(amount(item.grams)).foregroundStyle(.secondary).monospacedDigit()
+      // Nach Supermarkt-Abteilung, damit man den Laden einmal durchläuft statt hin und her.
+      ForEach(ShoppingAisle.allCases.filter { groups[$0] != nil }) { aisle in
+        Section(aisle.label) {
+          ForEach(groups[aisle] ?? []) { item in
+            let checked = viewModel.checked.contains(item.id)
+            Button {
+              viewModel.toggle(item)
+            } label: {
+              HStack(spacing: 12) {
+                Image(systemName: checked ? "checkmark.circle.fill" : "circle")
+                  .font(.title2)
+                  .foregroundStyle(checked ? .green : .secondary)
+                Text(item.name).strikethrough(checked)
+                Spacer()
+                Text(amount(item.grams)).foregroundStyle(.secondary).monospacedDigit()
+              }
+              .frame(minHeight: 44)
+              .contentShape(Rectangle())
+            }
+            .foregroundStyle(.primary)
+            .swipeActions(edge: .leading) {
+              let inPantry = model.settings.pantry.contains(item.name)
+              Button(inPantry ? "Nicht mehr da" : "Habe ich da", systemImage: "archivebox") {
+                togglePantry(item.name)
+              }
+              .tint(.teal)
             }
           }
-          .foregroundStyle(.primary)
         }
+      }
+      Section {
+        if model.settings.pantry.isEmpty {
+          Text("Zutat nach rechts wischen › „Habe ich da“. „Was jetzt?“ kocht dann bevorzugt mit deinem Vorrat.")
+            .foregroundStyle(.secondary)
+        } else {
+          ForEach(model.settings.pantry, id: \.self) { name in
+            Text(name)
+          }
+          .onDelete { model.settings.pantry.remove(atOffsets: $0) }
+        }
+      } header: {
+        Text("Vorrat")
       } footer: {
         Text("Mengen für \(servings) \(servings == 1 ? "Person" : "Personen"), roh bzw. wie eingekauft.")
       }
@@ -245,6 +274,14 @@ struct ShoppingListView: View {
       ShareLink(
         item: items.map { "\($0.name): \(amount($0.grams))" }.joined(separator: "\n"),
         subject: Text("Einkaufsliste"))
+    }
+  }
+
+  private func togglePantry(_ name: String) {
+    if model.settings.pantry.contains(name) {
+      model.settings.pantry.removeAll { $0 == name }
+    } else {
+      model.settings.pantry.append(name)
     }
   }
 

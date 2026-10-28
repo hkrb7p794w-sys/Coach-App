@@ -22,6 +22,8 @@ final class CoachSettings {
   static let sleepKey = "coach.sleep"
   static let importedNotesKey = "coach.importedNotes"
   static let userSourcesKey = "coach.userSources"
+  static let ownRecipesKey = "coach.ownRecipes"
+  static let pantryKey = "coach.pantry"
 
   private let defaults: UserDefaults
 
@@ -98,6 +100,16 @@ final class CoachSettings {
     didSet { save(userSources, forKey: Self.userSourcesKey) }
   }
 
+  /// Eigene Rezepte (Meal-Prep mit Portionen und Vorrat).
+  var ownRecipes: [OwnRecipe] {
+    didSet { save(ownRecipes, forKey: Self.ownRecipesKey) }
+  }
+
+  /// „Habe ich da“ aus der Einkaufsliste – fließt in „Was jetzt?“ ein.
+  var pantry: [String] {
+    didSet { save(pantry, forKey: Self.pantryKey) }
+  }
+
   /// Hinweise aus dem letzten Import einer KI-Antwort (manueller KI-Coach).
   var importedNotes: ImportedNotes? {
     didSet { save(importedNotes, forKey: Self.importedNotesKey) }
@@ -153,6 +165,10 @@ final class CoachSettings {
     userSources =
       defaults.data(forKey: Self.userSourcesKey).flatMap { try? JSONDecoder().decode([UserSource].self, from: $0) }
       ?? []
+    ownRecipes =
+      defaults.data(forKey: Self.ownRecipesKey).flatMap { try? JSONDecoder().decode([OwnRecipe].self, from: $0) }
+      ?? []
+    pantry = defaults.data(forKey: Self.pantryKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
     importedNotes = defaults.data(forKey: Self.importedNotesKey).flatMap {
       try? JSONDecoder().decode(ImportedNotes.self, from: $0)
     }
@@ -244,6 +260,8 @@ struct ReminderSettings: Codable, Equatable, Hashable {
   var weekPlanning = true
   var planningHour = 18
   var planningMinute = 0
+  /// Abends um 20 Uhr „Tag auswerten“ (Ernährung und Training).
+  var nutritionReview = false
 
   init() {}
 
@@ -256,6 +274,7 @@ struct ReminderSettings: Codable, Equatable, Hashable {
     weekPlanning = (try? container.decodeIfPresent(Bool.self, forKey: .weekPlanning)) ?? true
     planningHour = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningHour)) ?? 18, 0), 23)
     planningMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningMinute)) ?? 0, 0), 59)
+    nutritionReview = (try? container.decodeIfPresent(Bool.self, forKey: .nutritionReview)) ?? false
   }
 
   /// Uhrzeit der Sonntags-Erinnerung für den DatePicker.

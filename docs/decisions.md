@@ -4,6 +4,26 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+
+## 2026-10-28 – Ernährung: Rezepte und Planung
+
+Dritter PR der UX-Prüfung der Ernährung:
+- **„Was esse ich jetzt?“**: Die App rechnet, was heute noch übrig ist (Mahlzeit höchstens 900 kcal, unter 150 kcal
+  nur ein Hinweis), die Worker-Aufgabe `meal_now` schlägt drei Gerichte vor – gern aus dem Vorrat. Die App prüft
+  Ernährungsweise, Allergene und Nährwerte wie bei den Wochenrezepten und skaliert die Mengen (× 0,5–1,6, 5 g);
+  „Übernehmen“ öffnet den Entwurf.
+- **Eigene Rezepte / Meal-Prep** (`OwnRecipe`): ganzer Topf, gekochtes Gewicht, Portionen, Vorrat („noch 2½
+  Portionen“ in der Schnell-Leiste); eintragen als Portion oder gewogen. Aus jeder Mahlzeit per „Als eigenes Rezept
+  speichern“.
+- **Ohne Netz**: Fotos und Beschreibungen landen in einer Warteschlange und werden beim nächsten Öffnen mit Netz
+  ausgewertet; Schnell-Leiste, Suche, eigene Rezepte und bekannte Barcodes gehen ohnehin offline.
+- **Mahlzeiten gedrückt halten**: erneut eintragen, verschieben, als eigenes Rezept speichern, löschen.
+- **Woche**: kcal je Tag gegen das Ziel, Trainingstage, Protein-Schnitt, Gewichtstrend mit Hinweis bei mehr als
+  1 % Abnahme bzw. 0,5 % Zunahme pro Woche (`GoalRules`). Die KI-Auswertung steht dort und abends ab 18 Uhr auf der
+  Tagesseite; optional Erinnerung um 20 Uhr.
+- **Einkaufsliste** nach Supermarkt-Abteilung (Gruppe der KI bzw. Name), große Tippziele, „Habe ich da“ als Vorrat.
+- **Eine Hand**: großes „+“ unten rechts statt oben in der Leiste.
+
 ## 2026-10-28 – Ernährung: Mengen und Entwurf
 
 Zweiter PR der UX-Prüfung der Ernährung:
