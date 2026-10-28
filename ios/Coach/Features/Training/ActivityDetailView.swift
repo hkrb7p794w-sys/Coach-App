@@ -38,6 +38,7 @@ struct ActivityDetailView: View {
             }
           }
         }
+        MissingDataSection(notes: ActivityFeed.missing(current))
         if let problem {
           Section {
             Text(problem).font(.footnote).foregroundStyle(.secondary)
@@ -64,6 +65,12 @@ struct ActivityDetailView: View {
           .font(.subheadline)
           .foregroundStyle(.secondary)
         }
+        HStack(spacing: 6) {
+          FeedBadges(sources: [ActivitySource.of(activity.id)], intensity: SessionKind.of(activity))
+          if let effort = model.settings.efforts[String(activity.id)] {
+            Text("Anstrengung \(effort)/10").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+          }
+        }
       }
       let overview = ActivityDetails.sections(activity).first?.rows ?? []
       LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 12)], alignment: .leading, spacing: 12) {
@@ -75,6 +82,9 @@ struct ActivityDetailView: View {
         }
       }
       .padding(.vertical, 4)
+      if let shares = ActivityFeed.zoneShares(activity) {
+        ZoneShareBar(shares: shares).padding(.vertical, 2)
+      }
     }
   }
 
@@ -251,40 +261,6 @@ struct ActivityDetailView: View {
   }
 }
 
-/// Alle gespeicherten Aktivitäten, nach Monat gruppiert.
-struct ActivityListView: View {
-  @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var records: [ActivityRecord]
-
-  var body: some View {
-    let grouped = Dictionary(grouping: records) { String($0.startLocal.prefix(7)) }
-    List {
-      if records.isEmpty {
-        ContentUnavailableView(
-          "Noch keine Aktivitäten", systemImage: "figure.run",
-          description: Text("Ziehe unter „Heute“ nach unten, um Garmin abzurufen."))
-      }
-      ForEach(grouped.keys.sorted(by: >), id: \.self) { month in
-        Section(monthTitle(month)) {
-          ForEach(grouped[month] ?? []) { record in
-            if let activity = record.activity {
-              NavigationLink {
-                ActivityDetailView(record: record)
-              } label: {
-                ActivitySummaryRow(activity: activity)
-              }
-            }
-          }
-        }
-      }
-    }
-    .navigationTitle("Aktivitäten")
-  }
-
-  private func monthTitle(_ key: String) -> String {
-    guard let day = CalendarDay(iso: key + "-01") else { return key }
-    return day.localDate.formatted(.dateTime.month(.wide).year())
-  }
-}
 
 /// Zeile einer Aktivität: Symbol, Name, Datum und Kernwerte.
 struct ActivitySummaryRow: View {

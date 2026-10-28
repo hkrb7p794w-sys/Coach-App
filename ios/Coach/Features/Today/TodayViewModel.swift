@@ -28,6 +28,8 @@ final class TodayViewModel {
     let source: String
     /// Von der KI genannte Regeln (fehlt in älteren Einträgen).
     var sources: [String]?
+    /// Notiz zum persönlichen Profil statt zum Saisonplan.
+    var personal: Bool?
   }
 
   static let noteKey = "coach.note"
@@ -98,10 +100,11 @@ final class TodayViewModel {
 
   /// Soll/Ist der Woche: Plan mit Ausnahmen, Laufminuten aus dem Laufplan, Aktivitäten und Krafteinheiten.
   static func sessionWeek(
-    settings: CoachSettings, activities: [GarminActivity], gymDays: [CalendarDay], today: CalendarDay
+    settings: CoachSettings, activities: [GarminActivity], gymDays: [CalendarDay], today: CalendarDay,
+    weekOf day: CalendarDay? = nil
   ) -> SessionMatcher.Week {
-    let monday = PlanAdjustments.monday(of: today)
-    let schedule = settings.schedule(inWeekOf: today)
+    let monday = PlanAdjustments.monday(of: day ?? today)
+    let schedule = settings.schedule(inWeekOf: monday)
     let runWeek = RunPlanner.week(
       profile: settings.profile, schedule: schedule, monday: monday, activities: activities)
     let runMinutes = Dictionary(grouping: runWeek?.sessions ?? [], by: \.weekday).mapValues { $0.map(\.minutes) }
@@ -132,6 +135,10 @@ final class TodayViewModel {
     if !force, let cached = cachedNote(for: snapshot), cached.source != Self.fallbackSource { return }
     isLoadingNote = true
     defer { isLoadingNote = false }
+    if let advice = snapshot.advice {
+      await loadPersonalNote(ai: ai, settings: settings, snapshot: snapshot, advice: advice)
+      return
+    }
     var input = CoachingNote.input(
       recommendation: snapshot.recommendation,
       metrics: snapshot.metrics,
@@ -162,6 +169,28 @@ final class TodayViewModel {
     showCachedOrFallback()
   }
 
+  /// Persönliches Profil: gleiche Empfehlung wie die Karte, ohne Werte des Saisonplans.
+  private func loadPersonalNote(
+    ai: AIClient, settings: CoachSettings, snapshot: Snapshot, advice: ScheduleAdvice
+  ) async {
+    let input = PersonalNote.input(
+      profile: settings.profile, advice: advice, recommendation: snapshot.metrics == nil ? nil : snapshot.recommendation,
+      metrics: snapshot.metrics, week: snapshot.sessions, today: snapshot.plan.today, privacy: settings.privacy)
+    do {
+      let response = try await ai.run(task: "personal_note", input: input)
+      let points = CoachingNote.points(from: response.output)
+      guard !points.isEmpty else { throw AIClientError.http(200, "Leere KI-Antwort") }
+      store(
+        CachedNote(
+          day: snapshot.plan.today.iso, level: snapshot.recommendation.level, points: points,
+          source: "KI · \(response.model)", sources: CoachingNote.sources(from: response.output), personal: true))
+      noteError = nil
+    } catch {
+      noteError = error.localizedDescription
+    }
+    showCachedOrFallback()
+  }
+
   private static let fallbackSource = "Regeln (ohne KI)"
 
   private func showCachedOrFallback() {
@@ -170,6 +199,12 @@ final class TodayViewModel {
       notePoints = cached.points
       noteSource = cached.source
       noteEvidence = snapshot.recommendation.evidenceIDs + (cached.sources ?? [])
+    } else if let advice = snapshot.advice {
+      notePoints = PersonalNote.fallback(
+        advice: advice, recommendation: snapshot.metrics == nil ? nil : snapshot.recommendation,
+        week: snapshot.sessions)
+      noteSource = Self.fallbackSource
+      noteEvidence = advice.evidenceIDs + (snapshot.metrics == nil ? [] : snapshot.recommendation.evidenceIDs)
     } else {
       notePoints = CoachingNote.fallback(snapshot.recommendation, plan: snapshot.plan)
       noteSource = Self.fallbackSource
@@ -180,7 +215,8 @@ final class TodayViewModel {
   private func cachedNote(for snapshot: Snapshot) -> CachedNote? {
     guard let data = defaults.data(forKey: Self.noteKey),
       let cached = try? JSONDecoder().decode(CachedNote.self, from: data),
-      cached.day == snapshot.plan.today.iso, cached.level == snapshot.recommendation.level
+      cached.day == snapshot.plan.today.iso, cached.level == snapshot.recommendation.level,
+      (cached.personal ?? false) == (snapshot.advice != nil)
     else { return nil }
     return cached
   }

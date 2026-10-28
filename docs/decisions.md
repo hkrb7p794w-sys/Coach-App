@@ -5,6 +5,25 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-10-28 – Training: ein Verlauf, Nach-dem-Training-Karte, Begründung in beiden Modi
+
+Zweiter PR der UX-Prüfung von Training und Plan:
+- **Ein Feed** (`CoachCore/Analysis/ActivityFeed.swift`) statt „Aktivitäten von Garmin“: Garmin, Apple Health,
+  nachgetragene Einheiten und die Gym-Einheiten der App. Gym-App und Garmin-Kraft am selben Tag mit höchstens
+  2 Stunden Abstand gelten als eine Einheit (Upload nach Garmin oder parallel auf der Uhr) und zeigen beide Quellen.
+  Jede Zeile: bis zu vier Kernwerte, Intensität (`SessionKind`), Quelle und – im persönlichen Profil für die letzten
+  sechs Wochen – die zugeordnete geplante Einheit mit Status.
+- **Nach dem Training** (`PostWorkout`): Anstrengung 1–10 (Borg CR10, wie bei session RPE, Foster et al. 2001)
+  mit einem Tipp. Regeln: geplant locker, aber hart (gemessen oder ab 7/10) → Hinweis zur Intensitätsverteilung
+  (Regel `intensity.distribution`); ab 8/10 oder gemessen hart und morgen eine fordernde Ausdauereinheit →
+  Vorschlag „morgen locker“, mit „Übernehmen“ als eigener Plan für diese Woche und „Rückgängig“. Im Saisonplan nur
+  die Auswertung, kein Eingriff in den festen Wochenrahmen.
+- **„Warum?“ im persönlichen Profil:** Neue Worker-Aufgabe `personal_note` mit Ziel, Wochenstand und der
+  Empfehlung aus `ScheduleAdvisor` – ohne FTP, Schwellenpace oder Almere. Gleiche Prüfung wie die Tagesnotiz
+  (`groundedPoints`), ohne KI die Regeltexte (`PersonalNote.fallback`).
+- **Fehlende Daten** werden benannt statt leer gelassen (keine Herzfrequenz, keine Zonen, keine Belastung,
+  Schwimmen am Handgelenk, Laufband ohne Strecke), jeweils mit der Folge für die Auswertung.
+
 ## 2026-10-28 – Training: Soll/Ist je Einheit, verpasste Einheiten, Nachtragen
 
 Erster PR der UX-Prüfung von Training und Plan (`CoachCore/Profile/SessionMatch.swift`):
