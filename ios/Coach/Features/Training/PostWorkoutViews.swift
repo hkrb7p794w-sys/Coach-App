@@ -73,7 +73,8 @@ struct PostWorkoutSection: View {
           settings.planAdjustments = plan.adjustments
         },
         adjust: { editing = plan },
-        dismiss: { settings.dismissedSuggestions = Array((settings.dismissedSuggestions + [plan.id]).suffix(60)) })
+        dismiss: { settings.dismissedSuggestions = Array((settings.dismissedSuggestions + [plan.id]).suffix(60)) }
+      )
       .sheet(item: $editing) { plan in NextWeekPlanSheet(monday: plan.week, initial: plan.schedule) }
     }
     Button("Anstrengung ändern (\(effort)/10)") { settings.efforts[String(activity.id)] = nil }

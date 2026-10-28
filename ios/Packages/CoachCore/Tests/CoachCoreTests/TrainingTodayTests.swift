@@ -38,7 +38,9 @@ struct TrainingTodayTests {
   // MARK: - Wochenbelastung und Form
 
   @Test func weeklyLoadAcrossSports() {
-    let earlier = (0..<3).map { activity(Int64($0), "running", day: today.adding(days: -10 - 7 * $0), minutes: 60, load: 100) }
+    let earlier = (0..<3).map {
+      activity(Int64($0), "running", day: today.adding(days: -10 - 7 * $0), minutes: 60, load: 100)
+    }
     let recent = [
       activity(10, "running", day: today, minutes: 60, load: 100),
       activity(11, "cycling", day: today.adding(days: -2), minutes: 60, load: 100),
@@ -60,7 +62,9 @@ struct TrainingTodayTests {
   @Test func noWarningWithoutHistoryOrSmallDifference() {
     let recent = [activity(1, "running", day: today, minutes: 60, load: 100)]
     #expect(WeekLoad.check(activities: recent, today: today).warning == nil)
-    let earlier = (0..<3).map { activity(Int64(10 + $0), "running", day: today.adding(days: -10 - 7 * $0), minutes: 30, load: 40) }
+    let earlier = (0..<3).map {
+      activity(Int64(10 + $0), "running", day: today.adding(days: -10 - 7 * $0), minutes: 30, load: 40)
+    }
     let small = [activity(1, "running", day: today, minutes: 60, load: 80)]
     #expect(WeekLoad.check(activities: earlier + small, today: today).warning == nil)
   }
@@ -103,10 +107,13 @@ struct TrainingTodayTests {
     #expect(suggestion.source == .load)
     #expect(suggestion.changes.map(\.text) == ["Do: Qualitätslauf (Tempo oder Intervalle) → Lockerer Lauf"])
     #expect(suggestion.unchanged == ["Di: Qualitätslauf (Tempo oder Intervalle) bleibt", "Sa: Langer Lauf bleibt"])
-    #expect(suggestion.adjustments.schedule(profile.schedule, inWeekOf: today).slots(on: .thursday) == [SessionSlot(.run)])
+    #expect(
+      suggestion.adjustments.schedule(profile.schedule, inWeekOf: today).slots(on: .thursday) == [SessionSlot(.run)])
     #expect(suggestion.conflicts.isEmpty)
     #expect(suggestion.week == monday)
-    #expect(PlanSuggestion.load(warning(), profile: profile, adjustments: PlanAdjustments(), today: today.adding(days: 3)) == nil)
+    #expect(
+      PlanSuggestion.load(warning(), profile: profile, adjustments: PlanAdjustments(), today: today.adding(days: 3))
+        == nil)
   }
 
   @Test func suggestionShowsNewRuleConflicts() throws {
@@ -142,7 +149,8 @@ struct TrainingTodayTests {
     #expect(next.reason.hasPrefix("Diese Woche lag die Belastung 60 %"))
     var noWarning = warning()
     noWarning.warning = nil
-    #expect(PlanSuggestion.nextWeek(load: noWarning, profile: profile, adjustments: PlanAdjustments(), today: today) == nil)
+    #expect(
+      PlanSuggestion.nextWeek(load: noWarning, profile: profile, adjustments: PlanAdjustments(), today: today) == nil)
   }
 
   // MARK: - Jetzt dran
@@ -151,8 +159,9 @@ struct TrainingTodayTests {
     let progress = TodayFocus.Progress(sessionsDone: 3, sessionsPlanned: 5, minutesDone: 140, minutesPlanned: 210)
     #expect(progress.text == "3/5 Einheiten · 140/210 min")
     #expect(abs(progress.fraction - 140.0 / 210) < 0.001)
-    #expect(TodayFocus.Progress(sessionsDone: 2, sessionsPlanned: 4, minutesDone: 90, minutesPlanned: nil).text
-      == "2/4 Einheiten · 90 min")
+    #expect(
+      TodayFocus.Progress(sessionsDone: 2, sessionsPlanned: 4, minutesDone: 90, minutesPlanned: nil).text
+        == "2/4 Einheiten · 90 min")
   }
 
   @Test func conflictBetweenRuleAndPlan() {
@@ -212,7 +221,8 @@ struct TrainingTodayTests {
     let gym = ActivityFeed.GymItem(
       id: UUID(), title: "Push", start: Date(timeIntervalSince1970: 1_793_095_200), minutes: 40, sets: 10,
       volumeKg: 2_000)
-    let minutes = TrainingTrends.weeklyMinutes(activities: activities, gym: [gym], today: today, weeks: 2, timeZone: utc)
+    let minutes = TrainingTrends.weeklyMinutes(
+      activities: activities, gym: [gym], today: today, weeks: 2, timeZone: utc)
     #expect(minutes.map(\.sport) == [.bike, .run, .strength])
     #expect(minutes.map(\.minutes) == [60, 30, 40])
     #expect(minutes.first?.monday == monday.adding(days: -7))

@@ -25,7 +25,8 @@ public struct WeeklyReview: Equatable, Sendable {
     let inWeek = activities.filter { ($0.day.map { $0 >= monday && $0 <= today }) ?? false }
     return WeeklyReview(
       monday: monday, progress: progress, missed: missed, load: load,
-      highlights: highlights(activities: inWeek, gym: gym, progress: progress, monday: monday, today: today,
+      highlights: highlights(
+        activities: inWeek, gym: gym, progress: progress, monday: monday, today: today,
         timeZone: timeZone))
   }
 

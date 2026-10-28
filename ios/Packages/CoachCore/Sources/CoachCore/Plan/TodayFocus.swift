@@ -64,7 +64,8 @@ public struct TodayFocus: Equatable, Sendable {
     }
     let level = recommendation?.level
     let planned = week.results.map(\.planned)
-    let totals = SessionMatcher.totals(planned: planned, activities: activities, monday: PlanAdjustments.monday(of: today))
+    let totals = SessionMatcher.totals(
+      planned: planned, activities: activities, monday: PlanAdjustments.monday(of: today))
     let progress = Progress(
       sessionsDone: week.results.filter(\.status.counts).count, sessionsPlanned: week.results.count,
       minutesDone: totals.reduce(0) { $0 + $1.actual },
@@ -96,8 +97,10 @@ public struct TodayFocus: Equatable, Sendable {
     let reasons = hasMetrics ? recommendation.reasons : []
     return TodayFocus(
       level: level, headline: recommendation.label, detail: today.advice, why: why(reasons),
-      conflict: conflict(level: level, reasons: reasons, planned: items.filter { $0.demanding && $0.status == nil }
-        .map(\.title)),
+      conflict: conflict(
+        level: level, reasons: reasons,
+        planned: items.filter { $0.demanding && $0.status == nil }
+          .map(\.title)),
       items: items, progress: progress, evidenceIDs: recommendation.evidenceIDs)
   }
 

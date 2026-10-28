@@ -187,7 +187,9 @@ struct SuggestionsSection: View {
               settings.planAdjustments = suggestion.adjustments
             },
             adjust: { editing = suggestion },
-            dismiss: { settings.dismissedSuggestions = Array((settings.dismissedSuggestions + [suggestion.id]).suffix(60)) })
+            dismiss: {
+              settings.dismissedSuggestions = Array((settings.dismissedSuggestions + [suggestion.id]).suffix(60))
+            })
         }
       }
       .sheet(item: $editing) { suggestion in
@@ -289,7 +291,10 @@ struct WeeklyReviewSection: View {
     } header: {
       Text("Wochenrückblick")
     } footer: {
-      Text("Belastung: Wert der Uhr, sonst aus Dauer × Intensität geschätzt; Vergleich mit dem Schnitt der drei Wochen davor.")
+      Text(
+        "Belastung: Wert der Uhr, sonst aus Dauer × Intensität geschätzt; Vergleich mit dem Schnitt der "
+          + "drei Wochen davor."
+      )
     }
     .sheet(isPresented: $planning) { NextWeekPlanSheet() }
   }
@@ -336,7 +341,9 @@ struct TodayHintsSection: View {
               NavigationLink {
                 SleepCoachView()
               } label: {
-                HintChip(text: "Ins Bett um \(SleepCoach.clock(sleep.bedtimeMinutes))", symbol: "moon.stars.fill", color: .indigo)
+                HintChip(
+                  text: "Ins Bett um \(SleepCoach.clock(sleep.bedtimeMinutes))", symbol: "moon.stars.fill",
+                  color: .indigo)
               }
             }
             if let warning = run.warning {

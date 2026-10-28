@@ -28,8 +28,9 @@ struct TrendsPage: View {
           let sports = TrainingSport.allCases.filter { sport in minutes.contains { $0.sport == sport } }
           Chart(minutes) { entry in
             BarMark(
-              x: .value("Woche", entry.monday.localDate, unit: .weekOfYear), y: .value("Minuten", entry.minutes))
-              .foregroundStyle(by: .value("Sportart", entry.sport.label))
+              x: .value("Woche", entry.monday.localDate, unit: .weekOfYear), y: .value("Minuten", entry.minutes)
+            )
+            .foregroundStyle(by: .value("Sportart", entry.sport.label))
           }
           .chartForegroundStyleScale(domain: sports.map(\.label), range: sports.map(\.color))
           .frame(height: 200)
@@ -153,7 +154,8 @@ struct ZoomableTrendChart: View {
           start = center.addingTimeInterval(-newDays * 43_200)
           days = newDays
         }
-        .onEnded { _ in zoomBase = nil })
+        .onEnded { _ in zoomBase = nil }
+    )
     .accessibilityLabel("Verlauf \(unit)")
   }
 

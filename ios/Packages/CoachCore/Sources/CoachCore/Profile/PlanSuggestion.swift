@@ -149,7 +149,8 @@ public struct PlanSuggestion: Equatable, Sendable, Identifiable {
     guard load.warning != nil else { return nil }
     let monday = PlanAdjustments.monday(of: today).adding(days: 7)
     let schedule = adjustments.schedule(profile.schedule, inWeekOf: monday)
-    guard let weekday = Weekday.allCases.first(where: { schedule.slots(on: $0).contains(where: \.isDemandingEndurance) })
+    guard
+      let weekday = Weekday.allCases.first(where: { schedule.slots(on: $0).contains(where: \.isDemandingEndurance) })
     else { return nil }
     return make(
       id: "next-\(monday.iso)", source: .nextWeek,
