@@ -248,6 +248,7 @@ final class NutritionViewModel {
       return false
     }
     var succeeded = false
+    lastError = nil
     await work {
       let input: [String: JSONValue] = [
         "text": .string(text),
