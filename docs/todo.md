@@ -41,6 +41,8 @@ hier notieren und als PR beheben.
 - [ ] **Training Heute:** „Jetzt dran“ oben (Einheit mit Soll, Ampel, Widerspruch bei gelber Ampel und hartem Plan),
       Vorschlag „Übernehmen“/„Rückgängig“/„Anpassen“/„Verwerfen“, Wochenbalken, Chips; sonntags Wochenrückblick;
       Training › Trends (Zoom); Aktivitäten filtern und suchen. Stimmen Wochenbelastung und Form mit Garmin überein?
+- [ ] **Mahlzeit diktieren:** Erfassen › „Sprechen“: Erlaubnis-Abfragen, Text erscheint live, „Fertig gesprochen“,
+      vorhandener Text bleibt davor; Hinweis „auf dem iPhone“ oder „Apple“; danach Analysieren.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

@@ -6,7 +6,8 @@ import Vision
 import VisionKit
 
 /// Ein Bildschirm für alles: Foto (Kamera oder Mediathek) und Beschreibung zusammen – „Foto + ohne Soße“ ist ein
-/// Vorgang. Diktieren geht über das Mikrofon der Tastatur. Darunter die anderen Wege.
+/// Vorgang. „Sprechen“ diktiert auf Deutsch in das Textfeld (zum Korrigieren vor dem Analysieren). Darunter die
+/// anderen Wege.
 struct CaptureSheet: View {
   enum Other { case barcode, quick, manual }
 
@@ -16,6 +17,9 @@ struct CaptureSheet: View {
   @State private var photoItem: PhotosPickerItem?
   @State private var photo: Data?
   @State private var showsCamera = false
+  @State private var dictation = Dictation()
+  /// Text vor der laufenden Aufnahme; das Diktat wird angehängt.
+  @State private var textBeforeDictation = ""
   @FocusState private var focused: Bool
   @Environment(\.dismiss) private var dismiss
 
@@ -59,8 +63,36 @@ struct CaptureSheet: View {
           )
           .lineLimit(2...8)
           .focused($focused)
+          if Dictation.isSupported {
+            Button {
+              if !dictation.isRecording {
+                focused = false
+                textBeforeDictation = text.trimmingCharacters(in: .whitespaces)
+              }
+              Task { await dictation.toggle() }
+            } label: {
+              Label(
+                dictation.isRecording ? "Fertig gesprochen" : "Sprechen",
+                systemImage: dictation.isRecording ? "stop.circle.fill" : "mic.fill"
+              )
+              .frame(maxWidth: .infinity, minHeight: 44)
+              .symbolEffect(.pulse, isActive: dictation.isRecording)
+            }
+            .buttonStyle(.bordered)
+            .tint(dictation.isRecording ? .red : .accentColor)
+            .listRowBackground(Color.clear)
+            .accessibilityHint("Mahlzeit auf Deutsch diktieren, der Text erscheint im Feld darüber")
+          }
+          if let error = dictation.error {
+            Label(error, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange)
+          }
         } footer: {
-          Text("Mengen nennen, wenn bekannt. Mit dem Mikrofon der Tastatur diktieren – praktisch beim Kochen.")
+          Text(
+            dictation.isRecording
+              ? (dictation.isOnDevice
+                ? "Hört zu … Die Erkennung läuft auf dem iPhone." : "Hört zu … Apple wandelt die Sprache in Text um.")
+              : "Mengen nennen, wenn bekannt – auch mehrere Mahlzeiten auf einmal. Tippen auf „Sprechen“ diktiert, "
+                + "praktisch beim Kochen.")
         }
         Section {
           Button("Barcode scannen", systemImage: "barcode.viewfinder") { choose(.barcode) }
@@ -70,6 +102,11 @@ struct CaptureSheet: View {
       }
       .navigationTitle("Erfassen")
       .navigationBarTitleDisplayMode(.inline)
+      .onChange(of: dictation.transcript) { _, spoken in
+        guard !spoken.isEmpty else { return }
+        text = textBeforeDictation.isEmpty ? spoken : "\(textBeforeDictation) \(spoken)"
+      }
+      .onDisappear { dictation.stop() }
       .onChange(of: photoItem) { _, item in
         Task { photo = try? await item?.loadTransferable(type: Data.self) }
       }
@@ -82,6 +119,7 @@ struct CaptureSheet: View {
         }
         ToolbarItem(placement: .confirmationAction) {
           Button("Analysieren") {
+            dictation.stop()
             let text = text
             let photo = photo
             dismiss()

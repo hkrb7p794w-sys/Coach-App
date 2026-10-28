@@ -60,7 +60,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 42 | Training Verlauf: ein Feed für Garmin, Apple Health, Nachgetragenes und Gym (Doppelte zusammengeführt), Nach-dem-Training-Karte mit Anstrengung und Vorschlag für morgen, „Warum?“ auch im persönlichen Profil, Detail-Kopf mit Zonen, fehlende Daten | fertig (PR 50) |
 | 43 | Gym-Einstellungen: Pausen je Übung und Standard, Aufwärm-Vorschlag, Abhaken nach Eingabe; Einstellungen nach Disziplin | fertig (PR 51) |
 | 44 | Gym: Stoppuhr für Halteübungen mit Korrektur, Pause einklappbar | fertig (PR 52) |
-| 45 | Training Heute: „Jetzt dran“ für beide Modi, Widerspruch Regel/Plan, Wochenbelastung aller Sportarten, Form in der Ampel, Vorschläge mit Diff und Regelprüfung, Wochenrückblick, Trends, Verlauf filtern | in Arbeit |
+| 45 | Training Heute: „Jetzt dran“ für beide Modi, Widerspruch Regel/Plan, Wochenbelastung aller Sportarten, Form in der Ampel, Vorschläge mit Diff und Regelprüfung, Wochenrückblick, Trends, Verlauf filtern | fertig (PR 53) |
+| 46 | Ernährung: Mahlzeit diktieren (Spracherkennung auf Deutsch, wenn möglich auf dem Gerät) | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

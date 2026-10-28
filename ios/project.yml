@@ -67,6 +67,10 @@ targets:
           IronLudi speichert deine Krafttrainings als Workouts in Health.
         NSCameraUsageDescription: >-
           IronLudi nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
+        NSMicrophoneUsageDescription: >-
+          IronLudi nutzt das Mikrofon, wenn du eine Mahlzeit diktierst.
+        NSSpeechRecognitionUsageDescription: >-
+          IronLudi wandelt deine diktierte Mahlzeit in Text um, wenn möglich direkt auf dem iPhone.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.hkrb7p794w.coach

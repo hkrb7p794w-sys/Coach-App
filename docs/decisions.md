@@ -5,6 +5,16 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-10-28 – Mahlzeit diktieren
+
+- Eigener Knopf „Sprechen“ im Erfassen-Bildschirm statt nur des Tastatur-Mikrofons: Apple Speech (`SFSpeechRecognizer`,
+  `de-DE`) mit `requiresOnDeviceRecognition`, wenn das Gerät es unterstützt. Sonst verarbeitet Apple die Aufnahme
+  wie beim Diktieren der Tastatur; der Hinweis unter dem Feld sagt, was gerade gilt. Der Text landet im Feld und
+  lässt sich vor „Analysieren“ korrigieren; die KI bekommt nur Text, nie Audio.
+- Keine zusätzlichen Entitlements nötig (geht mit SideStore und kostenloser Apple-ID); Info.plist braucht
+  `NSMicrophoneUsageDescription` und `NSSpeechRecognitionUsageDescription`.
+  Quelle: Apple-Doku „Asking Permission to Use Speech Recognition“ und `SFSpeechRecognitionRequest.requiresOnDeviceRecognition`.
+
 ## 2026-10-28 – Mahlzeiten: mehrere in einer Eingabe
 
 - Fehler „KI-Antwort ist kein gültiges JSON“ bei mehreren Mahlzeiten auf einmal: `meal_analyze` lief mit dem
