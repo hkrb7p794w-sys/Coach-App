@@ -24,6 +24,12 @@ hier notieren und als PR beheben.
       Pause dazwischen, Später/Ersetzen/Reihenfolge, Klimmzug mit Unterstützung, Rückfrage bei 625 kg.
 - [ ] **Start und Auswertung:** Karte „Nächste Einheit“ schlägt die richtige Routine vor; Abschluss mit Vergleich und
       „Nächstes Mal“; Auswertung mit Kalender und Serie.
+- [ ] **Ernährung schnell eintragen:** Vorschläge zur Tageszeit und „wie gestern“ mit einem Tipp, Suche, gestern
+      nachtragen, Rest-Ring, nur Kalorien, Wasser-Knopf, Rückgängig.
+- [ ] **Ernährung Entwurf:** Portionen (Scheibe, Riegel), ± je Zeile, „danach … übrig“, Rezept über den Entwurf,
+      Foto + Text in einem Schritt, unbekannter Barcode (Etikett fotografieren).
+- [ ] **Ernährung Planung:** „Was esse ich jetzt?“, Meal-Prep mit Vorrat, ohne Netz (Flugmodus) und danach
+      automatisch ausgewertet, Woche, Einkaufsliste nach Abteilung mit „Habe ich da“, großes „+“ unten.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 
