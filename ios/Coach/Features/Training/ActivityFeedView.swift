@@ -56,10 +56,11 @@ struct ActivityListView: View {
       let today = CalendarDay(date: .now)
       let gymDays = sessions.map(\.day)
       for week in 0..<Self.plannedWeeks {
-        results += TodayViewModel.sessionWeek(
-          settings: model.settings, activities: activities, gymDays: gymDays, today: today,
-          weekOf: today.adding(days: -7 * week)
-        ).results
+        results +=
+          TodayViewModel.sessionWeek(
+            settings: model.settings, activities: activities, gymDays: gymDays, today: today,
+            weekOf: today.adding(days: -7 * week)
+          ).results
       }
     }
     return ActivityFeed.entries(activities: activities, gym: sessions.map(ActivityFeed.GymItem.init), results: results)

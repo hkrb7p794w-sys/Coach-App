@@ -261,7 +261,6 @@ struct ActivityDetailView: View {
   }
 }
 
-
 /// Zeile einer Aktivität: Symbol, Name, Datum und Kernwerte.
 struct ActivitySummaryRow: View {
   let activity: GarminActivity

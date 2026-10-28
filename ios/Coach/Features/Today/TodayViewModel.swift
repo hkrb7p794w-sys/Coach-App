@@ -174,7 +174,8 @@ final class TodayViewModel {
     ai: AIClient, settings: CoachSettings, snapshot: Snapshot, advice: ScheduleAdvice
   ) async {
     let input = PersonalNote.input(
-      profile: settings.profile, advice: advice, recommendation: snapshot.metrics == nil ? nil : snapshot.recommendation,
+      profile: settings.profile, advice: advice,
+      recommendation: snapshot.metrics == nil ? nil : snapshot.recommendation,
       metrics: snapshot.metrics, week: snapshot.sessions, today: snapshot.plan.today, privacy: settings.privacy)
     do {
       let response = try await ai.run(task: "personal_note", input: input)

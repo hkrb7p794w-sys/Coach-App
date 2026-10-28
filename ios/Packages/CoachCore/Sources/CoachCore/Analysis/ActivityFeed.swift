@@ -85,14 +85,16 @@ public enum ActivityFeed {
     activities: [GarminActivity], gym: [GymItem], results: [SessionResult] = [], timeZone: TimeZone = .current
   ) -> [Entry] {
     var gymLeft = gym
-    let byActivity = Dictionary(results.compactMap { r in r.activityID.map { ($0, r) } }, uniquingKeysWith: { a, _ in a })
+    let byActivity = Dictionary(
+      results.compactMap { r in r.activityID.map { ($0, r) } }, uniquingKeysWith: { a, _ in a })
     var entries: [Entry] = activities.compactMap { activity in
       guard let day = activity.day else { return nil }
       var sources = [ActivitySource.of(activity.id)]
       var item: GymItem?
       if activity.sport == .strength, let start = start(activity, timeZone: timeZone),
         let index = gymLeft.firstIndex(where: {
-          CalendarDay(date: $0.start, timeZone: timeZone) == day && abs($0.start.timeIntervalSince(start)) <= mergeWindow
+          CalendarDay(date: $0.start, timeZone: timeZone) == day
+            && abs($0.start.timeIntervalSince(start)) <= mergeWindow
         })
       {
         item = gymLeft.remove(at: index)

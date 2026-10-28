@@ -14,10 +14,9 @@ struct ActivityFeedTests {
     return activity
   }
 
+  /// 28.10.2026, volle Stunde in UTC.
   func date(_ hour: Int) -> Date {
-    var components = DateComponents(year: 2026, month: 10, day: 28, hour: hour)
-    components.timeZone = .gmt
-    return Calendar(identifier: .gregorian).date(from: components)!
+    Date(timeIntervalSince1970: 1_793_145_600 + Double(hour) * 3_600)
   }
 
   @Test func mergesGymWithGarminStrength() {

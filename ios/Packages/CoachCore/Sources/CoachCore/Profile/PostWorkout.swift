@@ -79,7 +79,8 @@ public enum PostWorkout {
           slots.map { $0.isDemandingEndurance ? SessionSlot($0.sport, .easy) : $0 }, on: weekday)
         let titles = slots.filter(\.isDemandingEndurance).map(\.title).joined(separator: ", ")
         suggestion = Suggestion(
-          day: tomorrow, text: "Morgen (\(weekday.long)) \(titles) locker statt fordernd – zwei harte Tage "
+          day: tomorrow,
+          text: "Morgen (\(weekday.long)) \(titles) locker statt fordernd – zwei harte Tage "
             + "hintereinander bringen wenig und kosten Erholung.", schedule: adjusted)
         evidence.append("intensity.distribution")
       }
