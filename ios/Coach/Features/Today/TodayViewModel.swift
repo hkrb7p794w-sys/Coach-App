@@ -19,6 +19,10 @@ final class TodayViewModel {
     let advice: ScheduleAdvice?
     /// Soll/Ist je Einheit dieser Woche (nur bei persönlichem Profil).
     var sessions: SessionMatcher.Week?
+    /// „Jetzt dran“ für beide Modi.
+    var focus: TodayFocus?
+    /// Belastung der letzten 7 Tage über alle Sportarten.
+    var load: WeekLoad.Result?
   }
 
   private struct CachedNote: Codable {
@@ -52,7 +56,7 @@ final class TodayViewModel {
 
   func update(
     days: [DailyMetrics], activities: [GarminActivity], settings: CoachSettings, gymDays: [CalendarDay] = [],
-    now: Date = .now
+    gym: [ActivityFeed.GymItem] = [], now: Date = .now
   ) {
     let today = CalendarDay(date: now)
     let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
@@ -60,30 +64,40 @@ final class TodayViewModel {
     let metrics = byDay[today] ?? yesterday
     let referenceDay = metrics?.day ?? today
 
+    // Sehr negative Form (Ermüdung weit über der Fitness) ergibt höchstens „locker“.
     let recommendation = RecoveryEvaluator.evaluate(
       metrics ?? DailyMetrics(day: today),
       restingHeartRate7DayAverage: RecoveryEvaluator.average(
         \.restingHeartRate, in: days, daysBefore: 1...7, today: referenceDay)
-    )
+    ).limited(byForm: FitnessForm.series(activities: activities, today: today))
+    let hasRecovery = metrics != nil || recommendation.isLimitedByForm
     let week = WeeklyVolume(activities: activities, weekContaining: today)
     let plan = SeasonPlan.state(today: today, config: settings.season, week: week)
     let todayPlan = schedule.map {
       Self.todayPlan(
         schedule: $0, activities: activities, gymDays: gymDays, settings: settings, today: today,
-        recommendation: recommendation, hasMetrics: metrics != nil)
+        recommendation: recommendation, hasMetrics: hasRecovery)
     }
     var advice: ScheduleAdvice?
     var sessions: SessionMatcher.Week?
+    var focus: TodayFocus?
     if settings.profile.mode == .personal {
       // „Geschafft“ nur, wenn die geplanten Einheiten wirklich gemacht sind (Sportart, Dauer), nicht bei irgendeiner
       // Aktivität.
       let week = Self.sessionWeek(settings: settings, activities: activities, gymDays: gymDays, today: today)
       sessions = week
       let recovery = MissedSessions.cappedRecovery(
-        metrics == nil ? nil : recommendation.level, sickDay: settings.illnessDay, today: today)
-      advice = ScheduleAdvisor.advice(
+        hasRecovery ? recommendation.level : nil, sickDay: settings.illnessDay, today: today)
+      let personal = ScheduleAdvisor.advice(
         profile: settings.profile, schedule: settings.schedule(inWeekOf: today), day: today,
         recovery: recovery, trainedToday: week.allCounted(on: today))
+      advice = personal
+      focus = TodayFocus.personal(
+        advice: personal, recommendation: hasRecovery ? recommendation : nil, week: week, activities: activities,
+        today: today)
+    } else if let todayPlan {
+      focus = TodayFocus.season(
+        today: todayPlan, recommendation: recommendation, hasMetrics: hasRecovery, plan: plan, week: week)
     }
     snapshot = Snapshot(
       metrics: metrics,
@@ -93,7 +107,9 @@ final class TodayViewModel {
       week: week,
       today: todayPlan,
       advice: advice,
-      sessions: sessions
+      sessions: sessions,
+      focus: focus,
+      load: WeekLoad.check(activities: activities, gym: gym, today: today)
     )
     showCachedOrFallback()
   }

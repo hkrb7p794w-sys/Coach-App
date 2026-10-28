@@ -1,29 +1,6 @@
 import CoachCore
 import SwiftUI
 
-/// „Heute“ für Profile ohne Saisonplan: Empfehlung aus Erholung und eigenem Wochenplan, die Woche auf einen Blick
-/// und der Fortschritt zu den eigenen Zielen.
-struct PersonalTodaySections: View {
-  let snapshot: TodayViewModel.Snapshot
-  let activities: [GarminActivity]
-  let gymDays: Set<CalendarDay>
-  /// Wochenstreifen und Ziele mit anzeigen (auf „Heute“ liegen sie unter „Diese Woche“).
-  var showsWeek = true
-  @Environment(AppModel.self) private var model
-
-  var body: some View {
-    if let advice = snapshot.advice {
-      PersonalAdviceSection(snapshot: snapshot, advice: advice)
-    }
-    if let sessions = snapshot.sessions {
-      MissedSessionSection(week: sessions)
-    }
-    if showsWeek {
-      PersonalWeekSections(snapshot: snapshot, activities: activities, gymDays: gymDays)
-    }
-  }
-}
-
 /// Die Woche auf einen Blick und der Fortschritt zu den eigenen Zielen.
 struct PersonalWeekSections: View {
   let snapshot: TodayViewModel.Snapshot
@@ -36,109 +13,6 @@ struct PersonalWeekSections: View {
       schedule: model.settings.schedule(inWeekOf: snapshot.plan.today), sessions: snapshot.sessions,
       activityDays: Set(activities.filter { ($0.durationSeconds ?? 0) >= 600 }.compactMap(\.day)).union(gymDays))
     PersonalGoalSection(profile: model.settings.profile, snapshot: snapshot, activities: activities)
-  }
-}
-
-/// Warnung, wenn der Laufumfang der letzten 7 Tage deutlich über dem Schnitt der drei Wochen davor liegt.
-struct LoadWarningSection: View {
-  let activities: [GarminActivity]
-  let today: CalendarDay
-
-  var body: some View {
-    if let warning = LoadCheck.running(activities: activities, today: today).warning {
-      Section {
-        Label {
-          Text(warning).font(.subheadline)
-        } icon: {
-          Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-        }
-        EvidenceDisclosure(ruleIDs: ["run.progression"])
-      } header: {
-        Text("Laufumfang")
-      }
-    }
-  }
-}
-
-private struct PersonalAdviceSection: View {
-  let snapshot: TodayViewModel.Snapshot
-  let advice: ScheduleAdvice
-  @Environment(AppModel.self) private var model
-
-  private var color: Color {
-    switch snapshot.recommendation.level {
-    case .normal: .green
-    case .locker: .orange
-    case .pause: .red
-    }
-  }
-
-  private var symbol: String {
-    switch advice.mode {
-    case .asPlanned: "checkmark.circle.fill"
-    case .lighter: "tortoise.fill"
-    case .rest, .restDay: "bed.double.fill"
-    case .done: "checkmark.seal.fill"
-    }
-  }
-
-  var body: some View {
-    let today = snapshot.plan.today
-    let slots = model.settings.schedule(inWeekOf: today).slots(on: Weekday(day: today))
-    let note = model.settings.planAdjustments.note(for: Weekday(day: today), inWeekOf: today)
-    Section {
-      VStack(alignment: .leading, spacing: 10) {
-        HStack(alignment: .center, spacing: 12) {
-          Image(systemName: symbol)
-            .font(.title)
-            .foregroundStyle(.white)
-            .frame(width: 52, height: 52)
-            .background(color.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .accessibilityHidden(true)
-          VStack(alignment: .leading, spacing: 2) {
-            Text(advice.headline).font(.title3.bold())
-            Text("Erholung: \(snapshot.recommendation.label)").font(.footnote).foregroundStyle(.secondary)
-          }
-        }
-        Text(advice.detail).font(.subheadline)
-        if !snapshot.recommendation.reasons.isEmpty {
-          Text(snapshot.recommendation.reasons.joined(separator: " · "))
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-        if snapshot.isFromYesterday {
-          Label("Noch keine Garmin-Werte für heute – Einordnung mit den Werten von gestern.", systemImage: "clock")
-            .font(.footnote)
-            .foregroundStyle(.orange)
-        }
-        if let move = advice.move {
-          Label("Vorschlag: auf \(move.long) verschieben", systemImage: "arrow.turn.down.right")
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(Color.accentColor)
-        }
-        if !slots.isEmpty {
-          HStack(spacing: 8) {
-            ForEach(slots) { slot in
-              Chip(text: slot.chipLabel, color: slot.sport.color)
-            }
-          }
-        }
-        if let note {
-          Label("Heute: \(note)", systemImage: "calendar.badge.clock")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-        if advice.mode != .done, !slots.isEmpty || note != nil {
-          ScrollView(.horizontal, showsIndicators: false) {
-            PlanDayActions(day: today, suggested: advice.move)
-          }
-        }
-        if !advice.evidenceIDs.isEmpty {
-          EvidenceDisclosure(ruleIDs: advice.evidenceIDs)
-        }
-      }
-      .padding(.vertical, 4)
-    }
   }
 }
 

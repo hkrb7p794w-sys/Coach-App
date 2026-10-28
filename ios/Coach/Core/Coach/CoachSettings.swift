@@ -28,6 +28,7 @@ final class CoachSettings {
   static let handledMissedKey = "coach.handledMissed"
   static let effortsKey = "coach.efforts"
   static let closedReviewsKey = "coach.closedReviews"
+  static let dismissedSuggestionsKey = "coach.dismissedSuggestions"
 
   private let defaults: UserDefaults
 
@@ -134,6 +135,11 @@ final class CoachSettings {
     didSet { save(closedReviews, forKey: Self.closedReviewsKey) }
   }
 
+  /// Verworfene Planvorschläge (`PlanSuggestion.id`).
+  var dismissedSuggestions: [String] {
+    didSet { save(dismissedSuggestions, forKey: Self.dismissedSuggestionsKey) }
+  }
+
   /// Hinweise aus dem letzten Import einer KI-Antwort (manueller KI-Coach).
   var importedNotes: ImportedNotes? {
     didSet { save(importedNotes, forKey: Self.importedNotesKey) }
@@ -203,6 +209,10 @@ final class CoachSettings {
       defaults.data(forKey: Self.effortsKey).flatMap { try? JSONDecoder().decode([String: Int].self, from: $0) } ?? [:]
     closedReviews =
       defaults.data(forKey: Self.closedReviewsKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+    dismissedSuggestions =
+      defaults.data(forKey: Self.dismissedSuggestionsKey).flatMap {
+        try? JSONDecoder().decode([String].self, from: $0)
+      } ?? []
     importedNotes = defaults.data(forKey: Self.importedNotesKey).flatMap {
       try? JSONDecoder().decode(ImportedNotes.self, from: $0)
     }

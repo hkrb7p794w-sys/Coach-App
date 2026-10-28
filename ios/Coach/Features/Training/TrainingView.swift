@@ -39,6 +39,14 @@ struct TrainingView: View {
             title: "Aktivitäten", symbol: "list.bullet.rectangle", color: .gray,
             value: "\(activities.count)", caption: "alle Quellen"
           ) { ActivityListView() }
+          let gym = gymSessions.compactMap(\.session).map(ActivityFeed.GymItem.init)
+          let weekMinutes = TrainingTrends.weeklyMinutes(
+            activities: activities.compactMap(\.activity), gym: gym, today: today, weeks: 1
+          ).reduce(0) { $0 + $1.minutes }
+          HubRow(
+            title: "Trends", symbol: "chart.bar.xaxis", color: .purple, value: "\(weekMinutes) min",
+            caption: "diese Woche"
+          ) { TrendsPage(activities: activities.compactMap(\.activity), gym: gym) }
           HubRow(
             title: "Schlaf-Coach", symbol: "moon.stars.fill", color: .indigo,
             value: SleepCoach.report(

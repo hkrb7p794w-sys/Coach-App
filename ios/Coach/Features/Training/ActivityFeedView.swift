@@ -8,44 +8,73 @@ struct ActivityListView: View {
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var records: [ActivityRecord]
   @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymRecords: [GymSessionRecord]
   @Environment(AppModel.self) private var model
+  @State private var filter = ActivityFeed.Filter()
 
   /// So viele Wochen bekommen den Bezug zum Plan (ältere Wochen ohne, damit die Liste schnell bleibt).
   private static let plannedWeeks = 6
 
   var body: some View {
-    let entries = feed()
+    let all = feed()
+    let entries = filter.apply(all, today: CalendarDay(date: .now))
     let grouped = Dictionary(grouping: entries) { String($0.day.iso.prefix(7)) }
     let recordsByID = Dictionary(records.map { ($0.garminID, $0) }, uniquingKeysWith: { first, _ in first })
     let gymByID = Dictionary(gymRecords.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     List {
-      if entries.isEmpty {
+      Section {
+        Picker("Zeitraum", selection: $filter.period) {
+          ForEach(ActivityFeed.Filter.Period.allCases) { Text($0.label).tag($0) }
+        }
+        .pickerStyle(.segmented)
+      } footer: {
+        if filter.narrows || !filter.search.isEmpty {
+          Text(
+            "\(entries.count) von \(all.count) Einheiten · Filter oben rechts"
+              + (filter.onlyPlanned ? " · Plan-Bezug der letzten \(Self.plannedWeeks) Wochen" : ""))
+        }
+      }
+      if all.isEmpty {
         ContentUnavailableView(
           "Noch keine Aktivitäten", systemImage: "figure.run",
           description: Text("Ziehe unter „Heute“ nach unten, um Garmin abzurufen, oder trage ein Training nach."))
+      } else if entries.isEmpty {
+        ContentUnavailableView.search(text: filter.search)
       }
       ForEach(grouped.keys.sorted(by: >), id: \.self) { month in
         Section(monthTitle(month)) {
           ForEach(grouped[month] ?? []) { entry in
-            if let activity = entry.activity, let record = recordsByID[activity.id] {
-              NavigationLink {
-                ActivityDetailView(record: record)
-              } label: {
-                FeedRow(entry: entry)
-              }
-            } else if let gym = entry.gym, let record = gymByID[gym.id], let session = record.session {
-              NavigationLink {
-                SessionDetailView(record: record, session: session)
-              } label: {
-                FeedRow(entry: entry)
-              }
-            } else {
-              FeedRow(entry: entry)
-            }
+            FeedEntryLink(
+              entry: entry, record: entry.activity.flatMap { recordsByID[$0.id] },
+              gymRecord: entry.gym.flatMap { gymByID[$0.id] })
           }
         }
       }
     }
     .navigationTitle("Aktivitäten")
+    .searchable(text: $filter.search, prompt: "Name, Sportart, Wert")
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        Menu {
+          Picker("Sportart", selection: $filter.sport) {
+            Text("Alle Sportarten").tag(TrainingSport?.none)
+            ForEach(TrainingSport.allCases) { sport in
+              Label(sport.label, systemImage: sport.symbol).tag(TrainingSport?.some(sport))
+            }
+          }
+          Toggle("Nur Plan-Einheiten", isOn: $filter.onlyPlanned)
+          Toggle("Nur harte Einheiten", isOn: $filter.onlyHard)
+          if filter.narrows {
+            Button("Filter zurücksetzen", systemImage: "xmark.circle") {
+              filter = ActivityFeed.Filter(period: filter.period, search: filter.search)
+            }
+          }
+        } label: {
+          Label(
+            "Filter",
+            systemImage: filter.narrows
+              ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+        }
+      }
+    }
   }
 
   private func feed() -> [ActivityFeed.Entry] {
@@ -69,6 +98,31 @@ struct ActivityListView: View {
   private func monthTitle(_ key: String) -> String {
     guard let day = CalendarDay(iso: key + "-01") else { return key }
     return day.localDate.formatted(.dateTime.month(.wide).year())
+  }
+}
+
+/// Zeile mit Link zur passenden Detailseite (Garmin/Health/Nachgetragen oder Gym-Einheit).
+struct FeedEntryLink: View {
+  let entry: ActivityFeed.Entry
+  let record: ActivityRecord?
+  let gymRecord: GymSessionRecord?
+
+  var body: some View {
+    if entry.activity != nil, let record {
+      NavigationLink {
+        ActivityDetailView(record: record)
+      } label: {
+        FeedRow(entry: entry)
+      }
+    } else if let gymRecord, let session = gymRecord.session {
+      NavigationLink {
+        SessionDetailView(record: gymRecord, session: session)
+      } label: {
+        FeedRow(entry: entry)
+      }
+    } else {
+      FeedRow(entry: entry)
+    }
   }
 }
 

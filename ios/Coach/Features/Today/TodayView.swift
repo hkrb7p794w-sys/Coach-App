@@ -19,6 +19,39 @@ struct TodayView: View {
       + "\(settings.profile.hashValue)-\(settings.planAdjustments.hashValue)-\(settings.illnessDay?.iso ?? "")"
   }
 
+  private var gymItems: [ActivityFeed.GymItem] {
+    gymSessions.compactMap(\.session).map(ActivityFeed.GymItem.init)
+  }
+
+  /// Vorschläge für diese Woche (nur eigener Wochenplan): Tagesform und Wochenbelastung.
+  private func suggestions(_ snapshot: TodayViewModel.Snapshot) -> [PlanSuggestion] {
+    let settings = model.settings
+    guard settings.profile.mode == .personal else { return [] }
+    let today = snapshot.plan.today
+    var list: [PlanSuggestion] = []
+    if let advice = snapshot.advice,
+      let suggestion = PlanSuggestion.recovery(
+        advice: advice, profile: settings.profile, adjustments: settings.planAdjustments, today: today)
+    {
+      list.append(suggestion)
+    }
+    if let load = snapshot.load,
+      let suggestion = PlanSuggestion.load(
+        load, profile: settings.profile, adjustments: settings.planAdjustments, today: today)
+    {
+      list.append(suggestion)
+    }
+    return list
+  }
+
+  private func nextWeekSuggestions(_ snapshot: TodayViewModel.Snapshot) -> [PlanSuggestion] {
+    let settings = model.settings
+    guard settings.profile.mode == .personal, let load = snapshot.load else { return [] }
+    return PlanSuggestion.nextWeek(
+      load: load, profile: settings.profile, adjustments: settings.planAdjustments, today: snapshot.plan.today
+    ).map { [$0] } ?? []
+  }
+
   var body: some View {
     NavigationStack {
       List {
@@ -34,44 +67,34 @@ struct TodayView: View {
           }
         }
 
-        // Oben nur, was heute zählt: Empfehlung, Einheiten, Notiz. Woche, Ziele, Rangliste und Verlauf liegen
-        // eine Ebene tiefer unter „Diese Woche“.
+        // Feste Rangfolge: „Jetzt dran“, Entscheidungen (verpasst, Vorschläge, nach dem Training), Erledigtes, die
+        // Woche als Balken. Schlaf und Warnungen nur als Chips, wenn sie heute zählen; alles Weitere eine Ebene tiefer.
         if let snapshot = viewModel.snapshot {
           let allActivities = activities.compactMap(\.activity)
           let gymDays = Set(gymSessions.compactMap { $0.session?.day })
-          if model.settings.profile.mode == .season {
-            RecommendationSection(snapshot: snapshot)
-            if let today = snapshot.today {
-              TodayUnitsSection(today: today)
-            }
-            CoachNoteSection(viewModel: viewModel)
-          } else {
-            PersonalTodaySections(snapshot: snapshot, activities: allActivities, gymDays: gymDays, showsWeek: false)
-            CoachNoteSection(viewModel: viewModel)
+          let today = snapshot.plan.today
+          if let focus = snapshot.focus {
+            NowSection(snapshot: snapshot, focus: focus)
           }
-          PostWorkoutSection(
-            records: activities.filter { $0.dayKey == snapshot.plan.today.iso }, sessions: snapshot.sessions)
-          LoadWarningSection(activities: allActivities, today: snapshot.plan.today)
-          // Die Schlafenszeit erst am Abend zeigen.
-          if Calendar.current.component(.hour, from: .now) >= 17 {
-            SleepTonightSection(days: days.compactMap(\.metrics))
+          CoachNoteSection(viewModel: viewModel)
+          if let sessions = snapshot.sessions {
+            MissedSessionSection(week: sessions)
           }
+          SuggestionsSection(suggestions: suggestions(snapshot))
+          PostWorkoutSection(records: activities.filter { $0.dayKey == today.iso }, sessions: snapshot.sessions)
+          if let today = snapshot.today, model.settings.profile.mode == .season {
+            SeasonOpenSections(today: today)
+          }
+          if WeeklyReview.isDue(today), let focus = snapshot.focus {
+            WeeklyReviewSection(
+              review: WeeklyReview.make(
+                progress: focus.progress, week: snapshot.sessions, activities: allActivities, gym: gymItems,
+                today: today))
+            SuggestionsSection(suggestions: nextWeekSuggestions(snapshot), title: "Vorschlag für nächste Woche")
+          }
+          DoneTodaySection(records: activities, gymRecords: gymSessions, today: today)
           MotivationSections(snapshot: snapshot, activities: allActivities, gymDays: gymDays, showsLeague: false)
-
-          let todays = activities.filter { $0.dayKey == snapshot.plan.today.iso }
-          if !todays.isEmpty {
-            Section("Heute erledigt") {
-              ForEach(todays) { record in
-                if let activity = record.activity {
-                  NavigationLink {
-                    ActivityDetailView(record: record)
-                  } label: {
-                    ActivitySummaryRow(activity: activity)
-                  }
-                }
-              }
-            }
-          }
+          TodayHintsSection(snapshot: snapshot, activities: allActivities, days: days.compactMap(\.metrics))
 
           Section {
             NavigationLink {
@@ -79,8 +102,16 @@ struct TodayView: View {
                 snapshot: snapshot, records: Array(activities.prefix(5)), activities: allActivities,
                 gymDays: gymDays)
             } label: {
-              Label("Diese Woche, Ziele und Verlauf", systemImage: "calendar")
+              VStack(alignment: .leading, spacing: 6) {
+                if let progress = snapshot.focus?.progress {
+                  Text(progress.text).font(.subheadline.weight(.semibold)).monospacedDigit()
+                  ProgressView(value: progress.fraction).tint(progress.fraction >= 1 ? .green : .accentColor)
+                }
+                Label("Diese Woche, Ziele und Verlauf", systemImage: "calendar").font(.subheadline)
+              }
             }
+          } header: {
+            Text("Woche")
           } footer: {
             if let lastSync = model.lastSync ?? model.health.lastImport {
               Text("Letzter Abruf \(lastSync.formatted(.relative(presentation: .named)))")
@@ -108,79 +139,11 @@ struct TodayView: View {
           days: days.compactMap(\.metrics),
           activities: activities.compactMap(\.activity),
           settings: model.settings,
-          gymDays: gymSessions.compactMap { $0.session?.day }
+          gymDays: gymSessions.compactMap { $0.session?.day },
+          gym: gymItems
         )
         await viewModel.loadNote(ai: model.ai, settings: model.settings)
       }
-    }
-  }
-}
-
-/// Tagesampel als Kopf der Seite: Stufe, Ratschlag, Gründe, Phase und Countdown.
-private struct RecommendationSection: View {
-  let snapshot: TodayViewModel.Snapshot
-  @Environment(AppModel.self) private var model
-
-  private var color: Color {
-    switch snapshot.recommendation.level {
-    case .normal: .green
-    case .locker: .orange
-    case .pause: .red
-    }
-  }
-
-  private var symbol: String {
-    switch snapshot.recommendation.level {
-    case .normal: "checkmark.circle.fill"
-    case .locker: "tortoise.fill"
-    case .pause: "bed.double.fill"
-    }
-  }
-
-  var body: some View {
-    let plan = snapshot.plan
-    let season = model.settings.season
-    Section {
-      VStack(alignment: .leading, spacing: 10) {
-        HStack(alignment: .center, spacing: 12) {
-          Image(systemName: symbol)
-            .font(.title)
-            .foregroundStyle(.white)
-            .frame(width: 52, height: 52)
-            .background(color.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .accessibilityHidden(true)
-          VStack(alignment: .leading, spacing: 2) {
-            Text(snapshot.recommendation.label).font(.title3.bold())
-            Text(snapshot.today?.advice ?? snapshot.recommendation.advice).font(.subheadline)
-          }
-        }
-        if !snapshot.recommendation.reasons.isEmpty {
-          Text(snapshot.recommendation.reasons.joined(separator: " · "))
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-        if snapshot.isFromYesterday {
-          Label("Noch keine Garmin-Werte für heute – Einordnung mit den Werten von gestern.", systemImage: "clock")
-            .font(.footnote)
-            .foregroundStyle(.orange)
-        }
-        HStack(spacing: 8) {
-          Chip(text: plan.phase.rawValue, color: .accentColor)
-          if plan.daysToMarathon >= 0 { Chip(text: "Marathon \(countdown(plan.daysToMarathon))", color: .pink) }
-          if plan.daysToRace >= 0 { Chip(text: "\(season.mainRaceName) \(countdown(plan.daysToRace))", color: .teal) }
-        }
-      }
-      .padding(.vertical, 4)
-    } header: {
-      Text("\(plan.weekday), \(Formatters.shortDate(plan.today))")
-    }
-  }
-
-  private func countdown(_ days: Int) -> String {
-    switch days {
-    case 0: "heute"
-    case 1: "morgen"
-    default: "in \(days) T."
     }
   }
 }
@@ -201,21 +164,12 @@ struct Chip: View {
   }
 }
 
-/// Heutige Einheiten, offene Läufe ohne festen Tag und Ausfälle am letzten Wochentag.
-private struct TodayUnitsSection: View {
+/// Saisonplan: offene Läufe ohne festen Tag und Ausfälle am letzten Wochentag (die heutigen Einheiten stehen in
+/// „Jetzt dran“).
+private struct SeasonOpenSections: View {
   let today: TodayPlan
 
   var body: some View {
-    Section {
-      if today.items.isEmpty {
-        Text("Heute nichts Festes.").foregroundStyle(.secondary)
-      }
-      ForEach(today.items) { item in TodayItemRow(item: item) }
-    } header: {
-      Text("Heute")
-    } footer: {
-      if !today.focus.isEmpty { Text(today.focus) }
-    }
     if !today.open.isEmpty {
       Section {
         ForEach(today.open) { item in TodayItemRow(item: item) }
@@ -228,6 +182,29 @@ private struct TodayUnitsSection: View {
     if !today.skipped.isEmpty {
       Section("Fällt diese Woche aus") {
         ForEach(today.skipped) { item in TodayItemRow(item: item) }
+      }
+    }
+  }
+}
+
+/// Heute erledigt, aus dem gemeinsamen Verlauf: Garmin, Apple Health, Nachgetragenes und Gym (Doppelte einmal).
+private struct DoneTodaySection: View {
+  let records: [ActivityRecord]
+  let gymRecords: [GymSessionRecord]
+  let today: CalendarDay
+
+  var body: some View {
+    let todays = records.filter { $0.dayKey == today.iso }
+    let gym = gymRecords.filter { $0.session?.day == today }
+    let entries = ActivityFeed.entries(
+      activities: todays.compactMap(\.activity), gym: gym.compactMap(\.session).map(ActivityFeed.GymItem.init))
+    if !entries.isEmpty {
+      Section("Heute erledigt") {
+        ForEach(entries) { entry in
+          FeedEntryLink(
+            entry: entry, record: todays.first { $0.garminID == entry.activity?.id },
+            gymRecord: gym.first { $0.id == entry.gym?.id })
+        }
       }
     }
   }
