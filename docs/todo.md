@@ -38,6 +38,9 @@ hier notieren und als PR beheben.
       „Übernehmen“ ändert morgen auf locker, „Rückgängig“); „Warum?“ im persönlichen Profil; Zonenbalken im Detail.
 - [ ] **Gym Stoppuhr:** Plank: Start, Zeit läuft gegen das Ziel, Stopp übernimmt und startet die Pause, ±1/±5 s
       korrigieren; Pausenkarte einklappen und wieder groß machen.
+- [ ] **Training Heute:** „Jetzt dran“ oben (Einheit mit Soll, Ampel, Widerspruch bei gelber Ampel und hartem Plan),
+      Vorschlag „Übernehmen“/„Rückgängig“/„Anpassen“/„Verwerfen“, Wochenbalken, Chips; sonntags Wochenrückblick;
+      Training › Trends (Zoom); Aktivitäten filtern und suchen. Stimmen Wochenbelastung und Form mit Garmin überein?
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

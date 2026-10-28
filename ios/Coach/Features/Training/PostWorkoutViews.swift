@@ -8,6 +8,7 @@ struct PostWorkoutSection: View {
   let sessions: SessionMatcher.Week?
   @Environment(AppModel.self) private var model
   @State private var applied: (day: CalendarDay, previous: PlanAdjustments)?
+  @State private var editing: PlanSuggestion?
 
   var body: some View {
     let settings = model.settings
@@ -59,15 +60,22 @@ struct PostWorkoutSection: View {
         settings.planAdjustments = applied.previous
         self.applied = nil
       }
-    } else if let suggestion = result.tomorrow {
-      Label(suggestion.text, systemImage: "arrow.turn.down.right").font(.subheadline)
-        .foregroundStyle(Color.accentColor)
-      Button("Übernehmen", systemImage: "checkmark.circle") {
-        applied = (suggestion.day, settings.planAdjustments)
-        settings.planAdjustments.setWeekPlan(
-          suggestion.schedule, base: settings.profile.schedule, inWeekOf: suggestion.day)
-      }
-      .bold()
+    } else if let suggestion = result.tomorrow,
+      let plan = PlanSuggestion.postWorkout(
+        suggestion, activityID: activity.id, profile: settings.profile, adjustments: settings.planAdjustments),
+      !settings.dismissedSuggestions.contains(plan.id)
+    {
+      // Gleiche Karte wie in der Vorschlagsliste: Diff, Regelprüfung, Übernehmen/Anpassen/Verwerfen.
+      SuggestionCard(
+        suggestion: plan,
+        apply: {
+          applied = (suggestion.day, settings.planAdjustments)
+          settings.planAdjustments = plan.adjustments
+        },
+        adjust: { editing = plan },
+        dismiss: { settings.dismissedSuggestions = Array((settings.dismissedSuggestions + [plan.id]).suffix(60)) }
+      )
+      .sheet(item: $editing) { plan in NextWeekPlanSheet(monday: plan.week, initial: plan.schedule) }
     }
     Button("Anstrengung ändern (\(effort)/10)") { settings.efforts[String(activity.id)] = nil }
       .font(.footnote)

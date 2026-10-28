@@ -40,16 +40,18 @@ public enum ChartZoom {
     return last.addingTimeInterval(-days * day + day / 2)
   }
 
-  /// Y-Bereich der sichtbaren Werte mit 10 % Luft; ohne sichtbare Werte der ganze Bereich.
+  /// Y-Bereich der sichtbaren Werte mit 10 % Luft (mindestens `minimumPadding`); ohne sichtbare Werte der ganze
+  /// Bereich.
   public static func yDomain(
-    _ points: [(date: Date, value: Double)], from start: Date, days: Double, includesZero: Bool = false
+    _ points: [(date: Date, value: Double)], from start: Date, days: Double, includesZero: Bool = false,
+    minimumPadding: Double = 1
   ) -> ClosedRange<Double> {
     let end = start.addingTimeInterval(days * day)
     let visible = points.filter { $0.date >= start && $0.date <= end }.map(\.value)
     let values = visible.isEmpty ? points.map(\.value) : visible
     guard var low = values.min(), var high = values.max() else { return 0...1 }
     if includesZero { low = min(low, 0) }
-    let padding = max((high - low) * 0.1, max(abs(high) * 0.05, 1))
+    let padding = max((high - low) * 0.1, max(abs(high) * 0.05, minimumPadding))
     high += padding
     low = includesZero ? low : low - padding
     return low...high

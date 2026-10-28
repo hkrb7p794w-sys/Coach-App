@@ -14,6 +14,36 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   („Antwort abgeschnitten“), dann versucht es Groq.
 - Prompt: mehrere Mahlzeiten als ein Objekt mit gemeinsamer Liste. Liefert ein Modell trotzdem mehrere Objekte
   (als Liste oder hintereinander), führt der Worker sie zusammen (`mergeMeals`, `parseJsonOutput`).
+## 2026-10-28 – Training: „Jetzt dran“, Wochenbelastung, Vorschläge mit Diff, Rückblick, Trends
+
+- **„Heute“ mit fester Rangfolge:** oben immer „Jetzt dran“ (heutige Einheiten mit Soll bzw. Soll/Ist, Ampel, eine
+  Zeile „warum“), dann Entscheidungen (verpasst, Vorschläge, nach dem Training), „Heute erledigt“ aus dem Verlauf
+  (inkl. Gym-App), die Woche als Balken „3/5 Einheiten · 140/210 min“. Schlaf, Laufumfang und Wochenbelastung sind
+  Chips und nur da, wenn sie heute zählen; alles Weitere liegt unter „Diese Woche“.
+- **Ein Modell für beide Modi:** `TodayFocus` baut die Karte aus dem eigenen Plan (Soll/Ist) oder der Musterwoche des
+  Saisonplans. Die Plan-Bildschirme bleiben getrennt (Musterwoche gegen eigener Wochenplan); Saisonwerte erscheinen
+  weiter nur im Saisonplan.
+- **Widerspruch sichtbar:** Sagt die Ampel „locker“ oder „Pause“ und ist Forderndes geplant, steht beides da
+  („Regel: locker (…) · geplant: …“). Es gilt die Regel; die KI formuliert nur.
+- **Wochenbelastung über alle Sportarten** (`WeekLoad`): Belastung der Uhr, sonst Dauer × Intensität (locker 1, hart 2,
+  Kraft 1 je Minute, Größenordnung von session RPE nach Foster et al. 2001), letzte 7 Tage gegen den Schnitt der drei
+  Wochen davor, Hinweis ab +30 % und mindestens 60 Punkten Unterschied. Die 30 % stammen aus der Laufstudie von Nielsen
+  et al. 2014 (PMID 25155475) und sind für andere Sportarten ein Praxiswert; als Verletzungsvorhersage sind solche
+  Verhältnisse nicht belegt (Impellizzeri et al. 2020, PMID 32502973). Regel `load.weekly`.
+- **Form in der Ampel:** Bisher nur beschreibend. Neu: Liegt die Form unter −30 % der Fitness (Zone „sehr hohe
+  Belastung“, Praxiswert aus intervals.icu) und ist die Kurve eingeschwungen (42 Tage), rät die Ampel höchstens zu
+  „locker“ – nie zu einer Pause und ohne Warnung vor Verletzungen. Regel `load.fitness-form` angepasst.
+- **Vorschläge mit Diff** (`PlanSuggestion`): Tagesform (verschieben), Wochenbelastung (nächste fordernde Einheit
+  locker), nach dem Training (morgen locker), Wochenrückblick (nächste Woche ruhiger beginnen). Jeder Vorschlag zeigt
+  „Do: Qualitätslauf → Lockerer Lauf“, was bleibt, und neue Konflikte mit `ScheduleCheck` (zwei harte Tage, kein
+  Ruhetag …). Übernehmen setzt die Wochen-Ausnahmen, Rückgängig stellt sie wieder her, Anpassen öffnet die Woche mit
+  dem Vorschlag, Verwerfen merkt sich die ID. Nur im eigenen Wochenplan; der KI-Import behält seine eigene Vorschau.
+- **Wochenrückblick sonntags:** Soll/Ist, Verpasstes, Belastung zum Schnitt, Höhepunkte (alle Einheiten, längster
+  Lauf, Anteil locker, Krafteinheiten), Vorschlag für die nächste Woche und „Nächste Woche planen“.
+- **Trends:** Minuten je Sportart und Woche (12/26/52 Wochen), Form mit „heute“, aerobe Effizienz lockerer Läufe
+  (Meter je Herzschlag, ab 20 min); Verläufe zoombar wie im Gym.
+- **Verlauf filtern:** Sportart, nur Plan-Einheiten (Plan-Bezug der letzten 6 Wochen), nur harte Einheiten, Zeitraum
+  4 Wochen/3 Monate/Jahr, Suche.
 
 ## 2026-10-28 – Gym: Stoppuhr für Halteübungen, Pause verkleinern
 

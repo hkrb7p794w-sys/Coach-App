@@ -3,7 +3,8 @@ import Foundation
 /// Fitness, Ermüdung und Form aus der Trainingsbelastung der Uhr (Garmin „Training Load“ je Aktivität), nach dem
 /// Impulse-Response-Modell von Banister (Übersicht: Clarke & Skiba 2013): Fitness ist der gleitende Mittelwert
 /// über 42 Tage, Ermüdung über 7 Tage, Form die Differenz. Die Kurven beschreiben den Verlauf; als Vorhersage von
-/// Verletzungen taugen solche Verhältnisse nicht (Impellizzeri et al. 2020), daher warnt die App damit nicht.
+/// Verletzungen taugen solche Verhältnisse nicht (Impellizzeri et al. 2020), daher warnt die App damit nicht; nur bei
+/// sehr negativer Form rät die Tagesampel zu lockerem Training (`Recommendation.limited(byForm:)`).
 public enum FitnessForm {
   public static let fitnessDays = 42.0
   public static let fatigueDays = 7.0

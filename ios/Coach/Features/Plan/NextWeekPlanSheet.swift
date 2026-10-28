@@ -5,13 +5,17 @@ import SwiftUI
 /// nächsten Woche nur für diese Woche anpassen; der Wochenplan bleibt. Saisonplan: die Einheiten der nächsten
 /// Woche mit Ausrüstung im Überblick.
 struct NextWeekPlanSheet: View {
+  /// Andere Woche (Montag), z. B. „Anpassen“ bei einem Vorschlag; Standard ist die nächste Woche.
+  var monday: CalendarDay?
+  /// Vorbelegung statt des aktuellen Plans der Woche (der Vorschlag).
+  var initial: WeekSchedule?
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var schedule = WeekSchedule()
   @State private var loaded = false
 
   private var nextMonday: CalendarDay {
-    PlanAdjustments.monday(of: CalendarDay(date: .now)).adding(days: 7)
+    monday ?? PlanAdjustments.monday(of: CalendarDay(date: .now)).adding(days: 7)
   }
 
   var body: some View {
@@ -26,7 +30,7 @@ struct NextWeekPlanSheet: View {
           season
         }
       }
-      .navigationTitle("Nächste Woche planen")
+      .navigationTitle(monday == nil ? "Nächste Woche planen" : "Woche anpassen")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         if model.settings.profile.mode == .personal {
@@ -45,7 +49,7 @@ struct NextWeekPlanSheet: View {
       .onAppear {
         guard !loaded else { return }
         loaded = true
-        schedule = model.settings.schedule(inWeekOf: nextMonday)
+        schedule = initial ?? model.settings.schedule(inWeekOf: nextMonday)
       }
     }
   }

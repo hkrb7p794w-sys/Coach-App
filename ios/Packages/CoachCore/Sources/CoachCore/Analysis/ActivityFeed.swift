@@ -77,6 +77,68 @@ public enum ActivityFeed {
     public var planned: SessionResult?
   }
 
+  /// Filter und Suche für den Verlauf: Sportart, nur Plan-Einheiten, nur harte Einheiten, Zeitraum, Text.
+  public struct Filter: Equatable, Sendable {
+    public enum Period: String, CaseIterable, Sendable, Identifiable {
+      case weeks4, months3, year, all
+
+      public var id: String { rawValue }
+
+      public var label: String {
+        switch self {
+        case .weeks4: "4 Wochen"
+        case .months3: "3 Monate"
+        case .year: "Jahr"
+        case .all: "Alles"
+        }
+      }
+
+      public var days: Int? {
+        switch self {
+        case .weeks4: 28
+        case .months3: 91
+        case .year: 365
+        case .all: nil
+        }
+      }
+    }
+
+    public var sport: TrainingSport?
+    public var onlyPlanned = false
+    /// Harte Ausdauereinheiten (Intervalle, Schwelle, Test); Kraft zählt nicht.
+    public var onlyHard = false
+    public var period: Period = .all
+    public var search = ""
+
+    public init(
+      sport: TrainingSport? = nil, onlyPlanned: Bool = false, onlyHard: Bool = false, period: Period = .all,
+      search: String = ""
+    ) {
+      self.sport = sport
+      self.onlyPlanned = onlyPlanned
+      self.onlyHard = onlyHard
+      self.period = period
+      self.search = search
+    }
+
+    /// Mehr als der Zeitraum ist eingestellt (für das Symbol im Menü).
+    public var narrows: Bool { sport != nil || onlyPlanned || onlyHard }
+
+    public func apply(_ entries: [Entry], today: CalendarDay) -> [Entry] {
+      let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+      let start = period.days.map { today.adding(days: -($0 - 1)) }
+      return entries.filter { entry in
+        if let start, entry.day < start { return false }
+        if let sport, SessionMatcher.sport(entry.sport) != sport { return false }
+        if onlyPlanned, entry.planned == nil { return false }
+        if onlyHard, entry.intensity == nil || entry.intensity == .easy || entry.intensity == .gym { return false }
+        guard !query.isEmpty else { return true }
+        let haystack = ([entry.title, SessionMatcher.sport(entry.sport).label] + entry.values).joined(separator: " ")
+        return haystack.lowercased().contains(query)
+      }
+    }
+  }
+
   /// Garmin-Kraft und App-Einheit gelten als dieselbe Einheit, wenn sie am selben Tag höchstens so weit auseinander
   /// beginnen (Upload der App nach Garmin oder parallel auf der Uhr aufgezeichnet).
   public static let mergeWindow: TimeInterval = 2 * 3600
