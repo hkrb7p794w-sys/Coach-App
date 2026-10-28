@@ -176,7 +176,7 @@ final class GymViewModel {
     session.exercises.append(
       LoggedExercise(
         exerciseID: exercise.id, name: exercise.name, group: exercise.group, sets: sets,
-        restSeconds: gym.restOverrides[exercise.id] ?? (exercise.compound ? 120 : 90)))
+        restSeconds: gym.rest(for: exercise.id, compound: exercise.compound)))
     setActive(session)
   }
 
@@ -351,10 +351,12 @@ final class GymViewModel {
   /// „Satz erledigt“: abhaken, Pause starten, Fokus bleibt bei der Übung.
   func complete(set index: Int, of exerciseID: UUID, now: Date = .now) {
     var rest: Int?
+    let warmupRest = gym.restWarmup
     mutate(exerciseID) { exercise in
       guard exercise.sets.indices.contains(index), !exercise.sets[index].done else { return }
       exercise.sets[index].done = true
-      rest = exercise.restSeconds
+      // Nach Aufwärmsätzen die kürzere Aufwärmpause, sonst die Pause der Übung.
+      rest = exercise.sets[index].kind == .warmup ? min(warmupRest, exercise.restSeconds) : exercise.restSeconds
     }
     guard let rest, let session = active,
       let exerciseIndex = session.exercises.firstIndex(where: { $0.id == exerciseID })
@@ -364,14 +366,38 @@ final class GymViewModel {
     // Übung fertig: weiter mit der nächsten offenen ab hier; im Supersatz ohne Pause zur Partnerübung.
     let next = WorkoutFlow.afterCompleting(exercise: exerciseIndex, in: session)
     focusExerciseID = next.focus.map { session.exercises[$0].id }
-    guard next.rest else {
+    restSeconds = rest
+    // Ohne automatische Pause startet sie über „Pause starten“ (`startRest`).
+    guard next.rest, gym.autoStartsRest else {
       restEndsAt = nil
       RestAlarm.schedule(at: nil)
+      pendingRest = next.rest ? rest : nil
       return
     }
-    restSeconds = rest
+    pendingRest = nil
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
     RestAlarm.schedule(at: restEndsAt)
+  }
+
+  /// Pause, die bei abgeschaltetem Automatismus auf „Pause starten“ wartet.
+  private(set) var pendingRest: Int?
+
+  func startRest(now: Date = .now) {
+    guard let rest = pendingRest else { return }
+    pendingRest = nil
+    restEndsAt = now.addingTimeInterval(TimeInterval(rest))
+    RestAlarm.schedule(at: restEndsAt)
+  }
+
+  /// Pause einer Übung für diese Einheit und – in den Einstellungen gemerkt – für das nächste Mal.
+  func setRest(_ seconds: Int, of exerciseID: UUID) -> (exerciseID: String, seconds: Int)? {
+    let rest = min(max(seconds, 15), RestAdvisor.maximumSeconds)
+    var key: String?
+    mutate(exerciseID) { exercise in
+      exercise.restSeconds = rest
+      key = exercise.exerciseID
+    }
+    return key.map { ($0, rest) }
   }
 
   /// Nächster offener Satz wie auf der Fokus-Karte.
@@ -462,6 +488,7 @@ final class GymViewModel {
 
   private func resetFlow() {
     restEndsAt = nil
+    pendingRest = nil
     lastDone = nil
     focusExerciseID = nil
     clearUndo()

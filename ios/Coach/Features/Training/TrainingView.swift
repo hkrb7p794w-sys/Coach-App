@@ -353,7 +353,7 @@ struct HeartRateSections: View {
       Section {
         LabeledContent("HFmax", value: report.maxHeartRate.map { "\($0) bpm" } ?? "–")
         Text(report.maxHeartRateSource).font(.caption).foregroundStyle(.secondary)
-        NavigationLink("Eigene Werte eintragen") { SeasonSettingsView() }
+        NavigationLink("Eigene Werte eintragen") { EnduranceSettingsView(sport: .run) }
       } header: {
         Text("Herzfrequenz-Zonen")
       } footer: {
