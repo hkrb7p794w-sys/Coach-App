@@ -57,7 +57,7 @@ final class ReminderService: NSObject {
     let status = await center.notificationSettings().authorizationStatus
     var allowed = status == .authorized || status == .provisional || status == .ephemeral
     let config = settings.reminders
-    let wanted = config.enabled || config.equipment || config.weekPlanning
+    let wanted = config.enabled || config.equipment || config.weekPlanning || config.nutritionReview
     if status == .notDetermined, wanted {
       allowed = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
     }
@@ -112,6 +112,9 @@ final class ReminderService: NSObject {
       result += ReminderPlanner.weekPlanning(
         mode: settings.profile.mode, today: today, minutesNow: minutesNow, hour: config.planningHour,
         minute: config.planningMinute)
+    }
+    if config.nutritionReview {
+      result += ReminderPlanner.nutritionReview(today: today, minutesNow: minutesNow)
     }
     return result
   }

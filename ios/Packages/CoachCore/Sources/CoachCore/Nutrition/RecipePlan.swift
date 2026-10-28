@@ -434,18 +434,21 @@ public enum RecipePlanner {
   public struct ShoppingItem: Equatable, Sendable, Identifiable {
     public var name: String
     public var grams: Double
+    /// Lebensmittelgruppe der KI (für die Supermarkt-Abteilung).
+    public var group: String?
     public var id: String { name.lowercased() }
+    public var aisle: ShoppingAisle { ShoppingAisle.of(name: name, group: group) }
   }
 
   /// Einkaufsliste der Woche: gleiche Zutaten zusammengefasst, für `servings` Personen.
   public static func shoppingList(_ plan: WeeklyRecipePlan, servings: Int) -> [ShoppingItem] {
-    var sums: [String: (name: String, grams: Double)] = [:]
+    var sums: [String: (name: String, grams: Double, group: String?)] = [:]
     for item in plan.days.flatMap(\.recipes).flatMap(\.ingredients) {
       let key = item.name.lowercased().trimmingCharacters(in: .whitespaces)
-      let current = sums[key] ?? (item.name, 0)
-      sums[key] = (current.name, current.grams + item.grams * Double(max(servings, 1)))
+      let current = sums[key] ?? (item.name, 0, item.group)
+      sums[key] = (current.name, current.grams + item.grams * Double(max(servings, 1)), current.group ?? item.group)
     }
-    return sums.values.map { ShoppingItem(name: $0.name, grams: ($0.grams / 5).rounded() * 5) }
+    return sums.values.map { ShoppingItem(name: $0.name, grams: ($0.grams / 5).rounded() * 5, group: $0.group) }
       .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
   }
 }

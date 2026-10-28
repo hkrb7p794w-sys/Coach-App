@@ -94,3 +94,60 @@ export function checkRecipes(output: unknown, _request: string, input: Record<st
   if (tage.length === 0) throw new GroundingError("KI-Antwort enthielt keine passenden Tage");
   return { tage };
 }
+
+const MEAL_LABEL: Record<string, string> = {
+  fruehstueck: "Frühstück",
+  mittagessen: "Mittagessen",
+  abendessen: "Abendessen",
+  snack: "Snack",
+};
+
+const NOW_SHAPE = `Antwortformat (JSON):
+{"gerichte": [{"mahlzeit": "fruehstueck|mittagessen|abendessen|snack", "titel": str, "minuten": number,
+"zubereitung": [str, ...], "zutaten": [{"name": str, "menge_g": number, "menge_text": str, "gruppe": str,
+"naehrwerte_100g": {"kcal": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number}}]}]}`;
+
+/** „Was jetzt?“: drei Gerichte für die nächste Mahlzeit, passend zu dem, was heute noch übrig ist. */
+export function mealNowPrompt(input: Record<string, unknown>): string {
+  const n = (key: string) => (typeof input[key] === "number" ? Math.round(input[key] as number) : "–");
+  const allergens = list(input.allergens, 10, 40);
+  const pantry = list(input.pantry, 30, 60);
+  const favorites = list(input.favorites, 15, 60);
+  const minutes = typeof input.maxMinutes === "number" ? Math.round(input.maxMinutes) : 30;
+  const meal = MEAL_LABEL[text(input.mahlzeit, 20)] ?? "nächste Mahlzeit";
+  return [
+    "Du bist Sporternährungs-Coach und Koch. Schlage genau drei Gerichte für die nächste Mahlzeit vor.",
+    `Mahlzeit: ${meal}.`,
+    `Ziel dieser Mahlzeit (von der App berechnet, nicht ändern): ${n("kcal")} kcal, ${n("protein_g")} g Protein, ` +
+      `${n("carbs_g")} g Kohlenhydrate, ${n("fat_g")} g Fett.`,
+    `Ernährungsweise: ${DIET_TEXT[text(input.diet, 20)] ?? "Mischkost."}`,
+    `Allergene/Unverträglichkeiten (strikt meiden): ${allergens.join(", ") || "keine"}.`,
+    `Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`,
+    `Zubereitung höchstens ${minutes} Minuten.`,
+    pantry.length
+      ? `Vorrat (vorrangig verwenden, mindestens ein Gericht nur daraus plus Grundzutaten): ${pantry.join(", ")}.`
+      : "",
+    favorites.length ? `Isst gern: ${favorites.join(", ")}.` : "",
+    "",
+    "Regeln:",
+    "- Jedes Gericht soll das Ziel etwa treffen (±10 %), vor allem Energie und Protein.",
+    "- Drei unterschiedliche Ideen (z. B. schnell, warm, ohne Kochen).",
+    "- menge_g: Menge für eine Person in Gramm (roh, wie eingekauft; Flüssigkeiten in ml = g).",
+    "- naehrwerte_100g: deine beste Schätzung je 100 g der Zutat so wie angegeben.",
+    "- gruppe: gemuese, obst, vollkorn, getreide, kartoffel, huelsenfruechte, nuesse, milch, fisch_fett, fisch, " +
+      "ei, fleisch, fett, suess, getraenk oder sonstiges.",
+    "- zubereitung: 2–5 kurze Schritte. titel: max. 40 Zeichen.",
+    `Antworte ausschließlich mit JSON. ${NOW_SHAPE}`,
+    "Schreibe durchgängig in korrektem Deutsch mit echten Umlauten (ä, ö, ü, ß).",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+/** Form prüfen: höchstens drei Gerichte. Ernährungsweise, Allergene und Mengen prüft die App. */
+export function checkMealNow(output: unknown): unknown {
+  const record = (typeof output === "object" && output !== null ? output : {}) as Record<string, unknown>;
+  const gerichte = (Array.isArray(record.gerichte) ? record.gerichte : []).slice(0, 3);
+  if (gerichte.length === 0) throw new GroundingError("KI-Antwort enthielt keine Gerichte");
+  return { gerichte };
+}

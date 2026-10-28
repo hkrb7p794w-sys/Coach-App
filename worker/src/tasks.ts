@@ -15,9 +15,9 @@ import {
   POINTS_WITH_SOURCES,
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
-import { mealPrompt, nutritionReviewPrompt } from "./nutrition";
+import { labelPrompt, mealPrompt, nutritionReviewPrompt } from "./nutrition";
 import { athleteProfile } from "./profile";
-import { checkRecipes, weeklyRecipesPrompt } from "./recipes";
+import { checkMealNow, checkRecipes, mealNowPrompt, weeklyRecipesPrompt } from "./recipes";
 import { list, text } from "./tasks-util";
 
 export { list, text } from "./tasks-util";
@@ -134,6 +134,13 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.2,
     build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
   },
+  /** Nährwerttabelle vom Foto ablesen (Barcode unbekannt); nur Bild, keine Gesundheitsdaten. */
+  nutrition_label: {
+    json: true,
+    allowImages: true,
+    temperature: 0,
+    build: () => ({ prompt: labelPrompt() }),
+  },
   /** Ernährung und Training des Tages gemeinsam auswerten. */
   nutrition_review: {
     json: true,
@@ -166,6 +173,15 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.3,
     build: (input) => ({ system: CHAT_SYSTEM, prompt: chatPrompt(input) }),
     ground: groundChat,
+  },
+  /** „Was jetzt?“: drei Gerichte zu den übrigen Tagesmakros (Ziele rechnet die App). */
+  meal_now: {
+    json: true,
+    allowImages: false,
+    temperature: 0.6,
+    maxOutputTokens: 6000,
+    build: (input) => ({ prompt: mealNowPrompt(input) }),
+    ground: checkMealNow,
   },
   /** Rezeptideen für die kommende Woche zu den Tageszielen der App. */
   weekly_recipes: {

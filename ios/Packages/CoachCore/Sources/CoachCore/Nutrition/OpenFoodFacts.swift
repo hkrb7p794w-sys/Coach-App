@@ -8,13 +8,15 @@ import Foundation
 public enum OpenFoodFacts {
   public static let userAgent = "CoachApp/0.4 (iOS; privat)"
   static let fields =
-    "code,product_name,product_name_de,generic_name_de,brands,quantity,serving_quantity,nutriments"
+    "code,product_name,product_name_de,generic_name_de,brands,quantity,serving_quantity,serving_size,nutriments"
 
   public struct Product: Equatable, Sendable {
     public let barcode: String
     public let name: String
     public let brand: String?
     public let servingGrams: Double?
+    /// Packungsangabe zur Portion, z. B. „1 Riegel (45 g)“.
+    public var servingText: String?
     public let per100g: NutrientValues
 
     public func item(grams: Double? = nil) -> MealItem {
@@ -22,6 +24,7 @@ public enum OpenFoodFacts {
         name: brand.map { "\(name) (\($0))" } ?? name, grams: grams ?? servingGrams ?? 100,
         source: .openFoodFacts, per100g: per100g)
       item.barcode = barcode
+      item.portion = PortionGuess.serving(text: servingText, grams: servingGrams)
       return item
     }
   }
@@ -77,6 +80,6 @@ public enum OpenFoodFacts {
     let serving = product["serving_quantity"]?.doubleValue.flatMap { $0 > 0 ? $0 : nil }
     return Product(
       barcode: barcode, name: name, brand: brand?.isEmpty == false ? brand : nil, servingGrams: serving,
-      per100g: values)
+      servingText: product["serving_size"]?.stringValue, per100g: values)
   }
 }

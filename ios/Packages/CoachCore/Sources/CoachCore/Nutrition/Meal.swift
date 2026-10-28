@@ -46,6 +46,8 @@ public struct MealItem: Codable, Equatable, Sendable, Identifiable {
   public var barcode: String?
   public var source: Source
   public var per100g: NutrientValues
+  /// Portion des Lebensmittels (z. B. „Scheibe“ à 30 g), damit Mengen in Stück statt Gramm eingegeben werden.
+  public var portion: Portion?
 
   public init(name: String, grams: Double, source: Source, per100g: NutrientValues) {
     self.name = name
@@ -93,6 +95,7 @@ public struct MealAnalysis: Equatable, Sendable {
     item.confidence = value["sicherheit"]?.stringValue
     item.group = value["gruppe"]?.stringValue
     item.barcode = value["barcode"]?.stringValue.flatMap { OpenFoodFacts.isValidBarcode($0) ? $0 : nil }
+    item.portion = PortionGuess.from(amountText: item.amountText, grams: grams)
     return item
   }
 }
