@@ -379,6 +379,39 @@ final class GymViewModel {
     RestAlarm.schedule(at: restEndsAt)
   }
 
+  // MARK: Halteübungen (Stoppuhr)
+
+  /// Laufende Stoppuhr einer Halteübung: Satz und Startzeit.
+  private(set) var hold: (exercise: UUID, set: Int, start: Date)?
+
+  func startHold(set index: Int, of exerciseID: UUID, now: Date = .now) {
+    // Eine laufende Pause endet mit dem Start des nächsten Satzes.
+    restEndsAt = nil
+    pendingRest = nil
+    RestAlarm.schedule(at: nil)
+    hold = (exerciseID, index, now)
+  }
+
+  /// Stopp: gemessene Sekunden übernehmen, Satz abhaken, Pause starten. Korrektur danach über `correctHold`.
+  func stopHold(now: Date = .now) {
+    guard let hold else { return }
+    self.hold = nil
+    setReps(HoldTimer.seconds(from: hold.start, to: now), set: hold.set, of: hold.exercise)
+    complete(set: hold.set, of: hold.exercise, now: now)
+  }
+
+  func cancelHold() {
+    hold = nil
+  }
+
+  /// Zuletzt gestoppte Zeit nachträglich korrigieren (zu spät gestoppt usw.).
+  func correctHold(by delta: Int) {
+    guard let last = lastDone,
+      let seconds = active?.exercises.first(where: { $0.id == last.exercise })?.sets[safe: last.set]?.reps
+    else { return }
+    setReps(HoldTimer.corrected(seconds, by: delta), set: last.set, of: last.exercise)
+  }
+
   /// Pause, die bei abgeschaltetem Automatismus auf „Pause starten“ wartet.
   private(set) var pendingRest: Int?
 
@@ -489,6 +522,7 @@ final class GymViewModel {
   private func resetFlow() {
     restEndsAt = nil
     pendingRest = nil
+    hold = nil
     lastDone = nil
     focusExerciseID = nil
     clearUndo()

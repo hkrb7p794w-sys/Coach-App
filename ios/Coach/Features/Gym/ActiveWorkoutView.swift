@@ -138,6 +138,7 @@ struct ActiveWorkoutView: View {
     }
     .safeAreaInset(edge: .bottom) {
       VStack(spacing: 10) {
+        HoldCorrection(session: session, viewModel: viewModel)
         RestPanel(viewModel: viewModel)
         if !showsList {
           DoneButton(session: session, viewModel: viewModel) { showFinish = true }
@@ -460,11 +461,16 @@ private struct DoneButton: View {
   let session: GymSession
   let viewModel: GymViewModel
   let finish: () -> Void
+  @Environment(AppModel.self) private var model
 
   var body: some View {
     let target = FocusTarget(session: session, focus: viewModel.focusExerciseID)
     Group {
-      if let target, let set = target.set {
+      if let target, let set = target.set,
+        model.settings.gym.exercise(session.exercises[target.exerciseIndex].exerciseID)?.tracking == .time
+      {
+        HoldControls(exercise: session.exercises[target.exerciseIndex], set: set, viewModel: viewModel)
+      } else if let target, let set = target.set {
         Button {
           viewModel.complete(set: set, of: session.exercises[target.exerciseIndex].id)
         } label: {
@@ -487,18 +493,133 @@ private struct DoneButton: View {
   }
 }
 
+// MARK: - Halteübungen
+
+/// Stoppuhr für Plank & Co.: Start, live mitlaufende Zeit gegen das Ziel, Stopp übernimmt die Zeit und hakt ab.
+private struct HoldControls: View {
+  let exercise: LoggedExercise
+  let set: Int
+  let viewModel: GymViewModel
+
+  var body: some View {
+    let target = exercise.sets[safe: set]?.reps ?? 0
+    if let hold = viewModel.hold, hold.exercise == exercise.id, hold.set == set {
+      TimelineView(.periodic(from: hold.start, by: 1)) { context in
+        let elapsed = max(0, Int(context.date.timeIntervalSince(hold.start)))
+        VStack(spacing: 8) {
+          Text(hold.start, style: .timer)
+            .font(.system(size: 48, weight: .bold, design: .rounded))
+            .monospacedDigit()
+          if target > 0 {
+            Text(HoldTimer.targetText(elapsed: elapsed, target: target))
+              .font(.subheadline.weight(.medium))
+              .foregroundStyle(elapsed >= target ? Color.green : Color.secondary)
+          }
+          Button {
+            viewModel.stopHold()
+          } label: {
+            Label("Stopp – Zeit übernehmen", systemImage: "stop.fill")
+              .font(.title3.bold())
+              .frame(maxWidth: .infinity, minHeight: 60)
+          }
+          .buttonStyle(.borderedProminent)
+          .tint(.red)
+          Button("Abbrechen") { viewModel.cancelHold() }.font(.footnote)
+        }
+        .sensoryFeedback(.success, trigger: target > 0 && elapsed >= target)
+      }
+    } else {
+      HStack(spacing: 10) {
+        Button {
+          viewModel.startHold(set: set, of: exercise.id)
+        } label: {
+          Label(target > 0 ? "Start · Ziel \(target) s" : "Stoppuhr starten", systemImage: "timer")
+            .font(.title3.bold())
+            .frame(maxWidth: .infinity, minHeight: 60)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.green)
+        Button {
+          viewModel.complete(set: set, of: exercise.id)
+        } label: {
+          Image(systemName: "checkmark").font(.title3.bold()).frame(width: 60, height: 60)
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel("Ohne Stoppuhr erledigt (\(target) s)")
+      }
+    }
+  }
+}
+
+/// Nach dem Stopp: gemessene Zeit korrigieren, falls zu spät oder zu früh gestoppt.
+private struct HoldCorrection: View {
+  let session: GymSession
+  let viewModel: GymViewModel
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    if viewModel.hold == nil, viewModel.restEndsAt != nil || viewModel.pendingRest != nil,
+      let last = viewModel.lastDone,
+      let exercise = session.exercises.first(where: { $0.id == last.exercise }),
+      model.settings.gym.exercise(exercise.exerciseID)?.tracking == .time,
+      let seconds = exercise.sets[safe: last.set]?.reps
+    {
+      HStack(spacing: 8) {
+        Text("Gehalten \(seconds) s").font(.subheadline.weight(.semibold)).monospacedDigit()
+        Spacer(minLength: 4)
+        ForEach([-5, -1, 1, 5], id: \.self) { delta in
+          Button(delta > 0 ? "+\(delta)" : "−\(-delta)") { viewModel.correctHold(by: delta) }
+            .accessibilityLabel("\(abs(delta)) Sekunden \(delta > 0 ? "mehr" : "weniger")")
+        }
+      }
+      .buttonStyle(.bordered)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 8)
+      .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+      .sensoryFeedback(.selection, trigger: seconds)
+    }
+  }
+}
+
 // MARK: - Pause
 
 /// Pause groß mit Fortschrittsbalken; darunter freiwillig RIR für den gerade erledigten Satz.
 private struct RestPanel: View {
   let viewModel: GymViewModel
   @Environment(AppModel.self) private var model
+  /// Klein gemacht: nur Restzeit und „Weiter“ – mehr Platz für Satz und Notizen. Bleibt für die nächsten Pausen.
+  @AppStorage("gym.restPanelCollapsed") private var collapsed = false
 
   var body: some View {
-    if let end = viewModel.restEndsAt, end > .now {
+    if let end = viewModel.restEndsAt, end > .now, collapsed {
+      HStack(spacing: 12) {
+        Image(systemName: "timer").foregroundStyle(.secondary).accessibilityHidden(true)
+        Text(timerInterval: Date.now...end, countsDown: true)
+          .font(.title3.bold().monospacedDigit())
+        Spacer()
+        Button("Weiter") { viewModel.skipRest() }.bold()
+        Button {
+          withAnimation { collapsed = false }
+        } label: {
+          Image(systemName: "chevron.up").frame(width: 32, height: 32)
+        }
+        .accessibilityLabel("Pause groß anzeigen")
+      }
+      .buttonStyle(.bordered)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 8)
+      .background(.thinMaterial, in: Capsule())
+    } else if let end = viewModel.restEndsAt, end > .now {
       VStack(spacing: 10) {
         HStack(alignment: .firstTextBaseline) {
           Label("Pause", systemImage: "timer").font(.headline)
+          Button {
+            withAnimation { collapsed = true }
+          } label: {
+            Image(systemName: "chevron.down").frame(width: 32, height: 32)
+          }
+          .buttonStyle(.borderless)
+          .accessibilityLabel("Pause klein machen")
           Spacer()
           Text(timerInterval: Date.now...end, countsDown: true)
             .font(.system(size: 36, weight: .bold, design: .rounded))
