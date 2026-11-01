@@ -22,7 +22,7 @@ struct MealPlanningTests {
       "gerichte": .array([
         .object([
           "titel": .string("Linsen-Bowl"), "mahlzeit": .string("abendessen"),
-          "zutaten": .array([ingredient("Linsen", 100, kcal: 300), ingredient("Spinat", 100, kcal: 20)]),
+          "zutaten": .array([ingredient("Testlinsen", 100, kcal: 300), ingredient("Testspinat", 100, kcal: 20)]),
         ]),
         .object([
           "titel": .string("Hähnchen-Reis"), "mahlzeit": .string("abendessen"),
@@ -33,7 +33,7 @@ struct MealPlanningTests {
     let result = MealNow.suggestions(output: output, targetKilocalories: 480, diet: .vegetarian, allergens: [])
     #expect(result.recipes.map(\.title) == ["Linsen-Bowl"])
     #expect(result.notes.first?.contains("Hähnchen-Reis") == true)
-    // 320 kcal → 480 kcal: Faktor 1,5, auf 5 g gerundet.
+    // 320 kcal → 480 kcal: Faktor 1,5, auf 5 g gerundet (Testnamen, damit kein BLS-Eintrag die Werte ersetzt).
     #expect(result.recipes.first?.ingredients.map(\.grams) == [150, 150])
 
     let input = MealNow.input(
