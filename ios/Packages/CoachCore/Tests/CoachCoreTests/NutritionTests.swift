@@ -140,7 +140,10 @@ struct MealTests {
     #expect(egg.per100g[.iron] == nil)
     #expect(egg.confidence == "mittel")
     #expect(analysis.items[1].isDrink)
-    #expect(NutritionSummary.totals(analysis.items)[.kcal] == 184)
+    // Kaffee kommt aus dem BLS (1 kcal je 100 ml), Rührei bleibt KI-Schätzung (kein eindeutiger Grundeintrag).
+    #expect(analysis.items[1].source == .bls)
+    #expect(egg.source == .ai)
+    #expect(NutritionSummary.totals(analysis.items)[.kcal] == 182)
   }
 
   @Test func rejectsEmptyAnalysis() {

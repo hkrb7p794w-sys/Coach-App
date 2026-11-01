@@ -117,19 +117,26 @@ struct RecipePlanTests {
       RecipePlanner.plan(
         output: .object([:]), targets: targets, diet: .omnivore, allergens: [], source: "", created: .now)
         == nil)
-    let noNutrients = dish("Leer", meal: "snack", [.object(["name": .string("Apfel"), "menge_g": .number(150)])])
+    let noNutrients = dish(
+      "Leer", meal: "snack", [.object(["name": .string("Unbekannte Zutat"), "menge_g": .number(150)])])
     #expect(
       RecipePlanner.plan(
         output: output([(monday, [noNutrients])]), targets: targets, diet: .omnivore, allergens: [], source: "",
         created: .now) == nil)
+    // Ohne Nährwerte der KI, aber mit BLS-Eintrag: Werte kommen aus dem BLS.
+    let apple = dish("Apfel", meal: "snack", [.object(["name": .string("Apfel"), "menge_g": .number(150)])])
+    let plan = RecipePlanner.plan(
+      output: output([(monday, [apple])]), targets: targets, diet: .omnivore, allergens: [], source: "",
+      created: .now)
+    #expect(plan?.days.first?.recipes.first?.ingredients.first?.source == .bls)
   }
 
   @Test func shoppingListSumsAcrossWeek() throws {
     let dishes = [
-      dish("A", meal: "fruehstueck", [ingredient("Haferflocken", grams: 80, kcal: 370)]),
+      dish("A", meal: "fruehstueck", [ingredient("Testflocken", grams: 80, kcal: 370)]),
       dish(
         "B", meal: "snack",
-        [ingredient("haferflocken", grams: 40, kcal: 370), ingredient("Banane", grams: 120, kcal: 90)]),
+        [ingredient("testflocken", grams: 40, kcal: 370), ingredient("Testbanane", grams: 120, kcal: 90)]),
     ]
     let plan = try #require(
       RecipePlanner.plan(
@@ -139,7 +146,7 @@ struct RecipePlanTests {
         ],
         diet: .omnivore, allergens: [], source: "", created: .now))
     let list = RecipePlanner.shoppingList(plan, servings: 2)
-    #expect(list.map(\.name) == ["Banane", "Haferflocken"])
+    #expect(list.map(\.name) == ["Testbanane", "Testflocken"])
     #expect(list.last?.grams == 240)
   }
 }

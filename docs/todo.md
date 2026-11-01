@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **BLS-Nährwerte:** Mahlzeit beschreiben („2 Eier gekocht, Vollkornbrot mit Butter, Kaffee mit Milch“) →
+      Positionen mit Quelle „BLS 4.0“ statt „geschätzt“? Passt der zugeordnete BLS-Eintrag (Position öffnen)?
+      Falsche Zuordnungen hier notieren. Suche im Ernährungsreiter zeigt BLS-Treffer?
 - [ ] **Apple Health:** Einstellungen › Apple Health einschalten, Berechtigungen erteilen → Schlaf mit Phasen,
       Ruhepuls, Schritte, Workouts und Gewicht sichtbar? Keine doppelten Aktivitäten neben Garmin?
 - [ ] **GymBook-Import:** Backup auswählen → 174 Einheiten seit Februar 2024? Charts, 1RM und Rekorde je Übung

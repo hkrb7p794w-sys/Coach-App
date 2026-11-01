@@ -60,6 +60,18 @@ struct NutritionSettingsView: View {
       } header: {
         Text("Erinnerung und Rezepte")
       }
+
+      Section {
+        LabeledContent("Lebensmittel", value: "BLS 4.0")
+        LabeledContent("Markenprodukte (Barcode)", value: "Open Food Facts")
+      } header: {
+        Text("Nährwertquellen")
+      } footer: {
+        Text(
+          "\(BLS.attribution). Die KI zerlegt Mahlzeiten nur in Lebensmittel; die Nährwerte kommen aus dem BLS. "
+            + "Ohne passenden Eintrag bleibt die KI-Schätzung (in der Mahlzeit als „geschätzt“ markiert)."
+        )
+      }
     }
     .navigationTitle("Ernährung")
     .sheet(isPresented: $showsRecipePreferences) { RecipePreferencesView() }

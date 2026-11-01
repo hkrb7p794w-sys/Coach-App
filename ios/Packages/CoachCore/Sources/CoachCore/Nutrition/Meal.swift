@@ -33,6 +33,7 @@ public struct MealItem: Codable, Equatable, Sendable, Identifiable {
     case ai = "KI"
     case openFoodFacts = "Open Food Facts"
     case manual = "Eigene Angabe"
+    case bls = "BLS 4.0"
   }
 
   public var id = UUID()
@@ -48,6 +49,10 @@ public struct MealItem: Codable, Equatable, Sendable, Identifiable {
   public var per100g: NutrientValues
   /// Portion des Lebensmittels (z. B. „Scheibe“ à 30 g), damit Mengen in Stück statt Gramm eingegeben werden.
   public var portion: Portion?
+  /// Lebensmittel aus dem Bundeslebensmittelschlüssel, dessen Nährwerte übernommen wurden.
+  public var blsCode: String?
+  /// Generische Bezeichnung der KI für die Suche im BLS (z. B. „Hühnerei gekocht“).
+  public var searchTerm: String?
 
   public init(name: String, grams: Double, source: Source, per100g: NutrientValues) {
     self.name = name
@@ -96,7 +101,8 @@ public struct MealAnalysis: Equatable, Sendable {
     item.group = value["gruppe"]?.stringValue
     item.barcode = value["barcode"]?.stringValue.flatMap { OpenFoodFacts.isValidBarcode($0) ? $0 : nil }
     item.portion = PortionGuess.from(amountText: item.amountText, grams: grams)
-    return item
+    item.searchTerm = value["suchbegriff"]?.stringValue.map { String($0.prefix(80)) }
+    return BLS.enrich(item)
   }
 }
 

@@ -340,7 +340,8 @@ struct NutritionView: View {
     }
     let foundFoods = FoodSearch.rank(foodCandidates, query: query)
     let foundMeals = FoodSearch.rank(mealCandidates, query: query, limit: 6)
-    if foundFoods.isEmpty && foundMeals.isEmpty {
+    let foundBLS = query.count >= 3 ? BLS.search(query, limit: 8) : []
+    if foundFoods.isEmpty && foundMeals.isEmpty && foundBLS.isEmpty {
       Section {
         Text("Nichts gefunden. Über „+“ beschreiben, fotografieren oder Barcode scannen.").foregroundStyle(.secondary)
       }
@@ -372,6 +373,20 @@ struct NutritionView: View {
             }
           }
         }
+      }
+    }
+    if !foundBLS.isEmpty {
+      Section {
+        ForEach(foundBLS) { food in
+          QuickRow(title: food.name, detail: BLSRow.summary(food.per100g)) {
+            viewModel.draft(with: food.item())
+            query = ""
+          }
+        }
+      } header: {
+        Text("Bundeslebensmittelschlüssel")
+      } footer: {
+        Text("Öffnet den Entwurf mit 100 g. Quelle: \(BLS.attribution).")
       }
     }
   }
