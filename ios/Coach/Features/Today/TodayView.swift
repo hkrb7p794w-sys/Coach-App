@@ -274,7 +274,7 @@ private struct CoachNoteSection: View {
         Spacer()
         if viewModel.isLoadingNote {
           ProgressView()
-        } else if model.ai.isConfigured {
+        } else if model.ai.allows("daily_note") {
           Button("Neu formulieren") {
             Task { await viewModel.loadNote(ai: model.ai, settings: model.settings, force: true) }
           }

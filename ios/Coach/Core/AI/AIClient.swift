@@ -6,6 +6,13 @@ nonisolated struct AIResponse: Decodable, Equatable {
   let output: JSONValue
   let model: String
   let provider: String
+  let usage: Usage?
+
+  struct Usage: Decodable, Equatable {
+    let inputTokens: Int
+    let outputTokens: Int
+    let listPriceUsd: Double?
+  }
 }
 
 private nonisolated struct AIErrorBody: Decodable {
@@ -18,6 +25,8 @@ enum AIClientError: Error, LocalizedError, Equatable {
   case unauthorized
   case http(Int, String)
   case network(String)
+  /// Die KI-Stufe in den Einstellungen erlaubt diese Anfrage nicht.
+  case disabled(String)
 
   var errorDescription: String? {
     switch self {
@@ -26,6 +35,7 @@ enum AIClientError: Error, LocalizedError, Equatable {
     case .unauthorized: "Der Worker hat das App-Token abgelehnt."
     case .http(let status, let message): "KI-Worker HTTP \(status): \(message)"
     case .network(let detail): "Netzwerkfehler: \(detail)"
+    case .disabled(let message): message
     }
   }
 }
@@ -39,6 +49,10 @@ final class AIClient {
   private let session: URLSession
   /// Eigene Quellen aus den Einstellungen; gehen bei jeder passenden Aufgabe als belegte Regeln mit.
   var userSources: () -> [UserSource] = { [] }
+  /// KI-Stufe und Anbieter (aus den Einstellungen); gilt für jede Aufgabe.
+  var settings: () -> AISettings = { AISettings() }
+  /// Meldet jede Anfrage für das interne Nutzungsprotokoll (ohne Inhalte).
+  var onUsage: (AIUsageEntry) -> Void = { _ in }
 
   init(secrets: any SecretStore, defaults: UserDefaults = .standard, session: URLSession = .shared) {
     self.secrets = secrets
@@ -91,9 +105,50 @@ final class AIClient {
     let data: Data
   }
 
-  func run(task: String, input: [String: JSONValue] = [:], images: [Image] = []) async throws -> AIResponse {
+  /// Darf die Aufgabe laufen? Für Knöpfe und automatische Abläufe, bevor sie die KI fragen.
+  func allows(_ task: String, trigger: AITrigger = .user) -> Bool {
+    isConfigured && AIPolicy.allows(settings().mode, task: task, trigger: trigger)
+  }
+
+  /// `trigger: .automatic` für alles, was ohne Antippen startet (z. B. Notiz beim Öffnen).
+  func run(
+    task: String, input: [String: JSONValue] = [:], images: [Image] = [], trigger: AITrigger = .user
+  ) async throws -> AIResponse {
+    let settings = settings()
+    guard AIPolicy.allows(settings.mode, task: task, trigger: trigger) else {
+      throw AIClientError.disabled(AIPolicy.blockedMessage(settings.mode))
+    }
+    let started = Date()
+    do {
+      let response = try await generate(task: task, input: input, images: images, provider: settings.provider)
+      onUsage(
+        AIUsageEntry(
+          date: started, task: task, trigger: trigger, provider: response.provider, model: response.model, ok: true,
+          inputTokens: response.usage?.inputTokens, outputTokens: response.usage?.outputTokens,
+          listPriceUsd: response.usage?.listPriceUsd, milliseconds: Self.milliseconds(since: started)))
+      return response
+    } catch {
+      if error as? AIClientError != .notConfigured {
+        onUsage(
+          AIUsageEntry(
+            date: started, task: task, trigger: trigger, provider: nil, model: nil, ok: false,
+            milliseconds: Self.milliseconds(since: started), error: error.localizedDescription))
+      }
+      throw error
+    }
+  }
+
+  private static func milliseconds(since start: Date) -> Int {
+    Int(Date().timeIntervalSince(start) * 1000)
+  }
+
+  private func generate(
+    task: String, input: [String: JSONValue], images: [Image], provider: AIProviderChoice
+  ) async throws -> AIResponse {
     let input = UserSources.inject(userSources(), into: input, task: task)
-    var body: [String: JSONValue] = ["task": .string(task), "input": .object(input)]
+    var body: [String: JSONValue] = [
+      "task": .string(task), "input": .object(input), "provider": .string(provider.rawValue),
+    ]
     if !images.isEmpty {
       body["images"] = .array(
         images.map {

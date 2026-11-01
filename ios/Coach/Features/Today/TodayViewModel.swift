@@ -149,10 +149,17 @@ final class TodayViewModel {
   func loadNote(ai: AIClient, settings: CoachSettings, force: Bool = false) async {
     guard let snapshot, ai.isConfigured, !isLoadingNote else { return }
     if !force, let cached = cachedNote(for: snapshot), cached.source != Self.fallbackSource { return }
+    // Beim Öffnen nur, wenn die KI-Stufe automatische Notizen erlaubt; „Neu formulieren“ zählt als Anfrage.
+    let trigger: AITrigger = force ? .user : .automatic
+    guard ai.allows(snapshot.advice == nil ? "daily_note" : "personal_note", trigger: trigger) else {
+      noteError = nil
+      showCachedOrFallback()
+      return
+    }
     isLoadingNote = true
     defer { isLoadingNote = false }
     if let advice = snapshot.advice {
-      await loadPersonalNote(ai: ai, settings: settings, snapshot: snapshot, advice: advice)
+      await loadPersonalNote(ai: ai, settings: settings, snapshot: snapshot, advice: advice, trigger: trigger)
       return
     }
     var input = CoachingNote.input(
@@ -171,7 +178,7 @@ final class TodayViewModel {
         today.open.map { .string(CoachingNote.line($0.title, $0.caption, done: false, chip: $0.chip)) })
     }
     do {
-      let response = try await ai.run(task: "daily_note", input: input)
+      let response = try await ai.run(task: "daily_note", input: input, trigger: trigger)
       let points = CoachingNote.points(from: response.output)
       guard !points.isEmpty else { throw AIClientError.http(200, "Leere KI-Antwort") }
       store(
@@ -187,14 +194,14 @@ final class TodayViewModel {
 
   /// Persönliches Profil: gleiche Empfehlung wie die Karte, ohne Werte des Saisonplans.
   private func loadPersonalNote(
-    ai: AIClient, settings: CoachSettings, snapshot: Snapshot, advice: ScheduleAdvice
+    ai: AIClient, settings: CoachSettings, snapshot: Snapshot, advice: ScheduleAdvice, trigger: AITrigger
   ) async {
     let input = PersonalNote.input(
       profile: settings.profile, advice: advice,
       recommendation: snapshot.metrics == nil ? nil : snapshot.recommendation,
       metrics: snapshot.metrics, week: snapshot.sessions, today: snapshot.plan.today, privacy: settings.privacy)
     do {
-      let response = try await ai.run(task: "personal_note", input: input)
+      let response = try await ai.run(task: "personal_note", input: input, trigger: trigger)
       let points = CoachingNote.points(from: response.output)
       guard !points.isEmpty else { throw AIClientError.http(200, "Leere KI-Antwort") }
       store(

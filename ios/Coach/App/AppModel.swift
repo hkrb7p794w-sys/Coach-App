@@ -42,6 +42,8 @@ final class AppModel {
     league = LeagueService(ai: ai, settings: settings)
     let current = self.settings
     ai.userSources = { current.userSources }
+    ai.settings = { current.ai }
+    ai.onUsage = { entry in current.aiUsage = AIUsageLog.appending(entry, to: current.aiUsage) }
   }
 
   /// Planerfüllung für Begleiter und Rangliste. Im Saisonplan gelten die festen Einheiten als geplant.

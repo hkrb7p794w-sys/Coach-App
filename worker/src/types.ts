@@ -12,6 +12,20 @@ export interface Env {
   GEMINI_FALLBACK_MODEL?: string;
   GROQ_MODEL?: string;
   GROQ_VISION_MODEL?: string;
+  /** Workers AI (Binding „AI“ in wrangler.jsonc): offene Modelle bei Cloudflare, kein eigener Key nötig. */
+  AI?: WorkersAiBinding;
+  WORKERS_AI_MODEL?: string;
+  /** Eigener OpenAI-kompatibler Server (z. B. Ollama/LM Studio per Tunnel, OpenRouter, Mistral). */
+  OPENAI_COMPAT_URL?: string;
+  OPENAI_COMPAT_KEY?: string;
+  OPENAI_COMPAT_MODEL?: string;
+  /** Reihenfolge der Anbieter bei „Automatisch“, z. B. "gemini,workers_ai,groq". */
+  AI_PROVIDER_ORDER?: string;
+}
+
+/** Ausschnitt des Workers-AI-Bindings, den der Worker nutzt (Tests ersetzen ihn). */
+export interface WorkersAiBinding {
+  run(model: string, input: unknown, options?: unknown): Promise<unknown>;
 }
 
 export interface ImageInput {
@@ -30,10 +44,19 @@ export interface GenerateRequest {
   maxOutputTokens?: number;
 }
 
+export type ProviderId = "gemini" | "groq" | "workers_ai" | "openai_compat";
+
+/** Verbrauch einer Anfrage, so wie der Anbieter ihn meldet (fehlt, wenn er nichts meldet). */
+export interface Usage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export interface GenerateResult {
   text: string;
   model: string;
-  provider: "gemini" | "groq";
+  provider: ProviderId;
+  usage?: Usage;
 }
 
 /** Abhängigkeiten, die Tests ersetzen. */

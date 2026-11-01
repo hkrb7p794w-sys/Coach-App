@@ -5,6 +5,28 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-01 – KI: austauschbare Anbieter, Workers AI, KI-Stufen und Nutzungsprotokoll (Paket 3, PR A)
+
+- **Anbieter-Register im Worker** (`providers.ts`): Gemini, Cloudflare Workers AI, Groq und ein eigener
+  OpenAI-kompatibler Server mit gleicher Schnittstelle. Reihenfolge per `AI_PROVIDER_ORDER`, die App schickt nur eine
+  Vorliebe (`auto`, `privat`, Anbieter). „Datenschutz zuerst“ nutzt nie Anbieter, deren kostenloses Kontingent
+  Eingaben zum Training verwenden darf (Gemini).
+- **Workers AI neu:** läuft im selben Worker (Binding `AI`), kein zusätzlicher Key. Standardmodell Gemma 4 26B A4B
+  (Apache 2.0, Bilder, 256k Kontext). Kostenlos 10.000 Neurons/Tag, danach nur mit Workers Paid; Cloudflare speichert
+  Eingaben nicht und trainiert nicht damit
+  ([Pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/),
+  [Data usage](https://developers.cloudflare.com/workers-ai/platform/data-usage/)). Denkmodus aus (weniger Tokens).
+- **Eigener Server:** Ollama, LM Studio, llama.cpp oder vLLM über https (z. B. Cloudflare Tunnel); ohne Bilder.
+- **KI-Stufen in der App** (`AIPolicy`, zentral im `AIClient`): vollständig, nur auf Anfrage, keine
+  KI-Empfehlungen (nur Erfassung von Mahlzeit und Etikett auf Anfrage), aus. Automatische Anfragen (Tagesnotiz beim
+  Öffnen, Gym-Tipps) sind als `automatic` markiert. Regeln, Auswertungen, Importe und Export laufen in jeder Stufe.
+- **Nutzung intern erfasst:** je Anfrage Aufgabe, Auslöser, Anbieter, Modell, Tokens, Dauer, Listenpreis, Fehler –
+  keine Inhalte; höchstens 1.000 Einträge bzw. 180 Tage. Der Worker liefert Tokens (Gemini `usageMetadata`,
+  OpenAI-Format `usage`) und den Listenpreis aus seiner Preistabelle.
+- **Bewertung der Modelle** (Lizenz, Hardware, Kosten, Datenschutz, Hosting): `docs/ki-modelle.md`. Apple Foundation
+  Models auf dem iPhone geprüft, vorerst nicht umgesetzt (iOS 26 mit Apple Intelligence, kleines Modell, Prompts
+  liegen im Worker).
+
 ## 2026-11-01 – Ernährung: Nährwerte aus dem Bundeslebensmittelschlüssel (BLS 4.0)
 
 - **Quelle:** Max Rubner-Institut (2025): Bundeslebensmittelschlüssel (BLS), Version 4.0. Karlsruhe. Laut

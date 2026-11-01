@@ -1,5 +1,4 @@
-import { generateWithGemini } from "./gemini";
-import { generateWithGroq } from "./groq";
+import { type Preference, providerOrder } from "./providers";
 import type { Deps, Env, GenerateRequest, GenerateResult } from "./types";
 
 export class AllProvidersFailed extends Error {
@@ -9,26 +8,29 @@ export class AllProvidersFailed extends Error {
   }
 }
 
-/** Gemini (inkl. Ausweichmodelle), danach Groq. */
-export async function generate(request: GenerateRequest, env: Env, deps: Deps): Promise<GenerateResult> {
+/** Anbieter der Reihe nach (siehe providers.ts), bis einer antwortet. */
+export async function generate(
+  request: GenerateRequest,
+  env: Env,
+  deps: Deps,
+  preference: Preference = "auto",
+): Promise<GenerateResult> {
   const attempts: string[] = [];
-  const providers = [
-    { name: "Gemini", enabled: Boolean(env.GEMINI_API_KEY), run: generateWithGemini },
-    { name: "Groq", enabled: Boolean(env.GROQ_API_KEY), run: generateWithGroq },
-  ];
+  const providers = providerOrder(env, preference, request.images.length > 0);
   for (const provider of providers) {
-    if (!provider.enabled) {
-      attempts.push(`${provider.name}: kein Key`);
+    if (!provider.enabled(env)) {
+      attempts.push(`${provider.label}: nicht eingerichtet`);
       continue;
     }
     try {
       return await provider.run(request, env, deps);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      deps.log(`[ai] ${provider.name} fehlgeschlagen: ${message}`);
-      attempts.push(`${provider.name}: ${message}`);
+      deps.log(`[ai] ${provider.label} fehlgeschlagen: ${message}`);
+      attempts.push(`${provider.label}: ${message}`);
     }
   }
+  if (providers.length === 0) attempts.push("kein passender Anbieter für diese Einstellung");
   throw new AllProvidersFailed(attempts);
 }
 

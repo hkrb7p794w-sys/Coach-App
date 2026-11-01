@@ -7,6 +7,8 @@ import Observation
 final class CoachSettings {
   static let seasonKey = "coach.season"
   static let privacyKey = "coach.privacy"
+  static let aiKey = "coach.ai"
+  static let aiUsageKey = "coach.aiUsage"
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
@@ -38,6 +40,16 @@ final class CoachSettings {
 
   var privacy: PrivacyMode {
     didSet { defaults.set(privacy.rawValue, forKey: Self.privacyKey) }
+  }
+
+  /// KI-Stufe und bevorzugter Anbieter (Einstellungen › KI).
+  var ai: AISettings {
+    didSet { save(ai, forKey: Self.aiKey) }
+  }
+
+  /// Internes Protokoll der KI-Anfragen (ohne Inhalte), neueste zuerst.
+  var aiUsage: [AIUsageEntry] {
+    didSet { save(aiUsage, forKey: Self.aiUsageKey) }
   }
 
   var nutrition: NutritionSettings {
@@ -156,6 +168,12 @@ final class CoachSettings {
       defaults.data(forKey: Self.seasonKey).flatMap { try? JSONDecoder().decode(SeasonConfig.self, from: $0) }
       ?? .standard
     privacy = defaults.string(forKey: Self.privacyKey).flatMap(PrivacyMode.init(rawValue:)) ?? .reduced
+    ai =
+      defaults.data(forKey: Self.aiKey).flatMap { try? JSONDecoder().decode(AISettings.self, from: $0) }
+      ?? AISettings()
+    aiUsage =
+      defaults.data(forKey: Self.aiUsageKey).flatMap { try? JSONDecoder().decode([AIUsageEntry].self, from: $0) }
+      ?? []
     nutrition =
       defaults.data(forKey: Self.nutritionKey).flatMap { try? JSONDecoder().decode(NutritionSettings.self, from: $0) }
       ?? NutritionSettings()

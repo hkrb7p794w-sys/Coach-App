@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **KI-Stufen und Anbieter:** Einstellungen › KI: „Nur auf Anfrage“ → beim Öffnen von „Heute“ keine KI-Notiz,
+      „Neu formulieren“ geht. „Aus“ → Mahlzeit beschreiben meldet „KI ist ausgeschaltet“, Export geht. „Datenschutz
+      zuerst“ → Anbieter und Nutzung zeigt Workers AI. Nach dem Worker-Deploy: Workers AI als „eingerichtet“?
 - [ ] **BLS-Nährwerte:** Mahlzeit beschreiben („2 Eier gekocht, Vollkornbrot mit Butter, Kaffee mit Milch“) →
       Positionen mit Quelle „BLS 4.0“ statt „geschätzt“? Passt der zugeordnete BLS-Eintrag (Position öffnen)?
       Falsche Zuordnungen hier notieren. Suche im Ernährungsreiter zeigt BLS-Treffer?

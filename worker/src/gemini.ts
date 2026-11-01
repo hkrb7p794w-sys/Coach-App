@@ -5,7 +5,14 @@
  *   der API ausweichen („lite“ zuerst) und das Hauptmodell 30 Minuten meiden.
  * Pausen kürzer als im Add-on, weil die App auf die Antwort wartet.
  */
-import { type Deps, type Env, type GenerateRequest, type GenerateResult, ProviderError } from "./types";
+import {
+  type Deps,
+  type Env,
+  type GenerateRequest,
+  type GenerateResult,
+  ProviderError,
+  type Usage,
+} from "./types";
 
 const BASE = "https://generativelanguage.googleapis.com/v1beta";
 export const DEFAULT_MODEL = "gemini-3.6-flash";
@@ -89,6 +96,16 @@ function requestBody(request: GenerateRequest): unknown {
   };
 }
 
+/** Tokens aus `usageMetadata` (Denk-Tokens zählen zur Ausgabe). */
+export function geminiUsage(body: unknown): Usage | undefined {
+  const meta = (body as { usageMetadata?: Record<string, number> }).usageMetadata;
+  if (!meta) return undefined;
+  return {
+    inputTokens: meta.promptTokenCount ?? 0,
+    outputTokens: (meta.candidatesTokenCount ?? 0) + (meta.thoughtsTokenCount ?? 0),
+  };
+}
+
 /** `json`: Eine abgeschnittene JSON-Antwort (Budget aufgebraucht, Denk-Tokens zählen mit) ist unbrauchbar. */
 export function extractText(body: unknown, model: string, json = false): string {
   const typed = body as {
@@ -160,7 +177,13 @@ async function tryModel(
       throw new ProviderError(`Gemini HTTP ${response.status} (${model}): ${detail}`, false, response.status);
     }
     try {
-      return { text: extractText(await response.json(), model, request.json), model, provider: "gemini" };
+      const body = await response.json();
+      return {
+        text: extractText(body, model, request.json),
+        model,
+        provider: "gemini",
+        usage: geminiUsage(body),
+      };
     } catch (error) {
       if (error instanceof ProviderError && error.retryable) {
         lastError = error;

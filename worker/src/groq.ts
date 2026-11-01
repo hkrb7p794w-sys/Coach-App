@@ -3,7 +3,14 @@
  * Ist das eingestellte Modell abgekündigt oder unbekannt, wählt der Worker eines aus der
  * Modellliste (gleiches Selbstheilungsprinzip wie bei Gemini).
  */
-import { type Deps, type Env, type GenerateRequest, type GenerateResult, ProviderError } from "./types";
+import {
+  type Deps,
+  type Env,
+  type GenerateRequest,
+  type GenerateResult,
+  ProviderError,
+  type Usage,
+} from "./types";
 
 const BASE = "https://api.groq.com/openai/v1";
 export const DEFAULT_TEXT_MODEL = "llama-3.3-70b-versatile";
@@ -26,7 +33,18 @@ export function pickModel(available: string[], preference: RegExp[], current: st
   return undefined;
 }
 
-function messages(request: GenerateRequest): unknown[] {
+/** Antwort einer OpenAI-kompatiblen Chat-Completions-API (Groq, Workers AI, eigener Server). */
+export interface ChatCompletion {
+  choices?: { message?: { content?: string | null } }[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+}
+
+export function chatUsage(body: ChatCompletion): Usage | undefined {
+  if (!body.usage) return undefined;
+  return { inputTokens: body.usage.prompt_tokens ?? 0, outputTokens: body.usage.completion_tokens ?? 0 };
+}
+
+export function messages(request: GenerateRequest): unknown[] {
   const result: unknown[] = [];
   if (request.system) result.push({ role: "system", content: request.system });
   if (request.images.length === 0) {
@@ -127,10 +145,10 @@ export async function generateWithGroq(
     if (result.status >= 400) {
       throw new ProviderError(`Groq HTTP ${result.status} (${model}): ${result.body.slice(0, 300)}`, false);
     }
-    const body = JSON.parse(result.body) as { choices?: { message?: { content?: string } }[] };
+    const body = JSON.parse(result.body) as ChatCompletion;
     const text = body.choices?.[0]?.message?.content?.trim();
     if (!text) throw new ProviderError(`Groq (${model}) hat leeren Text geliefert`, true);
-    return { text, model, provider: "groq" };
+    return { text, model, provider: "groq", usage: chatUsage(body) };
   }
   throw lastError ?? new ProviderError("Groq ohne Ergebnis", true);
 }

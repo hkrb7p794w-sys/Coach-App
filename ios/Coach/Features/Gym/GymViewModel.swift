@@ -265,15 +265,20 @@ final class GymViewModel {
   var observations: [String] { GymCoach.observations(sessions: sessions, today: today) }
 
   /// Hinweise zur Gewichtssteigerung von der KI; ohne Worker bleiben die Regeln stehen.
-  func loadHints(ai: AIClient, goal: FitnessGoal?) async {
+  func loadHints(ai: AIClient, goal: FitnessGoal?, trigger: AITrigger = .user) async {
     guard ai.isConfigured, !isLoadingHints, !progress.isEmpty else { return }
+    guard ai.allows("gym_hints", trigger: trigger) else {
+      showFallbackHints()
+      return
+    }
     isLoadingHints = true
     defer { isLoadingHints = false }
     do {
       let response = try await ai.run(
         task: "gym_hints",
         input: GymHints.input(
-          progress: progress, recovered: recovered, volume: volume, goal: goal, observations: observations))
+          progress: progress, recovered: recovered, volume: volume, goal: goal, observations: observations),
+        trigger: trigger)
       let points = CoachingNote.points(from: response.output)
       guard !points.isEmpty else { return }
       hints = points
