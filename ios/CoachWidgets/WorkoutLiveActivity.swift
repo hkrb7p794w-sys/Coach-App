@@ -74,18 +74,18 @@ private struct AdjustRow: View {
 
   var body: some View {
     HStack(spacing: 6) {
-      Button(intent: AdjustWeightIntent(steps: -1)) { Image(systemName: "minus") }
+      Button(intent: WeightDownIntent()) { Image(systemName: "minus") }
         .accessibilityLabel("Gewicht um \(weightStep ?? "einen Schritt") verringern")
       Text(weight).font(.subheadline.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity)
-      Button(intent: AdjustWeightIntent(steps: 1)) { Image(systemName: "plus") }
+      Button(intent: WeightUpIntent()) { Image(systemName: "plus") }
         .accessibilityLabel("Gewicht um \(weightStep ?? "einen Schritt") erhöhen")
       Divider().frame(height: 22)
-      Button(intent: AdjustRepsIntent(delta: -1)) { Image(systemName: "minus") }
+      Button(intent: RepsDownIntent()) { Image(systemName: "minus") }
         .accessibilityLabel("Wiederholungen um \(repsStep ?? "1") verringern")
       Text(reps).font(.subheadline.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity)
-      Button(intent: AdjustRepsIntent(delta: 1)) { Image(systemName: "plus") }
+      Button(intent: RepsUpIntent()) { Image(systemName: "plus") }
         .accessibilityLabel("Wiederholungen um \(repsStep ?? "1") erhöhen")
     }
     .buttonStyle(.bordered)
