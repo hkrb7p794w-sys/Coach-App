@@ -51,6 +51,10 @@ hier notieren und als PR beheben.
 - [ ] **Gym Muskeln (Paket 1 B):** Gym › „Trainingspläne“ oben; Plan bearbeiten: „Reihenfolge ändern“ (ziehen),
       Heatmap des Plans; Übungen: Muskel-Chips filtern, Körperkarte in der Übung; nach dem Speichern Heatmap der
       Einheit; Auswertung › Muskeln: 7 Tage / Ø 4 Wochen / Erholung. Passt die Zuordnung der eigenen Übungen?
+- [ ] **Gym und Garmin (Paket 1 C):** Einheit mit Uhr aufzeichnen und in der App loggen → nach dem Speichern bzw.
+      nächsten Abruf in Garmin Connect *eine* Aktivität mit Kalorien, Puls und Sätzen; Einheit › „Garmin Connect“
+      zeigt den Status; „Ursprüngliche Sätze wiederherstellen“; ohne Uhr nach 3 h eigene Aktivität. Werden die
+      Übungsnamen in Connect richtig angezeigt? Alte Doppelte zählen in Verlauf und Kalorien nur einmal.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

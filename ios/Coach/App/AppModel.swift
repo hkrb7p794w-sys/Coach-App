@@ -118,6 +118,10 @@ final class AppModel {
       }
     }
     await health.importNow(garminConnected: garmin.isConfigured)
+    // Wartende Gym-Einheiten: Sätze in die inzwischen geladene Aufzeichnung der Uhr schreiben.
+    if settings.gym.uploadsToGarmin, let connect = garmin.connect, connect.isLoggedIn {
+      await GarminStrengthService.reconcile(context: container.mainContext, garmin: connect, gym: settings.gym)
+    }
     await refreshReminders()
   }
 

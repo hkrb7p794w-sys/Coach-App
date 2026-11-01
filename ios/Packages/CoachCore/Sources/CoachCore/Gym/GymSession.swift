@@ -112,6 +112,31 @@ public struct LoggedExercise: Codable, Equatable, Sendable, Identifiable {
   public var loggedSets: [LoggedSet] { sets.filter { $0.done && $0.reps > 0 } }
 }
 
+/// Verbindung einer Einheit mit Garmin Connect: Sätze in der Aufzeichnung der Uhr oder eigene Aktivität.
+public struct GarminLink: Codable, Equatable, Sendable {
+  public enum Status: String, Codable, Sendable {
+    /// Wartet auf die Aufzeichnung der Uhr (die Uhr synchronisiert oft erst später).
+    case pending
+    /// Sätze in die Aufzeichnung der Uhr geschrieben.
+    case enriched
+    /// Ohne Aufzeichnung der Uhr als eigene Aktivität hochgeladen.
+    case uploaded
+    case failed
+  }
+
+  public var status: Status
+  public var activityID: Int64?
+  public var note: String?
+  public var updatedAt: Date
+
+  public init(status: Status, activityID: Int64? = nil, note: String? = nil, updatedAt: Date) {
+    self.status = status
+    self.activityID = activityID
+    self.note = note
+    self.updatedAt = updatedAt
+  }
+}
+
 /// Eine Krafteinheit.
 public struct GymSession: Codable, Equatable, Sendable, Identifiable {
   public var id: UUID
@@ -120,6 +145,8 @@ public struct GymSession: Codable, Equatable, Sendable, Identifiable {
   public var start: Date
   public var end: Date?
   public var exercises: [LoggedExercise]
+  /// Abgleich mit Garmin; fehlt bei älteren Einheiten.
+  public var garmin: GarminLink?
 
   public init(
     id: UUID = UUID(), workoutKey: String?, title: String, start: Date, end: Date? = nil,

@@ -304,7 +304,8 @@ public enum NutritionPlanner {
 
     let bmr = mifflinStJeor(profile)
     let baseKcal = bmr * settings.activityFactor
-    var exerciseKcal = activities.reduce(0.0) { sum, activity in
+    // Ein Krafttraining, das als Export und als Aufzeichnung der Uhr vorliegt, zählt nur einmal.
+    var exerciseKcal = StrengthDuplicates.removing(from: activities).reduce(0.0) { sum, activity in
       let minutes = (activity.durationSeconds ?? 0) / 60
       return sum + max(0, (activity.calories ?? 0) - bmr / 1440 * minutes)
     }

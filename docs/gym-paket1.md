@@ -58,7 +58,9 @@ Stand: 01.11.2026. Analyse des Codes, Umsetzungsplan in drei PRs, Migrationen un
 - Zuordnung über die Startzeit (Krafttraining, gleicher Tag, höchstens 2 h Abstand, Aktivität noch keiner anderen
   Einheit zugeordnet); die Garmin-ID wird an der Einheit gespeichert. Vor dem Schreiben sichert die App die
   ursprünglichen Sätze.
-- Ohne Uhr-Aktivität bleibt der bisherige FIT-Upload als Rückfall (einstellbar).
+- Ohne Uhr-Aktivität wartet die Einheit bis zu 3 Stunden (Abgleich nach jedem Abruf) und wird dann wie bisher als
+  FIT-Datei hochgeladen (abschaltbar).
+- Die Verbindung steht als JSON an der Einheit (`GymSession.garmin`) – keine SwiftData-Migration.
 - In der App: doppelte Krafttrainings (Upload und Uhr) werden erkannt und nur einmal gezählt – im Verlauf und
   bei den Kalorien.
 
@@ -76,8 +78,10 @@ Stand: 01.11.2026. Analyse des Codes, Umsetzungsplan in drei PRs, Migrationen un
 
 - `GymSessionRecord` speichert die Einheit als JSON. Neue Felder (`LoggedExercise.skipped`) werden beim Lesen mit
   Standardwert ergänzt – keine SwiftData-Migration.
-- PR C ergänzt optionale Felder am `GymSessionRecord` (Garmin-ID, Status). Optionale Attribute mit Standardwert
-  sind eine leichte Migration, die SwiftData automatisch ausführt.
+- PR C speichert die Garmin-Verbindung im JSON der Einheit (`GymSession.garmin`, optional) statt in neuen
+  Datenbankfeldern: keine Migration, kein Risiko eines leeren Speichers nach einer fehlgeschlagenen Migration.
+  Beim Setzen wird das gespeicherte JSON roh gelesen, damit Lese-Korrekturen (Kabel-Crunch) nicht hineingeschrieben
+  werden.
 - Vergangene Einheiten werden nicht umgeschrieben; Korrekturen (Kabel-Crunch) gelten nur beim Lesen.
 
 ## Offene Einschränkungen

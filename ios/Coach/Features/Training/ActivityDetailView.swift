@@ -22,6 +22,9 @@ struct ActivityDetailView: View {
     List {
       if let current {
         header(current)
+        if current.sport == .strength {
+          LinkedGymSection(activity: current)
+        }
         if let fit {
           let route = ActivityDetails.route(fit)
           if route.count > 1 { mapSection(route) }
@@ -301,6 +304,50 @@ struct ActivitySummaryRow: View {
     case .swim: .blue
     case .strength: .purple
     case .other: .teal
+    }
+  }
+}
+
+/// Krafttraining von Garmin plus Einheit der App: dieselbe Einheit, also beides an einem Ort – Kalorien und Puls
+/// der Uhr oben, Sätze der App hier. Zuordnung über die gespeicherte Verbindung, sonst über die Startzeit.
+private struct LinkedGymSection: View {
+  let activity: GarminActivity
+  @Query(sort: \GymSessionRecord.start, order: .reverse) private var records: [GymSessionRecord]
+
+  var body: some View {
+    let pairs = records.prefix(60).compactMap { record in record.session.map { (record, $0) } }
+    let linked = pairs.first { $0.1.garmin?.activityID == activity.id }
+    let byTime = pairs.first { pair in
+      guard pair.1.garmin?.activityID == nil, let start = ActivityFeed.start(activity, timeZone: .current) else {
+        return false
+      }
+      return abs(pair.1.start.timeIntervalSince(start)) <= GarminStrengthSync.matchWindow && pair.1.day == activity.day
+    }
+    if let pair = linked ?? byTime {
+      let (record, session) = pair
+      Section {
+        ForEach(session.exercises.filter { !$0.loggedSets.isEmpty }) { exercise in
+          VStack(alignment: .leading, spacing: 2) {
+            Text(exercise.name).font(.subheadline.bold())
+            Text(
+              exercise.loggedSets.map { set in
+                set.weightKg > 0 ? "\(GermanFormat.number(set.weightKg))×\(set.reps)" : "\(set.reps)"
+              }.joined(separator: " · ")
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+          }
+        }
+        NavigationLink("Einheit in der App öffnen") { SessionDetailView(record: record, session: session) }
+      } header: {
+        Text("Sätze aus der App · \(session.title)")
+      } footer: {
+        Text(
+          session.garmin?.status == .enriched
+            ? "Die Sätze stehen auch in Garmin Connect in dieser Aktivität."
+            : "Dieselbe Einheit – Kalorien und Puls kommen von der Uhr, die Sätze aus der App. Es zählt nur einmal.")
+      }
     }
   }
 }
