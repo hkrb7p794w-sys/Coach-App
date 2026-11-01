@@ -56,7 +56,7 @@ Plan und Analyse: `docs/gym-paket1.md`.
   unveränderte Felder werden nicht geschrieben. Die Plausibilitätsprüfung bleibt.
 - **Überspringen ist ein Zustand der Übung** (`LoggedExercise.skipped`), keine Löschung: rückgängig, nachholbar,
   offene Sätze werden nicht gespeichert und nicht als vergessen gezählt.
-- **Sperrbildschirm:** `LiveActivityIntent`s mit Parameter (Gewicht ± Schritt der Übung, Wiederholungen ±1 bzw.
+- **Sperrbildschirm:** vier `LiveActivityIntent`s ohne Parameter (Gewicht ± ein Schritt der Übung, Wiederholungen ±1 bzw.
   ±5 s). Sie laufen im Prozess der App (Apple-Doku zu `LiveActivityIntent`), die Einheit liegt in den
   UserDefaults und überlebt so auch einen Start im Hintergrund. Texteingabe ist auf dem Sperrbildschirm nicht
   möglich; Sperrbildschirm-Widgets sind nicht interaktiv. Quelle: Apple-Doku „Displaying live data with Live

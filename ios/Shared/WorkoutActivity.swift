@@ -55,38 +55,48 @@ nonisolated struct CompleteSetIntent: LiveActivityIntent {
   }
 }
 
-/// Gewicht des aktuellen Satzes vom Sperrbildschirm aus ändern (ohne Entsperren).
-nonisolated struct AdjustWeightIntent: LiveActivityIntent {
-  static let title: LocalizedStringResource = "Gewicht ändern"
-
-  @Parameter(title: "Schritte") var steps: Int
+/// Gewicht und Wiederholungen des aktuellen Satzes vom Sperrbildschirm aus ändern (ohne Entsperren). Je Richtung
+/// ein eigener Intent ohne Parameter: `@Parameter` geht in `nonisolated`-Strukturen nicht.
+nonisolated struct WeightDownIntent: LiveActivityIntent {
+  static let title: LocalizedStringResource = "Gewicht verringern"
 
   init() {}
 
-  init(steps: Int) {
-    self.steps = steps
-  }
-
   func perform() async throws -> some IntentResult {
-    await WorkoutActions.run(.weight(steps))
+    await WorkoutActions.run(.weight(-1))
     return .result()
   }
 }
 
-/// Wiederholungen des aktuellen Satzes vom Sperrbildschirm aus ändern.
-nonisolated struct AdjustRepsIntent: LiveActivityIntent {
-  static let title: LocalizedStringResource = "Wiederholungen ändern"
-
-  @Parameter(title: "Änderung") var delta: Int
+nonisolated struct WeightUpIntent: LiveActivityIntent {
+  static let title: LocalizedStringResource = "Gewicht erhöhen"
 
   init() {}
 
-  init(delta: Int) {
-    self.delta = delta
+  func perform() async throws -> some IntentResult {
+    await WorkoutActions.run(.weight(1))
+    return .result()
   }
+}
+
+nonisolated struct RepsDownIntent: LiveActivityIntent {
+  static let title: LocalizedStringResource = "Wiederholungen verringern"
+
+  init() {}
 
   func perform() async throws -> some IntentResult {
-    await WorkoutActions.run(.reps(delta))
+    await WorkoutActions.run(.reps(-1))
+    return .result()
+  }
+}
+
+nonisolated struct RepsUpIntent: LiveActivityIntent {
+  static let title: LocalizedStringResource = "Wiederholungen erhöhen"
+
+  init() {}
+
+  func perform() async throws -> some IntentResult {
+    await WorkoutActions.run(.reps(1))
     return .result()
   }
 }
