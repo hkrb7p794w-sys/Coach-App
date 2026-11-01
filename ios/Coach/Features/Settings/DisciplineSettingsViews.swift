@@ -59,7 +59,7 @@ struct GymSettingsView: View {
         Text("Satzpausen")
       } footer: {
         Text(
-          "Gilt, wenn weder die Routine noch die Übung eine eigene Pause hat. Eine Pause je Übung stellst du unter "
+          "Gilt, wenn weder der Trainingsplan noch die Übung eine eigene Pause hat. Eine Pause je Übung stellst du unter "
             + "„Pausen und Notizen je Übung“ oder während der Einheit im Menü der Übung ein. Ohne sofortigen Start "
             + "erscheint nach dem Satz „Pause starten“.")
       }
@@ -199,7 +199,7 @@ private struct ExerciseSettingsDetail: View {
           ForEach(RestText.options, id: \.self) { Text(RestText.format($0)).tag($0) }
         }
       } footer: {
-        Text("Gilt ab der nächsten Einheit, auch wenn die Routine eine andere Pause hat.")
+        Text("Gilt ab der nächsten Einheit, auch wenn der Trainingsplan eine andere Pause hat.")
       }
       Section {
         TextField("z. B. Sitz 4, Griff weit, Bank auf Stufe 3", text: noteBinding, axis: .vertical)

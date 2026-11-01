@@ -66,7 +66,7 @@ struct GymPlanView: View {
       Text("Übungen, die das belasten, lässt die KI weg. Bei Schmerzen bitte ärztlich abklären.")
     }
     Section {
-      Toggle("Übungen aus meinen Routinen bevorzugen", isOn: $request.keepFavorites)
+      Toggle("Übungen aus meinen Trainingsplänen bevorzugen", isOn: $request.keepFavorites)
       LabeledContent("Ausstattung", value: equipmentText)
       LabeledContent("Erfahrung", value: model.settings.profile.level(for: .strength).label)
     } footer: {
@@ -128,13 +128,13 @@ struct GymPlanView: View {
       }
     }
     Section {
-      Toggle("Bisherige Routinen ersetzen", isOn: $replaceExisting)
+      Toggle("Bisherige Trainingspläne ersetzen", isOn: $replaceExisting)
       Button("Plan übernehmen", systemImage: "checkmark.circle.fill") { adopt(result) }
         .font(.headline)
       Button("Neu erstellen", systemImage: "arrow.clockwise") { self.result = nil }
     } footer: {
       VStack(alignment: .leading, spacing: 6) {
-        Text("Quelle: \(source). Ohne „Ersetzen“ kommen die Routinen zu deinen bestehenden hinzu.")
+        Text("Quelle: \(source). Ohne „Ersetzen“ kommen die Pläne zu deinen bestehenden hinzu.")
         EvidenceDisclosure(ruleIDs: ["gym.frequency", "gym.volume", "gym.load"])
       }
     }

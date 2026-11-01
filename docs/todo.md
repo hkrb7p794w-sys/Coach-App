@@ -48,6 +48,9 @@ hier notieren und als PR beheben.
       Trainingserinnerung; Gewicht eines Satzes ändern lässt die anderen Sätze unverändert; Ziffernblock ersetzt den
       alten Wert; „Zuletzt“ mit 5 Einheiten; Sperrbildschirm: Gewicht/Wdh. −/+ ohne Entsperren; Kabel-Crunch zeigt
       „65 kg“ statt „+65 kg Zusatz“.
+- [ ] **Gym Muskeln (Paket 1 B):** Gym › „Trainingspläne“ oben; Plan bearbeiten: „Reihenfolge ändern“ (ziehen),
+      Heatmap des Plans; Übungen: Muskel-Chips filtern, Körperkarte in der Übung; nach dem Speichern Heatmap der
+      Einheit; Auswertung › Muskeln: 7 Tage / Ø 4 Wochen / Erholung. Passt die Zuordnung der eigenen Übungen?
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 

@@ -638,6 +638,7 @@ final class GymViewModel {
     finished = FinishedWorkout(
       title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status,
       exerciseIDs: session.exercises.map(\.exerciseID),
+      muscles: MuscleLoad.session(session, custom: gym.customExercises),
       volumeChange: SessionComparison.volumeChangePercent(
         session, previous: SessionComparison.previous(of: session, in: sessions)))
     return record
@@ -709,6 +710,8 @@ struct FinishedWorkout: Equatable {
   var status: String
   /// Für „Nächstes Mal“ (Progression nach dem Speichern).
   var exerciseIDs: [String] = []
+  /// Effektive Sätze je Muskel dieser Einheit (Heatmap im Abschluss).
+  var muscles: [Muscle: Double] = [:]
   /// Volumen gegenüber der letzten gleichen Einheit in %.
   var volumeChange: Int?
 }

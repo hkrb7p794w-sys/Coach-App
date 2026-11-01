@@ -48,25 +48,32 @@ struct GymView: View {
           Section { Text(message).font(.footnote) }
         }
 
+        // Planen und Auswerten direkt unter dem Start – Trainingspläne zuerst.
         Section {
-          NavigationLink {
-            GymAnalysisView(viewModel: viewModel)
-          } label: {
-            Label("Auswertung", systemImage: "chart.bar.xaxis")
-          }
           NavigationLink {
             RoutinesView(viewModel: viewModel) { routine in
               viewModel.start(routine)
               showWorkout = true
             }
           } label: {
-            Label("Routinen", systemImage: "list.bullet.rectangle")
+            HubLabel(
+              title: "Trainingspläne", symbol: "list.bullet.rectangle.portrait",
+              caption: model.settings.gym.routines.isEmpty
+                ? "Plan anlegen oder Vorlage übernehmen"
+                : "\(model.settings.gym.routines.count) Pläne · bearbeiten, neu anlegen")
           }
           NavigationLink {
             ExerciseLibraryView(viewModel: viewModel)
           } label: {
-            Label("Übungen", systemImage: "books.vertical")
+            HubLabel(title: "Übungen", symbol: "books.vertical", caption: "Suchen, nach Muskel filtern, Anleitung")
           }
+          NavigationLink {
+            GymAnalysisView(viewModel: viewModel)
+          } label: {
+            HubLabel(title: "Auswertung", symbol: "figure.strengthtraining.traditional", caption: "Muskel-Heatmap, Erholung, Fortschritt")
+          }
+        } header: {
+          Text("Planen und auswerten")
         }
 
         if !records.isEmpty {
@@ -190,10 +197,28 @@ private struct PersonalGymSection: View {
       }
     } footer: {
       if routines.isEmpty {
-        Text("Lege unter „Routinen“ deine Einheiten an oder übernimm einen Vorschlag passend zu deinem Plan.")
+        Text("Lege unter „Trainingspläne“ deine Einheiten an oder übernimm einen Vorschlag passend zu deinem Plan.")
       } else {
-        Text("Die nächste Einheit folgt der Reihenfolge deiner Routinen nach der zuletzt trainierten.")
+        Text("Die nächste Einheit folgt der Reihenfolge deiner Trainingspläne nach dem zuletzt trainierten.")
       }
+    }
+  }
+}
+
+/// Zeile mit Symbol, Titel und kurzer Beschreibung.
+private struct HubLabel: View {
+  let title: String
+  let symbol: String
+  let caption: String
+
+  var body: some View {
+    Label {
+      VStack(alignment: .leading, spacing: 2) {
+        Text(title).font(.body.weight(.medium))
+        Text(caption).font(.caption).foregroundStyle(.secondary)
+      }
+    } icon: {
+      Image(systemName: symbol).foregroundStyle(.tint)
     }
   }
 }
@@ -435,6 +460,7 @@ private struct GymAnalysisView: View {
     List {
       CalendarSection(viewModel: viewModel)
       GymHintsSection(viewModel: viewModel)
+      MuscleOverviewSection(sessions: viewModel.sessions)
       ProgressSection(viewModel: viewModel)
       VolumeSection(viewModel: viewModel)
     }

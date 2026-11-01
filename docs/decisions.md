@@ -5,6 +5,22 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-01 – Gym: Trainingspläne, Bibliothek, Muskel-Heatmap (Paket 1, PR B)
+
+- **Belastungsmodell:** effektive Arbeitssätze je Muskel statt Kalorien. Hauptmuskel 1 Satz, mitarbeitende
+  Muskeln 0,5 („fractional“, laut Meta-Regression von Pelland et al. 2025, PMID 41343037, am besten passend).
+  Jeder Satz zählt je Muskel einmal. Aufwärmen 0, Drop-Sätze und Sätze mit RIR ≥ 4 halb (Praxiswert).
+- **Muskeln:** 17 Muskeln (Brust, drei Schulterköpfe, Trapez, Latissimus, unterer Rücken, Bizeps, Trizeps,
+  Unterarme, Bauch, seitliche Bauchmuskeln, Gesäß, Oberschenkel vorn/hinten, Adduktoren, Waden). Zuordnung je
+  Übung in `MuscleMap` (Praxis, keine Messung); eigene Übungen über Muskelgruppe und mitarbeitende Gruppen.
+- **Erholung:** „vermutlich noch in der Erholung“ bis 48 h nach mindestens 2 effektiven Sätzen, „länger nicht
+  trainiert“ ab 10 Tagen. Wochensätze ab 5 ausreichend (wie die bestehende Regel `MuscleVolume.goodRange`),
+  volle Farbe ab 10. Ausdrücklich Schätzung, keine gemessene Ermüdung (Regel `gym.muscle-load`).
+- **Darstellung:** schematische Körperkarte vorn/hinten (SwiftUI-Canvas), keine Fotos oder Animationen: fremde
+  Bilder bräuchten Lizenzen und vergrößern die App; Anleitungstexte bleiben.
+- **Pläne:** „Routinen“ heißen in der App „Trainingspläne“ und stehen im Gym-Reiter an erster Stelle; der Editor
+  hat eine Ziehen-Ansicht für die Reihenfolge und zeigt die Heatmap des Plans.
+
 ## 2026-11-01 – Gym: Ablauf, Eingabe, Sperrbildschirm, Kabel-Crunch (Paket 1, PR A)
 
 Plan und Analyse: `docs/gym-paket1.md`.

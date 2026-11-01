@@ -1524,6 +1524,19 @@ private struct FinishWorkoutSheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
+      if finished.muscles.values.contains(where: { $0 > 0 }) {
+        VStack(alignment: .leading, spacing: 8) {
+          Text("Beanspruchte Muskeln").font(.headline)
+          BodyMapView(values: finished.muscles, full: 6)
+          Text(
+            finished.muscles.filter { $0.value > 0 }.sorted { $0.value > $1.value }.prefix(5)
+              .map { "\($0.key.label) \(GermanFormat.decimal($0.value))" }.joined(separator: " · ")
+              + " Sätze. Hauptmuskel zählt voll, mitarbeitende halb – eine Schätzung.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
       NextTimeList(exerciseIDs: finished.exerciseIDs, viewModel: viewModel)
       if !viewModel.hints.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
