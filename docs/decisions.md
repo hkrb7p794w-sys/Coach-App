@@ -5,6 +5,29 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-01 – Ernährung: Nährwerte aus dem Bundeslebensmittelschlüssel (BLS 4.0)
+
+- **Quelle:** Max Rubner-Institut (2025): Bundeslebensmittelschlüssel (BLS), Version 4.0. Karlsruhe. Laut
+  Dokumentation (Abschnitt 9.3) kostenfrei und ohne Lizenzbarrieren nutzbar, auch für Apps; die Quelle wird
+  angegeben (Einstellungen › Ernährung › Nährwertquellen, BLS-Suche, Fußnote je Position). OpenGTINDB wurde
+  verworfen (API kostenpflichtig).
+- **In der App, offline:** `CoachCore/Resources/bls.tsv` (7.140 Lebensmittel, 19 Nährstoffe wie `Nutrient`, je
+  100 g, auf 4 Stellen gerundet, Omega-3 = EPA + DHA, rund 850 KB), erzeugt mit `tools/bls/convert.py` aus der
+  Excel-Datei des MRI. Die Excel-Datei selbst liegt nicht im Repo.
+- **Regeln entscheiden, KI formuliert:** Die KI zerlegt die Mahlzeit in Lebensmittel und nennt je einen
+  `suchbegriff` im Stil des BLS („Hühnerei gekocht“). Die App sucht ihn deterministisch im BLS (`BLS.match`):
+  Hauptwort = erstes Wort des BLS-Namens, alle weiteren Wörter im Namen, Sonderprodukte (glutenfrei, Pulver,
+  Konserve, gesalzen …) und Zusätze nach „mit“ nur, wenn genannt, ein Einzelwort nur auf Grundeinträge, sonst
+  höchstens ein weiteres Merkmal. Passt nichts sicher, bleibt die KI-Schätzung – gekennzeichnet als „geschätzt“.
+  Lieber kein Treffer als ein falscher.
+- **Vorrang:** eigene Lebensmittel und Barcode (Open Food Facts) vor BLS vor KI-Schätzung. Im BLS fehlende Werte
+  bleiben aus der Schätzung. Jede Position lässt sich von Hand einem anderen BLS-Eintrag zuordnen; die Suche im
+  Ernährungsreiter zeigt BLS-Treffer. Gilt auch für Zutaten der KI-Rezepte.
+- **Barcodes:** Der BLS enthält keine Barcodes; Markenprodukte bleiben bei Open Food Facts.
+- **Grenzen:** Die Zuordnung erkennt Wortformen nur einfach (Mehrzahl, Umlaut-Mehrzahl, getrennt geschriebene
+  Zusammensetzungen, wenige Alltagswörter wie „Nudeln“ → „Teigwaren eifrei“). Gerichte aus dem BLS (Codes X/Y) sind
+  Rezepte des MRI und können vom eigenen Gericht abweichen.
+
 ## 2026-11-01 – Gym und Garmin: Sätze in die Uhr-Aufzeichnung, keine Doppelten (Paket 1, PR C)
 
 - **Prüfung der Möglichkeiten:** Garmin Connect hat keine Funktion und keine Schnittstelle, um zwei Aktivitäten

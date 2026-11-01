@@ -62,8 +62,11 @@ Regeln:
 - menge_g: verzehrte Menge in Gramm, so wie gegessen (gekochte Nudeln/Reis = Gewicht gekocht).
   Getränke in ml, als Zahl in menge_g (1 ml = 1 g). Vom Nutzer genannte Mengen haben Vorrang.
 - menge_text: kurz und menschlich, z. B. "2 Stück", "1 Scheibe", "1 Tasse (200 ml)".
-- suchbegriff: generische deutsche Bezeichnung, Hauptwort zuerst, dann Zustand/Zubereitung
-  (z. B. "Hühnerei gekocht", "Teigwaren gekocht", "Milch 3,5 % Fett").
+- suchbegriff: generische deutsche Bezeichnung wie im Bundeslebensmittelschlüssel (BLS), Hauptwort zuerst,
+  dann Sorte und Zubereitung, ohne Marke (z. B. "Hühnerei gekocht", "Teigwaren eifrei, gekocht",
+  "Reis poliert, gekocht", "Vollmilch 3,5 % Fett", "Weizenbrötchen", "Kartoffel geschält, gekocht",
+  "Hähnchen Brust, gebraten", "Colagetränk koffeinhaltig", "Pilsner Bier"). Die App holt damit die Nährwerte
+  aus dem BLS; naehrwerte_100g ist die Rückfall-Schätzung.
 - Zusammengesetztes: in Bestandteile zerlegen, wenn das die Schätzung verbessert
   (Kaffee mit Milch = Kaffee + Milch; Müsli = Haferflocken + Milch + Obst; Rührei = Ei + Butter/Öl).
   Klassische Gerichte (Pizza, Lasagne, Döner, Currywurst) als Ganzes lassen.

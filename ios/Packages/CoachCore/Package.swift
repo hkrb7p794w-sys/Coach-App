@@ -11,7 +11,7 @@ let package = Package(
     .executable(name: "coach-report", targets: ["CoachReport"]),
   ],
   targets: [
-    .target(name: "CoachCore", resources: [.copy("Resources/season-plan.json")]),
+    .target(name: "CoachCore", resources: [.copy("Resources/season-plan.json"), .copy("Resources/bls.tsv")]),
     // Prüfbericht mit Musterpersonen (`swift run coach-report`), läuft in der CI.
     .executableTarget(name: "CoachReport", dependencies: ["CoachCore"]),
     .testTarget(name: "CoachCoreTests", dependencies: ["CoachCore"], resources: [.copy("Fixtures")]),

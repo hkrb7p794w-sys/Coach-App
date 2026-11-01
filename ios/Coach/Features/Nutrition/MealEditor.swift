@@ -178,7 +178,7 @@ private struct ItemRow: View {
           Text(item.name.isEmpty ? "Neue Position" : item.name).lineLimit(1)
           Text(
             "\(item.amountLabel) · \(Int((item.amounts[.kcal] ?? 0).rounded())) kcal · "
-              + "\(Int((item.amounts[.protein] ?? 0).rounded())) g P"
+              + "\(Int((item.amounts[.protein] ?? 0).rounded())) g P" + (item.source == .ai ? " · geschätzt" : "")
           )
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -220,6 +220,21 @@ private struct ItemDetailSheet: View {
       Form {
         Section {
           TextField("Lebensmittel", text: $item.name)
+          NavigationLink {
+            BLSPicker(initialQuery: item.searchTerm ?? item.name) { food in
+              item = BLS.apply(food, to: item)
+            }
+          } label: {
+            if item.source == .bls, let food = item.blsCode.flatMap({ BLS.food(code: $0) }) {
+              LabeledContent("BLS", value: food.name)
+            } else {
+              Label("Nährwerte aus dem BLS übernehmen", systemImage: "magnifyingglass")
+            }
+          }
+        } footer: {
+          if item.source == .ai {
+            Text("Nährwerte sind von der KI geschätzt. Im Bundeslebensmittelschlüssel (BLS) stehen gemessene Werte.")
+          }
         }
         Section {
           if item.portion != nil {
@@ -298,7 +313,7 @@ private struct ItemDetailSheet: View {
         } header: {
           Text("Nährwerte je 100 \(item.isDrink ? "ml" : "g")")
         } footer: {
-          Text("„–“ = unbekannt; zählt in der Summe nicht mit. Quelle: \(item.source.rawValue).")
+          Text("„–“ = unbekannt; zählt in der Summe nicht mit. Quelle: \(item.sourceText).")
         }
       }
       .navigationTitle(item.name.isEmpty ? "Position" : item.name)
