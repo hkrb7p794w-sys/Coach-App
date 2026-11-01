@@ -88,7 +88,8 @@ struct GymFlowTests {
     #expect(recent.first?.text() == "81 kg × 10")
     #expect(recent.last?.weightKg == 77)
     #expect(GymStats.Performance(day: recent[0].day, weightKg: 0, reps: 12).text() == "12 Wdh.")
-    #expect(GymStats.Performance(day: recent[0].day, weightKg: 10, reps: 8).text(allowsAssistance: true) == "+10 kg × 8")
+    #expect(
+      GymStats.Performance(day: recent[0].day, weightKg: 10, reps: 8).text(allowsAssistance: true) == "+10 kg × 8")
     #expect(GymStats.Performance(day: recent[0].day, weightKg: 0, reps: 45).text(isTime: true) == "45 s")
   }
 
