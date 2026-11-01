@@ -77,8 +77,10 @@ final class AppModel {
     let gymQuery = FetchDescriptor<GymSessionRecord>(predicate: #Predicate { $0.dayKey >= start })
     let activities = (try? context.fetch(activityQuery)) ?? []
     let gym = (try? context.fetch(gymQuery)) ?? []
-    return TrainingLog(
-      activities: activities.compactMap(\.activity), gymDays: Set(gym.compactMap { CalendarDay(iso: $0.dayKey) }))
+    var gymDays = Set(gym.compactMap { CalendarDay(iso: $0.dayKey) })
+    // Laufende Einheit zählt schon als trainiert: keine Start-Erinnerung mitten im Training.
+    if let active = GymViewModel.shared.active { gymDays.insert(active.day) }
+    return TrainingLog(activities: activities.compactMap(\.activity), gymDays: gymDays)
   }
 
   var lastSync: Date? {

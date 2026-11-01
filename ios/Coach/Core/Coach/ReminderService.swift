@@ -67,7 +67,11 @@ final class ReminderService: NSObject {
     center.removePendingNotificationRequests(withIdentifiers: pending.filter { $0.hasPrefix(Self.identifierPrefix) })
     guard allowed else { return }
 
-    for reminder in config.enabled ? reminders(seasonSchedule: seasonSchedule, log: log, now: now) : [] {
+    // Während einer laufenden Krafteinheit keine Erinnerung für heute (auch nicht für eine weitere Einheit).
+    let today = CalendarDay(date: now)
+    let training = GymViewModel.shared.active != nil
+    let planned = config.enabled ? reminders(seasonSchedule: seasonSchedule, log: log, now: now) : []
+    for reminder in planned where !(training && reminder.day == today) {
       let content = UNMutableNotificationContent()
       content.title = reminder.title
       content.body = ReminderPlanner.body(for: reminder, lead: CompanionVoice.reminderLead(settings.companion))

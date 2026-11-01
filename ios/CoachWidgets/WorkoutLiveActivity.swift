@@ -57,8 +57,39 @@ private struct LockScreenView: View {
         Spacer()
         RestTimer(end: state.restEndsAt).font(.system(size: 34, weight: .bold, design: .rounded))
       }
+      if !state.allDone, let weight = state.weight, let reps = state.reps {
+        AdjustRow(weight: weight, reps: reps, weightStep: state.weightStep, repsStep: state.repsStep)
+      }
       ActionButtons(state: state)
     }
+  }
+}
+
+/// Gewicht und Wiederholungen des aktuellen Satzes mit −/+ – ändern, ohne das iPhone zu entsperren.
+private struct AdjustRow: View {
+  let weight: String
+  let reps: String
+  let weightStep: String?
+  let repsStep: String?
+
+  var body: some View {
+    HStack(spacing: 6) {
+      Button(intent: AdjustWeightIntent(steps: -1)) { Image(systemName: "minus") }
+        .accessibilityLabel("Gewicht um \(weightStep ?? "einen Schritt") verringern")
+      Text(weight).font(.subheadline.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+        .frame(maxWidth: .infinity)
+      Button(intent: AdjustWeightIntent(steps: 1)) { Image(systemName: "plus") }
+        .accessibilityLabel("Gewicht um \(weightStep ?? "einen Schritt") erhöhen")
+      Divider().frame(height: 22)
+      Button(intent: AdjustRepsIntent(delta: -1)) { Image(systemName: "minus") }
+        .accessibilityLabel("Wiederholungen um \(repsStep ?? "1") verringern")
+      Text(reps).font(.subheadline.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+        .frame(maxWidth: .infinity)
+      Button(intent: AdjustRepsIntent(delta: 1)) { Image(systemName: "plus") }
+        .accessibilityLabel("Wiederholungen um \(repsStep ?? "1") erhöhen")
+    }
+    .buttonStyle(.bordered)
+    .controlSize(.small)
   }
 }
 

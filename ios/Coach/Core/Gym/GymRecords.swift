@@ -24,6 +24,7 @@ final class GymSessionRecord {
   }
 
   var session: GymSession? {
-    try? JSONDecoder().decode(GymSession.self, from: payload)
+    // Beim Lesen vereinheitlicht (`ExerciseAliases`); die gespeicherten Daten bleiben unverändert.
+    (try? JSONDecoder().decode(GymSession.self, from: payload)).map(ExerciseAliases.normalized)
   }
 }

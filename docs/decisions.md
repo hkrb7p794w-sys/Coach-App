@@ -5,6 +5,25 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-01 – Gym: Ablauf, Eingabe, Sperrbildschirm, Kabel-Crunch (Paket 1, PR A)
+
+Plan und Analyse: `docs/gym-paket1.md`.
+
+- **Kein Mitziehen der Folgesätze mehr:** Eine Gewichtsänderung betrifft nur den Satz. Das frühere Mitziehen
+  (gleiche Folgesätze) überschrieb im Test gewollte Werte; der Wunsch war ausdrücklich „jeder Satz einzeln“.
+- **Ziffernblock ersetzt statt anzuhängen:** Die erste Taste ersetzt den alten Wert (wie markierter Text);
+  unveränderte Felder werden nicht geschrieben. Die Plausibilitätsprüfung bleibt.
+- **Überspringen ist ein Zustand der Übung** (`LoggedExercise.skipped`), keine Löschung: rückgängig, nachholbar,
+  offene Sätze werden nicht gespeichert und nicht als vergessen gezählt.
+- **Sperrbildschirm:** `LiveActivityIntent`s mit Parameter (Gewicht ± Schritt der Übung, Wiederholungen ±1 bzw.
+  ±5 s). Sie laufen im Prozess der App (Apple-Doku zu `LiveActivityIntent`), die Einheit liegt in den
+  UserDefaults und überlebt so auch einen Start im Hintergrund. Texteingabe ist auf dem Sperrbildschirm nicht
+  möglich; Sperrbildschirm-Widgets sind nicht interaktiv. Quelle: Apple-Doku „Displaying live data with Live
+  Activities“ (8 h aktiv, danach bis 4 h sichtbar) und „Adding interactivity to widgets and Live Activities“.
+- **Kabel-Crunch:** `KNEELING_CABLE_CRUNCH` passte auf die allgemeine Crunch-Regel (Körpergewicht). Neue Regel
+  `crunch_kabel` (`CABLE_CRUNCH`, Gerätegewicht) davor; der FIT-Export war schon richtig (`CRUNCH`/`CABLE_CRUNCH` = 6/1
+  laut FIT-Profil). Alte Einheiten werden nur beim Lesen umgedeutet (`ExerciseAliases`).
+
 ## 2026-10-28 – Mahlzeit diktieren
 
 - Eigener Knopf „Sprechen“ im Erfassen-Bildschirm statt nur des Tastatur-Mikrofons: Apple Speech (`SFSpeechRecognizer`,

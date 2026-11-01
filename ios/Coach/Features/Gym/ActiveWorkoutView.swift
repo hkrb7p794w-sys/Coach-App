@@ -6,13 +6,14 @@ import UserNotifications
 enum RestAlarm {
   static let identifier = "coach.rest"
 
-  static func schedule(at end: Date?) {
+  /// `body` nennt die nächste Übung („Weiter mit Schulterdrücken“).
+  static func schedule(at end: Date?, body: String? = nil) {
     let center = UNUserNotificationCenter.current()
     center.removePendingNotificationRequests(withIdentifiers: [identifier])
     guard let end, end.timeIntervalSinceNow > 1 else { return }
     let content = UNMutableNotificationContent()
     content.title = "Pause vorbei"
-    content.body = "Weiter mit dem nächsten Satz."
+    content.body = body.map { "\($0)." } ?? "Weiter mit dem nächsten Satz."
     content.sound = .default
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: end.timeIntervalSinceNow, repeats: false)
     center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
@@ -41,6 +42,7 @@ struct ActiveWorkoutView: View {
   @State private var showFinish = false
   @State private var editing: SetValueTarget?
   @State private var restWarnings = 0
+  @State private var showsPlanComplete = false
 
   var body: some View {
     NavigationStack {
@@ -124,6 +126,32 @@ struct ActiveWorkoutView: View {
         viewModel.restFinished()
       }
       .sensoryFeedback(.impact(weight: .light), trigger: restWarnings)
+      // Letzter Satz des Plans: fragen, ob beendet oder weiter trainiert wird.
+      .onChange(of: viewModel.planCompleteCount) { _, _ in
+        guard viewModel.active != nil, !showFinish else { return }
+        showsPlanComplete = true
+      }
+      .sheet(isPresented: $showsPlanComplete) {
+        if let session = viewModel.active {
+          PlanCompleteSheet(
+            session: session,
+            finish: {
+              showsPlanComplete = false
+              Task {
+                try? await Task.sleep(for: .milliseconds(450))
+                showFinish = true
+              }
+            },
+            addExercise: {
+              showsPlanComplete = false
+              Task {
+                try? await Task.sleep(for: .milliseconds(450))
+                showCatalog = true
+              }
+            },
+            close: { showsPlanComplete = false })
+        }
+      }
       .sensoryFeedback(.warning, trigger: viewModel.restFinishedCount)
     }
   }
@@ -200,9 +228,13 @@ private struct FocusCard: View {
           }
           ExerciseNotes(exercise: exercise, viewModel: viewModel, set: target.set, offersWarmUp: true)
           if let set = target.set,
-            let next = WorkoutFlow.upcoming(after: .init(exercise: target.exerciseIndex, set: set), in: session)
+            let next = WorkoutFlow.upcoming(after: .init(exercise: target.exerciseIndex, set: set), in: session),
+            next.exercise == target.exerciseIndex
           {
             upcoming(next)
+          }
+          if let following = WorkoutFlow.nextExercise(after: target.exerciseIndex, in: session) {
+            NextExercisePreview(exercise: session.exercises[following], viewModel: viewModel)
           }
         } else {
           allDone
@@ -225,8 +257,18 @@ private struct FocusCard: View {
       }
       Text(exercise.name).font(.title.bold()).multilineTextAlignment(.center)
       if let set = target.set {
-        SetKindMenu(set: exercise.sets[set], index: set, total: exercise.sets.count) { kind in
-          viewModel.setKind(kind, set: set, of: exercise.id)
+        HStack(spacing: 12) {
+          SetKindMenu(set: exercise.sets[set], index: set, total: exercise.sets.count) { kind in
+            viewModel.setKind(kind, set: set, of: exercise.id)
+          }
+          if exercise.skipped {
+            Button("Wieder aufnehmen", systemImage: "arrow.uturn.backward") { viewModel.resume(exercise.id) }
+              .font(.subheadline)
+          } else {
+            Button("Überspringen", systemImage: "forward.end") { viewModel.skip(exercise.id) }
+              .font(.subheadline)
+              .accessibilityHint("Weiter mit der nächsten Übung, offene Sätze werden nicht gespeichert")
+          }
         }
       }
     }
@@ -249,24 +291,37 @@ private struct FocusCard: View {
     .padding(.vertical)
   }
 
+  /// Nächster Satz derselben Übung, klein.
   private func upcoming(_ next: WorkoutFlow.Position) -> some View {
-    let exercise = session.exercises[next.exercise]
-    let set = exercise.sets[next.set]
+    let set = session.exercises[next.exercise].sets[next.set]
     let values = set.weightKg != 0 ? "\(GermanFormat.number(set.weightKg)) kg × \(set.reps)" : "\(set.reps) Wdh."
-    return Text("Als Nächstes: \(exercise.name), Satz \(next.set + 1) · \(values)")
+    return Text("Als Nächstes: Satz \(next.set + 1) · \(values)")
       .font(.footnote)
       .foregroundStyle(.secondary)
       .multilineTextAlignment(.center)
   }
 
+  /// Plan geschafft: beenden oder fortsetzen (Übung dazu, übersprungene wieder aufnehmen).
   private var allDone: some View {
     VStack(spacing: 14) {
       Image(systemName: "trophy.fill").font(.system(size: 48)).foregroundStyle(.yellow)
-      Text("Alle Sätze erledigt").font(.title2.bold())
+      Text("Plan geschafft").font(.title2.bold())
       Text("\(session.doneSetCount) Sätze · \(GermanFormat.number(session.volumeKg.rounded())) kg bewegt")
         .foregroundStyle(.secondary)
+      let skipped = session.exercises.filter { $0.skipped && $0.sets.contains { !$0.done } }
+      if !skipped.isEmpty {
+        VStack(spacing: 8) {
+          Text("Übersprungen").font(.subheadline.bold())
+          ForEach(skipped) { exercise in
+            Button("\(exercise.name) nachholen", systemImage: "arrow.uturn.backward") {
+              viewModel.resume(exercise.id)
+            }
+            .buttonStyle(.bordered)
+          }
+        }
+      }
     }
-    .padding(.top, 40)
+    .padding(.top, 30)
   }
 }
 
@@ -289,6 +344,7 @@ private struct ExerciseStrip: View {
             } label: {
               HStack(spacing: 4) {
                 if complete { Image(systemName: "checkmark") }
+                if exercise.skipped && !complete { Image(systemName: "forward.end").foregroundStyle(.secondary) }
                 if let label = labels[exercise.id] { Text(label).bold().foregroundStyle(.tint) }
                 Text(exercise.name).lineLimit(1)
                 Text("\(progress.done)/\(progress.total)").monospacedDigit().foregroundStyle(.secondary)
@@ -312,7 +368,8 @@ private struct ExerciseStrip: View {
   }
 }
 
-/// Gewicht und Wiederholungen groß, mit großen ± Knöpfen; Tippen auf die Zahl öffnet den Ziffernblock.
+/// Ein Eingabebereich für den Satz: Gewicht und Wiederholungen nebeneinander, je groß mit − und +. Tippen auf eine
+/// Zahl öffnet den Ziffernblock für beide Werte. Jede Änderung betrifft nur diesen Satz.
 private struct SetEditor: View {
   let exercise: LoggedExercise
   let index: Int
@@ -329,24 +386,29 @@ private struct SetEditor: View {
     let weight = ExerciseUnits.weightText(set.weightKg, info: info)
     // Mit Unterstützung darf das Gewicht unter 0 gehen (−20 kg = 20 kg Hilfe).
     let lowest = ExerciseUnits.allowsAssistance(info) ? -200.0 : 0
-    VStack(spacing: 14) {
-      ValueControl(
-        text: weight.value, unit: weight.unit, label: "Gewicht", value: set.weightKg,
-        minus: { viewModel.setWeight(max(lowest, set.weightKg - step), set: index, of: exercise.id) },
-        plus: { viewModel.setWeight(set.weightKg + step, set: index, of: exercise.id) },
-        edit: { editing = SetValueTarget(exerciseID: exercise.id, set: index, field: .weight) })
-      ValueControl(
-        text: "\(set.reps)", unit: ExerciseUnits.repsUnit(exercise.exerciseID, isTime: isTime),
-        label: isTime ? "Sekunden" : "Wiederholungen",
-        value: Double(set.reps),
-        minus: { viewModel.setReps(set.reps - (isTime ? 5 : 1), set: index, of: exercise.id) },
-        plus: { viewModel.setReps(set.reps + (isTime ? 5 : 1), set: index, of: exercise.id) },
-        edit: { editing = SetValueTarget(exerciseID: exercise.id, set: index, field: .reps) })
+    VStack(spacing: 10) {
+      HStack(alignment: .top, spacing: 10) {
+        ValueColumn(
+          text: weight.value, unit: weight.unit, label: "Gewicht", value: set.weightKg,
+          minus: { viewModel.setWeight(max(lowest, set.weightKg - step), set: index, of: exercise.id) },
+          plus: { viewModel.setWeight(set.weightKg + step, set: index, of: exercise.id) },
+          edit: { editing = SetValueTarget(exerciseID: exercise.id, set: index, field: .weight) })
+        ValueColumn(
+          text: "\(set.reps)", unit: ExerciseUnits.repsUnit(exercise.exerciseID, isTime: isTime),
+          label: isTime ? "Sekunden" : "Wiederholungen", value: Double(set.reps),
+          minus: { viewModel.setReps(set.reps - (isTime ? 5 : 1), set: index, of: exercise.id) },
+          plus: { viewModel.setReps(set.reps + (isTime ? 5 : 1), set: index, of: exercise.id) },
+          edit: { editing = SetValueTarget(exerciseID: exercise.id, set: index, field: .reps) })
+      }
+      RecentPerformances(exercise: exercise, viewModel: viewModel)
     }
+    .padding(12)
+    .background(.fill.quinary, in: RoundedRectangle(cornerRadius: 20))
   }
 }
 
-private struct ValueControl: View {
+/// Eine Spalte des Eingabebereichs: Zahl (Tippen = Ziffernblock), darunter − und +.
+private struct ValueColumn: View {
   let text: String
   let unit: String
   let label: String
@@ -355,23 +417,20 @@ private struct ValueControl: View {
   let plus: () -> Void
   let edit: () -> Void
   /// Wächst mit der Schriftgröße der Person (Dynamic Type).
-  @ScaledMetric(relativeTo: .largeTitle) private var size = 52
-  @ScaledMetric(relativeTo: .largeTitle) private var height = 84
+  @ScaledMetric(relativeTo: .largeTitle) private var size = 46
+  @ScaledMetric(relativeTo: .largeTitle) private var height = 92
 
   var body: some View {
-    HStack(spacing: 12) {
-      RoundButton(systemImage: "minus", label: "\(label) verringern", action: minus)
+    VStack(spacing: 8) {
       Button(action: edit) {
         VStack(spacing: 0) {
-          HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(text)
-              .font(.system(size: text.count > 6 ? size * 0.6 : size, weight: .bold, design: .rounded))
-              .monospacedDigit()
-              .minimumScaleFactor(0.5)
-              .lineLimit(1)
-            Text(unit).font(.title3.bold()).foregroundStyle(.secondary)
-          }
-          Text(label).font(.caption).foregroundStyle(.secondary)
+          Text(text)
+            .font(.system(size: text.count > 5 ? size * 0.62 : size, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
+          Text(unit.isEmpty ? label : unit).font(.subheadline.bold()).foregroundStyle(.secondary).lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, minHeight: height)
         .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 16))
@@ -379,8 +438,12 @@ private struct ValueControl: View {
       .buttonStyle(.plain)
       .accessibilityLabel("\(label): \(text) \(unit)")
       .accessibilityHint("Tippen zum Eintippen")
-      RoundButton(systemImage: "plus", label: "\(label) erhöhen", action: plus)
+      HStack(spacing: 8) {
+        RoundButton(systemImage: "minus", label: "\(label) verringern", action: minus)
+        RoundButton(systemImage: "plus", label: "\(label) erhöhen", action: plus)
+      }
     }
+    .frame(maxWidth: .infinity)
     .sensoryFeedback(.selection, trigger: value)
   }
 }
@@ -389,17 +452,48 @@ private struct RoundButton: View {
   let systemImage: String
   let label: String
   let action: () -> Void
-  @ScaledMetric(relativeTo: .title2) private var size = 60
+  @ScaledMetric(relativeTo: .title2) private var height = 52
 
   var body: some View {
     Button(action: action) {
       Image(systemName: systemImage)
         .font(.title2.bold())
-        .frame(width: size, height: size)
-        .background(.fill.tertiary, in: Circle())
+        .frame(maxWidth: .infinity, minHeight: height)
+        .background(.fill.tertiary, in: Capsule())
     }
     .buttonStyle(.plain)
     .accessibilityLabel(label)
+  }
+}
+
+/// Die letzten Leistungen der Übung, klein unter der Eingabe: „80 kg × 10“, neueste zuerst.
+private struct RecentPerformances: View {
+  let exercise: LoggedExercise
+  let viewModel: GymViewModel
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    let info = model.settings.gym.exercise(exercise.exerciseID)
+    let items = viewModel.recentPerformances(of: exercise.exerciseID)
+    if !items.isEmpty {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Zuletzt").font(.caption2.bold()).foregroundStyle(.secondary)
+        ForEach(items) { item in
+          HStack {
+            Text(item.text(isTime: info?.tracking == .time, allowsAssistance: ExerciseUnits.allowsAssistance(info)))
+              .monospacedDigit()
+            Spacer()
+            Text(Formatters.shortDate(item.day)).foregroundStyle(.tertiary)
+          }
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 4)
+      .accessibilityElement(children: .combine)
+      .accessibilityLabel("Letzte Leistungen")
+    }
   }
 }
 
@@ -420,7 +514,8 @@ private struct ExerciseNotes: View {
       if let note = gym.notes[exercise.exerciseID], !note.isEmpty {
         Label(note, systemImage: "note.text").foregroundStyle(.primary)
       }
-      if let last = viewModel.lastTime(of: exercise.exerciseID) {
+      // Auf der Fokus-Karte stehen die letzten Leistungen unter der Eingabe; in der Liste hier.
+      if !centered, let last = viewModel.lastTime(of: exercise.exerciseID) {
         Text(last)
       }
       // Was die Progression für heute vorschlägt – sichtbar statt nur vorbefüllt.
@@ -849,6 +944,75 @@ private struct SetRow: View {
   }
 }
 
+/// Vorschau der nächsten Übung: Name, Sätze und Startwerte – mit „Überspringen“, falls sie heute ausfällt.
+private struct NextExercisePreview: View {
+  let exercise: LoggedExercise
+  let viewModel: GymViewModel
+
+  var body: some View {
+    let open = exercise.sets.filter { !$0.done }
+    let first = open.first
+    let values = first.map { set in
+      set.weightKg != 0 ? "\(GermanFormat.number(set.weightKg)) kg × \(set.reps)" : "\(set.reps) Wdh."
+    }
+    HStack(spacing: 12) {
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Danach").font(.caption2.bold()).foregroundStyle(.secondary)
+        Text(exercise.name).font(.subheadline.bold()).lineLimit(1)
+        Text("\(open.count) Sätze" + (values.map { " · \($0)" } ?? ""))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .monospacedDigit()
+      }
+      Spacer()
+      Button("Überspringen", systemImage: "forward.end") { viewModel.skip(exercise.id) }
+        .labelStyle(.iconOnly)
+        .font(.title3)
+        .frame(width: 44, height: 44)
+        .accessibilityLabel("\(exercise.name) überspringen")
+    }
+    .padding(12)
+    .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 14))
+  }
+}
+
+/// Erscheint, sobald der letzte Satz des Plans erledigt ist: beenden oder weiter trainieren.
+private struct PlanCompleteSheet: View {
+  let session: GymSession
+  let finish: () -> Void
+  let addExercise: () -> Void
+  let close: () -> Void
+
+  var body: some View {
+    let summary = WorkoutFlow.summary(of: session)
+    VStack(spacing: 16) {
+      Image(systemName: "flag.checkered").font(.system(size: 40)).foregroundStyle(.tint)
+      Text("Plan geschafft").font(.title2.bold())
+      Text("\(summary.doneSets) Sätze · \(summary.minutes) min · \(GermanFormat.number(summary.volumeKg.rounded())) kg")
+        .foregroundStyle(.secondary)
+        .monospacedDigit()
+      if WorkoutFlow.skippedCount(session) > 0 {
+        Text("\(WorkoutFlow.skippedCount(session)) Übung(en) übersprungen – beim Fortsetzen nachholbar.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
+      Button(action: finish) {
+        Label("Training beenden", systemImage: "checkmark").font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+      }
+      .buttonStyle(.borderedProminent)
+      Button(action: addExercise) {
+        Label("Übung hinzufügen", systemImage: "plus").font(.headline).frame(maxWidth: .infinity, minHeight: 48)
+      }
+      .buttonStyle(.bordered)
+      Button("Training fortsetzen", action: close)
+        .frame(maxWidth: .infinity, minHeight: 44)
+    }
+    .buttonBorderShape(.roundedRectangle(radius: 14))
+    .padding()
+    .presentationDetents([.medium])
+  }
+}
+
 // MARK: - Übung anpassen
 
 /// „Satz 2 von 4“ mit Satzart (Aufwärmen, Drop-Satz …) zum Umstellen.
@@ -906,6 +1070,11 @@ private struct ExerciseMenu: View {
       Section {
         if index < session.exercises.count - 1 {
           Button("Später (Gerät belegt)", systemImage: "arrow.uturn.down") { viewModel.moveToEnd(exercise.id) }
+        }
+        if exercise.skipped {
+          Button("Wieder aufnehmen", systemImage: "arrow.uturn.backward") { viewModel.resume(exercise.id) }
+        } else if exercise.sets.contains(where: { !$0.done }) {
+          Button("Überspringen", systemImage: "forward.end") { viewModel.skip(exercise.id) }
         }
         Button("Ersetzen …", systemImage: "arrow.left.arrow.right") { sheet = .replace }
         Button("Reihenfolge ändern …", systemImage: "arrow.up.arrow.down") { sheet = .reorder }
@@ -1072,7 +1241,13 @@ private struct SetValuePad: View {
   let viewModel: GymViewModel
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
-  @State private var text = ""
+  /// Gerade bearbeiteter Wert; der andere bleibt sichtbar und ist mit einem Tipp gewählt.
+  @State private var field = SetValueTarget.Field.weight
+  @State private var weightText = ""
+  @State private var repsText = ""
+  /// Die erste Taste ersetzt den alten Wert (statt anzuhängen) – kein versehentliches „808“ aus 80 und einer 8.
+  @State private var replacesWeight = true
+  @State private var replacesReps = true
   /// Unterstützung statt Zusatzgewicht (negatives Gewicht), nur bei Körpergewichtsübungen.
   @State private var assisted = false
   @State private var warning: String?
@@ -1083,22 +1258,22 @@ private struct SetValuePad: View {
 
   var body: some View {
     let gym = model.settings.gym
-    let isWeight = target.field == .weight
-    let isTime = exercise.flatMap { gym.exercise($0.exerciseID) }?.tracking == .time
+    let info = exercise.flatMap { gym.exercise($0.exerciseID) }
+    let isTime = info?.tracking == .time
+    let isWeight = field == .weight
     let step = exercise.map { ExerciseLibrary.rule($0.exerciseID, name: $0.name, custom: gym.customExercises).step }
     let deltas = Self.deltas(isWeight: isWeight, isTime: isTime, step: step ?? 2.5)
-    let info = exercise.flatMap { gym.exercise($0.exerciseID) }
-    let unit = isWeight ? (assisted ? "kg Hilfe" : "kg") : isTime ? "s" : "Wdh."
     VStack(spacing: 14) {
-      Text("\(isWeight ? "Gewicht" : isTime ? "Dauer" : "Wiederholungen") · Satz \(target.set + 1)")
+      Text("Satz \(target.set + 1)" + (exercise.map { " · \($0.name)" } ?? ""))
         .font(.headline)
+        .lineLimit(1)
         .padding(.top)
-      HStack(alignment: .firstTextBaseline, spacing: 6) {
-        Text(text.isEmpty ? "0" : text)
-          .font(.system(size: 56, weight: .bold, design: .rounded))
-          .monospacedDigit()
-          .foregroundStyle(text.isEmpty ? .secondary : .primary)
-        Text(unit).font(.title2.bold()).foregroundStyle(.secondary)
+      HStack(spacing: 10) {
+        valueBox(
+          .weight, text: weightText, unit: assisted ? "kg Hilfe" : "kg", label: "Gewicht", replacing: replacesWeight)
+        valueBox(
+          .reps, text: repsText, unit: isTime ? "s" : "Wdh.", label: isTime ? "Dauer" : "Wiederholungen",
+          replacing: replacesReps)
       }
       if isWeight, ExerciseUnits.allowsAssistance(info) {
         Picker("Art", selection: $assisted) {
@@ -1110,13 +1285,13 @@ private struct SetValuePad: View {
       HStack(spacing: 8) {
         ForEach(deltas, id: \.self) { delta in
           Button((delta > 0 ? "+" : "−") + GermanFormat.number(abs(delta))) {
-            let value = max(0, (NumberPad.value(text) ?? 0) + delta)
-            text = isWeight ? NumberPad.text(for: value) : value > 0 ? "\(Int(value))" : ""
+            let value = max(0, (NumberPad.value(current) ?? 0) + delta)
+            setCurrent(isWeight ? NumberPad.text(for: value) : value > 0 ? "\(Int(value))" : "")
           }
           .frame(maxWidth: .infinity)
         }
         if let previous = previousValue {
-          Button("wie Satz \(target.set)") { text = previous }
+          Button("wie Satz \(target.set)") { setCurrent(previous) }
             .frame(maxWidth: .infinity)
         }
       }
@@ -1138,11 +1313,13 @@ private struct SetValuePad: View {
     }
     .padding(.horizontal)
     .presentationDetents([.large])
-    .sensoryFeedback(.selection, trigger: text)
+    .sensoryFeedback(.selection, trigger: weightText + "|" + repsText)
     .onAppear {
+      field = target.field
       guard let set = exercise?.sets[safe: target.set] else { return }
       assisted = set.weightKg < 0
-      text = isWeight ? NumberPad.text(for: abs(set.weightKg)) : set.reps > 0 ? "\(set.reps)" : ""
+      weightText = NumberPad.text(for: abs(set.weightKg))
+      repsText = set.reps > 0 ? "\(set.reps)" : ""
     }
     .alert(
       "Wirklich?", isPresented: Binding(get: { warning != nil }, set: { if !$0 { warning = nil } }),
@@ -1155,20 +1332,68 @@ private struct SetValuePad: View {
     }
   }
 
+  /// Wertefeld zum Antippen; das gewählte ist hervorgehoben.
+  private func valueBox(
+    _ box: SetValueTarget.Field, text: String, unit: String, label: String, replacing: Bool
+  ) -> some View {
+    let selected = field == box
+    return Button {
+      field = box
+    } label: {
+      VStack(spacing: 2) {
+        Text(label).font(.caption).foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+          Text(text.isEmpty ? "0" : text)
+            .font(.system(size: 40, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
+            // Wird beim ersten Tippen ersetzt: leicht markiert wie ausgewählter Text.
+            .foregroundStyle(text.isEmpty || (selected && replacing) ? .secondary : .primary)
+          Text(unit).font(.headline).foregroundStyle(.secondary)
+        }
+      }
+      .frame(maxWidth: .infinity, minHeight: 84)
+      .background(
+        selected ? AnyShapeStyle(.tint.opacity(0.18)) : AnyShapeStyle(.fill.tertiary),
+        in: RoundedRectangle(cornerRadius: 16)
+      )
+      .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 2))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel("\(label): \(text.isEmpty ? "0" : text) \(unit)")
+    .accessibilityAddTraits(selected ? .isSelected : [])
+  }
+
+  private var current: String { field == .weight ? weightText : repsText }
+
+  private func setCurrent(_ text: String) {
+    if field == .weight {
+      weightText = text
+      replacesWeight = false
+    } else {
+      repsText = text
+      replacesReps = false
+    }
+  }
+
   private static func deltas(isWeight: Bool, isTime: Bool, step: Double) -> [Double] {
     if isWeight { return [-step, step, 5, 10] }
     return isTime ? [-5, 5, 15] : [-1, 1, 2]
   }
 
-  /// Wert des vorherigen Satzes für „wie Satz n“.
+  /// Wert des vorherigen Satzes für „wie Satz n“ (nur auf ausdrücklichen Tipp).
   private var previousValue: String? {
     guard target.set > 0, let set = exercise?.sets[safe: target.set - 1] else { return nil }
-    return target.field == .weight ? NumberPad.text(for: abs(set.weightKg)) : "\(set.reps)"
+    return field == .weight ? NumberPad.text(for: abs(set.weightKg)) : "\(set.reps)"
   }
 
   private func key(_ title: String, _ key: NumberPad.Key, isWeight: Bool) -> some View {
     Button {
-      text = NumberPad.apply(key, to: text, allowsDecimals: isWeight)
+      let replacing = isWeight ? replacesWeight : replacesReps
+      // Erste Ziffer ersetzt den alten Wert; Löschen nimmt beim ersten Mal den ganzen Wert weg.
+      let base = replacing ? "" : current
+      setCurrent(NumberPad.apply(key, to: base, allowsDecimals: isWeight))
     } label: {
       Text(title)
         .font(.title.bold())
@@ -1180,27 +1405,29 @@ private struct SetValuePad: View {
 
   /// Unplausible Werte (625 statt 62,5 kg) erst nach Rückfrage übernehmen.
   private func save() {
-    let value = NumberPad.value(text) ?? 0
     guard let exercise else { return dismiss() }
     let isTime = model.settings.gym.exercise(exercise.exerciseID)?.tracking == .time
     let best = viewModel.history(of: exercise.exerciseID).map(\.topWeightKg).max()
-    let set = exercise.sets[safe: target.set]
+    let weight = NumberPad.value(weightText) ?? 0
+    let reps = Int(NumberPad.value(repsText) ?? 0)
     warning =
-      target.field == .weight
-      ? SetCheck.warning(weightKg: assisted ? 0 : value, reps: 0, isTime: isTime, previousBestKg: best)
-      : SetCheck.warning(weightKg: 0, reps: Int(value), isTime: isTime, previousBestKg: nil)
-    if warning == nil, set != nil { apply() }
+      SetCheck.warning(weightKg: assisted ? 0 : weight, reps: 0, isTime: isTime, previousBestKg: best)
+      ?? SetCheck.warning(weightKg: 0, reps: reps, isTime: isTime, previousBestKg: nil)
+    if warning == nil, exercise.sets[safe: target.set] != nil { apply() }
   }
 
+  /// Übernimmt nur Werte, die sich geändert haben – ein unberührtes Feld bleibt, wie es war.
   private func apply() {
-    let value = NumberPad.value(text) ?? 0
-    switch target.field {
-    case .weight: viewModel.setWeight(assisted ? -value : value, set: target.set, of: target.exerciseID)
-    case .reps: viewModel.setReps(Int(value), set: target.set, of: target.exerciseID)
-    }
+    guard let set = exercise?.sets[safe: target.set] else { return dismiss() }
+    let weight = (NumberPad.value(weightText) ?? 0) * (assisted ? -1 : 1)
+    let reps = Int(NumberPad.value(repsText) ?? 0)
+    let weightChanged = abs(weight - set.weightKg) >= 0.001
+    let repsChanged = reps != set.reps
+    if weightChanged { viewModel.setWeight(weight, set: target.set, of: target.exerciseID) }
+    if repsChanged { viewModel.setReps(reps, set: target.set, of: target.exerciseID) }
     // Einstellung „Satz nach Eingabe abhaken“: abhaken und Pause starten, als hätte man „Satz erledigt“ getippt.
-    if model.settings.gym.completeOnEdit.completes(afterEditingReps: target.field == .reps),
-      exercise?.sets[safe: target.set]?.done == false
+    if model.settings.gym.completeOnEdit.completes(afterEditingReps: repsChanged || target.field == .reps),
+      !set.done
     {
       viewModel.complete(set: target.set, of: target.exerciseID)
     }
@@ -1238,8 +1465,19 @@ private struct FinishWorkoutSheet: View {
 
   private func review(_ session: GymSession) -> some View {
     let summary = WorkoutFlow.summary(of: session)
+    let skipped = WorkoutFlow.skippedCount(session)
     return VStack(spacing: 16) {
       SummaryGrid(summary: summary)
+      if skipped > 0 {
+        Label(
+          skipped == 1
+            ? "1 Übung übersprungen – ihre offenen Sätze werden nicht gespeichert."
+            : "\(skipped) Übungen übersprungen – ihre offenen Sätze werden nicht gespeichert.",
+          systemImage: "forward.end"
+        )
+        .font(.subheadline)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
       if summary.openSets > 0 {
         Label(
           summary.openSets == 1

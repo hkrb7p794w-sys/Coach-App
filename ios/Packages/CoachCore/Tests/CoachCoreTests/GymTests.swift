@@ -33,7 +33,7 @@ struct ExerciseCatalogTests {
     #expect(
       ids == [
         "fliegende", "trizepsstrecken", "bankdruecken", "seitheben", "dips", "plank",
-        "rudern_kabel", "bizeps_curl", "latziehen_einarmig", "hammer_curl", "face_pull", "crunch",
+        "rudern_kabel", "bizeps_curl", "latziehen_einarmig", "hammer_curl", "face_pull", "crunch_kabel",
         "hammer_curl", "trizepsstrecken", "latziehen", "bankdruecken", "reverse_fly", "dips",
         "beinbeugen", "beinstrecken", "beinpresse", "wadenheben", "crunch_geraet",
       ])

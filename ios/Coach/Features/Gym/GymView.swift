@@ -110,6 +110,10 @@ struct GymView: View {
         focusOn = wanted
         UIApplication.shared.open(url)
       }
+      // Start oder Ende einer Einheit: Erinnerungen für heute neu planen (keine Start-Erinnerung im Training).
+      .onChange(of: viewModel.active?.id) { _, _ in
+        Task { await model.refreshReminders() }
+      }
       // Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm.
       .onChange(of: viewModel.liveState, initial: true) { _, state in
         WorkoutActivityController.update(

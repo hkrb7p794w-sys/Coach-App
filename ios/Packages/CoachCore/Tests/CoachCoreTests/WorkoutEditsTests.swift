@@ -71,7 +71,7 @@ struct WorkoutEditsTests {
     #expect(options.allSatisfy { $0.group == .chest })
   }
 
-  @Test func warmUpsDoNotCountOrDragWorkingSets() {
+  @Test func warmUpsDoNotCountAndSetsStayIndependent() {
     var session = session([exercise("kniebeuge", weight: 100)])
     let id = session.exercises[0].id
     let steps = WarmUp.steps(working: 100, equipment: [.barbell], compound: true)
@@ -79,24 +79,24 @@ struct WorkoutEditsTests {
     #expect(session.exercises[0].sets.prefix(steps.count).allSatisfy { $0.kind == .warmup })
 
     // Aufwärmsatz leichter machen: Arbeitssätze bleiben bei 100 kg.
-    let moved = WorkoutEdits.setWeight(30, set: 0, of: id, in: &session)
-    #expect(moved == 0)
+    WorkoutEdits.setWeight(30, set: 0, of: id, in: &session)
     #expect(session.exercises[0].sets.filter { $0.kind == .working }.allSatisfy { $0.weightKg == 100 })
-    // Erster Arbeitssatz schwerer: die folgenden ziehen mit.
+    // Erster Arbeitssatz schwerer: nur dieser Satz ändert sich, die folgenden bleiben bei 100 kg.
     let first = steps.count
-    #expect(WorkoutEdits.setWeight(105, set: first, of: id, in: &session) == 2)
+    WorkoutEdits.setWeight(105, set: first, of: id, in: &session)
+    #expect(session.exercises[0].sets.map(\.weightKg).suffix(3) == [105, 100, 100])
 
     for index in session.exercises[0].sets.indices { session.exercises[0].sets[index].done = true }
     #expect(session.exercises[0].doneSets.count == 3)
     #expect(session.exercises[0].loggedSets.count == 3 + steps.count)
-    #expect(session.volumeKg == 2_520)
+    #expect(session.volumeKg == 2_440)
   }
 
   @Test func assistanceIsNegativeButNeverCountsAsLoad() {
     var session = session([exercise("klimmzug", weight: 0)])
     let id = session.exercises[0].id
     WorkoutEdits.setWeight(-20, set: 0, of: id, allowsNegative: true, in: &session)
-    #expect(session.exercises[0].sets.allSatisfy { $0.weightKg == -20 })
+    #expect(session.exercises[0].sets.map(\.weightKg) == [-20, 0, 0])
     WorkoutEdits.setWeight(-20, set: 0, of: id, in: &session)
     #expect(session.exercises[0].sets[0].weightKg == 0)
     #expect(LoggedSet(reps: 8, weightKg: -20).loadKg == 0)

@@ -26,6 +26,8 @@ enum WorkoutActivityController {
       switch action {
       case .completeSet: viewModel.completeCurrent()
       case .skipRest: viewModel.skipRest()
+      case .weight(let steps): viewModel.adjustCurrent(weightBy: steps)
+      case .reps(let delta): viewModel.adjustCurrent(repsBy: delta)
       }
       update(viewModel.liveState, title: viewModel.active?.title ?? "", enabled: true)
     }

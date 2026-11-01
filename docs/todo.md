@@ -43,6 +43,11 @@ hier notieren und als PR beheben.
       Training › Trends (Zoom); Aktivitäten filtern und suchen. Stimmen Wochenbelastung und Form mit Garmin überein?
 - [ ] **Mahlzeit diktieren:** Erfassen › „Sprechen“: Erlaubnis-Abfragen, Text erscheint live, „Fertig gesprochen“,
       vorhandener Text bleibt davor; Hinweis „auf dem iPhone“ oder „Apple“; danach Analysieren.
+- [ ] **Gym Ablauf (Paket 1 A):** letzter Satz → Blatt „Plan geschafft“ (beenden/fortsetzen/Übung dazu); Pausen-
+      Mitteilung „Weiter mit …“; Karte „Danach“; Überspringen und Nachholen; während des Trainings keine
+      Trainingserinnerung; Gewicht eines Satzes ändern lässt die anderen Sätze unverändert; Ziffernblock ersetzt den
+      alten Wert; „Zuletzt“ mit 5 Einheiten; Sperrbildschirm: Gewicht/Wdh. −/+ ohne Entsperren; Kabel-Crunch zeigt
+      „65 kg“ statt „+65 kg Zusatz“.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 
