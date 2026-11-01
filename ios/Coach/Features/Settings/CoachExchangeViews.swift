@@ -51,7 +51,7 @@ struct CoachExportView: View {
         }
       } footer: {
         Text(
-          "Eine Markdown-Datei mit Profil, Plan, Routinen, Tageswerten, Aktivitäten, Krafteinheiten mit allen "
+          "Eine Markdown-Datei mit Profil, Plan, Trainingspläne, Tageswerten, Aktivitäten, Krafteinheiten mit allen "
             + "Sätzen, Ernährung und Gewicht. Oben steht eine Anleitung für die KI mit dem Antwortformat – ihre "
             + "Antwort fügst du unter „KI-Antwort importieren“ ein. Die Datei enthält Gesundheitsdaten; teile sie "
             + "nur mit Diensten, denen du sie anvertrauen willst.")
@@ -130,7 +130,7 @@ struct CoachImportView: View {
     let settings = model.settings
     if !preview.routines.isEmpty {
       Section {
-        Toggle("Alle bisherigen Routinen löschen", isOn: $selection.replaceAllRoutines)
+        Toggle("Alle bisherigen Trainingspläne löschen", isOn: $selection.replaceAllRoutines)
         ForEach(preview.routines) { routine in
           VStack(alignment: .leading, spacing: 6) {
             Text(routine.name).font(.headline)
@@ -149,8 +149,8 @@ struct CoachImportView: View {
             if exists, !selection.replaceAllRoutines {
               Text(
                 selection.choice(for: routine) == .replace
-                  ? "Ersetzt deine Routine „\(routine.name)“."
-                  : "Deine Routine „\(routine.name)“ bleibt erhalten."
+                  ? "Ersetzt deinen Trainingsplan „\(routine.name)“."
+                  : "Dein Trainingsplan „\(routine.name)“ bleibt erhalten."
               )
               .font(.caption2)
               .foregroundStyle(.orange)
@@ -158,12 +158,12 @@ struct CoachImportView: View {
           }
         }
       } header: {
-        Text("Routinen")
+        Text("Trainingspläne")
       } footer: {
         Text(
           selection.replaceAllRoutines
-            ? "Achtung: Deine bisherigen Routinen werden gelöscht; übrig bleiben nur die übernommenen."
-            : "Für jede Routine einzeln: bestehende gleichnamige ersetzen, zusätzlich anlegen oder weglassen.")
+            ? "Achtung: Deine bisherigen Trainingspläne werden gelöscht; übrig bleiben nur die übernommenen."
+            : "Für jeden Trainingsplan einzeln: bestehende gleichnamige ersetzen, zusätzlich anlegen oder weglassen.")
       }
     }
     if let schedule = preview.schedule {
@@ -224,8 +224,8 @@ struct CoachImportView: View {
       Text(
         preview.isEmpty
           ? "Im Block war nichts, was die App übernehmen kann."
-          : "Routinen und Wochenplan lassen sich danach wie gewohnt bearbeiten; die Hinweise stehen unter „Heute“ › "
-            + "„Diese Woche, Ziele und Verlauf“.")
+          : "Trainingspläne und Wochenplan lassen sich danach wie gewohnt bearbeiten; die Hinweise stehen unter "
+            + "„Heute“ › „Diese Woche, Ziele und Verlauf“.")
     }
   }
 

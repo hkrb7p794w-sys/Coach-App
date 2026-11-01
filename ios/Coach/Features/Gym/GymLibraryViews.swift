@@ -10,6 +10,8 @@ struct ExerciseLibraryView: View {
   @State private var search = ""
   @State private var onlyAvailable = true
   @State private var newExercise = false
+  /// Filter nach Muskelgruppe (`nil` = alle).
+  @State private var filter: MuscleGroup?
 
   var body: some View {
     let gym = model.settings.gym
@@ -17,11 +19,16 @@ struct ExerciseLibraryView: View {
       search, custom: gym.customExercises, available: onlyAvailable ? gym.equipment : nil)
     List {
       Section {
+        MuscleGroupChips(selection: $filter)
+          .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
         Toggle("Nur mit meiner Ausstattung", isOn: $onlyAvailable)
         NavigationLink("Meine Ausstattung") { EquipmentSettingsView() }
         NavigationLink("Gym-Einstellungen") { GymSettingsView() }
       }
-      ForEach(MuscleGroup.allCases, id: \.self) { group in
+      if items.filter({ filter == nil || $0.group == filter }).isEmpty {
+        ContentUnavailableView.search(text: search)
+      }
+      ForEach(MuscleGroup.allCases.filter { filter == nil || $0 == filter }, id: \.self) { group in
         let inGroup = items.filter { $0.group == group }
         if !inGroup.isEmpty {
           Section(group.rawValue) {
@@ -46,6 +53,36 @@ struct ExerciseLibraryView: View {
     .sheet(isPresented: $newExercise) {
       CustomExerciseEditor(initialName: search) { _ in newExercise = false }
     }
+  }
+}
+
+/// Muskelgruppen als Chips zum Filtern („Alle“, „Brust“, …).
+struct MuscleGroupChips: View {
+  @Binding var selection: MuscleGroup?
+
+  var body: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 8) {
+        chip("Alle", selected: selection == nil) { selection = nil }
+        ForEach(MuscleGroup.allCases.filter { $0 != .other }, id: \.self) { group in
+          chip(group.rawValue, selected: selection == group) { selection = selection == group ? nil : group }
+        }
+      }
+      .padding(.horizontal, 16)
+    }
+  }
+
+  private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      Text(title)
+        .font(.subheadline.weight(.medium))
+        .padding(.horizontal, 12)
+        .frame(minHeight: 34)
+        .background(selected ? AnyShapeStyle(.tint) : AnyShapeStyle(.fill.tertiary), in: Capsule())
+        .foregroundStyle(selected ? .white : .primary)
+    }
+    .buttonStyle(.plain)
+    .accessibilityAddTraits(selected ? .isSelected : [])
   }
 }
 
@@ -86,6 +123,23 @@ struct ExerciseDetailView: View {
         }
       }
       if let exercise {
+        let involvement = MuscleMap.involvement(exercise.id, group: exercise.group, custom: gym.customExercises)
+        Section {
+          BodyMapView(values: involvement, full: 1)
+            .padding(.vertical, 6)
+          Text(
+            "Kräftig: "
+              + involvement.filter { $0.value >= MuscleMap.primary }.map(\.key.label).sorted().joined(separator: ", ")
+              + (involvement.contains { $0.value < MuscleMap.primary }
+                ? " · hell: "
+                  + involvement.filter { $0.value < MuscleMap.primary }.map(\.key.label).sorted()
+                  .joined(separator: ", ") : "")
+          )
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+        } header: {
+          Text("Beanspruchte Muskeln")
+        }
         Section {
           LabeledContent(
             "Muskel", value: ([exercise.group] + exercise.secondary).map(\.rawValue).joined(separator: ", "))
@@ -200,13 +254,18 @@ struct ExercisePickerView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var search = ""
   @State private var newExercise = false
+  @State private var filter: MuscleGroup?
 
   var body: some View {
     let gym = model.settings.gym
     let items = ExerciseLibrary.search(search, custom: gym.customExercises, available: gym.equipment)
     NavigationStack {
       List {
-        ForEach(MuscleGroup.allCases, id: \.self) { group in
+        Section {
+          MuscleGroupChips(selection: $filter)
+            .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+        }
+        ForEach(MuscleGroup.allCases.filter { filter == nil || $0 == filter }, id: \.self) { group in
           let inGroup = items.filter { $0.group == group }
           if !inGroup.isEmpty {
             Section(group.rawValue) {
@@ -318,7 +377,7 @@ struct RoutinesView: View {
       }
       Section {
         if settings.gym.routines.isEmpty {
-          Text("Noch keine eigene Routine. Übernimm einen Vorschlag oder lege selbst eine an.")
+          Text("Noch kein eigener Trainingsplan. Übernimm einen Vorschlag oder lege selbst einen an.")
             .foregroundStyle(.secondary)
         }
         ForEach(settings.gym.routines) { routine in
@@ -339,11 +398,13 @@ struct RoutinesView: View {
         }
         .onDelete { offsets in model.settings.gym.routines.remove(atOffsets: offsets) }
         .onMove { from, to in model.settings.gym.routines.move(fromOffsets: from, toOffset: to) }
-        Button("Eigene Routine anlegen", systemImage: "plus") {
-          editing = Routine(name: "Neue Routine", items: [])
+        Button("Neuen Trainingsplan anlegen", systemImage: "plus") {
+          editing = Routine(name: "Neuer Plan", items: [])
         }
       } header: {
-        Text("Meine Routinen")
+        Text("Meine Trainingspläne")
+      } footer: {
+        Text("Antippen startet, Stift bearbeitet. Reihenfolge per „Bearbeiten“ oben rechts ziehen.")
       }
       Section {
         let gymBook = RoutineTemplates.gymBook
@@ -399,7 +460,7 @@ struct RoutinesView: View {
         }
       }
     }
-    .navigationTitle("Routinen")
+    .navigationTitle("Trainingspläne")
     .toolbar { EditButton() }
     .sheet(isPresented: $showsPlanner) { GymPlanView(viewModel: viewModel) }
     .fileImporter(isPresented: $importingGymBook, allowedContentTypes: [.item]) { result in
@@ -455,6 +516,8 @@ struct RoutineEditor: View {
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var picking = false
+  /// Reihenfolge per Ziehen: kompakte Liste mit Griffen statt der Einstellungen je Übung.
+  @State private var reordering = false
 
   var body: some View {
     NavigationStack {
@@ -466,41 +529,24 @@ struct RoutineEditor: View {
             "Eigener Plan: Übungen, Reihenfolge, Sätze, Ziel-Wiederholungen, Pausen und Startgewicht frei "
               + "wählbar. Im Supersatz wechseln sich die Übungen ab, die Pause kommt nach der Runde.")
         }
-        ForEach(Array($routine.items.enumerated()), id: \.element.id) { index, $item in
-          let isTime =
-            ExerciseLibrary.info(item.exerciseID, custom: model.settings.gym.customExercises)?.tracking == .time
-          let unit = isTime ? "s" : "Wdh."
-          Section("\(index + 1). \(item.name)") {
-            Stepper("\(item.sets) Sätze", value: $item.sets, in: 1...10)
-            Stepper(
-              "ab \(item.lowerReps) \(unit)", value: $item.lowerReps, in: 1...max(item.upperReps, 1),
-              step: isTime ? 5 : 1)
-            Stepper(
-              "bis \(item.upperReps) \(unit)", value: $item.upperReps, in: item.lowerReps...(isTime ? 600 : 100),
-              step: isTime ? 5 : 1)
-            Stepper("Pause \(item.restSeconds) s", value: $item.restSeconds, in: 30...300, step: 15)
-            if index < routine.items.count - 1 {
-              Toggle("Supersatz mit \(routine.items[index + 1].name)", isOn: $item.supersetWithNext)
-            }
-            if !isTime {
-              LabeledContent("Startgewicht") {
-                TextField("aus Verlauf", value: $item.weightKg, format: .number.precision(.fractionLength(0...2)))
-                  .keyboardType(.decimalPad)
-                  .multilineTextAlignment(.trailing)
-                Text("kg").foregroundStyle(.secondary)
+        if reordering {
+          Section {
+            ForEach(routine.items) { item in
+              HStack {
+                Text(item.name)
+                Spacer()
+                Text("\(item.sets) Sätze").foregroundStyle(.secondary)
               }
             }
-            HStack {
-              Button("Nach oben", systemImage: "arrow.up") { move(index, by: -1) }
-                .disabled(index == 0)
-              Spacer()
-              Button("Nach unten", systemImage: "arrow.down") { move(index, by: 1) }
-                .disabled(index == routine.items.count - 1)
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            Button("Entfernen", role: .destructive) { routine.items.removeAll { $0.id == item.id } }
+            .onMove { routine.items.move(fromOffsets: $0, toOffset: $1) }
+            .onDelete { routine.items.remove(atOffsets: $0) }
+          } header: {
+            Text("Reihenfolge")
+          } footer: {
+            Text("Am Griff ziehen zum Verschieben, links zum Entfernen.")
           }
+        } else {
+          planDetails
         }
         Section {
           Button("Übung hinzufügen", systemImage: "plus") { picking = true }
@@ -509,8 +555,16 @@ struct RoutineEditor: View {
             "Das Startgewicht gilt, solange es für die Übung noch keinen Verlauf gibt; danach schlägt die Progression "
               + "das Gewicht vor. Eigene Übungen legst du in der Übungsauswahl an.")
         }
+        if !routine.items.isEmpty {
+          MuscleHeatmapSection(
+            title: "Beanspruchung je Einheit",
+            values: MuscleLoad.routine(routine, custom: model.settings.gym.customExercises),
+            footer: "Geplante Arbeitssätze je Muskel: Hauptmuskel 1, mitarbeitende Muskeln 0,5. So siehst du, was "
+              + "der Plan auslässt oder doppelt trifft.")
+        }
       }
-      .navigationTitle("Routine")
+      .environment(\.editMode, .constant(reordering ? .active : .inactive))
+      .navigationTitle("Trainingsplan")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
@@ -518,12 +572,58 @@ struct RoutineEditor: View {
           Button("Sichern") { save(routine) }
             .disabled(routine.name.trimmingCharacters(in: .whitespaces).isEmpty || routine.items.isEmpty)
         }
+        ToolbarItem(placement: .bottomBar) {
+          Button(reordering ? "Fertig sortiert" : "Reihenfolge ändern", systemImage: "arrow.up.arrow.down") {
+            withAnimation { reordering.toggle() }
+          }
+          .disabled(routine.items.count < 2 && !reordering)
+        }
       }
       .sheet(isPresented: $picking) {
         ExercisePickerView { exercise in
           routine.items.append(RoutineItem(exercise: exercise))
           picking = false
         }
+      }
+    }
+  }
+
+  /// Einstellungen je Übung (Sätze, Bereich, Pause, Supersatz, Startgewicht).
+  @ViewBuilder private var planDetails: some View {
+    ForEach(Array($routine.items.enumerated()), id: \.element.id) { index, $item in
+      let isTime =
+        ExerciseLibrary.info(item.exerciseID, custom: model.settings.gym.customExercises)?.tracking == .time
+      let unit = isTime ? "s" : "Wdh."
+      Section("\(index + 1). \(item.name)") {
+        Stepper("\(item.sets) Sätze", value: $item.sets, in: 1...10)
+        Stepper(
+          "ab \(item.lowerReps) \(unit)", value: $item.lowerReps, in: 1...max(item.upperReps, 1),
+          step: isTime ? 5 : 1)
+        Stepper(
+          "bis \(item.upperReps) \(unit)", value: $item.upperReps, in: item.lowerReps...(isTime ? 600 : 100),
+          step: isTime ? 5 : 1)
+        Stepper("Pause \(item.restSeconds) s", value: $item.restSeconds, in: 30...300, step: 15)
+        if index < routine.items.count - 1 {
+          Toggle("Supersatz mit \(routine.items[index + 1].name)", isOn: $item.supersetWithNext)
+        }
+        if !isTime {
+          LabeledContent("Startgewicht") {
+            TextField("aus Verlauf", value: $item.weightKg, format: .number.precision(.fractionLength(0...2)))
+              .keyboardType(.decimalPad)
+              .multilineTextAlignment(.trailing)
+            Text("kg").foregroundStyle(.secondary)
+          }
+        }
+        HStack {
+          Button("Nach oben", systemImage: "arrow.up") { move(index, by: -1) }
+            .disabled(index == 0)
+          Spacer()
+          Button("Nach unten", systemImage: "arrow.down") { move(index, by: 1) }
+            .disabled(index == routine.items.count - 1)
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        Button("Entfernen", role: .destructive) { routine.items.removeAll { $0.id == item.id } }
       }
     }
   }
