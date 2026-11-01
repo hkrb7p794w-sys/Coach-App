@@ -5,6 +5,31 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-01 – Gym und Garmin: Sätze in die Uhr-Aufzeichnung, keine Doppelten (Paket 1, PR C)
+
+- **Prüfung der Möglichkeiten:** Garmin Connect hat keine Funktion und keine Schnittstelle, um zwei Aktivitäten
+  zusammenzuführen; auch die offizielle Personal API kann keine Aktivitäten ändern. Die Connect-Webseite
+  bearbeitet aber die Sätze einer Krafttraining-Aktivität über `GET/PUT /activity-service/activity/{id}/exerciseSets`
+  (inoffiziell). python-garminconnect (`set_activity_exercise_sets`) und strong-garmin-sync (MIT) nutzen sie: Sätze
+  werden ersetzt, Herzfrequenz, Kalorien und Zeit der Aufzeichnung bleiben, es entsteht keine zweite Aktivität.
+- **Umsetzung:** Nach dem Speichern sucht die App die Krafttraining-Aufzeichnung der Uhr (Garmin, Start höchstens
+  2 h entfernt, noch keiner Einheit zugeordnet, bevorzugt mit Herzfrequenz) und schreibt die Sätze hinein –
+  „Füllen“, wenn die Uhr genug Satz-Abschnitte erkannt hat (deren Zeiten bleiben), sonst „Ersetzen“. Übungsnamen
+  als FIT-Texte (`ExerciseCategory`/`*ExerciseName`, aus dem FIT-Profil von fit-tool 0.9.15); lehnt Garmin einen
+  Namen ab, nur die Kategorie. Gewicht in Gramm; Körpergewicht und Unterstützung ohne Gewicht; Halteübungen mit
+  Dauer statt Wiederholungen. Vor dem ersten Schreiben sichert die App die ursprünglichen Sätze (wiederherstellbar).
+- **Zuordnung eindeutig:** Die Garmin-ID steht an der Einheit (`GymSession.garmin`, JSON im Datensatz – keine
+  SwiftData-Migration); eine Aktivität gehört höchstens einer Einheit. Ältere Einheiten ohne Verbindung werden
+  nicht automatisch angefasst.
+- **Ohne Uhr:** Die Einheit wartet bis zu 3 Stunden auf die Aufzeichnung (Abgleich nach jedem Abruf) und wird dann
+  als eigenes Krafttraining hochgeladen (abschaltbar).
+- **In der App:** Ein hochgeladener Export (ohne Herzfrequenz) neben einer Aufzeichnung der Uhr (Start ≤ 2 h)
+  zählt nicht – weder im Verlauf noch bei Belastung und Kalorien (`StrengthDuplicates`). Die Aktivität der Uhr zeigt
+  die Sätze der App; Kalorien kommen nur von der Uhr.
+- **Grenzen:** Inoffizielle Schnittstelle, kann sich ändern; Fehler werden je Einheit angezeigt. Eine früher
+  hochgeladene Doppel-Aktivität bleibt in Garmin Connect bestehen (die App löscht nichts in Garmin); in der App
+  zählt sie nicht mehr.
+
 ## 2026-11-01 – Gym: Trainingspläne, Bibliothek, Muskel-Heatmap (Paket 1, PR B)
 
 - **Belastungsmodell:** effektive Arbeitssätze je Muskel statt Kalorien. Hauptmuskel 1 Satz, mitarbeitende

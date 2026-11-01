@@ -64,7 +64,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 46 | Ernährung: Mahlzeit diktieren (Spracherkennung auf Deutsch, wenn möglich auf dem Gerät) | fertig (PR 55) |
 | 47 | Gym Paket 1 A: Plan geschafft (beenden/fortsetzen), nächste Übung mit Namen und Vorschau, Überspringen, keine Erinnerung im Training, Eingabe ohne Mitziehen, letzte 5 Leistungen, Gewicht/Wdh. auf dem Sperrbildschirm, Kabel-Crunch | in Arbeit |
 | 48 | Gym Paket 1 B: Trainingspläne leichter erreichbar, Übungsbibliothek mit Filter, Muskel-Heatmap | in Arbeit |
-| 49 | Gym Paket 1 C: Garmin – Sätze in die Uhr-Aktivität, keine doppelten Aktivitäten und Kalorien | offen |
+| 49 | Gym Paket 1 C: Garmin – Sätze in die Uhr-Aktivität, keine doppelten Aktivitäten und Kalorien | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

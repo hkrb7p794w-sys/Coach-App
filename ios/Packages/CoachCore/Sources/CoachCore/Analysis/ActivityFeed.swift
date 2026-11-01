@@ -147,6 +147,9 @@ public enum ActivityFeed {
     activities: [GarminActivity], gym: [GymItem], results: [SessionResult] = [], timeZone: TimeZone = .current
   ) -> [Entry] {
     var gymLeft = gym
+    // Export der App plus Aufzeichnung der Uhr: nur die Aufzeichnung (mit Herzfrequenz und Kalorien) zeigen.
+    let redundant = StrengthDuplicates.redundant(activities, timeZone: timeZone)
+    let activities = redundant.isEmpty ? activities : activities.filter { !redundant.contains($0.id) }
     let byActivity = Dictionary(
       results.compactMap { r in r.activityID.map { ($0, r) } }, uniquingKeysWith: { a, _ in a })
     var entries: [Entry] = activities.compactMap { activity in
@@ -255,7 +258,7 @@ public enum ActivityFeed {
     return notes
   }
 
-  static func start(_ activity: GarminActivity, timeZone: TimeZone) -> Date? {
+  public static func start(_ activity: GarminActivity, timeZone: TimeZone) -> Date? {
     activity.startLocal.flatMap { localFormatter(timeZone).date(from: String($0.prefix(19))) }
   }
 

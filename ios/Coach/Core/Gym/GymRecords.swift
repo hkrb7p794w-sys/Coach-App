@@ -23,6 +23,13 @@ final class GymSessionRecord {
     self.savedToHealth = savedToHealth
   }
 
+  /// Garmin-Verbindung setzen, ohne die übrigen gespeicherten Daten umzudeuten (roh lesen, nur `garmin` ändern).
+  func setGarmin(_ link: GarminLink?) {
+    guard var raw = try? JSONDecoder().decode(GymSession.self, from: payload) else { return }
+    raw.garmin = link
+    if let data = try? JSONEncoder().encode(raw) { payload = data }
+  }
+
   var session: GymSession? {
     // Beim Lesen vereinheitlicht (`ExerciseAliases`); die gespeicherten Daten bleiben unverändert.
     (try? JSONDecoder().decode(GymSession.self, from: payload)).map(ExerciseAliases.normalized)

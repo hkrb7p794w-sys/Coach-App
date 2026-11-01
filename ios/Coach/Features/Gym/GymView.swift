@@ -426,18 +426,9 @@ struct SessionDetailView: View {
             }
           }
         }
-        if record.uploadedToGarmin {
-          Label("In Garmin Connect übertragen", systemImage: "checkmark.circle.fill").foregroundStyle(.blue)
-        } else if let connect = model.garmin.connect, connect.isLoggedIn {
-          Button("Zu Garmin Connect übertragen") {
-            Task {
-              message = await GymViewModel.uploadToGarmin(
-                record, session: session, context: context, garmin: connect)
-            }
-          }
-        }
         if let message { Text(message).font(.footnote) }
       }
+      GarminLinkSection(record: record, session: session) { message = $0 }
       ForEach(session.exercises) { exercise in
         Section(exercise.name) {
           ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
@@ -449,6 +440,97 @@ struct SessionDetailView: View {
       }
     }
     .navigationTitle(session.title)
+  }
+}
+
+/// Abgleich mit Garmin: Status, Sätze in die Uhr-Aufzeichnung schreiben, als eigene Aktivität hochladen,
+/// ursprüngliche Sätze der Uhr wiederherstellen.
+private struct GarminLinkSection: View {
+  let record: GymSessionRecord
+  let session: GymSession
+  let report: (String) -> Void
+  @Environment(\.modelContext) private var context
+  @Environment(AppModel.self) private var model
+  @State private var working = false
+
+  /// Aus dem gespeicherten Datensatz, damit der Status nach dem Abgleich sofort stimmt.
+  private var link: GarminLink? { record.session?.garmin }
+
+  var body: some View {
+    if let connect = model.garmin.connect, connect.isLoggedIn {
+      Section {
+        status
+        if working { ProgressView() }
+        switch link?.status {
+        case .enriched?:
+          if let id = link?.activityID, GarminStrengthService.hasBackup(activityID: id) {
+            Button("Ursprüngliche Sätze der Uhr wiederherstellen", role: .destructive) {
+              run { await GarminStrengthService.restore(record, activityID: id, garmin: connect) }
+            }
+          }
+        case .uploaded?:
+          EmptyView()
+        default:
+          if !record.uploadedToGarmin {
+            Button("Mit Aufzeichnung der Uhr abgleichen", systemImage: "arrow.triangle.2.circlepath") {
+              record.setGarmin(GarminLink(status: .pending, updatedAt: .now))
+              run {
+                await GarminStrengthService.reconcile(context: context, garmin: connect, gym: model.settings.gym)
+                  ?? "Nichts zu tun."
+              }
+            }
+            Button("Als eigene Aktivität hochladen", systemImage: "square.and.arrow.up") {
+              run {
+                let text = await GymViewModel.uploadToGarmin(
+                  record, session: session, context: context, garmin: connect)
+                if record.uploadedToGarmin {
+                  record.setGarmin(GarminLink(status: .uploaded, note: text, updatedAt: .now))
+                  try? context.save()
+                }
+                return text
+              }
+            }
+          }
+        }
+      } header: {
+        Text("Garmin Connect")
+      } footer: {
+        Text(
+          "Abgleichen schreibt die Sätze in die Krafttraining-Aufzeichnung der Uhr (Start höchstens 2 Stunden "
+            + "entfernt) – Kalorien und Puls der Uhr bleiben, es entsteht keine zweite Aktivität. Hochladen legt eine "
+            + "eigene Aktivität an; nur, wenn die Uhr nicht dabei war.")
+      }
+    }
+  }
+
+  @ViewBuilder private var status: some View {
+    switch link?.status {
+    case .enriched?:
+      Label("Sätze in der Aufzeichnung der Uhr", systemImage: "checkmark.circle.fill").foregroundStyle(.blue)
+    case .uploaded?:
+      Label("Als eigene Aktivität hochgeladen", systemImage: "checkmark.circle.fill").foregroundStyle(.blue)
+    case .pending?:
+      Label("Wartet auf die Aufzeichnung der Uhr", systemImage: "hourglass").foregroundStyle(.secondary)
+    case .failed?:
+      Label(link?.note ?? "Abgleich fehlgeschlagen", systemImage: "exclamationmark.triangle")
+        .foregroundStyle(.orange)
+    case nil:
+      if record.uploadedToGarmin {
+        Label("Als eigene Aktivität hochgeladen", systemImage: "checkmark.circle.fill").foregroundStyle(.blue)
+      } else {
+        Label("Noch nicht in Garmin Connect", systemImage: "circle.dashed").foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private func run(_ action: @escaping () async -> String) {
+    working = true
+    Task {
+      let text = await action()
+      try? context.save()
+      working = false
+      report(text)
+    }
   }
 }
 

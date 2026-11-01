@@ -120,11 +120,17 @@ struct GymSettingsView: View {
             + "durchkommen, legst du in Einstellungen › Fokus fest.")
       }
       Section {
-        Toggle("Nach Garmin Connect übertragen", isOn: $settings.gym.uploadsToGarmin)
+        Toggle("Mit Garmin Connect abgleichen", isOn: $settings.gym.uploadsToGarmin)
+        if settings.gym.uploadsToGarmin {
+          Toggle("Ohne Uhr als eigene Aktivität hochladen", isOn: $settings.gym.garminFallbackUpload)
+        }
       } footer: {
         Text(
-          "Beendete Einheiten erscheinen in Garmin Connect als Krafttraining mit Übung, Wiederholungen und Gewicht "
-            + "je Satz. Nur mit Garmin-Konto. Zeichnest du dieselbe Einheit auch mit der Uhr auf, gibt es sie doppelt.")
+          "Zeichnest du die Einheit auch mit der Uhr auf, schreibt IronLudi die Übungen, Wiederholungen und Gewichte "
+            + "in diese Aufzeichnung – eine Aktivität mit Kalorien und Puls der Uhr, nichts doppelt. Die ursprünglichen "
+            + "Sätze der Uhr werden vorher gesichert. Ohne Aufzeichnung der Uhr wird die Einheit nach "
+            + "\(Int(GarminStrengthSync.fallbackDelay / 3_600)) Stunden als eigenes Krafttraining hochgeladen "
+            + "(abschaltbar). Nur mit Garmin-Konto; nutzt die Schnittstelle von „Sätze bearbeiten“ in Garmin Connect.")
       }
     }
     .navigationTitle("Gym")

@@ -238,6 +238,20 @@ public enum GarminConnect {
       method: "GET", url: url(apiBase, path, query.map { ($0.name, $0.value) }), headers: headers, body: nil)
   }
 
+  /// JSON an connectapi senden (z. B. PUT der Sätze einer Aktivität).
+  public static func jsonRequest(method: String, path: String, body: Data, token: Token) -> Request {
+    var headers = nativeHeaders
+    headers["Authorization"] = "Bearer \(token.accessToken)"
+    headers["Accept"] = "application/json"
+    headers["Content-Type"] = "application/json"
+    return Request(method: method, url: url(apiBase, path), headers: headers, body: body)
+  }
+
+  /// Pfad der Sätze einer Krafttraining-Aktivität (GET liest, PUT ersetzt alle Sätze).
+  public static func exerciseSetsPath(activityID: Int64) -> String {
+    "/activity-service/activity/\(activityID)/exerciseSets"
+  }
+
   /// Aktivitätsdatei hochladen (`/upload-service/upload`, Formularfeld `file`, wie python-garminconnect
   /// `upload_activity`). Garmin antwortet mit `detailedImportResult`; 409 heißt „schon vorhanden“.
   public static func uploadRequest(fit: Data, fileName: String, token: Token, boundary: String) -> Request {
@@ -268,6 +282,8 @@ public enum ConnectEndpoint: Equatable, Sendable {
   case dailySleepData(displayName: String, day: CalendarDay)
   /// Wägungen eines Zeitraums (Waage, Garmin-App oder Eingabe in Connect).
   case weightRange(start: CalendarDay, end: CalendarDay)
+  /// Die neuesten Aktivitäten (für den Abgleich von Krafttrainings direkt nach dem Speichern).
+  case recentActivities(limit: Int)
 
   public var path: String {
     switch self {
@@ -281,6 +297,7 @@ public enum ConnectEndpoint: Equatable, Sendable {
     case .userSummary(let name, _): "/usersummary-service/usersummary/daily/" + Self.safe(name)
     case .dailySleepData(let name, _): "/wellness-service/wellness/dailySleepData/" + Self.safe(name)
     case .weightRange(let start, let end): "/weight-service/weight/range/\(start.iso)/\(end.iso)"
+    case .recentActivities: "/activitylist-service/activities/search/activities"
     }
   }
 
@@ -295,6 +312,8 @@ public enum ConnectEndpoint: Equatable, Sendable {
       ]
     case .weightRange:
       [GarminRequest.QueryItem(name: "includeAll", value: "true")]
+    case .recentActivities(let limit):
+      [GarminRequest.QueryItem(name: "start", value: "0"), GarminRequest.QueryItem(name: "limit", value: "\(limit)")]
     default:
       []
     }

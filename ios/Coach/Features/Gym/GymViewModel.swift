@@ -615,6 +615,9 @@ final class GymViewModel {
       return nil
     }
     session.end = now
+    // Garmin: erst die Aufzeichnung der Uhr suchen und dort die Sätze ergänzen (`GarminStrengthService`).
+    let syncsGarmin = gym.uploadsToGarmin && (garmin?.isLoggedIn ?? false)
+    if syncsGarmin { session.garmin = GarminLink(status: .pending, updatedAt: now) }
     isSaving = true
     defer { isSaving = false }
 
@@ -631,8 +634,10 @@ final class GymViewModel {
     RestAlarm.schedule(at: nil)
     let records = GymStats.newRecords(in: session, before: sessions)
     var status = await Self.saveToHealth(record, session: session, context: context, writer: writer)
-    if gym.uploadsToGarmin, let garmin, garmin.isLoggedIn {
-      status += "\n" + (await Self.uploadToGarmin(record, session: session, context: context, garmin: garmin))
+    if syncsGarmin, let garmin,
+      let garminStatus = await GarminStrengthService.reconcile(context: context, garmin: garmin, gym: gym, now: now)
+    {
+      status += "\n" + garminStatus
     }
     message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
     finished = FinishedWorkout(
