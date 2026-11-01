@@ -191,10 +191,11 @@ struct MuscleOverviewSection: View {
     } footer: {
       VStack(alignment: .leading, spacing: 6) {
         Text(
-          "Effektive Sätze je Muskel (Hauptmuskel 1, mitarbeitend 0,5). Volle Farbe ab \(Int(MuscleLoad.weeklyFull)) "
-            + "Sätzen pro Woche, orange unter \(Int(MuscleLoad.weeklyEnough)). „Vermutlich noch in der Erholung“ heißt: "
-            + "in den letzten "
-            + "\(Int(MuscleLoad.recoveryHours)) Stunden nennenswert belastet – eine Schätzung, keine Messung von Ermüdung.")
+          "Effektive Sätze je Muskel (Hauptmuskel 1, mitarbeitend 0,5). Volle Farbe ab "
+            + "\(Int(MuscleLoad.weeklyFull)) Sätzen pro Woche, orange unter \(Int(MuscleLoad.weeklyEnough)). "
+            + "„Vermutlich noch in der Erholung“ heißt: in den letzten \(Int(MuscleLoad.recoveryHours)) Stunden "
+            + "nennenswert belastet – eine Schätzung, keine Messung von Ermüdung."
+        )
         EvidenceDisclosure(ruleIDs: ["gym.muscle-load", "gym.volume"])
       }
     }

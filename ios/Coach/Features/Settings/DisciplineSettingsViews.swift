@@ -59,8 +59,8 @@ struct GymSettingsView: View {
         Text("Satzpausen")
       } footer: {
         Text(
-          "Gilt, wenn weder der Trainingsplan noch die Übung eine eigene Pause hat. Eine Pause je Übung stellst du unter "
-            + "„Pausen und Notizen je Übung“ oder während der Einheit im Menü der Übung ein. Ohne sofortigen Start "
+          "Gilt, wenn weder der Trainingsplan noch die Übung eine eigene Pause hat. Eine Pause je Übung stellst du "
+            + "unter „Pausen und Notizen je Übung“ oder während der Einheit im Menü der Übung ein. Ohne sofortigen Start "
             + "erscheint nach dem Satz „Pause starten“.")
       }
       Section {
