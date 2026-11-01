@@ -48,7 +48,8 @@ struct MuscleLoadTests {
   }
 
   @Test func customExerciseUsesGroups() {
-    let custom = ExerciseInfo.custom(name: "Meine Presse", group: .shoulders, equipment: .machine, tracking: .weightReps)
+    let custom = ExerciseInfo.custom(
+      name: "Meine Presse", group: .shoulders, equipment: .machine, tracking: .weightReps)
     let involvement = MuscleMap.involvement(custom.id, group: .shoulders, custom: [custom])
     #expect(involvement[.sideDelts] == 1)
     #expect(MuscleMap.involvement("unbekannt", group: .back) == [.lats: 1])

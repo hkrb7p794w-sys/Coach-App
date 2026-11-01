@@ -70,7 +70,9 @@ struct GymView: View {
           NavigationLink {
             GymAnalysisView(viewModel: viewModel)
           } label: {
-            HubLabel(title: "Auswertung", symbol: "figure.strengthtraining.traditional", caption: "Muskel-Heatmap, Erholung, Fortschritt")
+            HubLabel(
+              title: "Auswertung", symbol: "figure.strengthtraining.traditional",
+              caption: "Muskel-Heatmap, Erholung, Fortschritt")
           }
         } header: {
           Text("Planen und auswerten")

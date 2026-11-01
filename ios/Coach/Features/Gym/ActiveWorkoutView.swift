@@ -1531,9 +1531,10 @@ private struct FinishWorkoutSheet: View {
           Text(
             finished.muscles.filter { $0.value > 0 }.sorted { $0.value > $1.value }.prefix(5)
               .map { "\($0.key.label) \(GermanFormat.decimal($0.value))" }.joined(separator: " · ")
-              + " Sätze. Hauptmuskel zählt voll, mitarbeitende halb – eine Schätzung.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+              + " Sätze. Hauptmuskel zählt voll, mitarbeitende halb – eine Schätzung."
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }

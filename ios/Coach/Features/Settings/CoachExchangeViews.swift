@@ -224,8 +224,8 @@ struct CoachImportView: View {
       Text(
         preview.isEmpty
           ? "Im Block war nichts, was die App übernehmen kann."
-          : "Trainingspläne und Wochenplan lassen sich danach wie gewohnt bearbeiten; die Hinweise stehen unter „Heute“ › "
-            + "„Diese Woche, Ziele und Verlauf“.")
+          : "Trainingspläne und Wochenplan lassen sich danach wie gewohnt bearbeiten; die Hinweise stehen unter "
+            + "„Heute“ › „Diese Woche, Ziele und Verlauf“.")
     }
   }
 

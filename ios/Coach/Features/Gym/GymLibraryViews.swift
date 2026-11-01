@@ -133,9 +133,10 @@ struct ExerciseDetailView: View {
               + (involvement.contains { $0.value < MuscleMap.primary }
                 ? " · hell: "
                   + involvement.filter { $0.value < MuscleMap.primary }.map(\.key.label).sorted()
-                  .joined(separator: ", ") : ""))
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+                  .joined(separator: ", ") : "")
+          )
+          .font(.footnote)
+          .foregroundStyle(.secondary)
         } header: {
           Text("Beanspruchte Muskeln")
         }
@@ -589,42 +590,42 @@ struct RoutineEditor: View {
 
   /// Einstellungen je Übung (Sätze, Bereich, Pause, Supersatz, Startgewicht).
   @ViewBuilder private var planDetails: some View {
-        ForEach(Array($routine.items.enumerated()), id: \.element.id) { index, $item in
-          let isTime =
-            ExerciseLibrary.info(item.exerciseID, custom: model.settings.gym.customExercises)?.tracking == .time
-          let unit = isTime ? "s" : "Wdh."
-          Section("\(index + 1). \(item.name)") {
-            Stepper("\(item.sets) Sätze", value: $item.sets, in: 1...10)
-            Stepper(
-              "ab \(item.lowerReps) \(unit)", value: $item.lowerReps, in: 1...max(item.upperReps, 1),
-              step: isTime ? 5 : 1)
-            Stepper(
-              "bis \(item.upperReps) \(unit)", value: $item.upperReps, in: item.lowerReps...(isTime ? 600 : 100),
-              step: isTime ? 5 : 1)
-            Stepper("Pause \(item.restSeconds) s", value: $item.restSeconds, in: 30...300, step: 15)
-            if index < routine.items.count - 1 {
-              Toggle("Supersatz mit \(routine.items[index + 1].name)", isOn: $item.supersetWithNext)
-            }
-            if !isTime {
-              LabeledContent("Startgewicht") {
-                TextField("aus Verlauf", value: $item.weightKg, format: .number.precision(.fractionLength(0...2)))
-                  .keyboardType(.decimalPad)
-                  .multilineTextAlignment(.trailing)
-                Text("kg").foregroundStyle(.secondary)
-              }
-            }
-            HStack {
-              Button("Nach oben", systemImage: "arrow.up") { move(index, by: -1) }
-                .disabled(index == 0)
-              Spacer()
-              Button("Nach unten", systemImage: "arrow.down") { move(index, by: 1) }
-                .disabled(index == routine.items.count - 1)
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            Button("Entfernen", role: .destructive) { routine.items.removeAll { $0.id == item.id } }
+    ForEach(Array($routine.items.enumerated()), id: \.element.id) { index, $item in
+      let isTime =
+        ExerciseLibrary.info(item.exerciseID, custom: model.settings.gym.customExercises)?.tracking == .time
+      let unit = isTime ? "s" : "Wdh."
+      Section("\(index + 1). \(item.name)") {
+        Stepper("\(item.sets) Sätze", value: $item.sets, in: 1...10)
+        Stepper(
+          "ab \(item.lowerReps) \(unit)", value: $item.lowerReps, in: 1...max(item.upperReps, 1),
+          step: isTime ? 5 : 1)
+        Stepper(
+          "bis \(item.upperReps) \(unit)", value: $item.upperReps, in: item.lowerReps...(isTime ? 600 : 100),
+          step: isTime ? 5 : 1)
+        Stepper("Pause \(item.restSeconds) s", value: $item.restSeconds, in: 30...300, step: 15)
+        if index < routine.items.count - 1 {
+          Toggle("Supersatz mit \(routine.items[index + 1].name)", isOn: $item.supersetWithNext)
+        }
+        if !isTime {
+          LabeledContent("Startgewicht") {
+            TextField("aus Verlauf", value: $item.weightKg, format: .number.precision(.fractionLength(0...2)))
+              .keyboardType(.decimalPad)
+              .multilineTextAlignment(.trailing)
+            Text("kg").foregroundStyle(.secondary)
           }
         }
+        HStack {
+          Button("Nach oben", systemImage: "arrow.up") { move(index, by: -1) }
+            .disabled(index == 0)
+          Spacer()
+          Button("Nach unten", systemImage: "arrow.down") { move(index, by: 1) }
+            .disabled(index == routine.items.count - 1)
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        Button("Entfernen", role: .destructive) { routine.items.removeAll { $0.id == item.id } }
+      }
+    }
   }
 
   private func move(_ index: Int, by offset: Int) {
