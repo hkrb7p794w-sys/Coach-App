@@ -26,7 +26,8 @@ enum GarminStrengthService {
   ) async -> String? {
     guard garmin.isLoggedIn else { return nil }
     let since = now.addingTimeInterval(-3 * 86_400)
-    let records = (try? context.fetch(FetchDescriptor<GymSessionRecord>(predicate: #Predicate { $0.start >= since })))
+    let records =
+      (try? context.fetch(FetchDescriptor<GymSessionRecord>(predicate: #Predicate { $0.start >= since })))
       ?? []
     let pending = records.filter { $0.session?.garmin?.status == .pending }
     guard !pending.isEmpty else { return nil }
@@ -51,7 +52,8 @@ enum GarminStrengthService {
         linked.insert(activityID)
       case .upload:
         message = await GymViewModel.uploadToGarmin(record, session: session, context: context, garmin: garmin)
-        record.setGarmin(GarminLink(status: record.uploadedToGarmin ? .uploaded : .failed, note: message, updatedAt: now))
+        record.setGarmin(
+          GarminLink(status: record.uploadedToGarmin ? .uploaded : .failed, note: message, updatedAt: now))
       case .wait:
         message = "Wartet auf die Aufzeichnung der Uhr – die Sätze werden ergänzt, sobald sie in Garmin Connect ist."
       case .none:

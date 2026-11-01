@@ -65,6 +65,7 @@ public enum GarminStrengthSync {
     "hammer_curl": ("CURL", "DUMBBELL_HAMMER_CURL"),
     "hammer_curl_kabel": ("CURL", "CABLE_HAMMER_CURL"),
     "kabel_curl_liegend": ("CURL", "CABLE_BICEPS_CURL"),
+    "handgelenk_curl": ("CURL", nil),
     "trizeps_pushdown": ("TRICEPS_EXTENSION", "TRICEPS_PRESSDOWN"),
     "trizepsstrecken": ("TRICEPS_EXTENSION", "OVERHEAD_DUMBBELL_TRICEPS_EXTENSION"),
     "trizeps_kabel_schraegbank": ("TRICEPS_EXTENSION", "CABLE_OVERHEAD_TRICEPS_EXTENSION"),

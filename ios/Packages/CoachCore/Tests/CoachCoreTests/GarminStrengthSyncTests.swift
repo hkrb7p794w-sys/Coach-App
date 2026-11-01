@@ -56,7 +56,9 @@ struct GarminStrengthSyncTests {
               "startTime": .string("2026-11-01T10:0\(index):00.0"), "repetitionCount": .null,
               "exercises": .array([]), "weight": .null,
             ]),
-            .object(["setType": .string("REST"), "duration": .number(20), "startTime": .string("2026-11-01T10:0\(index):40.0")]),
+            .object([
+              "setType": .string("REST"), "duration": .number(20), "startTime": .string("2026-11-01T10:0\(index):40.0"),
+            ]),
           ]
         }),
     ])
