@@ -48,6 +48,38 @@ public enum GymStats {
     }
   }
 
+  /// Beste Leistung einer früheren Einheit: der Arbeitssatz mit der höchsten Last, bei Gleichstand mit den meisten
+  /// Wiederholungen (bei Körpergewicht bzw. Halteübungen die meisten Wiederholungen bzw. Sekunden).
+  public struct Performance: Equatable, Sendable, Identifiable {
+    public var day: CalendarDay
+    public var weightKg: Double
+    public var reps: Int
+    public var id: CalendarDay { day }
+
+    /// „80 kg × 10“, „× 12“ (Körpergewicht), „+10 kg × 8“ (Zusatz), „45 s“ (Halteübung).
+    public func text(isTime: Bool = false, allowsAssistance: Bool = false) -> String {
+      let amount = isTime ? "\(reps) s" : "× \(reps)"
+      guard weightKg != 0 else { return isTime ? amount : "\(reps) Wdh." }
+      let weight =
+        allowsAssistance
+        ? (weightKg > 0 ? "+\(GermanFormat.number(weightKg)) kg" : "\(GermanFormat.number(-weightKg)) kg Hilfe")
+        : "\(GermanFormat.number(weightKg)) kg"
+      return "\(weight) \(amount)"
+    }
+  }
+
+  /// Die letzten `limit` Einheiten einer Übung, neueste zuerst – als Orientierung unter der Eingabe.
+  public static func recentPerformances(of exerciseID: String, sessions: [GymSession], limit: Int = 5)
+    -> [Performance]
+  {
+    history(of: exerciseID, sessions: sessions).suffix(limit).reversed().compactMap { point in
+      point.sets.max { lhs, rhs in
+        (lhs.weightKg, lhs.reps) < (rhs.weightKg, rhs.reps)
+      }
+      .map { Performance(day: point.day, weightKg: $0.weightKg, reps: $0.reps) }
+    }
+  }
+
   public static func records(_ points: [Point]) -> Records {
     Records(
       heaviestKg: points.map(\.topWeightKg).filter { $0 > 0 }.max(),

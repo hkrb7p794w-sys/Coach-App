@@ -86,29 +86,21 @@ public enum WorkoutEdits {
     session.exercises[index].sets.insert(contentsOf: warmUps, at: 0)
   }
 
-  /// Gewicht setzen und offene Folgesätze derselben Art mit gleichem Gewicht mitziehen (Aufwärmsätze ziehen die
-  /// Arbeitssätze nicht herunter). Gibt die Zahl der mitgezogenen Sätze zurück.
-  @discardableResult
+  /// Gewicht genau dieses Satzes setzen. Andere Sätze bleiben unverändert – jeder Satz ist einzeln bearbeitbar
+  /// (Wunsch aus dem Gerätetest: das frühere Mitziehen der Folgesätze überschrieb gewollte Werte).
   public static func setWeight(
     _ weight: Double, set index: Int, of exerciseID: UUID, allowsNegative: Bool = false, in session: inout GymSession
-  ) -> Int {
+  ) {
     guard let exerciseIndex = session.exercises.firstIndex(where: { $0.id == exerciseID }),
       session.exercises[exerciseIndex].sets.indices.contains(index)
-    else { return 0 }
-    var sets = session.exercises[exerciseIndex].sets
-    let old = sets[index].weightKg
-    let kind = sets[index].kind
-    let value = allowsNegative ? max(weight, -200) : max(weight, 0)
-    sets[index].weightKg = value
-    var moved = 0
-    for later in sets.indices where later > index && !sets[later].done && sets[later].kind == kind {
-      if abs(sets[later].weightKg - old) < 0.01, abs(old - value) >= 0.01 {
-        sets[later].weightKg = value
-        moved += 1
-      }
-    }
-    session.exercises[exerciseIndex].sets = sets
-    return moved
+    else { return }
+    session.exercises[exerciseIndex].sets[index].weightKg = allowsNegative ? max(weight, -200) : max(weight, 0)
+  }
+
+  /// Übung überspringen bzw. wieder aufnehmen. Erledigte Sätze bleiben; offene werden beim Speichern verworfen.
+  public static func setSkipped(_ skipped: Bool, exerciseID: UUID, in session: inout GymSession) {
+    guard let index = session.exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+    session.exercises[index].skipped = skipped
   }
 }
 

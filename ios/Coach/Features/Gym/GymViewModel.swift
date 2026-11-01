@@ -53,6 +53,7 @@ final class GymViewModel {
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
     active = defaults.data(forKey: Self.activeKey).flatMap { try? JSONDecoder().decode(GymSession.self, from: $0) }
+      .map(ExerciseAliases.normalized)
   }
 
   func update(
@@ -318,20 +319,43 @@ final class GymViewModel {
     }
   }
 
-  /// Folgesätze derselben Art mit gleichem Gewicht ziehen mit; das lässt sich rückgängig machen.
+  /// Nur dieser Satz; andere Sätze behalten ihr Gewicht.
   func setWeight(_ weight: Double, set index: Int, of exerciseID: UUID) {
     guard var session = active, let exercise = session.exercises.first(where: { $0.id == exerciseID }) else {
       return
     }
-    let before = session
     let assisted = ExerciseUnits.allowsAssistance(gym.exercise(exercise.exerciseID))
-    let moved = WorkoutEdits.setWeight(
-      weight, set: index, of: exerciseID, allowsNegative: assisted, in: &session)
+    WorkoutEdits.setWeight(weight, set: index, of: exerciseID, allowsNegative: assisted, in: &session)
     setActive(session)
-    if moved > 0 {
-      undoSession = before
-      undoLabel = moved == 1 ? "1 Folgesatz mitgeändert" : "\(moved) Folgesätze mitgeändert"
+  }
+
+  /// Übung überspringen: Der Ablauf geht weiter zur nächsten; offene Sätze werden nicht gespeichert.
+  func skip(_ exerciseID: UUID) {
+    guard var session = active, let exercise = session.exercises.first(where: { $0.id == exerciseID }) else {
+      return
     }
+    rememberUndo("\(exercise.name) übersprungen")
+    WorkoutEdits.setSkipped(true, exerciseID: exerciseID, in: &session)
+    if focusExerciseID == exerciseID { focusExerciseID = nil }
+    setActive(session)
+    if WorkoutFlow.isComplete(session) { planCompleteCount += 1 }
+  }
+
+  /// Übersprungene Übung wieder aufnehmen und direkt zeigen.
+  func resume(_ exerciseID: UUID) {
+    guard var session = active else { return }
+    WorkoutEdits.setSkipped(false, exerciseID: exerciseID, in: &session)
+    focusExerciseID = exerciseID
+    setActive(session)
+  }
+
+  /// Zählt hoch, sobald der letzte offene Satz des Plans erledigt (oder übersprungen) ist – die Ansicht fragt dann
+  /// „Training beenden“ oder „fortsetzen“.
+  private(set) var planCompleteCount = 0
+
+  /// Die letzten Leistungen einer Übung als Orientierung unter der Eingabe (neueste zuerst).
+  func recentPerformances(of exerciseID: String, limit: Int = 5) -> [GymStats.Performance] {
+    GymStats.recentPerformances(of: exerciseID, sessions: sessions, limit: limit)
   }
 
   /// Abhaken startet die Pause; Ent-Haken lässt eine laufende Pause in Ruhe und lässt sich rückgängig machen.
@@ -367,6 +391,14 @@ final class GymViewModel {
     let next = WorkoutFlow.afterCompleting(exercise: exerciseIndex, in: session)
     focusExerciseID = next.focus.map { session.exercises[$0].id }
     restSeconds = rest
+    // Letzter Satz des Plans: keine Pause, sondern die Frage „beenden oder fortsetzen“.
+    if WorkoutFlow.isComplete(session) {
+      restEndsAt = nil
+      pendingRest = nil
+      RestAlarm.schedule(at: nil)
+      planCompleteCount += 1
+      return
+    }
     // Ohne automatische Pause startet sie über „Pause starten“ (`startRest`).
     guard next.rest, gym.autoStartsRest else {
       restEndsAt = nil
@@ -376,7 +408,12 @@ final class GymViewModel {
     }
     pendingRest = nil
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
-    RestAlarm.schedule(at: restEndsAt)
+    RestAlarm.schedule(at: restEndsAt, body: nextText)
+  }
+
+  /// „Weiter mit Schulterdrücken“ bzw. „Weiter mit Satz 3 · Bankdrücken“ – für Pausenende und Sperrbildschirm.
+  var nextText: String? {
+    active.flatMap { WorkoutFlow.nextText(in: $0, focus: focusExerciseID, previous: lastDone?.exercise) }
   }
 
   // MARK: Halteübungen (Stoppuhr)
@@ -419,7 +456,7 @@ final class GymViewModel {
     guard let rest = pendingRest else { return }
     pendingRest = nil
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
-    RestAlarm.schedule(at: restEndsAt)
+    RestAlarm.schedule(at: restEndsAt, body: nextText)
   }
 
   /// Pause einer Übung für diese Einheit und – in den Einstellungen gemerkt – für das nächste Mal.
@@ -444,20 +481,47 @@ final class GymViewModel {
     complete(set: position.set, of: session.exercises[position.exercise].id, now: now)
   }
 
+  /// Gewicht bzw. Wiederholungen des aktuellen Satzes ändern (Knöpfe auf dem Sperrbildschirm).
+  func adjustCurrent(weightBy steps: Int = 0, repsBy reps: Int = 0) {
+    guard let position = currentPosition, let session = active else { return }
+    let exercise = session.exercises[position.exercise]
+    let set = exercise.sets[position.set]
+    if steps != 0 {
+      let step = ExerciseLibrary.rule(exercise.exerciseID, name: exercise.name, custom: gym.customExercises).step
+      setWeight(set.weightKg + Double(steps) * step, set: position.set, of: exercise.id)
+    }
+    if reps != 0 {
+      let isTime = gym.exercise(exercise.exerciseID)?.tracking == .time
+      setReps(set.reps + reps * (isTime ? 5 : 1), set: position.set, of: exercise.id)
+    }
+  }
+
   /// Inhalt der Live-Aktivität; `nil` ohne laufende Einheit.
   var liveState: WorkoutActivityAttributes.ContentState? {
     guard let session = active else { return nil }
     guard let position = currentPosition else {
       return .init(
-        exercise: "Alle Sätze erledigt", detail: "\(session.doneSetCount) Sätze – Einheit beenden",
+        exercise: "Plan geschafft", detail: "\(session.doneSetCount) Sätze – beenden oder fortsetzen",
         restEndsAt: restEndsAt, doneSets: session.doneSetCount, allDone: true)
     }
     let exercise = session.exercises[position.exercise]
     let set = exercise.sets[position.set]
-    let values = set.weightKg != 0 ? "\(GermanFormat.number(set.weightKg)) kg × \(set.reps)" : "\(set.reps) Wdh."
+    let info = gym.exercise(exercise.exerciseID)
+    let isTime = info?.tracking == .time
+    let weight = ExerciseUnits.weightText(set.weightKg, info: info)
+    let reps = isTime ? "\(set.reps) s" : "\(set.reps) Wdh."
+    let step = ExerciseLibrary.rule(exercise.exerciseID, name: exercise.name, custom: gym.customExercises).step
+    // Während der Pause steht, was danach kommt („Weiter mit Schulterdrücken“).
+    let heading = restEndsAt != nil ? (nextText ?? exercise.name) : exercise.name
+    let following = WorkoutFlow.nextExercise(after: position.exercise, in: session).map {
+      "Danach: \(session.exercises[$0].name)"
+    }
     return .init(
-      exercise: exercise.name, detail: "Satz \(position.set + 1) von \(exercise.sets.count) · \(values)",
-      restEndsAt: restEndsAt, doneSets: session.doneSetCount, allDone: false)
+      exercise: heading,
+      detail: "Satz \(position.set + 1) von \(exercise.sets.count)" + (following.map { " · \($0)" } ?? ""),
+      restEndsAt: restEndsAt, doneSets: session.doneSetCount, allDone: false,
+      weight: weight.unit.isEmpty ? weight.value : "\(weight.value) \(weight.unit)",
+      reps: reps, weightStep: GermanFormat.number(step), repsStep: isTime ? "5 s" : "1")
   }
 
   func undo() {
@@ -510,7 +574,7 @@ final class GymViewModel {
     let adjusted = end.addingTimeInterval(seconds)
     restEndsAt = adjusted > now ? adjusted : nil
     restSeconds = max(0, restSeconds + Int(seconds))
-    RestAlarm.schedule(at: restEndsAt)
+    RestAlarm.schedule(at: restEndsAt, body: nextText)
   }
 
   func cancelActive() {

@@ -14,18 +14,52 @@ public enum WorkoutFlow {
   }
 
   /// Nächster offener Satz: zuerst in der gewählten Übung, sonst ab dort die nächste Übung mit offenem Satz
-  /// (am Ende wieder von vorn – übersprungene Übungen kommen so zum Schluss dran).
+  /// (am Ende wieder von vorn – mit „Später“ verschobene Übungen kommen so zum Schluss dran). Übersprungene Übungen
+  /// zählen nicht mehr; nur wenn man sie ausdrücklich wählt, steht ihr nächster Satz auf der Fokus-Karte.
   public static func current(in session: GymSession, preferring exerciseID: UUID? = nil) -> Position? {
     let exercises = session.exercises
     guard !exercises.isEmpty else { return nil }
-    let start = exerciseID.flatMap { id in exercises.firstIndex { $0.id == id } } ?? 0
+    let preferred = exerciseID.flatMap { id in exercises.firstIndex { $0.id == id } }
+    if let preferred, exercises[preferred].skipped {
+      return exercises[preferred].sets.firstIndex { !$0.done }.map { Position(exercise: preferred, set: $0) }
+    }
+    let start = preferred ?? 0
     for offset in 0..<exercises.count {
       let index = (start + offset) % exercises.count
+      guard !exercises[index].skipped else { continue }
       if let set = exercises[index].sets.firstIndex(where: { !$0.done }) {
         return Position(exercise: index, set: set)
       }
     }
     return nil
+  }
+
+  /// Der Plan ist durch: Es gibt Übungen, und keine offene, nicht übersprungene Übung hat noch einen Satz.
+  public static func isComplete(_ session: GymSession) -> Bool {
+    !session.exercises.isEmpty && current(in: session) == nil
+  }
+
+  /// Die nächste andere Übung nach `index` (für die Vorschau „Danach“), ohne übersprungene und fertige.
+  public static func nextExercise(after index: Int, in session: GymSession) -> Int? {
+    let exercises = session.exercises
+    guard exercises.count > 1 else { return nil }
+    for offset in 1..<exercises.count {
+      let candidate = (index + offset) % exercises.count
+      let exercise = exercises[candidate]
+      if !exercise.skipped, exercise.sets.contains(where: { !$0.done }) { return candidate }
+    }
+    return nil
+  }
+
+  /// Text für Pausenende und Live-Aktivität: „Weiter mit Schulterdrücken“ beim Übungswechsel, sonst
+  /// „Weiter mit Satz 3 · Bankdrücken“; `nil`, wenn nichts mehr offen ist.
+  public static func nextText(in session: GymSession, focus: UUID?, previous: UUID?) -> String? {
+    guard let position = current(in: session, preferring: focus) else { return nil }
+    let exercise = session.exercises[position.exercise]
+    if exercise.id != previous || position.set == 0 {
+      return "Weiter mit \(exercise.name)"
+    }
+    return "Weiter mit Satz \(position.set + 1) · \(exercise.name)"
   }
 
   /// Der Satz nach `position`, als Vorschau („Als Nächstes“).
@@ -95,8 +129,14 @@ public enum WorkoutFlow {
     public var openSets: Int
   }
 
+  /// Übersprungene Übungen mit noch offenen Sätzen (beim Beenden: „2 übersprungen“).
+  public static func skippedCount(_ session: GymSession) -> Int {
+    session.exercises.filter { $0.skipped && $0.sets.contains { !$0.done } }.count
+  }
+
   public static func summary(of session: GymSession, now: Date = .now) -> Summary {
-    let open = session.exercises.reduce(0) { count, exercise in
+    // Übersprungene Übungen zählen nicht als „vergessen“.
+    let open = session.exercises.filter { !$0.skipped }.reduce(0) { count, exercise in
       count + exercise.sets.filter { !$0.done && $0.reps > 0 }.count
     }
     return Summary(
@@ -105,10 +145,10 @@ public enum WorkoutFlow {
       exercises: session.exercises.filter { !$0.doneSets.isEmpty }.count, openSets: open)
   }
 
-  /// Übernimmt alle offenen Sätze mit Wiederholungen als erledigt.
+  /// Übernimmt alle offenen Sätze mit Wiederholungen als erledigt (übersprungene Übungen bleiben offen).
   public static func completingOpenSets(_ session: GymSession) -> GymSession {
     var copy = session
-    for exercise in copy.exercises.indices {
+    for exercise in copy.exercises.indices where !copy.exercises[exercise].skipped {
       for set in copy.exercises[exercise].sets.indices where copy.exercises[exercise].sets[set].reps > 0 {
         copy.exercises[exercise].sets[set].done = true
       }

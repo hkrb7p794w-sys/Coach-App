@@ -70,6 +70,10 @@ public enum ExerciseCatalog {
     rule(
       "beinheben", "Beinheben", .core, #"LEG_RAISE|KNEE_RAISE|HANGING"#,
       10...15, compound: false, step: 2.5, percent: 2.5),
+    // Vor dem allgemeinen Crunch: Am Kabel ist das Gewicht normales Gerätegewicht, kein Zusatz zum Körpergewicht.
+    rule(
+      "crunch_kabel", "Crunches am Kabel kniend", .core, #"CABLE_CRUNCH"#,
+      10...15, compound: false, step: 2.5, percent: 2.5),
     rule(
       "crunch_geraet", "Crunch am Gerät", .core, #"(^|_)WEIGHTED_CRUNCH$"#,
       10...15, compound: false, step: 2.5, percent: 2.5),

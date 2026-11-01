@@ -75,10 +75,12 @@ public struct LoggedExercise: Codable, Equatable, Sendable, Identifiable {
   public var restSeconds: Int
   /// Gleiche Kennung = Supersatz: die Übungen wechseln sich ab, Pause erst nach der Runde.
   public var supersetID: UUID?
+  /// In dieser Einheit übersprungen: der Ablauf geht daran vorbei; offene Sätze werden nicht gespeichert.
+  public var skipped: Bool
 
   public init(
     id: UUID = UUID(), exerciseID: String, name: String, group: MuscleGroup, sets: [LoggedSet],
-    restSeconds: Int = 90, supersetID: UUID? = nil
+    restSeconds: Int = 90, supersetID: UUID? = nil, skipped: Bool = false
   ) {
     self.id = id
     self.exerciseID = exerciseID
@@ -87,6 +89,20 @@ public struct LoggedExercise: Codable, Equatable, Sendable, Identifiable {
     self.sets = sets
     self.restSeconds = restSeconds
     self.supersetID = supersetID
+    self.skipped = skipped
+  }
+
+  /// Ältere gespeicherte Einheiten kennen `skipped` noch nicht.
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decode(UUID.self, forKey: .id)
+    exerciseID = try container.decode(String.self, forKey: .exerciseID)
+    name = try container.decode(String.self, forKey: .name)
+    group = try container.decode(MuscleGroup.self, forKey: .group)
+    sets = try container.decode([LoggedSet].self, forKey: .sets)
+    restSeconds = try container.decode(Int.self, forKey: .restSeconds)
+    supersetID = try container.decodeIfPresent(UUID.self, forKey: .supersetID)
+    skipped = (try? container.decodeIfPresent(Bool.self, forKey: .skipped)) ?? false
   }
 
   /// Erledigte Arbeitssätze (ohne Aufwärmen) – Grundlage für Volumen, Bestleistungen und Progression.
