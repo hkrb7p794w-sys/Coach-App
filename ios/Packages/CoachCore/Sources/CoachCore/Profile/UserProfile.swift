@@ -217,6 +217,12 @@ public struct UserProfile: Codable, Equatable, Hashable, Sendable {
   public var health: [HealthFlag]
   /// Selbstauskunft, wie viel aktuell gelaufen wird; ohne Angabe zählt Garmin.
   public var currentRunKilometersPerWeek: Double?
+  /// Haupt- und Nebenziele, Prioritäten (`nil` = noch nicht festgelegt, dann aus `goal` abgeleitet).
+  public var goals: PersonalGoals?
+  /// Frühere Ziele mit Gültigkeitsbeginn (`goals(on:)`).
+  public var goalHistory: [PersonalGoals] = []
+  /// Fitness-Tracker laut Onboarding.
+  public var tracker = TrackerSetup()
 
   public init(
     mode: Mode = .personal, onboardingDone: Bool = false, sports: [TrainingSport] = [.run, .strength],
@@ -272,6 +278,7 @@ public struct UserProfile: Codable, Equatable, Hashable, Sendable {
 
   private enum CodingKeys: String, CodingKey {
     case mode, onboardingDone, sports, goal, event, targets, levels, schedule, health, currentRunKilometersPerWeek
+    case goals, goalHistory, tracker
   }
 
   public init(from decoder: any Decoder) throws {
@@ -286,6 +293,9 @@ public struct UserProfile: Codable, Equatable, Hashable, Sendable {
     schedule = (try? container.decodeIfPresent(WeekSchedule.self, forKey: .schedule)) ?? WeekSchedule()
     health = (try? container.decodeIfPresent([HealthFlag].self, forKey: .health)) ?? []
     currentRunKilometersPerWeek = try? container.decodeIfPresent(Double.self, forKey: .currentRunKilometersPerWeek)
+    goals = try? container.decodeIfPresent(PersonalGoals.self, forKey: .goals)
+    goalHistory = (try? container.decodeIfPresent([PersonalGoals].self, forKey: .goalHistory)) ?? []
+    tracker = (try? container.decodeIfPresent(TrackerSetup.self, forKey: .tracker)) ?? TrackerSetup()
   }
 }
 

@@ -5,12 +5,14 @@ import SwiftUI
 /// Sicherheitscheck und Wochenplan. Die App passt Pläne, Ernährung und Empfehlungen daran an.
 struct OnboardingView: View {
   enum Step: Int, CaseIterable {
-    case sports, goal, focus, level, body, schedule, summary
+    case sports, goal, priorities, focus, level, body, schedule, tracker, summary
 
     var title: String {
       switch self {
       case .sports: "Was trainierst du?"
       case .goal: "Was ist dein Ziel?"
+      case .priorities: "Was ist dir wichtig?"
+      case .tracker: "Fitness-Tracker"
       case .focus: "Worauf bereitest du dich vor?"
       case .level: "Wie viel Erfahrung hast du?"
       case .body: "Über dich"
@@ -50,6 +52,8 @@ struct OnboardingView: View {
   @State private var diet: Diet = .omnivore
 
   @State private var availableDays: Set<Weekday> = []
+  @State private var goals = PersonalGoals(primary: .generalFitness, since: CalendarDay(date: .now))
+  @State private var tracker = TrackerSetup()
 
   init(isEditing: Bool = false, initial: UserProfile = UserProfile()) {
     self.isEditing = isEditing
@@ -62,6 +66,8 @@ struct OnboardingView: View {
         switch step {
         case .sports: sportsStep
         case .goal: goalStep
+        case .priorities: prioritiesStep
+        case .tracker: trackerStep
         case .focus: focusStep
         case .level: levelStep
         case .body: bodyStep
@@ -116,14 +122,36 @@ struct OnboardingView: View {
   private var goalStep: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 12) {
-        Text("Das Hauptziel bestimmt Ernährung, Trainingsverteilung und Empfehlungen.")
+        Text("Das Hauptziel bestimmt Plan-Vorschlag, Ernährung und worauf Empfehlungen achten.")
           .foregroundStyle(.secondary)
-        ForEach(FitnessGoal.allCases) { goal in
-          SelectionCard(
-            title: goal.label, detail: goal.detail, symbol: goal.symbol, color: .accentColor,
-            isSelected: draft.goal == goal
-          ) { draft.goal = goal }
-        }
+        GoalsPicker(goals: $goals)
+      }
+      .padding(16)
+    }
+    .onChange(of: goals) { _, goals in
+      // Ernährungs- und Gewichtsrichtung folgt den Zielen (bleibt in den Einstellungen änderbar).
+      draft.goal = Personalization.fitnessGoal(for: goals)
+      if goals.has(.competition) { eventEnabled = true }
+    }
+  }
+
+  private var prioritiesStep: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 12) {
+        Text("Bis zu drei, das Wichtigste zuerst. Optional – ohne Auswahl gelten die Standards zu deinem Ziel.")
+          .foregroundStyle(.secondary)
+        PrioritiesPicker(goals: $goals)
+      }
+      .padding(16)
+    }
+  }
+
+  private var trackerStep: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 12) {
+        Text("Damit die App weiß, woher Schlaf, Puls und Trainings kommen. Verbinden geht auch später.")
+          .foregroundStyle(.secondary)
+        TrackerPicker(setup: $tracker)
       }
       .padding(16)
     }
@@ -298,7 +326,11 @@ struct OnboardingView: View {
     List {
       Section("Dein Profil") {
         LabeledContent("Sportarten", value: draft.sports.map(\.shortLabel).joined(separator: ", "))
-        LabeledContent("Ziel", value: draft.goal.label)
+        LabeledContent("Hauptziel", value: goals.primary.label)
+        if !goals.secondary.isEmpty {
+          LabeledContent("Nebenziele", value: goals.secondary.map(\.label).joined(separator: ", "))
+        }
+        LabeledContent("Wichtig", value: goals.effectivePriorities.map(\.label).joined(separator: ", "))
         if let event = draft.event {
           LabeledContent("Wettkampf", value: "\(event.name) · \(GermanFormat.date(event.date))")
         }
@@ -310,6 +342,25 @@ struct OnboardingView: View {
         }
       }
       InputIssuesSection(issues: inputIssues)
+      if tracker.usesTracker == true, !tracker.providers.isEmpty {
+        Section("Verbinden") {
+          ForEach(tracker.providers) { provider in
+            switch provider {
+            case .garmin where !model.garmin.isConfigured:
+              Text("Garmin: nach dem Start unter Einstellungen › Garmin anmelden.")
+            case .appleHealth:
+              Text("Apple Health: Der Import wird eingeschaltet; iOS fragt gleich nach den Daten.")
+            case .whoop, .polar:
+              Text("\(provider.label): kommt über Apple Health – schalte dort die Weitergabe an Health ein.")
+            case .fitbit:
+              Text("Fitbit: derzeit keine Verbindung möglich.")
+            default:
+              EmptyView()
+            }
+          }
+          .font(.subheadline)
+        }
+      }
       Section {
         Text(
           "Die App prüft täglich deine Erholung (Garmin) gegen deinen Wochenplan und schlägt vor, Einheiten zu "
@@ -337,6 +388,13 @@ struct OnboardingView: View {
       }
       .buttonStyle(.borderedProminent)
       .disabled(!canContinue)
+      if step == .priorities || step == .tracker {
+        Button("Überspringen") {
+          if step == .priorities { goals.priorities = [] } else { tracker = TrackerSetup() }
+          go(1)
+        }
+        .font(.subheadline)
+      }
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 12)
@@ -365,6 +423,8 @@ struct OnboardingView: View {
     guard !loaded else { return }
     loaded = true
     draft = initial
+    goals = initial.effectiveGoals(today: CalendarDay(date: .now))
+    tracker = initial.tracker
     if let event = initial.event {
       eventEnabled = true
       eventName = event.name
@@ -449,6 +509,10 @@ struct OnboardingView: View {
     commit(.level)
     draft.mode = .personal
     draft.onboardingDone = true
+    let today = CalendarDay(date: .now)
+    let before = draft.effectiveGoals(today: today)
+    draft.updateGoals(goals, on: today)
+    draft.tracker = tracker
     var nutrition = model.settings.nutrition
     nutrition.weightKilograms = number(weight)
     nutrition.heightCentimeters = number(height)
@@ -458,6 +522,13 @@ struct OnboardingView: View {
     model.settings.nutrition = nutrition
     model.settings.profile = draft
     model.settings.applyProfileToNutrition(garmin: model.sync.profile)
+    PersonalizationApply.applyDefaults(goals: goals, before: before, tracker: tracker, to: model)
+    if tracker.providers.contains(.appleHealth) || tracker.providers.contains(.whoop)
+      || tracker.providers.contains(.polar)
+    {
+      model.health.isEnabled = true
+      Task { await model.health.importNow(garminConnected: model.garmin.isConfigured) }
+    }
     dismiss()
   }
 }
@@ -465,7 +536,7 @@ struct OnboardingView: View {
 // MARK: - Bausteine
 
 /// Große, gut tippbare Auswahlkarte.
-private struct SelectionCard: View {
+struct SelectionCard: View {
   let title: String
   let detail: String?
   let symbol: String

@@ -109,7 +109,9 @@ final class TodayViewModel {
       advice: advice,
       sessions: sessions,
       focus: focus,
-      load: WeekLoad.check(activities: activities, gym: gym, today: today)
+      load: WeekLoad.check(
+        activities: activities, gym: gym, today: today,
+        maxIncrease: Personalization.maxLoadIncrease(settings.profile.effectiveGoals(today: today)))
     )
     showCachedOrFallback()
   }
