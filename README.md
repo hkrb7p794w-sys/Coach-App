@@ -83,6 +83,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 65 | Onboarding und Personalisierung: Haupt-/Nebenziele, Prioritäten, Tracker; Wirkung auf Plan, KI, Dashboard, Belastung; Verlauf | fertig (PR 72) |
 | 66 | Plattform A: Analyse (Widgets, Android, iOS-Versionen, Architektur), Schnellaktionen am App-Icon, Kurzbefehle/Siri, Navigation per Route | fertig (PR 73) |
 | 67 | Plattform B: Homescreen- und Sperrbildschirm-Widgets (Heute, Gym, Ernährung, Health) mit App Group, Wasser-Knopf | fertig (PR 74) |
+| 68 | Darstellung: Dunkelmodus wählbar (Wie System / Hell / Dunkel) | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version (bewertet in `docs/plattform-paket7.md`: erst bei Bedarf, dann
