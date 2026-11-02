@@ -59,7 +59,8 @@ struct HealthDashboardView: View {
 
         if visible.isEmpty {
           ContentUnavailableView {
-            Label(available.isEmpty ? "Noch keine Werte" : "Alle Widgets ausgeblendet", systemImage: "heart.text.square")
+            Label(
+              available.isEmpty ? "Noch keine Werte" : "Alle Widgets ausgeblendet", systemImage: "heart.text.square")
           } description: {
             Text(
               available.isEmpty
