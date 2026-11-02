@@ -37,6 +37,8 @@ final class GarminSyncService {
   private let context: ModelContext
   private let defaults: UserDefaults
   let analysisStore: ActivityAnalysisStore
+  /// Gemeinsame Ablage aller Quellen; ohne (Tests, alte Aufrufer) wie bisher direkt in `DailyMetricsRecord`.
+  var sources: SourceStore?
   static let lastSyncKey = "garmin.lastSync"
   static let profileKey = "garmin.profile"
   static let profileDateKey = "garmin.profileDate"
@@ -154,6 +156,10 @@ final class GarminSyncService {
   }
 
   private func store(_ metrics: GarminMetricsParser.DayMap, at date: Date) -> Int {
+    if let sources {
+      sources.ingestDays(metrics, from: .garmin, now: date)
+      return metrics.count
+    }
     let existing = (try? context.fetch(FetchDescriptor<DailyMetricsRecord>())) ?? []
     let byKey = Dictionary(existing.map { ($0.dayKey, $0) }, uniquingKeysWith: { first, _ in first })
     for (day, value) in metrics {
@@ -182,7 +188,12 @@ final class GarminSyncService {
       }
       pages += 1
       let page = GarminActivityParser.activities(json)
-      for activity in page where (activity.day ?? start) >= start || !knownIDs.contains(activity.id) {
+      // Herkunft festhalten; als ersetzt markierte (andere Quelle bevorzugt) nicht wieder anlegen.
+      let allowed = sources?.recordActivities(page, from: .garmin, window: nil, complete: false)
+      for activity in page
+      where ((activity.day ?? start) >= start || !knownIDs.contains(activity.id))
+        && (allowed?.contains(activity.id) ?? true)
+      {
         if let record = byID[activity.id] {
           record.update(activity)
         } else {

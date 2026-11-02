@@ -25,6 +25,12 @@ final class DailyMetricsRecord {
     payload = (try? JSONEncoder().encode(merged)) ?? payload
     updatedAt = date
   }
+
+  /// Ersetzt die Werte (nach dem Zusammenführen aller Quellen, `SourceStore.rebuild`).
+  func replace(_ metrics: DailyMetrics, at date: Date = .now) {
+    payload = (try? JSONEncoder().encode(metrics)) ?? payload
+    updatedAt = date
+  }
 }
 
 /// Eine Garmin-Aktivität (Zusammenfassung).
@@ -68,10 +74,66 @@ final class RawResponseRecord {
   }
 }
 
+/// Ein importierter Datensatz eines Anbieters mit Herkunft (`SourceEntry`). Bei Tageswerten liegt hier zusätzlich
+/// der Rohwert des Anbieters (`payload`), aus dem `DailyMetricsRecord` je nach Quellen-Einstellung neu berechnet
+/// wird. Neues Modell: SwiftData legt die Tabelle beim ersten Start ohne Migration an.
+@Model
+final class SourceRecord {
+  /// `provider|kind|externalID`
+  @Attribute(.unique) var key: String
+  var provider: String
+  var kind: String
+  var externalID: String
+  var dayKey: String
+  var start: Date?
+  var importedAt: Date
+  var updatedAt: Date
+  var contentHash: String
+  var status: String
+  /// Tageswerte des Anbieters (`DailyMetrics`), bei Aktivitäten leer (die liegen in `ActivityRecord`).
+  var payload: Data?
+
+  static let dailyKind = "daily"
+
+  init(entry: SourceEntry, payload: Data? = nil) {
+    key = entry.id
+    provider = entry.provider.rawValue
+    kind = entry.kind?.rawValue ?? Self.dailyKind
+    externalID = entry.externalID
+    dayKey = entry.day.iso
+    start = entry.start
+    importedAt = entry.importedAt
+    updatedAt = entry.updatedAt
+    contentHash = entry.contentHash
+    status = entry.status.rawValue
+    self.payload = payload
+  }
+
+  var entry: SourceEntry? {
+    guard let provider = DataProvider(rawValue: provider), let day = CalendarDay(iso: dayKey) else { return nil }
+    let kind = DataKind(rawValue: kind)
+    return SourceEntry(
+      provider: provider, kind: kind, externalID: externalID, day: day, start: start, importedAt: importedAt,
+      updatedAt: updatedAt, contentHash: contentHash, status: SourceEntry.Status(rawValue: status) ?? .active)
+  }
+
+  func apply(_ entry: SourceEntry) {
+    dayKey = entry.day.iso
+    start = entry.start
+    updatedAt = entry.updatedAt
+    contentHash = entry.contentHash
+    status = entry.status.rawValue
+  }
+
+  var metrics: DailyMetrics? {
+    payload.flatMap { try? JSONDecoder().decode(DailyMetrics.self, from: $0) }
+  }
+}
+
 enum CoachSchema {
   static let models: [any PersistentModel.Type] = [
     DailyMetricsRecord.self, ActivityRecord.self, RawResponseRecord.self, MealRecord.self, FoodRecord.self,
-    GymSessionRecord.self,
+    GymSessionRecord.self, SourceRecord.self,
   ]
 
   static func makeContainer(inMemory: Bool = false) -> ModelContainer {
