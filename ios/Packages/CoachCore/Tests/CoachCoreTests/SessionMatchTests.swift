@@ -125,3 +125,25 @@ struct SessionMatchTests {
     #expect(swim.day == CalendarDay(date: start, timeZone: .gmt))
   }
 }
+
+struct WeeklyVolumeGymTests {
+  /// Montag, 2.11.2026.
+  let monday = CalendarDay(year: 2026, month: 11, day: 2)
+
+  @Test func appGymSessionCountsAsStrength() {
+    // Push in der App, keine Uhr-Aufzeichnung: zählt im Saisonplan als Kraft-Einheit (vorher 0).
+    let week = WeeklyVolume(activities: [], weekContaining: monday, gymDays: [monday])
+    #expect(week.sessions[.strength] == 1)
+  }
+
+  @Test func watchRecordingOfSameDayIsNotCountedTwice() {
+    var watch = GarminActivity(id: 1)
+    watch.typeKey = "strength_training"
+    watch.startLocal = "\(monday.iso) 18:00:00"
+    watch.durationSeconds = 3_000
+    let week = WeeklyVolume(
+      activities: [watch], weekContaining: monday, gymDays: [monday, monday.adding(days: 2), monday.adding(days: 9)])
+    // Montag (Uhr + App) einmal, Mittwoch (nur App) einmal; nächste Woche zählt nicht.
+    #expect(week.sessions[.strength] == 2)
+  }
+}

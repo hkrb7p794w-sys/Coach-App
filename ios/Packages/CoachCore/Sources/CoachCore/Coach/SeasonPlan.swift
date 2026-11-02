@@ -343,9 +343,17 @@ public struct WeeklyVolume: Equatable, Sendable {
 
   /// Wie `_window_totals` im Altbestand. Rad ohne Distanz zählt nicht: Neben der Zwift-Fahrt läuft oft eine
   /// zweite Aufzeichnung auf der Uhr („Indoor Radfahren“ ohne km), die sonst doppelt zählen würde.
-  public init(activities: [GarminActivity], weekContaining day: CalendarDay) {
+  /// `gymDays`: Krafteinheiten aus der App. Sie zählen als Kraft, außer an Tagen mit eigener Kraft-Aufzeichnung der
+  /// Uhr (dieselbe Einheit, sonst doppelt). Vorher fehlten App-Einheiten hier ganz („0/8 Einheiten“ nach Push).
+  public init(
+    activities: [GarminActivity], weekContaining day: CalendarDay, gymDays: some Sequence<CalendarDay> = []
+  ) {
     let monday = day.adding(days: -day.weekdayIndex)
     let sunday = monday.adding(days: 6)
+    let watchStrengthDays = Set(
+      activities.filter { $0.sport == .strength }.compactMap(\.day).filter { monday <= $0 && $0 <= sunday })
+    let appOnly = Set(gymDays).filter { monday <= $0 && $0 <= sunday && !watchStrengthDays.contains($0) }
+    if !appOnly.isEmpty { sessions[.strength, default: 0] += appOnly.count }
     for activity in activities {
       guard let activityDay = activity.day, monday <= activityDay, activityDay <= sunday else { continue }
       let sport = activity.sport
