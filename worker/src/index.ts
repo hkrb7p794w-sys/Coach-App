@@ -12,6 +12,7 @@ import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { GroundingError } from "./grounding";
 import { handleLeague, type LeagueStore } from "./league";
 import { listPriceUsd, parsePreference, providerInfo } from "./providers";
+import { handleShare, type ShareStore, sharePage } from "./share";
 import { handleSideStore } from "./sidestore";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
@@ -69,15 +70,28 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     });
   }
 
+  if (request.method === "GET") {
+    const page = sharePage(pathname);
+    if (page) return page;
+  }
+
   const isLeague = pathname.startsWith("/v1/league/");
-  if (pathname !== "/v1/ai/generate" && !isLeague) return json(404, { error: "Nicht gefunden" });
-  if (!isLeague && request.method !== "POST") return json(405, { error: "Nur POST" });
+  const isShare = pathname.startsWith("/v1/share/");
+  if (pathname !== "/v1/ai/generate" && !isLeague && !isShare) return json(404, { error: "Nicht gefunden" });
+  if (!isLeague && !isShare && request.method !== "POST") return json(405, { error: "Nur POST" });
 
   if (!env.COACH_APP_TOKEN)
     return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
   const header = request.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token || !tokensMatch(token, env.COACH_APP_TOKEN)) return json(401, { error: "Nicht autorisiert" });
+
+  if (isShare) {
+    const store = env.LEAGUE as unknown as ShareStore | undefined;
+    return (
+      (await handleShare(request, store, new Date(deps.now()))) ?? json(404, { error: "Nicht gefunden" })
+    );
+  }
 
   if (isLeague) {
     const store = env.LEAGUE as unknown as LeagueStore | undefined;

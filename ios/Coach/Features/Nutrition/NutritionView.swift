@@ -17,6 +17,8 @@ struct NutritionView: View {
   @State private var query = ""
   @State private var showsNow = false
   @State private var showsDashboardEditor = false
+  @State private var sharing: MealRecord?
+  @State private var showsReceived = false
   @State private var savingRecipe: MealRecord?
 
   enum Sheet: String, Identifiable {
@@ -60,6 +62,9 @@ struct NutritionView: View {
         }
         Section {
           Button("Übersicht anpassen", systemImage: "slider.horizontal.3") { showsDashboardEditor = true }
+          if model.ai.isConfigured {
+            Button("Geteilte Mahlzeit öffnen", systemImage: "tray.and.arrow.down") { showsReceived = true }
+          }
           NavigationLink {
             NutritionWeekView(summary: weekSummary, weights: model.allWeights, goal: model.settings.nutrition.goal) {
               reviewSection
@@ -101,6 +106,8 @@ struct NutritionView: View {
         await viewModel.retryPending(ai: model.ai, settings: model.settings, foods: foods)
       }
       .sheet(isPresented: $showsDashboardEditor) { NutritionDashboardEditor() }
+      .sheet(item: $sharing) { meal in ShareMealSheet(title: meal.title, items: meal.items) }
+      .sheet(isPresented: $showsReceived) { ReceivedMealSheet(code: nil) }
       .sheet(isPresented: $showsNow) {
         MealNowSheet(viewModel: viewModel, pantry: model.settings.pantry) { recipe in
           showsNow = false
@@ -293,6 +300,9 @@ struct NutritionView: View {
               }
               Button("Gegessene Menge anpassen", systemImage: "chart.pie") { viewModel.edit(meal) }
               favoriteButton(meal)
+              if model.ai.isConfigured {
+                Button("Teilen …", systemImage: "square.and.arrow.up") { sharing = meal }
+              }
               Button("Als eigenes Rezept speichern", systemImage: "fork.knife") { savingRecipe = meal }
               Button("Löschen", systemImage: "trash", role: .destructive) { viewModel.delete(meal, context: context) }
             }
