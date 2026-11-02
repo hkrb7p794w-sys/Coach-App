@@ -16,6 +16,10 @@ final class NutritionViewModel {
     var items: [MealItem]
     /// Zeitpunkt; `nil` = gewählter Tag zur aktuellen Uhrzeit.
     var date: Date?
+    /// Foto der KI-Analyse (verkleinert), damit Ergänzungen dieselbe Mahlzeit sehen.
+    var photo: Data?
+    /// Oft übersehene Bestandteile laut KI („Bratöl“, „Soße“) zum Antippen.
+    var possiblyMissing: [String] = []
   }
 
   /// Heute laut letzter Aktualisierung.
@@ -265,7 +269,8 @@ final class NutritionViewModel {
         title: analysis.title.isEmpty ? text : analysis.title,
         category: analysis.category ?? Self.category(at: .now),
         hint: analysis.hint,
-        items: analysis.items.map { self.preferKnownFood($0, foods: foods) }
+        items: analysis.items.map { self.preferKnownFood($0, foods: foods) },
+        photo: jpeg, possiblyMissing: analysis.possiblyMissing
       )
       succeeded = true
     }
@@ -275,6 +280,30 @@ final class NutritionViewModel {
       errorMessage = "Ohne Netz gespeichert – wird ausgewertet, sobald du wieder online bist."
     }
     return succeeded
+  }
+
+  /// Ergänzt einen Entwurf per KI („noch 150 g Hähnchenbrust und 1 EL Olivenöl“). Liefert nur die neuen Positionen;
+  /// die bestehenden schickt die App als Bestand mit, damit die KI sie nicht wiederholt – überschrieben wird nie etwas.
+  func amend(
+    _ items: [MealItem], with text: String, photo: Data?, ai: AIClient, settings: CoachSettings, foods: [FoodRecord]
+  ) async -> (items: [MealItem], hint: String)? {
+    let request = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !request.isEmpty else { return nil }
+    let input: [String: JSONValue] = [
+      "text": .string(request), "diet": .string(settings.nutrition.diet.rawValue),
+      "bestand": .array(
+        items.map { .object(["name": .string($0.name), "menge_g": .number($0.grams)]) }),
+    ]
+    let images = photo.map { [AIClient.Image(mimeType: "image/jpeg", data: $0)] } ?? []
+    do {
+      let response = try await ai.run(task: "meal_amend", input: input, images: images)
+      let amendment = MealAnalysis.amendment(from: response.output)
+      errorMessage = nil
+      return (amendment.items.map { preferKnownFood($0, foods: foods) }, amendment.hint)
+    } catch {
+      errorMessage = error.localizedDescription
+      return nil
+    }
   }
 
   /// Der letzte Fehler war ein Netzwerkfehler (für die Warteschlange).

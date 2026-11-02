@@ -13,7 +13,7 @@ describe("meal_analyze", () => {
     expect(prompt).toContain("Mahlzeit: 2 Eier und Kaffee");
     expect(prompt).toContain("vegetarische Variante annehmen");
     expect(prompt).toContain("Skyr");
-    expect(prompt).toContain("Foto: Schätze Mengen über Bezugsgrößen");
+    expect(prompt).toContain("Foto: Gehe das Bild systematisch durch");
     expect(prompt).toContain(GROUPS.join(", "));
   });
 
@@ -116,5 +116,38 @@ describe("mergeMeals", () => {
   it("bittet bei mehreren Mahlzeiten um ein Objekt und hat Budget dafür", () => {
     expect(mealPrompt({ text: "Frühstück Ei, Mittag Reis" }, false)).toContain("EIN JSON-Objekt");
     expect(findTask("meal_analyze")?.maxOutputTokens).toBeGreaterThanOrEqual(12000);
+  });
+});
+
+describe("meal_amend", () => {
+  const input = {
+    text: "Ergänze noch 150 g Hähnchenbrust und einen Esslöffel Olivenöl",
+    bestand: [
+      { name: "Reis gekocht", menge_g: 200 },
+      { name: "Gemüse", menge_g: 150 },
+    ],
+  };
+
+  it("Prompt nennt Bestand und Ergänzung, ohne Bestand zu wiederholen", async () => {
+    const { mealAmendPrompt } = await import("../src/nutrition");
+    const prompt = mealAmendPrompt(input, false);
+    expect(prompt).toContain("- Reis gekocht (200 g)");
+    expect(prompt).toContain("150 g Hähnchenbrust");
+    expect(prompt).toContain("NICHT wiederholen");
+  });
+
+  it("verwirft wiederholte Positionen und behält neue", async () => {
+    const { groundAmend } = await import("../src/nutrition");
+    const output = {
+      titel: "",
+      items: [
+        { name: "Reis gekocht", menge_g: 200 },
+        { name: "Hähnchenbrust", menge_g: 150 },
+        { name: "Olivenöl", menge_g: 10 },
+      ],
+    };
+    const result = groundAmend(output, "", input) as { items: { name: string }[]; verworfen: number };
+    expect(result.items.map((item) => item.name)).toEqual(["Hähnchenbrust", "Olivenöl"]);
+    expect(result.verworfen).toBe(1);
   });
 });

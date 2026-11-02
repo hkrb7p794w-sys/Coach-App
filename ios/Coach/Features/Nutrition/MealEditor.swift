@@ -10,6 +10,7 @@ struct MealEditor: View {
   let foods: [FoodRecord]
   @Environment(\.modelContext) private var context
   @Environment(\.dismiss) private var dismiss
+  @Environment(AppModel.self) private var model
   @State private var editing: UUID?
 
   var body: some View {
@@ -67,6 +68,10 @@ struct MealEditor: View {
             Label("Gelb = unsichere Schätzung, bitte Menge prüfen.", systemImage: "circle.fill")
               .foregroundStyle(.yellow)
           }
+        }
+
+        if model.ai.allows("meal_amend") {
+          AmendSection(draft: $draft, viewModel: viewModel, foods: foods)
         }
 
         if draft.record != nil, !draft.items.isEmpty {

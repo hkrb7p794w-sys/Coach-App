@@ -57,6 +57,18 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 - **Alternative Quellen:** Apple Health hat keine Body Battery. Ohne Garmin bleibt sie leer und die App sagt das.
 - **Persönlicher Bereich (`PersonalNorm`):** Mittelwert ± 1 SD der letzten 30 Tage ohne heute, mindestens 7 Tage
   (Prinzip wie bei HRV nach Plews et al. 2013). Details in `docs/health-paket2.md`.
+## 2026-11-02 – Ernährung: Foto-Analyse ergänzen ohne Überschreiben (Paket 4, PR B)
+
+- **Gründlicher hinschauen:** Der Foto-Prompt geht das Bild systematisch durch (Hauptkomponente, Beilage, Gemüse,
+  Soßen/Dressings, Bratfett, Toppings, Getränke) und nennt bis zu vier oft übersehene, nicht sicher erkennbare
+  Bestandteile (`vielleicht_vergessen`) – als Hinweis zum Antippen, nicht als Position.
+- **Ergänzen per KI (`meal_amend`):** Im Entwurf „Fehlt etwas?“ – Text („noch 150 g Hähnchenbrust und 1 EL Olivenöl“)
+  oder Hinweis antippen. Die App schickt die bestehenden Positionen als Bestand mit; die KI liefert nur neue
+  Positionen. Der Worker verwirft Wiederholungen (gleicher Name, Menge ±10 %). Die App hängt die neuen an –
+  Bestehendes wird nie verändert. Genannte Mengen übernimmt die KI genau; Nährwerte gehen wie bei der Analyse über
+  den BLS, sonst bleiben sie als „geschätzt“ markiert.
+- **Kontrolle bleibt beim Nutzer:** Jede Position bleibt bearbeitbar und löschbar; gespeichert wird erst mit
+  „Speichern“. `meal_amend` zählt zur Datenerfassung (KI-Stufe „Keine KI-Empfehlungen“ erlaubt es auf Anfrage).
 
 ## 2026-11-02 – Ernährung: Schnell erfassen, Favoriten, gegessene Menge (Paket 4, PR A)
 

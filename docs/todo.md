@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **Foto ergänzen:** Teller mit Reis, Gemüse und Hähnchen fotografieren → fehlt etwas? Unter „Fehlt etwas?“
+      „noch 150 g Hähnchenbrust und 1 EL Olivenöl“ → zwei neue Positionen, die alten unverändert? Hinweis-Knöpfe
+      („+ Bratöl“) sinnvoll?
 - [ ] **Schnell erfassen und Portion:** „+“ › oben Zuletzt/Häufig/Rezepte/Favoriten – „+“ trägt sofort ein? Mahlzeit
       lange drücken › „Als Favorit merken“, erscheint unter Favoriten? Eingetragene Mahlzeit öffnen › Gegessen 75 % →
       kcal sinken auf 75 %, danach 100 % stellt alles wieder her? Rezept bleibt unverändert?
