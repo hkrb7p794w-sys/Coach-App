@@ -145,6 +145,37 @@ struct GarminStrengthSyncTests {
       GarminStrengthSync.action(for: old, activities: [watch], linked: [], now: end, fallbackUpload: true) == .none)
   }
 
+  @Test func replacedSetsGetRealisticDurationAndProbability() throws {
+    // Ohne Uhr-Abschnitte: Einheit über 60 min, 15 min Abstand je Satz.
+    let result = GarminStrengthSync.payload(existing: .object(["exerciseSets": .array([])]), session: session)
+    let sets = try #require(result.payload["exerciseSets"]?.arrayValue)
+    // 10 Wiederholungen → 30 s statt pauschal 2:00; Halteübung behält ihre Zeit.
+    #expect(sets[0]["duration"]?.doubleValue == 30)
+    #expect(sets[1]["duration"]?.doubleValue == 24)
+    #expect(sets[2]["duration"]?.doubleValue == 45)
+    #expect(sets[3]["duration"]?.doubleValue == 20)
+    #expect(sets[0]["exercises"]?.arrayValue?.first?["probability"]?.doubleValue == 100)
+  }
+
+  /// Eigene Übungen (auch aus dem GymBook-Import) kamen als „Unbekannt“ in Garmin an.
+  @Test func customExercisesMapByNameThenGroup() {
+    let press = GarminStrengthSync.garminName(
+      for: "eigen_schulterdruecken_maschine", name: "Schulterdrücken Maschine", group: .shoulders)
+    #expect(press.category == "SHOULDER_PRESS")
+    #expect(GarminStrengthSync.garminName(for: "eigen_x", name: "Butterfly", group: .chest).category == "FLYE")
+    #expect(GarminStrengthSync.garminName(for: "eigen_x", name: "Bench Dips", group: .triceps).name == "BODY_WEIGHT_DIP")
+    #expect(
+      GarminStrengthSync.garminName(for: "eigen_x", name: "Kurzhantel Curl Schrägbank", group: .biceps).category
+        == "CURL")
+    // Ohne passendes Stichwort: Muskelgruppe der geloggten Übung.
+    #expect(GarminStrengthSync.garminName(for: "eigen_x", name: "Maschine 7", group: .back).category == "ROW")
+    #expect(GarminStrengthSync.garminName(for: "eigen_x", name: "Maschine 7", group: .other).category == "UNKNOWN")
+    #expect(GarminExerciseMapping.libraryID(forName: "Kabelrudern") == nil)
+    #expect(GarminExerciseMapping.libraryID(forName: "Rudern sitzend") == "rudern_kabel")
+    #expect(GarminExerciseMapping.libraryID(forName: "Beinbeuger (Leg Curl)") == "beinbeugen")
+    #expect(GarminExerciseMapping.libraryID(forName: "") == nil)
+  }
+
   @Test func namesForEveryExercise() {
     #expect(GarminStrengthSync.garminName(for: "crunch_kabel").category == "CRUNCH")
     #expect(GarminStrengthSync.garminName(for: "crunch_kabel").name == "CABLE_CRUNCH")

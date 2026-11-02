@@ -466,6 +466,15 @@ private struct GarminLinkSection: View {
         if working { ProgressView() }
         switch link?.status {
         case .enriched?:
+          if let id = link?.activityID {
+            // Z. B. nach besserer Übungszuordnung: neu aus der gesicherten Uhr-Aufzeichnung schreiben.
+            Button("Sätze erneut übertragen", systemImage: "arrow.clockwise") {
+              run {
+                await GarminStrengthService.enrich(
+                  record, session: session, activityID: id, garmin: connect, gym: model.settings.gym, now: .now)
+              }
+            }
+          }
           if let id = link?.activityID, GarminStrengthService.hasBackup(activityID: id) {
             Button("Ursprüngliche Sätze der Uhr wiederherstellen", role: .destructive) {
               run { await GarminStrengthService.restore(record, activityID: id, garmin: connect) }

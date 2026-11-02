@@ -102,9 +102,15 @@ public enum GarminStrengthSync {
     30: "TRICEPS_EXTENSION",
   ]
 
-  public static func garminName(for exerciseID: String) -> (category: String, name: String?) {
+  /// Kategorie und Name für Garmin. Eigene Übungen über Name bzw. Muskelgruppe der geloggten Übung (sonst kämen sie
+  /// als „Unbekannt“ an).
+  public static func garminName(
+    for exerciseID: String, name: String = "", group: MuscleGroup? = nil
+  ) -> (category: String, name: String?) {
     if let known = names[exerciseID] { return known }
-    return (categories[GarminExerciseMapping.code(for: exerciseID).category] ?? "UNKNOWN", nil)
+    if let id = GarminExerciseMapping.libraryID(forName: name), let known = names[id] { return known }
+    let code = GarminExerciseMapping.code(for: exerciseID, name: name, group: group)
+    return (categories[code.category] ?? "UNKNOWN", nil)
   }
 
   // MARK: - Ablauf
@@ -164,6 +170,8 @@ public enum GarminStrengthSync {
 
   struct FlatSet {
     var exerciseID: String
+    var name: String = ""
+    var group: MuscleGroup?
     var set: LoggedSet
     var isTime: Bool
   }
@@ -172,7 +180,9 @@ public enum GarminStrengthSync {
   static func flatten(_ session: GymSession, custom: [ExerciseInfo]) -> [FlatSet] {
     session.exercises.flatMap { exercise in
       let isTime = ExerciseLibrary.info(exercise.exerciseID, custom: custom)?.tracking == .time
-      return exercise.loggedSets.map { FlatSet(exerciseID: exercise.exerciseID, set: $0, isTime: isTime) }
+      return exercise.loggedSets.map {
+        FlatSet(exerciseID: exercise.exerciseID, name: exercise.name, group: exercise.group, set: $0, isTime: isTime)
+      }
     }
   }
 
@@ -201,7 +211,8 @@ public enum GarminStrengthSync {
       let gap = total / Double(max(flat.count, 1))
       sets = flat.enumerated().map { offset, item in
         var set = fields(item, useNames: useNames)
-        let duration = item.isTime ? Double(item.set.reps) : max(5, min(gap * 0.8, 120))
+        // Wie im FIT-Export: 3 s je Wiederholung, mindestens 20 s – nie länger als 80 % des Abstands.
+        let duration = item.isTime ? Double(item.set.reps) : max(5, min(gap * 0.8, max(Double(item.set.reps) * 3, 20)))
         set["setType"] = .string("ACTIVE")
         set["startTime"] = .string(timeText(span.start.addingTimeInterval(gap * Double(offset))))
         set["duration"] = .number(duration)
@@ -217,10 +228,12 @@ public enum GarminStrengthSync {
   /// Übung, Wiederholungen und Gewicht (Gramm) eines Satzes. Halteübungen ohne Wiederholungen; Körpergewicht und
   /// Unterstützung ohne Gewicht.
   static func fields(_ item: FlatSet, useNames: Bool) -> [String: JSONValue] {
-    let garmin = garminName(for: item.exerciseID)
+    let garmin = garminName(for: item.exerciseID, name: item.name, group: item.group)
+    // `probability` wie bei einer in Connect bearbeiteten Übung (die Uhr setzt ihre Erkennungssicherheit).
     let exercise: JSONValue = .object([
       "category": .string(garmin.category),
       "name": useNames ? garmin.name.map(JSONValue.string) ?? .null : .null,
+      "probability": .number(100),
     ])
     let weight = item.set.weightKg > 0 ? JSONValue.number((item.set.weightKg * 1_000).rounded()) : .null
     return [

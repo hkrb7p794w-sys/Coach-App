@@ -83,6 +83,9 @@ hier notieren und als PR beheben.
 - [ ] **Live-Aktivität:** Installiert SideStore die App mit Widget-Erweiterung (2 App-IDs)? Pause auf dem
       Sperrbildschirm, „Satz erledigt“ ohne Entsperren, endet nach dem Beenden.
 
+- [ ] **Garmin-Übungsnamen:** Einheit › Garmin Connect › „Sätze erneut übertragen“ → in Garmin Connect Übungen statt
+      „Unbekannt“, Satzdauer realistisch. Welche eigenen Übungen landen noch falsch?
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).
