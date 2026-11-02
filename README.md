@@ -71,7 +71,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | fertig (PR 62) |
 | 54 | Ernährung A: Zuletzt/Häufig/Rezepte/Favoriten beim Erfassen, gegessene Menge nachträglich anpassen | in Arbeit |
 | 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | in Arbeit |
-| 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | geplant |
+| 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | in Arbeit |
 | 57 | Ernährung D: Mahlzeiten teilen per Link | geplant |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)

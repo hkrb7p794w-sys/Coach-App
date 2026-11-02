@@ -12,6 +12,7 @@ final class CoachSettings {
   static let insightsKey = "coach.insights"
   static let customPromptsKey = "coach.customPrompts"
   static let favoriteMealsKey = "coach.favoriteMeals"
+  static let nutritionDashboardKey = "coach.nutritionDashboard"
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
@@ -58,6 +59,11 @@ final class CoachSettings {
   /// Empfehlungen im Reiter „AI“ mit Bearbeitungsstand.
   var insights: [Insight] {
     didSet { save(insights, forKey: Self.insightsKey) }
+  }
+
+  /// Karten im Ernährungsreiter (Reihenfolge, ausgeblendet).
+  var nutritionDashboard: NutritionDashboard {
+    didSet { save(nutritionDashboard, forKey: Self.nutritionDashboardKey) }
   }
 
   /// Favorisierte Mahlzeiten (Vorlagen, getrennt von Rezepten und Tagebuch).
@@ -194,6 +200,10 @@ final class CoachSettings {
       ?? []
     insights =
       defaults.data(forKey: Self.insightsKey).flatMap { try? JSONDecoder().decode([Insight].self, from: $0) } ?? []
+    nutritionDashboard =
+      defaults.data(forKey: Self.nutritionDashboardKey).flatMap {
+        try? JSONDecoder().decode(NutritionDashboard.self, from: $0)
+      } ?? NutritionDashboard()
     favoriteMeals =
       defaults.data(forKey: Self.favoriteMealsKey).flatMap { try? JSONDecoder().decode([FavoriteMeal].self, from: $0) }
       ?? []
@@ -351,6 +361,8 @@ struct ReminderSettings: Codable, Equatable, Hashable {
   var planningMinute = 0
   /// Abends um 20 Uhr „Tag auswerten“ (Ernährung und Training).
   var nutritionReview = false
+  /// Erinnerungen an Mahlzeiten (je Mahlzeit Uhrzeit und Schalter).
+  var meals = MealReminderSettings()
 
   init() {}
 
@@ -364,6 +376,7 @@ struct ReminderSettings: Codable, Equatable, Hashable {
     planningHour = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningHour)) ?? 18, 0), 23)
     planningMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningMinute)) ?? 0, 0), 59)
     nutritionReview = (try? container.decodeIfPresent(Bool.self, forKey: .nutritionReview)) ?? false
+    meals = (try? container.decodeIfPresent(MealReminderSettings.self, forKey: .meals)) ?? MealReminderSettings()
   }
 
   /// Uhrzeit der Sonntags-Erinnerung für den DatePicker.
