@@ -15,6 +15,7 @@ import {
   POINTS_WITH_SOURCES,
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
+import { groundInsights, INSIGHTS_SYSTEM, insightsPrompt } from "./insights";
 import { labelPrompt, mealPrompt, mergeMeals, nutritionReviewPrompt } from "./nutrition";
 import { personalNotePrompt } from "./personal";
 import { athleteProfile } from "./profile";
@@ -185,6 +186,15 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.3,
     build: (input) => ({ system: CHAT_SYSTEM, prompt: chatPrompt(input) }),
     ground: groundChat,
+  },
+  /** Reiter „AI“: Empfehlungen nach Themen aus nummerierten Fakten, jede mit Belegen. */
+  ai_insights: {
+    json: true,
+    allowImages: false,
+    temperature: 0.2,
+    maxOutputTokens: 6000,
+    build: (input) => ({ system: INSIGHTS_SYSTEM, prompt: insightsPrompt(input) }),
+    ground: groundInsights,
   },
   /** „Was jetzt?“: drei Gerichte zu den übrigen Tagesmakros (Ziele rechnet die App). */
   meal_now: {

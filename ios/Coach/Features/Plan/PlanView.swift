@@ -17,7 +17,7 @@ struct PlanView: View {
   }
 
   var body: some View {
-    NavigationStack {
+    Group {  // Liegt im Reiter Training (dessen NavigationStack).
       List {
         if viewModel.schedule == nil {
           ContentUnavailableView(

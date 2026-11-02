@@ -24,7 +24,7 @@ struct MyWeekView: View {
     let runWeek = RunPlanner.week(profile: profile, schedule: thisWeek, monday: monday, activities: all)
     let sessions = TodayViewModel.sessionWeek(
       settings: model.settings, activities: all, gymDays: gymSessions.compactMap { $0.session?.day }, today: day)
-    NavigationStack {
+    Group {  // Liegt im Reiter Training (dessen NavigationStack).
       List {
         GoalHeader(profile: profile)
 

@@ -5,6 +5,27 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Reiter „AI“: Empfehlungen an einem Ort (Paket 3, PR B)
+
+- **Fünf Reiter:** Heute, Training, Ernährung, Gym, AI. Der Plan (Saisonplan bzw. eigene Woche) liegt oben im Reiter
+  Training – sechs Reiter würde iOS auf dem iPhone unter „Mehr“ verstecken (Entscheidung des Nutzers).
+- **Ein Eingang für alles** (`InsightInbox`): Empfehlungen der Regeln (Tagesform, Schlafschuld, Stillstand und
+  Volumen im Krafttraining, Ernährungslücken der letzten 14 Tage, Planvorschläge) und der KI-Analyse. Jede hat ein
+  Thema (Training, Trainingsplan, Leistung, Erholung, Ernährung, Fortschritt, Stagnation, Nächste Schritte), einen
+  Betreff und eine Richtung (mehr, weniger, halten, ändern, prüfen).
+- **Stand:** neu, gelesen, umgesetzt, verworfen; dazu „nicht mehr aktuell“ (abgelaufen oder von der Regel
+  zurückgezogen). Gleicher Inhalt behält den Stand, geänderter wird wieder „neu“, Verworfenes bleibt verworfen.
+  Erledigtes verschwindet nach 30 Tagen, Abgelaufenes nach 14.
+- **Keine Doppelten, keine Widersprüche:** gleiche ID (Thema + Betreff) wird aktualisiert, gleicher Titel nicht
+  doppelt aufgenommen. Gleicher Betreff mit anderer Richtung: Regeln schlagen KI, sonst ersetzt die neuere die ältere.
+  Der Worker verwirft KI-Empfehlungen, die einer mitgeschickten Regel widersprechen.
+- **KI-Analyse (`ai_insights`) nur auf Anfrage:** Die App schickt nummerierte Fakten (dieselben wie im Chat, plus
+  Krafttraining, Ausdauerumfang, Ernährungslücken), fehlende Daten und die Regel-Empfehlungen. Jede Empfehlung muss
+  Fakten-IDs nennen, Zahlen müssen in der Anfrage stehen, Datenquellen und Datensätze dürfen nicht im Text stehen.
+  Fehlende Daten nennt die Ansicht ausdrücklich; unsichere Empfehlungen sind markiert.
+- **Darstellung:** In der Liste nur Erkenntnis und Empfehlung. Grundlage, Herkunft (Regel/KI, Modell) und Gültigkeit
+  bleiben gespeichert und sind über „Worauf beruht das?“ (lange drücken) einsehbar.
+
 ## 2026-11-01 – KI: austauschbare Anbieter, Workers AI, KI-Stufen und Nutzungsprotokoll (Paket 3, PR A)
 
 - **Anbieter-Register im Worker** (`providers.ts`): Gemini, Cloudflare Workers AI, Groq und ein eigener

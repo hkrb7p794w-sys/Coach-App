@@ -144,46 +144,11 @@ struct ChatView: View {
     }
   }
 
-  /// Fakten aus den Regeln der App für die Frage.
+  /// Fakten aus den Regeln der App für die Frage (gemeinsam mit der KI-Analyse im Reiter „AI“).
   private func facts() -> ChatContext.Facts {
-    let settings = model.settings
-    let today = CalendarDay(date: .now)
-    var facts = ChatContext.Facts(profile: settings.profile, privacy: settings.privacy)
-    let metrics = days.compactMap(\.metrics)
-    let allActivities = activities.compactMap(\.activity)
-    if let snapshot {
-      facts.recommendation = snapshot.recommendation.label
-      facts.reasons = snapshot.recommendation.reasons
-      if let advice = snapshot.advice {
-        facts.todaySessions = [advice.headline]
-      } else if let plan = snapshot.today {
-        facts.todaySessions = plan.items.map(\.title)
-      }
-    }
-    if settings.profile.mode == .personal {
-      let schedule = settings.schedule(inWeekOf: today)
-      facts.runWeek = RunPlanner.week(
-        profile: settings.profile, schedule: schedule, monday: PlanAdjustments.monday(of: today),
-        activities: allActivities)
-      if facts.todaySessions.isEmpty {
-        facts.todaySessions = schedule.slots(on: Weekday(day: today)).map(\.title)
-      }
-    }
-    facts.sleep = SleepCoach.report(days: metrics, settings: settings.sleep, goal: settings.profile.goal, today: today)
-    facts.targets = NutritionPlanner.compute(
-      activities: allActivities.filter { $0.day == today }, planItems: [], settings: settings.nutrition,
-      garminProfile: model.sync.profile, day: today, hasGarminData: !metrics.isEmpty)
-    let eaten = meals.filter { $0.dayKey == today.iso }.flatMap(\.items)
-    if !eaten.isEmpty { facts.eatenKilocalories = NutritionSummary.totals(eaten)[.kcal] }
-    facts.weightTrend = WeightTrend.trend(WeightTrend.merged(model.allWeights), today: today)
-    let form = FitnessForm.series(activities: allActivities, today: today)
-    if FitnessForm.isReliable(form), let percent = form.last?.formPercent {
-      facts.formZone = FitnessForm.Zone.of(percent)
-    }
-    facts.weekHighlights =
-      WeeklyReport.lastWeek(
-        activities: allActivities, days: metrics, gymDays: gymSessions.compactMap { $0.session?.day }, today: today
-      ).highlights
-    return facts
+    CoachFacts.chat(
+      model: model, snapshot: snapshot, metrics: days.compactMap(\.metrics),
+      activities: activities.compactMap(\.activity), meals: meals,
+      gymDays: gymSessions.compactMap { $0.session?.day })
   }
 }
