@@ -120,7 +120,8 @@ struct WakePlanTests {
     // Nacht der Zeitumstellung (25.10.2026, 3 Uhr → 2 Uhr).
     let evening = try #require(calendar.date(from: DateComponents(year: 2026, month: 10, day: 24, hour: 23)))
     let next = try #require(WakePlan.nextDate(.init(hour: 6, minute: 30), after: evening, calendar: calendar))
-    #expect(calendar.dateComponents([.day, .hour, .minute], from: next) == DateComponents(day: 25, hour: 6, minute: 30))
+    #expect(
+      calendar.dateComponents([.day, .hour, .minute], from: next) == DateComponents(day: 25, hour: 6, minute: 30))
     #expect(next.timeIntervalSince(evening) == 8.5 * 3_600)
   }
 
