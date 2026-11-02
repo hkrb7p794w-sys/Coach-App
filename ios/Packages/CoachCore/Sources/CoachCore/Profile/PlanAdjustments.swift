@@ -254,7 +254,7 @@ public enum ReminderPlanner {
 /// Wochenplanung am Sonntag.
 public struct ScheduledNote: Equatable, Sendable, Identifiable {
   public enum Kind: String, Sendable {
-    case equipment, weekPlanning, nutritionReview
+    case equipment, weekPlanning, nutritionReview, meal
   }
 
   public var kind: Kind
@@ -263,8 +263,10 @@ public struct ScheduledNote: Equatable, Sendable, Identifiable {
   public var minute: Int
   public var title: String
   public var body: String
+  /// Unterscheidet mehrere Mitteilungen derselben Art am selben Tag (z. B. Mahlzeit `fruehstueck`).
+  public var tag = ""
 
-  public var id: String { "coach.reminder.\(kind.rawValue).\(day.iso)" }
+  public var id: String { "coach.reminder.\(kind.rawValue).\(day.iso)" + (tag.isEmpty ? "" : ".\(tag)") }
 }
 
 extension ReminderPlanner {

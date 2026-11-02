@@ -16,6 +16,7 @@ struct NutritionView: View {
   @State private var sheet: Sheet?
   @State private var query = ""
   @State private var showsNow = false
+  @State private var showsDashboardEditor = false
   @State private var savingRecipe: MealRecord?
 
   enum Sheet: String, Identifiable {
@@ -45,34 +46,12 @@ struct NutritionView: View {
               viewModel.selectedDay = day == viewModel.today ? nil : day
             }
           }
-          if let targets = viewModel.targets {
-            BudgetSection(targets: targets, totals: viewModel.totals, water: waterCount) { milliliters in
-              logWater(milliliters)
-            }
-            if viewModel.day == viewModel.today {
-              Section {
-                Button("Was esse ich jetzt?", systemImage: "sparkles") { showsNow = true }
-                  .font(.headline)
-              } footer: {
-                Text("Drei Ideen passend zu dem, was heute noch übrig ist – gern mit deinem Vorrat.")
-              }
-            }
-          }
           if !viewModel.pending.isEmpty {
             pendingSection
           }
-          QuickSection(
-            entries: NutritionViewModel.entries(meals), day: viewModel.day,
-            category: NutritionViewModel.category(at: .now), ownRecipes: model.settings.ownRecipes
-          ) { title, category, items, label in
-            viewModel.log(
-              title: title, category: category, items: items, context: context, foods: foods, label: label)
-          } logRecipe: { recipe in
-            logOwnRecipe(recipe, grams: nil)
-          }
-          mealsSection
-          if let targets = viewModel.targets {
-            TargetsSection(targets: targets, totals: viewModel.totals)
+          // Karten in der gewählten Reihenfolge („Übersicht anpassen“).
+          ForEach(model.settings.nutritionDashboard.visible) { card in
+            dashboardCard(card)
           }
         }
         // Auswertung tagsüber nur in der Woche; abends (ab 18 Uhr) auch hier.
@@ -80,6 +59,7 @@ struct NutritionView: View {
           reviewSection
         }
         Section {
+          Button("Übersicht anpassen", systemImage: "slider.horizontal.3") { showsDashboardEditor = true }
           NavigationLink {
             NutritionWeekView(summary: weekSummary, weights: model.allWeights, goal: model.settings.nutrition.goal) {
               reviewSection
@@ -114,10 +94,13 @@ struct NutritionView: View {
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
       }
+      // Neue oder gelöschte Mahlzeit: Erinnerungen neu planen (keine Mitteilung für schon Erfasstes).
+      .onChange(of: meals.count) { Task { await model.refreshReminders() } }
       .task(id: refreshKey) {
         refresh()
         await viewModel.retryPending(ai: model.ai, settings: model.settings, foods: foods)
       }
+      .sheet(isPresented: $showsDashboardEditor) { NutritionDashboardEditor() }
       .sheet(isPresented: $showsNow) {
         MealNowSheet(viewModel: viewModel, pantry: model.settings.pantry) { recipe in
           showsNow = false
@@ -322,6 +305,53 @@ struct NutritionView: View {
             Text("\(Int(kcal.rounded())) kcal").monospacedDigit()
           }
         }
+      }
+    }
+  }
+
+  // MARK: - Karten
+
+  @ViewBuilder private func dashboardCard(_ card: NutritionDashboard.Card) -> some View {
+    switch card {
+    case .budget:
+      if let targets = viewModel.targets {
+        BudgetSection(targets: targets, totals: viewModel.totals, water: waterCount, showsWater: false) { _ in }
+      }
+    case .summary:
+      let shown = todaysMeals.filter { !$0.isWater }
+      DaySummarySection(
+        summary: NutritionDaySummary(
+          eaten: viewModel.totals[.kcal] ?? 0, goal: viewModel.targets?.values[.kcal], meals: shown.count),
+        totals: viewModel.totals, targets: viewModel.targets?.values)
+    case .water:
+      if let targets = viewModel.targets, targets.values[.water] != nil {
+        BudgetSection(targets: targets, totals: viewModel.totals, water: waterCount, showsRing: false) { amount in
+          logWater(amount)
+        }
+      }
+    case .ideas:
+      if viewModel.targets != nil, viewModel.day == viewModel.today {
+        Section {
+          Button("Was esse ich jetzt?", systemImage: "sparkles") { showsNow = true }
+            .font(.headline)
+        } footer: {
+          Text("Drei Ideen passend zu dem, was heute noch übrig ist – gern mit deinem Vorrat.")
+        }
+      }
+    case .quick:
+      QuickSection(
+        entries: NutritionViewModel.entries(meals), day: viewModel.day,
+        category: NutritionViewModel.category(at: .now), ownRecipes: model.settings.ownRecipes
+      ) { title, category, items, label in
+        viewModel.log(title: title, category: category, items: items, context: context, foods: foods, label: label)
+      } logRecipe: { recipe in
+        logOwnRecipe(recipe, grams: nil)
+      }
+    case .meals:
+      mealsSection
+    case .nutrients:
+      if let targets = viewModel.targets {
+        TargetsSection(targets: targets, totals: viewModel.totals)
       }
     }
   }
@@ -559,47 +589,134 @@ private struct BudgetSection: View {
   let targets: NutritionTargets
   let totals: NutrientValues
   let water: Double
+  var showsRing = true
+  var showsWater = true
   let addWater: (Double) -> Void
 
   var body: some View {
     Section {
-      HStack(spacing: 20) {
-        if let kcal = NutritionBudget.line(.kcal, targets: targets.values, totals: totals) {
-          CalorieRing(line: kcal)
-        }
-        VStack(alignment: .leading, spacing: 10) {
-          ForEach(NutritionBudget.main, id: \.self) { nutrient in
-            if let line = NutritionBudget.line(nutrient, targets: targets.values, totals: totals) {
-              MacroBar(line: line)
-            }
-          }
-        }
-      }
-      .padding(.vertical, 6)
-      if let target = targets.values[.water] {
-        HStack {
-          Image(systemName: "drop.fill").foregroundStyle(.cyan)
-          Text("Wasser \(GermanFormat.decimal(water / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
-            .monospacedDigit()
-          Spacer()
-          Menu {
-            ForEach([150.0, 330, 500, 750], id: \.self) { amount in
-              Button("\(Int(amount)) ml") { addWater(amount) }
-            }
-          } label: {
-            Label("+250 ml", systemImage: "plus")
-              .font(.subheadline.bold())
-              .padding(.horizontal, 12)
-              .frame(minHeight: 40)
-              .background(.cyan.opacity(0.15), in: Capsule())
-          } primaryAction: {
-            addWater(250)
-          }
-          .accessibilityHint("Gedrückt halten für andere Mengen")
-        }
-      }
+      if showsRing { ring }
+      if showsWater, let target = targets.values[.water] { waterRow(target) }
     } header: {
-      Text("\(targets.dayType.label) · \(targets.source.rawValue)")
+      if showsRing { Text("\(targets.dayType.label) · \(targets.source.rawValue)") }
+    }
+  }
+
+  private var ring: some View {
+    HStack(spacing: 20) {
+      if let kcal = NutritionBudget.line(.kcal, targets: targets.values, totals: totals) {
+        CalorieRing(line: kcal)
+      }
+      VStack(alignment: .leading, spacing: 10) {
+        ForEach(NutritionBudget.main, id: \.self) { nutrient in
+          if let line = NutritionBudget.line(nutrient, targets: targets.values, totals: totals) {
+            MacroBar(line: line)
+          }
+        }
+      }
+    }
+    .padding(.vertical, 6)
+  }
+
+  private func waterRow(_ target: Double) -> some View {
+    HStack {
+      Image(systemName: "drop.fill").foregroundStyle(.cyan)
+      Text("Wasser \(GermanFormat.decimal(water / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
+        .monospacedDigit()
+      Spacer()
+      Menu {
+        ForEach([150.0, 330, 500, 750], id: \.self) { amount in
+          Button("\(Int(amount)) ml") { addWater(amount) }
+        }
+      } label: {
+        Label("+250 ml", systemImage: "plus")
+          .font(.subheadline.bold())
+          .padding(.horizontal, 12)
+          .frame(minHeight: 40)
+          .background(.cyan.opacity(0.15), in: Capsule())
+      } primaryAction: {
+        addWater(250)
+      }
+      .accessibilityHint("Gedrückt halten für andere Mengen")
+    }
+  }
+}
+
+/// Tagesübersicht als Kacheln: gegessen, Ziel, übrig, Fortschritt, Mahlzeiten und Makros.
+private struct DaySummarySection: View {
+  let summary: NutritionDaySummary
+  let totals: NutrientValues
+  let targets: NutrientValues?
+
+  var body: some View {
+    Section("Tagesübersicht") {
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 10)], spacing: 10) {
+        Tile(title: "Gegessen", value: "\(Int(summary.eaten.rounded()))", unit: "kcal")
+        Tile(title: "Ziel", value: summary.goal.map { "\(Int($0.rounded()))" } ?? "–", unit: "kcal")
+        Tile(
+          title: (summary.remaining ?? 0) >= 0 ? "Übrig" : "Drüber",
+          value: summary.remaining.map { "\(Int(abs($0).rounded()))" } ?? "–", unit: "kcal")
+        Tile(title: "Fortschritt", value: summary.percent.map { "\($0)" } ?? "–", unit: "%")
+        Tile(title: "Mahlzeiten", value: "\(summary.meals)", unit: "erfasst")
+        ForEach([Nutrient.protein, .carbs, .fat], id: \.self) { nutrient in
+          Tile(
+            title: nutrient.label, value: "\(Int((totals[nutrient] ?? 0).rounded()))",
+            unit: targets?[nutrient].map { "von \(Int($0.rounded())) g" } ?? "g")
+        }
+      }
+      .padding(.vertical, 4)
+    }
+  }
+
+  private struct Tile: View {
+    let title: String
+    let value: String
+    let unit: String
+
+    var body: some View {
+      VStack(alignment: .leading, spacing: 2) {
+        Text(title).font(.caption).foregroundStyle(.secondary)
+        Text(value).font(.title3.bold()).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
+        Text(unit).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(10)
+      .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 12))
+      .accessibilityElement(children: .combine)
+    }
+  }
+}
+
+/// Karten ein- und ausblenden und sortieren.
+struct NutritionDashboardEditor: View {
+  @Environment(AppModel.self) private var model
+  @Environment(\.dismiss) private var dismiss
+
+  var body: some View {
+    NavigationStack {
+      List {
+        Section {
+          ForEach(model.settings.nutritionDashboard.order) { card in
+            Toggle(
+              isOn: Binding(
+                get: { !model.settings.nutritionDashboard.hidden.contains(card) },
+                set: { model.settings.nutritionDashboard.set(card, visible: $0) })
+            ) {
+              Label(card.label, systemImage: card.symbol)
+            }
+          }
+          .onMove { model.settings.nutritionDashboard.move(fromOffsets: $0, toOffset: $1) }
+        } footer: {
+          Text("Ziehen zum Sortieren. Ausgeblendete Karten bleiben hier und lassen sich jederzeit wieder einschalten.")
+        }
+        Section {
+          Button("Standard wiederherstellen") { model.settings.nutritionDashboard = NutritionDashboard() }
+        }
+      }
+      .environment(\.editMode, .constant(.active))
+      .navigationTitle("Übersicht anpassen")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
     }
   }
 }
