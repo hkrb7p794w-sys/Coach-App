@@ -14,7 +14,7 @@ Gebaut wird ausschließlich in GitHub Actions, installiert per SideStore (kosten
 | `ios/CoachWidgets/`, `ios/Shared/` | Widget-Erweiterung für die Live-Aktivität der Gym-Einheit; `Shared` gehört zu App und Erweiterung |
 | `ios/CoachTests/` | App-Tests (Swift Testing), laufen nur im Simulator (macOS) |
 | `ios/Packages/CoachCore/` | Reine Logik **ohne** Apple-Frameworks – testbar auf Linux mit `swift test` |
-| `android/` | Android-App „IronLudi Gym“ (Kotlin, Jetpack Compose): nur Gym-Logging. `core/` reine Logik mit Tests (lokal: `./gradlew -PcoreOnly :core:test`), Übungen aus CoachCore erzeugt (`tools/export_exercises.py`), siehe `docs/android.md` |
+| `android/` | Android-App „IronLudi“ (Kotlin, Jetpack Compose): Gym-Logging und Ernährung (Port der CoachCore-Regeln). `core/` reine Logik mit Tests (lokal: `./gradlew -PcoreOnly :core:test`), Übungen und BLS aus CoachCore übernommen (`tools/export_exercises.py`), siehe `docs/android.md` |
 | `worker/` | Cloudflare Worker (TypeScript): KI-Weiterleitung über austauschbare Anbieter (`src/providers.ts`: Gemini, Workers AI, Groq, eigener Server), Prompts in `src/tasks.ts` |
 | `docs/` | Entscheidungen (`decisions.md`) und Anleitungen für den Nutzer |
 | `.github/workflows/` | `ios-build.yml` (macOS, nur manuell), `swift.yml`, `worker.yml` und `android.yml` (Linux, bei PRs; Worker-Deploy und Android-Bereitstellung auf `main`) |

@@ -226,4 +226,11 @@ struct DaisyGeometryTests {
     #expect(!GuestToken.isGuest("mein-haupt-token"))
     #expect(!GuestToken.isGuest(""))
   }
+
+  @Test func androidLinkCarriesGuestTokenInFragment() throws {
+    let base = try #require(URL(string: "https://w.example.dev/android/abc/"))
+    let url = try #require(AndroidLink.url(base: base, guestToken: "g1.abcdefghijk2.0f"))
+    #expect(url.absoluteString == "https://w.example.dev/android/abc/#zugang=g1.abcdefghijk2.0f")
+    #expect(url.fragment == "zugang=g1.abcdefghijk2.0f")
+  }
 }

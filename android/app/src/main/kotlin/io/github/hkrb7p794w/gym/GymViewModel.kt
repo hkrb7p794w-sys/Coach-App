@@ -51,6 +51,9 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     val allExercises: List<Exercise> get() = library + _data.value.customExercises
 
+    /** Ernährung: BLS, KI über den Worker, Barcodes (siehe NutritionModel.kt). */
+    val nutrition = NutritionModel(application, viewModelScope, ::update) { _data.value }
+
     fun exercise(id: String): Exercise? = Workouts.find(id, library, _data.value.customExercises)
 
     private fun load(): AppData {

@@ -226,13 +226,8 @@ private struct SettingsForm: View {
           Label("SideStore-Quelle kopieren", systemImage: "doc.on.doc")
         }
       }
-      if let android = model.ai.androidDownloadURL {
-        ShareLink(
-          item: android, subject: Text("IronLudi Gym für Android"),
-          message: Text("Hier kannst du IronLudi Gym für Android laden:")
-        ) {
-          Label("Android-App teilen", systemImage: "square.and.arrow.up")
-        }
+      if model.ai.androidDownloadURL != nil {
+        AndroidShareRow()
       }
     } header: {
       Text("KI-Worker")
@@ -324,6 +319,49 @@ private struct HealthImportSection: View {
         "Übernimmt Schlaf mit Phasen, Ruhepuls, Schritte, Kalorien, Atemfrequenz, Sauerstoff, VO2max, Gewicht und "
           + "Workouts. Garmin hat Vorrang: Health füllt nur Lücken, Workouts, die Garmin schon kennt, kommen nicht "
           + "doppelt. Die HRV übernimmt die App nur ohne Garmin, weil Apple sie anders misst (SDNN statt RMSSD).")
+    }
+  }
+}
+
+/// Link zur Android-App mit eigenem Gastzugang für die KI: Download-Seite plus `#zugang=<Gast-Token>` im Anker
+/// (geht nie an den Server; die Seite baut daraus „In der App verbinden“). Jeder Link ist ein eigener Zugang.
+private struct AndroidShareRow: View {
+  @Environment(AppModel.self) private var model
+  @State private var link: URL?
+  @State private var error: String?
+  @State private var isWorking = false
+
+  var body: some View {
+    if let link {
+      ShareLink(
+        item: link, subject: Text("IronLudi für Android"),
+        message: Text("Hier kannst du IronLudi (Gym und Ernährung) für Android laden und mit der KI verbinden:")
+      ) {
+        Label("Android-Link teilen", systemImage: "square.and.arrow.up")
+      }
+    } else {
+      Button {
+        Task { await create() }
+      } label: {
+        Label("Android-Link erstellen", systemImage: "link.badge.plus")
+      }
+      .disabled(isWorking)
+    }
+    if let error {
+      Text(error).font(.footnote).foregroundStyle(.red)
+    }
+  }
+
+  private func create() async {
+    guard let base = model.ai.androidDownloadURL else { return }
+    isWorking = true
+    defer { isWorking = false }
+    do {
+      let token = try await model.ai.createGuestToken()
+      link = AndroidLink.url(base: base, guestToken: token)
+      error = nil
+    } catch {
+      self.error = "Link nicht erstellt: \(error.localizedDescription)"
     }
   }
 }

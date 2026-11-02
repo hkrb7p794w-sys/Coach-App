@@ -36,6 +36,9 @@ describe("android", () => {
     expect(html).toContain("Version 1.0.12");
     expect(html).toContain('href="IronLudi-Gym.apk"');
     expect(html).toContain("7,0 MB");
+    // Verbinden nur über den Anker im Browser; die Seite selbst enthält kein Token.
+    expect(html).toContain("ironludi://connect?worker=");
+    expect(html).not.toContain(env.COACH_APP_TOKEN ?? "x");
 
     const apk = await handle(new Request(`${base}/IronLudi-Gym.apk`), withKV, fakeDeps([]));
     expect(apk.status).toBe(200);
