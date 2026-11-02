@@ -13,6 +13,7 @@ final class AppModel {
   let garmin: GarminClient
   let sync: GarminSyncService
   let health: HealthImportService
+  let sources: SourceStore
   let ai: AIClient
   let settings: CoachSettings
   let reminders: ReminderService
@@ -35,12 +36,17 @@ final class AppModel {
     garmin = GarminClient(secrets: secrets, connect: GarminConnectSession(secrets: secrets, defaults: defaults))
     sync = GarminSyncService(client: garmin, context: container.mainContext, defaults: defaults)
     health = HealthImportService(context: container.mainContext, defaults: defaults)
+    sources = SourceStore(context: container.mainContext, defaults: defaults)
     ai = AIClient(secrets: secrets, defaults: defaults)
     settings = CoachSettings(defaults: defaults)
     // In Tests (inMemory) ohne Mitteilungszentrale.
     reminders = ReminderService(settings: settings, center: inMemory ? nil : .current())
     league = LeagueService(ai: ai, settings: settings)
     let current = self.settings
+    sources.preferences = { current.sources }
+    sync.sources = sources
+    health.sources = sources
+    if !isDemo { sources.migrateIfNeeded() }
     ai.userSources = { current.userSources }
     ai.settings = { current.ai }
     ai.onUsage = { entry in current.aiUsage = AIUsageLog.appending(entry, to: current.aiUsage) }
@@ -108,10 +114,28 @@ final class AppModel {
     settings.weights + sync.weights + health.weights
   }
 
+  /// Verbundene Quellen (für Vorrang und Doppelte).
+  var connectedSources: Set<DataProvider> {
+    var result = Set<DataProvider>()
+    if garmin.isConfigured { result.insert(.garmin) }
+    if health.isEnabled { result.insert(.appleHealth) }
+    return result
+  }
+
+  /// Nach geänderten Quellen-Einstellungen: Tageswerte und Aktivitäten neu zusammenführen.
+  func applySourcePreferences() {
+    sources.rebuild()
+    sources.deduplicateActivities(connected: connectedSources)
+    try? container.mainContext.save()
+  }
+
   /// Beim Öffnen der App: nur abrufen, wenn eine Quelle verbunden ist und der letzte Abruf länger her ist.
+  /// Nach Fehlschlägen wartet der automatische Abruf länger (1 min … 6 h); manuell geht es immer.
   func syncIfDue() async {
     guard !isDemo else { return }
-    if garmin.isConfigured, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) {
+    let states = sources.syncStates
+    let garminDue = states[.garmin].map { $0.isDue(now: .now, minimumInterval: SyncPlan.minimumInterval) } ?? true
+    if garmin.isConfigured, garminDue, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) {
       await syncNow()
     } else if health.isEnabled, SyncPlan.isDue(lastSync: health.lastImport, now: .now) {
       await health.importNow(garminConnected: garmin.isConfigured)
@@ -127,13 +151,25 @@ final class AppModel {
       do {
         lastReport = try await sync.sync()
         lastError = nil
+        sources.recordSuccess(.garmin)
       } catch let error as GarminAPIError {
         lastError = error.message
+        sources.recordFailure(.garmin, error: error.message)
       } catch {
         lastError = error.localizedDescription
+        sources.recordFailure(.garmin, error: error.localizedDescription)
       }
     }
     await health.importNow(garminConnected: garmin.isConfigured)
+    if health.isEnabled {
+      if let problem = health.lastProblem {
+        sources.recordFailure(.appleHealth, error: problem)
+      } else {
+        sources.recordSuccess(.appleHealth)
+      }
+    }
+    sources.deduplicateActivities(connected: connectedSources)
+    try? container.mainContext.save()
     // Wartende Gym-Einheiten: Sätze in die inzwischen geladene Aufzeichnung der Uhr schreiben.
     if settings.gym.uploadsToGarmin, let connect = garmin.connect, connect.isLoggedIn {
       await GarminStrengthService.reconcile(context: container.mainContext, garmin: connect, gym: settings.gym)

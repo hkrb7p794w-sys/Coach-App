@@ -1,5 +1,9 @@
 import Foundation
 
+/// Zusammenfassung einer Aktivität. Trotz des Namens das allgemeine Aktivitätsmodell für alle Anbieter
+/// (Garmin, Apple Health, später WHOOP/Polar); die Herkunft steht in `provider` und `externalID`.
+public typealias TrainingActivity = GarminActivity
+
 /// Zusammenfassung einer Garmin-Aktivität aus der Aktivitätssuche.
 public struct GarminActivity: Codable, Equatable, Sendable, Identifiable {
   public let id: Int64
@@ -58,6 +62,10 @@ public struct GarminActivity: Codable, Equatable, Sendable, Identifiable {
   public var trainingEffectLabel: String?
   public var locationName: String?
   public var activeKilocalories: Double?
+  /// Herkunft (fehlt bei älteren Einträgen: positive ID = Garmin, negative = Apple Health).
+  public var provider: DataProvider?
+  /// ID beim Anbieter (Garmin: Aktivitäts-ID, Apple Health: Workout-UUID).
+  public var externalID: String?
 
   public init(id: Int64) {
     self.id = id

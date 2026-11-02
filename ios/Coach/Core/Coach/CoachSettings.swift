@@ -27,6 +27,7 @@ final class CoachSettings {
   static let weightsKey = "coach.weights"
   static let sleepKey = "coach.sleep"
   static let healthDashboardKey = "coach.healthDashboard"
+  static let sourcesKey = "coach.sources"
   static let importedNotesKey = "coach.importedNotes"
   static let userSourcesKey = "coach.userSources"
   static let ownRecipesKey = "coach.ownRecipes"
@@ -140,6 +141,11 @@ final class CoachSettings {
   /// Widgets im Gesundheitsbereich (Reihenfolge, Darstellung, ausgeblendet).
   var healthDashboard: HealthDashboard {
     didSet { save(healthDashboard, forKey: Self.healthDashboardKey) }
+  }
+
+  /// Primäres Gerät und bevorzugte Quelle je Datenart.
+  var sources: SourcePreferences {
+    didSet { save(sources, forKey: Self.sourcesKey) }
   }
 
   /// Eigene wissenschaftliche Quellen, die die KI zusätzlich berücksichtigt.
@@ -257,6 +263,9 @@ final class CoachSettings {
       defaults.data(forKey: Self.healthDashboardKey).flatMap {
         try? JSONDecoder().decode(HealthDashboard.self, from: $0)
       } ?? HealthDashboard()
+    sources =
+      defaults.data(forKey: Self.sourcesKey).flatMap { try? JSONDecoder().decode(SourcePreferences.self, from: $0) }
+      ?? SourcePreferences()
     userSources =
       defaults.data(forKey: Self.userSourcesKey).flatMap { try? JSONDecoder().decode([UserSource].self, from: $0) }
       ?? []

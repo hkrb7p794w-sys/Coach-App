@@ -17,9 +17,13 @@ final class HealthImportService {
   @ObservationIgnored private let store = HKHealthStore()
   @ObservationIgnored private let context: ModelContext
   @ObservationIgnored private let defaults: UserDefaults
+  /// Gemeinsame Ablage aller Quellen (Herkunft, Vorrang je Datenart).
+  @ObservationIgnored var sources: SourceStore?
 
   private(set) var isImporting = false
   private(set) var lastResult: String?
+  /// Fehler des letzten Imports (`nil` = alles lesbar), für den Synchronisierungsstatus.
+  private(set) var lastProblem: String?
 
   init(context: ModelContext, defaults: UserDefaults = .standard) {
     self.context = context
@@ -80,6 +84,7 @@ final class HealthImportService {
       try await requestAccess()
     } catch {
       lastResult = "Keine Berechtigung: \(error.localizedDescription)"
+      lastProblem = lastResult
       return
     }
 
@@ -131,8 +136,15 @@ final class HealthImportService {
       let workouts = try await workouts(from: dayStart, to: now)
       let existing = ((try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []).compactMap(\.activity)
       let byID = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-      let fresh = HealthImport.newActivities(
-        workouts, existing: existing, ownBundle: Bundle.main.bundleIdentifier ?? "io.github.hkrb7p794w.coach")
+      let ownBundle = Bundle.main.bundleIdentifier ?? "io.github.hkrb7p794w.coach"
+      // Herkunft aller gelesenen Workouts (vollständiger Zeitraum: fehlende gelten als in Health gelöscht).
+      let all = workouts.filter { $0.sourceBundle != ownBundle && !$0.sourceBundle.hasPrefix(ownBundle + ".") }
+        .map { HealthImport.activity($0) }
+      let allowed = sources?.recordActivities(
+        all, from: .appleHealth, window: DateRange(start: CalendarDay(date: dayStart), end: CalendarDay(date: now)),
+        complete: true)
+      let fresh = HealthImport.newActivities(workouts, existing: existing, ownBundle: ownBundle)
+        .filter { allowed?.contains($0.id) ?? true }
       let records = (try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []
       for activity in fresh {
         if byID[activity.id] != nil {
@@ -160,11 +172,17 @@ final class HealthImportService {
     var text = "\(daysUpdated) Tage, \(added) neue Workouts aus Apple Health"
     if !problems.isEmpty { text += " · nicht lesbar: \(problems.joined(separator: ", "))" }
     lastResult = text
+    lastProblem = problems.isEmpty ? nil : "Nicht lesbar: \(problems.joined(separator: ", "))"
   }
 
   // MARK: - Speichern
 
   private func saveMetrics(_ map: [CalendarDay: DailyMetrics]) -> Int {
+    if let sources {
+      let useful = map.filter { !$0.value.presentFields.isEmpty || $0.value.sleepSeconds != nil }
+      sources.ingestDays(useful, from: .appleHealth)
+      return useful.count
+    }
     let existing = (try? context.fetch(FetchDescriptor<DailyMetricsRecord>())) ?? []
     let byKey = Dictionary(existing.map { ($0.dayKey, $0) }, uniquingKeysWith: { first, _ in first })
     var count = 0

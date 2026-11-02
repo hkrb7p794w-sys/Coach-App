@@ -32,6 +32,11 @@ private struct SettingsForm: View {
         connectSection
         garminSection
         HealthImportSection()
+        Section {
+          NavigationLink("Datenquellen und Vorrang") { DataSourcesView() }
+        } footer: {
+          Text("Mehrere Geräte: welche Quelle für Schlaf, HRV, Aktivitäten usw. zählt.")
+        }
         aiSection
         AISettingsSection()
         Section("Coach") {

@@ -5,6 +5,23 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Mehrere Datenquellen: gemeinsame Architektur (Paket 5, PR A)
+
+- **Je Datenart genau eine Quelle, als ganze Gruppe:** Werte werden nicht gemittelt oder gemischt (Schlafdauer von
+  WHOOP mit Phasen von Garmin wäre widersprüchlich, Kalorien aus zwei Quellen doppelt). Fehlen der bevorzugten Quelle
+  Werte, springt die nächste ein.
+- **Primäres Gerät nur bei seinen Stärken:** Reihenfolge = gewählte Quelle je Datenart › primäres Gerät (wenn die
+  Art zu seinen Stärken gehört) › allgemeine Rangfolge. Apple Health steht meist hinten, weil es oft nur weitergibt,
+  was ein Gerät geschrieben hat, und HRV dort SDNN statt RMSSD ist.
+- **Rohwerte je Anbieter in `SourceRecord`** (neues SwiftData-Modell, legt SwiftData ohne Migration an);
+  `DailyMetricsRecord` wird daraus berechnet. Bestehende Tageswerte gelten einmalig als Garmin-Werte.
+- **Doppelte Aktivitäten** werden nicht gelöscht, sondern als ersetzt vermerkt; so legt der nächste Abruf sie nicht
+  wieder an. Löschungen nur aus vollständigen Abrufen (Apple Health), nicht aus seitenweisem Blättern (Garmin).
+- **Fitbit nicht verfügbar:** Fitbit Web API laut Google am 30.10.2026 abgeschaltet
+  (<https://developers.google.com/health/newsletters>); Google Health API mit Prüfung durch Google ist für eine
+  privat verteilte App unverhältnismäßig.
+- **WHOOP und Polar geplant, nicht behauptet:** offizielle OAuth-APIs ohne Kosten, Secrets nur im Worker. Bis dahin
+  über Apple Health (WHOOP ohne HRV und Recovery). Matrix und Quellen: `docs/integrationen.md`.
 ## 2026-11-02 – Health: Widgets und Wecker (Paket 2, PR C)
 
 - **Wecker über AlarmKit** (iOS 26, <https://developer.apple.com/documentation/alarmkit/scheduling-an-alarm-with-alarmkit>):
