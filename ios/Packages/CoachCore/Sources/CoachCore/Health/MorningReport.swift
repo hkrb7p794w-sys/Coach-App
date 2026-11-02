@@ -77,7 +77,8 @@ public struct MorningReport: Equatable, Sendable {
   ) -> MorningReport {
     let sorted = days.sorted { $0.day < $1.day }
     let metrics =
-      sorted.last { $0.day == today && hasNight($0) } ?? sorted.last { $0.day == today.adding(days: -1) && hasNight($0) }
+      sorted.last { $0.day == today && hasNight($0) }
+      ?? sorted.last { $0.day == today.adding(days: -1) && hasNight($0) }
     let reference = metrics?.day ?? today
     let previous = sorted.filter { $0.day < reference }
     func norm(_ field: (DailyMetrics) -> Double?) -> PersonalNorm? {
@@ -95,7 +96,8 @@ public struct MorningReport: Equatable, Sendable {
     items.append(
       stress(
         stressDay?.stressAverage, sleepStress: metrics?.sleepStress,
-        norm: PersonalNorm.of(sorted.filter { $0.day < reference.adding(days: -1) }, today: reference.adding(days: -1)) {
+        norm: PersonalNorm.of(sorted.filter { $0.day < reference.adding(days: -1) }, today: reference.adding(days: -1))
+        {
           $0.stressAverage
         }))
     items.append(

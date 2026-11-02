@@ -130,7 +130,8 @@ struct MorningReportView: View {
         if let advice = report.sleepAdvice {
           Text(advice)
         } else {
-          Text("Ab 3 Nächten mit Schlafdaten berechnet der Schlaf-Coach deine Schlafenszeit.").foregroundStyle(.secondary)
+          Text("Ab 3 Nächten mit Schlafdaten berechnet der Schlaf-Coach deine Schlafenszeit.").foregroundStyle(
+            .secondary)
         }
         NavigationLink("Schlaf-Coach") { SleepCoachView() }
       }
