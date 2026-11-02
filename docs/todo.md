@@ -85,6 +85,7 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übungsnamen:** Einheit › Garmin Connect › „Sätze erneut übertragen“ → in Garmin Connect Übungen statt
       „Unbekannt“, Satzdauer realistisch. Welche eigenen Übungen landen noch falsch?
+- [ ] **Dunkelmodus:** Einstellungen › Darstellung „Dunkel“ → alle Reiter, Sheets und Daisy gut lesbar; zurück auf „Wie System“ folgt sofort dem iPhone.
 - [ ] **Schnellaktionen (Paket 7 A):** Nach dem ersten Öffnen lange aufs App-Icon drücken → „Training starten“,
       „Mahlzeit erfassen“, „Health öffnen“, „KI-Analyse starten“. Jede springt in den richtigen Reiter, auch bei
       geschlossener App. Spotlight/Kurzbefehle-App: „Training starten in IronLudi“. Funktionieren Einladungs- und

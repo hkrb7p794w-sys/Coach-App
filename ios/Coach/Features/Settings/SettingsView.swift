@@ -27,6 +27,7 @@ private struct SettingsForm: View {
         if model.settings.profile.mode == .personal {
           InputIssuesSection(issues: profileIssues)
         }
+        AppearanceSettingsSection()
         DisciplineSettingsSection()
         ReminderSettingsSection()
         connectSection

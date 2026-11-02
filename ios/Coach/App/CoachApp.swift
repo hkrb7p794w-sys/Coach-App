@@ -1,9 +1,11 @@
+import CoachCore
 import SwiftUI
 
 @main
 struct CoachApp: App {
   @State private var model = DemoData.isRequested ? DemoData.makeModel() : AppModel()
   @Environment(\.scenePhase) private var scenePhase
+  @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system.rawValue
   /// Schnellaktionen am App-Icon (`AppRouter`).
   @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
@@ -23,6 +25,8 @@ struct CoachApp: App {
     .onChange(of: scenePhase) { _, phase in
       switch phase {
       case .active:
+        // Gewählte Darstellung (Einstellungen) auf alle Fenster anwenden; die Demo-Screenshots steuern sie selbst.
+        if DemoData.colorScheme == nil { AppearanceController.apply(AppAppearance(stored: appearance)) }
         // Wasser aus dem Homescreen-Widget übernehmen, dann Widgets mit dem aktuellen Stand versorgen.
         WidgetPublisher.takeQueuedActions(model: appModel)
         WidgetPublisher.publish(model: appModel)

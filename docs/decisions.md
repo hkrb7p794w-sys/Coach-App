@@ -5,6 +5,15 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Dunkelmodus: Auswahl in der App
+
+- Die Oberfläche nutzt durchgehend Systemfarben und folgte schon immer dem Dunkelmodus des iPhones
+  (Screenshots hell und dunkel). Neu ist die Auswahl **Einstellungen › Darstellung: Wie System / Hell / Dunkel**.
+- Umsetzung über `UIWindow.overrideUserInterfaceStyle` auf allen Fenstern statt `preferredColorScheme`:
+  Das gilt auch für Sheets und Vollbild-Ansichten, und das Zurückschalten auf „Wie System“ greift sofort.
+  Quelle: <https://developer.apple.com/documentation/uikit/uiview/overrideuserinterfacestyle>
+- Widgets und Live-Aktivität folgen immer dem System; WidgetKit sieht keine Vorgabe der App vor.
+
 ## 2026-11-02 – Garmin: eigene Übungen nicht mehr „Unbekannt“
 
 - **Ursache:** Eigene Übungen (`eigen_…`, auch aus dem GymBook-Import) standen in keiner Zuordnung; nachgeschlagen
