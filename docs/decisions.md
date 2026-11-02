@@ -57,6 +57,22 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 - **Alternative Quellen:** Apple Health hat keine Body Battery. Ohne Garmin bleibt sie leer und die App sagt das.
 - **Persönlicher Bereich (`PersonalNorm`):** Mittelwert ± 1 SD der letzten 30 Tage ohne heute, mindestens 7 Tage
   (Prinzip wie bei HRV nach Plews et al. 2013). Details in `docs/health-paket2.md`.
+## 2026-11-02 – Ernährung: Mahlzeiten teilen per Code, ohne Freundesliste (Paket 4, PR D)
+
+- **Ablauf:** Mahlzeit lange drücken › „Teilen …“. Der Worker legt Titel und Positionen (Mengen, Nährwerte je 100 g,
+  Herkunft der Werte) unter einem zufälligen Code ab (10 Zeichen ohne Verwechsler, KV mit 7 Tagen Ablauf). Die App
+  bietet eine Nachricht mit https-Link und Code an. Der Link öffnet eine Seite ohne Inhalt, die zu `coach://meal/<code>`
+  weiterleitet (Messenger machen nur https anklickbar); alternativ Ernährung › „Geteilte Mahlzeit öffnen“.
+- **Empfänger:** Vorschau, dann „In mein Tagebuch (heute)“ oder „Als Favorit merken“ – immer als neuer Eintrag, nie
+  überschreibend; danach frei anpassbar. Geteilt wird die ursprüngliche Menge (vor einer Portionsanpassung).
+- **Datenschutz:** Kein Name, kein Datum, keine Gesundheitsdaten; der Worker übernimmt nur bekannte Felder mit
+  Längen- und Zahlengrenzen. Abrufen kann nur, wer denselben App-Zugang (`COACH_APP_TOKEN`) hat. Zurückziehen löscht
+  sofort.
+- **Freundesfunktion geprüft, nicht umgesetzt:** Gegenseitiges Folgen bräuchte Konten oder dauerhafte Kennungen, eine
+  Freundesliste und Einwilligungen auf dem Server – die App hat bewusst keine Anmeldung und speichert keine
+  Personendaten beim Worker. Für die kleine Runde, die die App teilt (gleicher Zugang, Rangliste), reicht das Teilen
+  per Code; eine Freigabe an eine Ranglisten-Gruppe ließe sich später ergänzen.
+
 ## 2026-11-02 – Ernährung: Erinnerungen je Mahlzeit und konfigurierbare Übersicht (Paket 4, PR C)
 
 - **Erinnerungen:** Frühstück, Mittagessen, Snack und Abendessen mit eigener Uhrzeit und eigenem Schalter (Standard
