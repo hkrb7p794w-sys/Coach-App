@@ -74,6 +74,8 @@ public struct MealAnalysis: Equatable, Sendable {
   public var category: MealCategory?
   public var hint: String
   public var items: [MealItem]
+  /// Oft übersehene Bestandteile, die nicht sicher zu sehen waren („Bratöl“, „Soße“) – zum Antippen beim Ergänzen.
+  public var possiblyMissing: [String] = []
 
   /// Liest die Antwort der Worker-Aufgabe `meal_analyze` (Schema aus `analyze.py` im Altbestand).
   public init?(output: JSONValue) {
@@ -82,7 +84,20 @@ public struct MealAnalysis: Equatable, Sendable {
     category = output["kategorie"]?.stringValue.flatMap(MealCategory.init(rawValue:))
     hint = output["hinweis"]?.stringValue ?? ""
     items = rawItems.compactMap(Self.item)
+    possiblyMissing = Self.missing(output)
     if items.isEmpty { return nil }
+  }
+
+  static func missing(_ output: JSONValue) -> [String] {
+    (output["vielleicht_vergessen"]?.arrayValue ?? []).compactMap(\.stringValue)
+      .map { String($0.prefix(40)) }.filter { !$0.isEmpty }.prefix(4).map { $0 }
+  }
+
+  /// Antwort von `meal_amend`: nur die neuen Positionen (dürfen leer sein) und ein Hinweis. Die bestehenden Positionen
+  /// bleiben unangetastet – die App hängt die neuen an.
+  public static func amendment(from output: JSONValue) -> (items: [MealItem], hint: String) {
+    let items = (output["items"]?.arrayValue ?? []).compactMap(Self.item)
+    return (items, output["hinweis"]?.stringValue ?? "")
   }
 
   static func item(_ value: JSONValue) -> MealItem? {

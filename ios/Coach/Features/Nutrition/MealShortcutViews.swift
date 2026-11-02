@@ -163,3 +163,70 @@ struct EatenAmountSection: View {
     }
   }
 }
+
+/// „Fehlt etwas?“ im Entwurf: per Text oder über Hinweise auf oft Übersehenes ergänzen. Die KI liefert nur neue
+/// Positionen, die angehängt werden; bestehende bleiben, wie sie sind, und lassen sich weiter bearbeiten.
+struct AmendSection: View {
+  @Binding var draft: NutritionViewModel.Draft
+  let viewModel: NutritionViewModel
+  let foods: [FoodRecord]
+  @Environment(AppModel.self) private var model
+  @State private var text = ""
+  @State private var isWorking = false
+  @State private var note: String?
+
+  var body: some View {
+    Section {
+      TextField("z. B. noch 150 g Hähnchenbrust und 1 EL Olivenöl", text: $text, axis: .vertical)
+        .lineLimit(1...4)
+      if !draft.possiblyMissing.isEmpty {
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(spacing: 8) {
+            ForEach(draft.possiblyMissing, id: \.self) { hint in
+              Button("+ \(hint)") { text = text.isEmpty ? hint : "\(text), \(hint)" }
+                .buttonStyle(.bordered)
+            }
+          }
+        }
+      }
+      Button {
+        Task { await amend() }
+      } label: {
+        Label(isWorking ? "Wird ergänzt …" : "Per KI ergänzen", systemImage: "sparkles")
+      }
+      .disabled(isWorking || text.trimmingCharacters(in: .whitespaces).isEmpty)
+      if let note {
+        Text(note).font(.footnote).foregroundStyle(.secondary)
+      }
+    } header: {
+      Text("Fehlt etwas?")
+    } footer: {
+      Text(
+        "Ergänzungen kommen als neue Positionen dazu – nichts Bestehendes wird überschrieben. Mengen und Nährwerte "
+          + "der KI sind Schätzungen; prüfe sie oder ändere sie durch Antippen.")
+    }
+  }
+
+  private func amend() async {
+    isWorking = true
+    defer { isWorking = false }
+    guard
+      let result = await viewModel.amend(
+        draft.items, with: text, photo: draft.photo, ai: model.ai, settings: model.settings, foods: foods)
+    else {
+      note = viewModel.errorMessage
+      return
+    }
+    if result.items.isEmpty {
+      note = result.hint.isEmpty ? "Nichts zu ergänzen erkannt – bitte genauer beschreiben." : result.hint
+      return
+    }
+    draft.items.append(contentsOf: result.items)
+    let kcal = Int((NutritionSummary.totals(result.items)[.kcal] ?? 0).rounded())
+    note = "Ergänzt: \(result.items.map(\.name).joined(separator: ", ")) (\(kcal) kcal, geschätzt)."
+      + (result.hint.isEmpty ? "" : " \(result.hint)")
+    let added = Set(result.items.map { FoodSearch.normalized($0.name) })
+    draft.possiblyMissing.removeAll { hint in added.contains { $0.contains(FoodSearch.normalized(hint)) } }
+    text = ""
+  }
+}
