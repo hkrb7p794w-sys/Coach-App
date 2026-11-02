@@ -43,7 +43,8 @@ struct PrioritiesPicker: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       FlowChips(
-        items: FocusArea.allCases, label: { area in
+        items: FocusArea.allCases,
+        label: { area in
           if let index = goals.priorities.firstIndex(of: area) { return "\(index + 1). \(area.label)" }
           return area.label
         }, isSelected: { goals.priorities.contains($0) }
@@ -59,7 +60,8 @@ struct PrioritiesPicker: View {
       }
       if goals.priorities.isEmpty {
         Text(
-          "Ohne Auswahl: \(goals.effectivePriorities.map(\.label).joined(separator: ", ")) – passend zu den Zielen.")
+          "Ohne Auswahl: \(goals.effectivePriorities.map(\.label).joined(separator: ", ")) – passend zu den Zielen."
+        )
         .font(.footnote).foregroundStyle(.secondary)
       }
       VStack(alignment: .leading, spacing: 4) {
@@ -67,8 +69,9 @@ struct PrioritiesPicker: View {
         Text(
           "Reihenfolge der Empfehlungen im Reiter „AI“, Startauswahl der Gesundheits-Widgets, worauf die KI in "
             + "Analysen achtet, und wie vorsichtig die Wochenbelastung steigen darf (Recovery/Gesundheit: 20 % "
-            + "statt 30 %).")
-          .font(.footnote).foregroundStyle(.secondary)
+            + "statt 30 %)."
+        )
+        .font(.footnote).foregroundStyle(.secondary)
       }
     }
   }
@@ -104,8 +107,9 @@ struct TrackerPicker: View {
       } else if setup.usesTracker == false {
         Text(
           "Kein Problem: Trainings trägst du in der App ein (Gym-Einheiten, „Nachtragen“). Schritte zählt das iPhone "
-            + "über Apple Health, wenn du es später einschaltest.")
-          .font(.footnote).foregroundStyle(.secondary)
+            + "über Apple Health, wenn du es später einschaltest."
+        )
+        .font(.footnote).foregroundStyle(.secondary)
       }
     }
   }
@@ -170,7 +174,8 @@ struct FlowChips<Item: Hashable>: View {
             .padding(.horizontal, 8)
             .background(
               selected ? AnyShapeStyle(Color.accentColor.opacity(0.2)) : AnyShapeStyle(.fill.tertiary),
-              in: Capsule())
+              in: Capsule()
+            )
             .overlay { Capsule().strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 1.5) }
         }
         .buttonStyle(.plain)
