@@ -69,7 +69,11 @@ struct MealEditor: View {
           }
         }
 
-        if draft.items.count > 0 {
+        if draft.record != nil, !draft.items.isEmpty {
+          EatenAmountSection(items: $draft.items)
+        }
+
+        if draft.items.count > 0, draft.record == nil {
           Section {
             HStack(spacing: 8) {
               ForEach([0.5, 1.5, 2], id: \.self) { factor in

@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **Schnell erfassen und Portion:** „+“ › oben Zuletzt/Häufig/Rezepte/Favoriten – „+“ trägt sofort ein? Mahlzeit
+      lange drücken › „Als Favorit merken“, erscheint unter Favoriten? Eingetragene Mahlzeit öffnen › Gegessen 75 % →
+      kcal sinken auf 75 %, danach 100 % stellt alles wieder her? Rezept bleibt unverändert?
 - [ ] **KI-Export und Prompts:** AI › Daten exportieren: nur Gym und Schlaf wählen → Datei enthält nur diese? JSON
       und CSV lassen sich teilen? AI › Prompt-Bibliothek › Trainingsanalyse kopieren und in ChatGPT/Gemini einfügen:
       Antwort in der Gliederung, fehlende Daten genannt? Eigenen Prompt anlegen und wieder öffnen.

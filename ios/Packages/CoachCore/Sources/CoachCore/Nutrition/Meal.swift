@@ -53,6 +53,8 @@ public struct MealItem: Codable, Equatable, Sendable, Identifiable {
   public var blsCode: String?
   /// Generische Bezeichnung der KI für die Suche im BLS (z. B. „Hühnerei gekocht“).
   public var searchTerm: String?
+  /// Menge vor einer Portionsanpassung („nur 75 % gegessen“); `nil` = nie angepasst.
+  public var plannedGrams: Double?
 
   public init(name: String, grams: Double, source: Source, per100g: NutrientValues) {
     self.name = name

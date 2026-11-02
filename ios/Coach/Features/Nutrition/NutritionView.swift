@@ -145,7 +145,7 @@ struct NutritionView: View {
       .sheet(item: $sheet) { sheet in
         switch sheet {
         case .capture:
-          CaptureSheet { text, photo in
+          CaptureSheet(shortcuts: captureShortcuts) { text, photo in
             await viewModel.analyze(text: text, photo: photo, ai: model.ai, settings: model.settings, foods: foods)
           } other: { choice in
             switch choice {
@@ -308,6 +308,8 @@ struct NutritionView: View {
                   Button(target.label) { viewModel.move(meal, to: target, context: context) }
                 }
               }
+              Button("Gegessene Menge anpassen", systemImage: "chart.pie") { viewModel.edit(meal) }
+              favoriteButton(meal)
               Button("Als eigenes Rezept speichern", systemImage: "fork.knife") { savingRecipe = meal }
               Button("Löschen", systemImage: "trash", role: .destructive) { viewModel.delete(meal, context: context) }
             }
@@ -320,6 +322,45 @@ struct NutritionView: View {
             Text("\(Int(kcal.rounded())) kcal").monospacedDigit()
           }
         }
+      }
+    }
+  }
+
+  // MARK: - Schnell erfassen und Favoriten
+
+  private var captureShortcuts: CaptureShortcuts {
+    let entries = NutritionViewModel.entries(meals)
+    let category = NutritionViewModel.category(at: .now)
+    return CaptureShortcuts(
+      recent: MealShortcuts.recent(entries), frequent: MealShortcuts.frequent(entries, today: viewModel.day),
+      recipes: model.settings.ownRecipes, favorites: model.settings.favoriteMeals,
+      log: { title, items in
+        viewModel.log(
+          title: title, category: category, items: items.map(MealPortion.restored), context: context, foods: foods)
+      },
+      open: { title, items in
+        // Erst das Erfassen-Blatt schließen lassen (zwei Sheets gleichzeitig zeigt iOS nicht).
+        Task {
+          try? await Task.sleep(for: .milliseconds(450))
+          viewModel.draft = NutritionViewModel.Draft(
+            title: title, category: category, hint: "", items: items.map(MealPortion.restored).map { item in
+              var copy = item
+              copy.id = UUID()
+              return copy
+            })
+        }
+      },
+      logRecipe: { recipe in logOwnRecipe(recipe, grams: nil) })
+  }
+
+  @ViewBuilder private func favoriteButton(_ meal: MealRecord) -> some View {
+    if let favorite = MealShortcuts.favorite(for: meal.items, in: model.settings.favoriteMeals) {
+      Button("Aus Favoriten entfernen", systemImage: "star.slash") {
+        model.settings.favoriteMeals.removeAll { $0.id == favorite.id }
+      }
+    } else {
+      Button("Als Favorit merken", systemImage: "star") {
+        model.settings.favoriteMeals.append(FavoriteMeal(title: meal.title, items: meal.items, category: meal.category))
       }
     }
   }

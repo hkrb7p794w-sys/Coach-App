@@ -11,6 +11,7 @@ import VisionKit
 struct CaptureSheet: View {
   enum Other { case barcode, quick, manual }
 
+  var shortcuts = CaptureShortcuts()
   let analyze: (String, Data?) async -> Void
   let other: (Other) -> Void
   @State private var text = ""
@@ -26,6 +27,7 @@ struct CaptureSheet: View {
   var body: some View {
     NavigationStack {
       Form {
+        CaptureShortcutsSection(shortcuts: shortcuts) { dismiss() }
         Section {
           HStack(spacing: 12) {
             if CameraPicker.isAvailable {
