@@ -87,8 +87,10 @@ public enum DataExport {
       lines += table(
         "Erholung", ["Datum", "Ruhepuls", "HRV (ms)", "HRV-Status", "Body Battery max", "Readiness"], data.metrics
       ) { day in
-        [day.day.iso, num(day.restingHeartRate), num(day.hrvLastNightAverage), day.hrvStatus ?? "–",
-         num(day.bodyBatteryHigh), num(day.trainingReadiness)]
+        [
+          day.day.iso, num(day.restingHeartRate), num(day.hrvLastNightAverage), day.hrvStatus ?? "–",
+          num(day.bodyBatteryHigh), num(day.trainingReadiness),
+        ]
       }
     }
     if categories.contains(.sleep) {
@@ -96,16 +98,21 @@ public enum DataExport {
         "Schlaf", ["Datum", "Schlaf (h)", "Score", "Tief (h)", "REM (h)", "Wach (min)"],
         data.metrics.filter { $0.sleepSeconds != nil }
       ) { day in
-        [day.day.iso, num(day.sleepHours), num(day.sleepScore), hours(day.deepSleepSeconds), hours(day.remSleepSeconds),
-         num(day.awakeSleepSeconds.map { $0 / 60 })]
+        [
+          day.day.iso, num(day.sleepHours), num(day.sleepScore), hours(day.deepSleepSeconds),
+          hours(day.remSleepSeconds),
+          num(day.awakeSleepSeconds.map { $0 / 60 }),
+        ]
       }
     }
     if categories.contains(.health) {
       lines += table(
         "Gesundheit", ["Datum", "Schritte", "Stress", "aktive kcal", "VO2max", "SpO2"], data.metrics
       ) { day in
-        [day.day.iso, num(day.steps), num(day.stressAverage), num(day.activeKilocalories), num(day.vo2Max),
-         num(day.spo2Average)]
+        [
+          day.day.iso, num(day.steps), num(day.stressAverage), num(day.activeKilocalories), num(day.vo2Max),
+          num(day.spo2Average),
+        ]
       }
     }
     if categories.contains(.endurance) { lines += CoachExport.activities(data.endurance) }
@@ -118,8 +125,10 @@ public enum DataExport {
         ["Woche ab", "Ausdauer-Einheiten", "Ausdauer (min)", "Kilometer", "Krafteinheiten", "Sätze"],
         weeks(data, from: start, to: end)
       ) { week in
-        [week.monday.iso, String(week.endurance), String(week.minutes), num(week.kilometers), String(week.gym),
-         String(week.sets)]
+        [
+          week.monday.iso, String(week.endurance), String(week.minutes), num(week.kilometers), String(week.gym),
+          String(week.sets),
+        ]
       }
     }
     lines += CoachExport.sources(input.userSources)
@@ -282,45 +291,60 @@ public enum DataExport {
     add(
       .recovery, ["datum", "ruhepuls", "hrv_ms", "hrv_status", "body_battery_max", "readiness"],
       data.metrics.map {
-        [$0.day.iso, raw($0.restingHeartRate), raw($0.hrvLastNightAverage), $0.hrvStatus ?? "", raw($0.bodyBatteryHigh),
-         raw($0.trainingReadiness)]
+        [
+          $0.day.iso, raw($0.restingHeartRate), raw($0.hrvLastNightAverage), $0.hrvStatus ?? "",
+          raw($0.bodyBatteryHigh),
+          raw($0.trainingReadiness),
+        ]
       })
     add(
       .sleep, ["datum", "stunden", "score", "tief_min", "rem_min", "wach_min"],
       data.metrics.filter { $0.sleepSeconds != nil }.map {
-        [$0.day.iso, raw($0.sleepHours), raw($0.sleepScore), raw($0.deepSleepSeconds.map { $0 / 60 }),
-         raw($0.remSleepSeconds.map { $0 / 60 }), raw($0.awakeSleepSeconds.map { $0 / 60 })]
+        [
+          $0.day.iso, raw($0.sleepHours), raw($0.sleepScore), raw($0.deepSleepSeconds.map { $0 / 60 }),
+          raw($0.remSleepSeconds.map { $0 / 60 }), raw($0.awakeSleepSeconds.map { $0 / 60 }),
+        ]
       })
     add(
       .health, ["datum", "schritte", "stress", "aktive_kcal", "vo2max", "spo2"],
       data.metrics.map {
-        [$0.day.iso, raw($0.steps), raw($0.stressAverage), raw($0.activeKilocalories), raw($0.vo2Max),
-         raw($0.spo2Average)]
+        [
+          $0.day.iso, raw($0.steps), raw($0.stressAverage), raw($0.activeKilocalories), raw($0.vo2Max),
+          raw($0.spo2Average),
+        ]
       })
     add(
       .endurance,
       ["start", "sport", "name", "dauer_min", "distanz_km", "hf_schnitt", "hf_max", "belastung", "aerober_te"],
       data.endurance.map {
-        [$0.startLocal ?? "", $0.typeKey ?? "", $0.name ?? "", raw($0.durationSeconds.map { $0 / 60 }),
-         raw($0.distanceMeters.map { $0 / 1000 }), raw($0.averageHeartRate), raw($0.maxHeartRate), raw($0.trainingLoad),
-         raw($0.aerobicTrainingEffect)]
+        [
+          $0.startLocal ?? "", $0.typeKey ?? "", $0.name ?? "", raw($0.durationSeconds.map { $0 / 60 }),
+          raw($0.distanceMeters.map { $0 / 1000 }), raw($0.averageHeartRate), raw($0.maxHeartRate),
+          raw($0.trainingLoad),
+          raw($0.aerobicTrainingEffect),
+        ]
       })
     add(
       .gym, ["datum", "einheit", "uebung_id", "uebung", "satz", "kg", "wdh", "rir", "art"],
       data.gym.flatMap { session in
         session.exercises.flatMap { exercise in
           exercise.loggedSets.enumerated().map { index, set in
-            [session.day.iso, session.title, exercise.exerciseID, exercise.name, String(index + 1), raw(set.weightKg),
-             String(set.reps), set.rir.map(String.init) ?? "", set.kind.rawValue]
+            [
+              session.day.iso, session.title, exercise.exerciseID, exercise.name, String(index + 1), raw(set.weightKg),
+              String(set.reps), set.rir.map(String.init) ?? "", set.kind.rawValue,
+            ]
           }
         }
       })
     add(
-      .nutrition, ["datum", "kategorie", "mahlzeit", "position", "g", "kcal", "protein_g", "kohlenhydrate_g", "fett_g"],
+      .nutrition,
+      ["datum", "kategorie", "mahlzeit", "position", "g", "kcal", "protein_g", "kohlenhydrate_g", "fett_g"],
       data.meals.sorted { $0.day < $1.day }.flatMap { meal in
         meal.items.map { item in
-          [meal.day.iso, meal.category, meal.title, item.name, raw(item.grams.rounded()), raw(item.amounts[.kcal]),
-           raw(item.amounts[.protein]), raw(item.amounts[.carbs]), raw(item.amounts[.fat])]
+          [
+            meal.day.iso, meal.category, meal.title, item.name, raw(item.grams.rounded()), raw(item.amounts[.kcal]),
+            raw(item.amounts[.protein]), raw(item.amounts[.carbs]), raw(item.amounts[.fat]),
+          ]
         }
       })
     add(.weight, ["datum", "kg"], WeightTrend.merged(data.weights).map { [$0.day.iso, raw($0.kilograms)] })

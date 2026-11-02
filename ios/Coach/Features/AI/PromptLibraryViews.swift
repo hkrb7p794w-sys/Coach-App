@@ -95,9 +95,11 @@ struct PromptDetailView: View {
           copied = true
         }
         Button("Als Datei vorbereiten", systemImage: "doc") {
-          file = ExportInput.write([
-            DataExport.File(name: "IronLudi-Prompt-\(prompt.id.prefix(12)).md", content: composed(prompt, input: input))
-          ]).first
+          file =
+            ExportInput.write([
+              DataExport.File(
+                name: "IronLudi-Prompt-\(prompt.id.prefix(12)).md", content: composed(prompt, input: input))
+            ]).first
         }
         if let file {
           ShareLink(item: file) { Label("Datei teilen", systemImage: "square.and.arrow.up") }
