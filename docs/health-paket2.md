@@ -42,3 +42,45 @@ keinen Ersatzwert, sondern sagt, dass er fehlt.
 `PersonalNorm`: Mittelwert ± eine Standardabweichung der letzten 30 Tage, heute nicht mitgezählt, mindestens
 7 Tage; die Spanne ist mindestens ±3 % des Mittelwerts, damit sehr gleichmäßige Verläufe nicht jede Kleinigkeit
 melden. Rund zwei Drittel der eigenen Tage liegen darin. Bei HRV gilt vorrangig Garmins Baseline (HRV-Status).
+
+## Health-Widgets (PR C)
+
+- Hinzugefügte Widgets in Reihenfolge, je mit Darstellung (nur Wert, Verlauf 7 Tage, Verlauf 30 Tage) und
+  Sichtbarkeit (`HealthDashboard`, gespeichert als `coach.healthDashboard`). Ausblenden behält Platz und Darstellung,
+  Entfernen nimmt das Widget aus der Liste; „Hinzufügen“ bietet nur Widgets mit Daten der letzten 30 Tage an.
+- Widgets ohne Daten werden nicht angezeigt und unten mit ihrer möglichen Quelle genannt („nur Garmin“ …).
+- Jede Karte ordnet den letzten Wert gegen den eigenen Bereich ein; Farbe nur bei Werten mit klarer Richtung
+  (Ruhepuls höher = orange, Body Battery höher = grün), sonst neutral.
+- Ersatzquellen: Gewicht aus eigenen Wägungen, Garmin und Apple Health; Trainingsbelastung ohne Garmin-Konto aus
+  den eigenen Aktivitäten (gleiche Grundlage wie „Fitness & Form“).
+
+## Wecker (PR C)
+
+| Weg | Möglich? | Bestätigung | Bewertung |
+|---|---|---|---|
+| AlarmKit (`AlarmManager`, iOS 26) | ja, echter System-Wecker: klingelt auch lautlos und im Fokus, erscheint auf Sperrbildschirm und Watch | einmalige Erlaubnis (`NSAlarmKitUsageDescription`), danach ohne Rückfrage | **gewählt** |
+| Uhr-App direkt (`clock-alarm://` u. Ä.) | nicht dokumentiert, kein Stellen von Weckern | – | verworfen |
+| Kurzbefehl „Wecker erstellen“ | nur, wenn die Person selbst einen Kurzbefehl anlegt | Kurzbefehl-App | Fallback nur als Hinweis |
+| Lokale Mitteilung | ja | Mitteilungs-Erlaubnis | kein Wecker (stumm im Lautlos-Modus), gibt es schon als Schlafenszeit-Erinnerung |
+
+- Gestellt wird eine Uhrzeit (`Alarm.Schedule.relative`), kein fester Zeitpunkt: Zeitumstellung und Zeitzonenwechsel
+  ändern die Weckzeit nicht. Einmalig, Mo–Fr oder täglich.
+- Immer höchstens ein IronLudi-Wecker: ein neuer ersetzt den alten; „Wecker löschen“ nimmt ihn heraus. Vom System
+  entfernte Wecker werden nicht mehr als gestellt angezeigt.
+- Zwei Vorschläge: Weckzeit aus dem Schlaf-Coach oder „jetzt ins Bett“ (jetzt + 15 min Einschlafen + Schlafbedarf,
+  auf 5 min aufgerundet).
+- Unter iOS 18–25 gibt es keinen Wecker aus der App, nur den Hinweis auf die Uhr-App.
+- Ein Widget-Ziel ist nicht nötig: AlarmKit erwartet die Erweiterung nur für Wecker mit Countdown-Anzeige.
+
+## Welche Kennzahlen (Punkt 5)
+
+| Bereich | In der App | Bewusst weggelassen |
+|---|---|---|
+| Gesundheit | Ruhepuls, Puls tief/hoch, Gewicht, SpO2, Atemfrequenz, Schritte, Kalorien | Fitnessalter (ändert sich kaum), Stockwerke, Intensitätsminuten (doppelt zu Aktivitäten) |
+| Schlaf | Dauer gegen Bedarf, Score, Phasen, Regelmäßigkeit (Schlaf-Coach) | Schlafstress als eigenes Widget (steckt in Stress/Body Battery) |
+| Erholung | HRV (Status vor Einzelnacht), Body Battery beim Aufwachen, Stress, Readiness, Regenerationszeit | Einzelne Readiness-Faktoren (Garmin rechnet sie schon ein) |
+| Belastung | akute/chronische Last der Uhr, sonst eigene Tageslast; Wochenbelastung und Form | ACWR als eigene Zahl (nur als Einordnung im Morning Report) |
+| Leistung | VO2max, Endurance Score, Wettkampfprognosen (Training) | Lactate-Threshold-Verlauf (zu selten gemessen) |
+
+Kriterium: Ein Wert kommt nur dazu, wenn er eine Entscheidung verändert (Belastung heute, Schlafenszeit, Trend
+über Wochen). Sonst bleibt er in der Diagnose sichtbar.

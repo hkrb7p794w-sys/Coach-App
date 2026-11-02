@@ -32,21 +32,17 @@ struct TrainingView: View {
             if settings.profile.mode == .season { PlanView() } else { MyWeekView() }
           }
           HubRow(
+            title: "Gesundheit", symbol: "heart.text.square.fill", color: .pink,
+            value: BodyBatteryAnalysis.summary(days: days.compactMap(\.metrics), today: today).current
+              .map { "BB \(Int($0))" } ?? "",
+            caption: "Morning Report, Widgets, Body Battery"
+          ) { HealthDashboardView() }
+          HubRow(
             title: "Erholung", symbol: "bed.double.fill", color: .indigo,
             value: viewModel.recovery.first.map {
               Formatters.number($0.trend.latest?.value, unit: $0.unit, digits: $0.digits)
             } ?? "–", caption: "HRV, Ruhepuls, Schlaf"
           ) { List { RecoverySections(viewModel: viewModel) }.navigationTitle("Erholung") }
-          HubRow(
-            title: "Morning Report", symbol: "sunrise.fill", color: .orange,
-            value: "", caption: "Nacht, Erholung, Empfehlung"
-          ) { MorningReportView() }
-          HubRow(
-            title: "Body Battery", symbol: "bolt.batteryblock.fill", color: .blue,
-            value: BodyBatteryAnalysis.summary(days: days.compactMap(\.metrics), today: today).current
-              .map { String(Int($0)) } ?? "–",
-            caption: "Verlauf, Schlaf und Stress"
-          ) { BodyBatteryView() }
           HubRow(
             title: "Herzfrequenz", symbol: "heart.fill", color: .red,
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"

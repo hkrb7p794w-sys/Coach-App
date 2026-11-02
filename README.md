@@ -73,9 +73,9 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | fertig (PR 64) |
 | 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | fertig (PR 65) |
 | 57 | Ernährung D: Mahlzeiten teilen per Link | fertig (PR 66) |
-| 58 | Health A: Body Battery mit Tagesverlauf, Aufwachwert und Bezug zu Schlaf/Stress; Ruhekalorien, Puls, Regenerationszeit, Belastung | in Arbeit |
-| 59 | Health B: Morning Report mit persönlichen Normalbereichen | in Arbeit |
-| 60 | Health C: konfigurierbare Health-Widgets, Wecker zur Aufstehzeit | geplant |
+| 58 | Health A: Body Battery mit Tagesverlauf, Aufwachwert und Bezug zu Schlaf/Stress; Ruhekalorien, Puls, Regenerationszeit, Belastung | fertig (PR 67) |
+| 59 | Health B: Morning Report mit persönlichen Normalbereichen | fertig (PR 68) |
+| 60 | Health C: konfigurierbare Health-Widgets, Wecker zur Aufstehzeit | fertig (PR 69) |
 | 61 | Datenquellen A: gemeinsame Architektur (Vorrang je Datenart, keine Doppelten, Herkunft, Sync-Status), Integrationsmatrix | in Arbeit |
 | 62 | Datenquellen B: WHOOP (OAuth über den Worker) | geplant |
 | 63 | Datenquellen C: Polar AccessLink | geplant |
