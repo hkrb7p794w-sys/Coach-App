@@ -89,7 +89,8 @@ struct CaptureShortcutsSection: View {
     }
     ForEach(Array(meals.enumerated()), id: \.offset) { _, meal in
       ShortcutRow(
-        title: meal.0, subtitle: "\(GermanFormat.number(meal.1.reduce(0) { $0 + $1.grams }.rounded())) g · "
+        title: meal.0,
+        subtitle: "\(GermanFormat.number(meal.1.reduce(0) { $0 + $1.grams }.rounded())) g · "
           + "\(kcal(meal.1)) kcal",
         add: {
           shortcuts.log(meal.0, meal.1)
