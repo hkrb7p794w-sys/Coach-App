@@ -89,8 +89,12 @@ public struct MealAnalysis: Equatable, Sendable {
   }
 
   static func missing(_ output: JSONValue) -> [String] {
-    (output["vielleicht_vergessen"]?.arrayValue ?? []).compactMap(\.stringValue)
-      .map { String($0.prefix(40)) }.filter { !$0.isEmpty }.prefix(4).map { $0 }
+    // Nur echte Texte (keine Zahlen, die `stringValue` sonst umwandelt).
+    (output["vielleicht_vergessen"]?.arrayValue ?? []).compactMap { value -> String? in
+      if case .string(let text) = value { return text }
+      return nil
+    }
+    .map { String($0.trimmingCharacters(in: .whitespaces).prefix(40)) }.filter { !$0.isEmpty }.prefix(4).map { $0 }
   }
 
   /// Antwort von `meal_amend`: nur die neuen Positionen (dürfen leer sein) und ein Hinweis. Die bestehenden Positionen
