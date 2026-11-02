@@ -121,7 +121,8 @@ public struct MorningReport: Equatable, Sendable {
     let report = SleepCoach.report(days: sorted, settings: sleep, goal: goal, today: today)
     let sleepAdvice = report.map {
       "Heute Abend gegen \(SleepCoach.clock($0.bedtimeMinutes)) Uhr ins Bett – "
-        + "\(GermanFormat.decimal(Double($0.tonightMinutes) / 60)) h Schlafbedarf bis \(SleepCoach.clock(sleep.wakeMinutes)) Uhr."
+        + "\(GermanFormat.decimal(Double($0.tonightMinutes) / 60)) h Schlafbedarf bis "
+        + "\(SleepCoach.clock(sleep.wakeMinutes)) Uhr."
     }
     return MorningReport(
       day: today, dataDay: metrics?.day, items: items, level: level, headline: headline(level),
@@ -230,7 +231,8 @@ public struct MorningReport: Equatable, Sendable {
         metric: .hrv, value: value, status: .normal, note: "Eigener Bereich ab \(PersonalNorm.minimumDays) Nächten.")
     }
     switch norm.position(night) {
-    case .below: return Item(metric: .hrv, value: value, status: .attention, note: "HRV liegt unter deinem Normalbereich.")
+    case .below:
+      return Item(metric: .hrv, value: value, status: .attention, note: "HRV liegt unter deinem Normalbereich.")
     case .within: return Item(metric: .hrv, value: value, status: .normal, note: "HRV im üblichen Bereich.")
     case .above: return Item(metric: .hrv, value: value, status: .good, note: "HRV höher als sonst.")
     }
@@ -250,7 +252,8 @@ public struct MorningReport: Equatable, Sendable {
     }
     // Garmin: 0–25 Ruhe, 26–50 niedrig, 51–75 mittel, 76–100 hoch.
     if average > 50 {
-      return Item(metric: .stress, value: value, status: .attention, note: "Stress gestern im mittleren Bereich oder höher.")
+      return Item(
+        metric: .stress, value: value, status: .attention, note: "Stress gestern im mittleren Bereich oder höher.")
     }
     return Item(metric: .stress, value: value, status: .normal, note: "Stress gestern im üblichen Rahmen.")
   }

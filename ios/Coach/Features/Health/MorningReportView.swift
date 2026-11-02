@@ -96,7 +96,9 @@ struct MorningReportView: View {
         Text(report.recommendation).font(.subheadline.weight(.semibold))
       } footer: {
         if report.isFromYesterday {
-          Text("Für heute liegen noch keine Werte vor – gezeigt wird die letzte Nacht davor. Ziehe zum Abrufen nach unten.")
+          Text(
+            "Für heute liegen noch keine Werte vor – gezeigt wird die letzte Nacht davor. Ziehe zum Abrufen "
+              + "nach unten.")
         }
       }
 
