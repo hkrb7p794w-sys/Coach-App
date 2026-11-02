@@ -38,6 +38,12 @@ struct TrainingView: View {
             } ?? "–", caption: "HRV, Ruhepuls, Schlaf"
           ) { List { RecoverySections(viewModel: viewModel) }.navigationTitle("Erholung") }
           HubRow(
+            title: "Body Battery", symbol: "bolt.batteryblock.fill", color: .blue,
+            value: BodyBatteryAnalysis.summary(days: days.compactMap(\.metrics), today: today).current
+              .map { String(Int($0)) } ?? "–",
+            caption: "Verlauf, Schlaf und Stress"
+          ) { BodyBatteryView() }
+          HubRow(
             title: "Herzfrequenz", symbol: "heart.fill", color: .red,
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }

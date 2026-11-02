@@ -41,7 +41,8 @@ public enum HealthImport {
     if includeHRV { metrics.hrvLastNightAverage = within(values.hrvSDNN, 5...300) }
     metrics.steps = within(values.steps, 0...150_000)
     metrics.activeKilocalories = within(values.activeKilocalories, 0...10_000)
-    if let active = metrics.activeKilocalories, let basal = within(values.basalKilocalories, 500...5_000) {
+    metrics.restingKilocalories = within(values.basalKilocalories, 500...5_000)
+    if let active = metrics.activeKilocalories, let basal = metrics.restingKilocalories {
       metrics.totalKilocalories = active + basal
     }
     metrics.respirationWaking = within(values.respiratoryRate, 4...40)

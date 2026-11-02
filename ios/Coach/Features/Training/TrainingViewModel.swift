@@ -100,6 +100,16 @@ final class TrainingViewModel {
     "PRIME": "Top", "HIGH": "Hoch", "MODERATE": "Mittel", "LOW": "Niedrig", "POOR": "Schlecht",
   ]
 
+  private static func heartRange(_ metrics: DailyMetrics?) -> String? {
+    guard let low = metrics?.minHeartRate, let high = metrics?.maxHeartRate else { return nil }
+    return "\(Int(low)) / \(Int(high)) bpm"
+  }
+
+  private static func load(_ metrics: DailyMetrics?) -> String? {
+    guard let acute = metrics?.acuteLoad else { return nil }
+    return "\(Int(acute)) / " + (metrics?.chronicLoad.map { String(Int($0)) } ?? "–")
+  }
+
   static func tiles(latest: DailyMetrics?, vo2Max: Double?, vo2MaxBike: Double?) -> [Tile] {
     func text(_ value: Double?, _ unit: String = "", digits: Int = 0) -> String? {
       guard let value else { return nil }
@@ -135,6 +145,10 @@ final class TrainingViewModel {
       ("VO2max Rad", text(vo2MaxBike, digits: 1)),
       ("Fitnessalter", text(metrics?.fitnessAge, "J.", digits: 1)),
       ("Schritte", text(metrics?.steps)),
+      ("Ruhekalorien", text(metrics?.restingKilocalories, "kcal")),
+      ("Puls tief / hoch", heartRange(metrics)),
+      ("Regenerationszeit", text(metrics?.recoveryHours, "h")),
+      ("Belastung akut / chronisch", load(metrics)),
     ]
     return candidates.compactMap { title, value in value.map { Tile(title: title, value: $0) } }
   }
