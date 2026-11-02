@@ -16,7 +16,14 @@ import {
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
 import { groundInsights, INSIGHTS_SYSTEM, insightsPrompt } from "./insights";
-import { labelPrompt, mealPrompt, mergeMeals, nutritionReviewPrompt } from "./nutrition";
+import {
+  groundAmend,
+  labelPrompt,
+  mealAmendPrompt,
+  mealPrompt,
+  mergeMeals,
+  nutritionReviewPrompt,
+} from "./nutrition";
 import { personalNotePrompt } from "./personal";
 import { athleteProfile } from "./profile";
 import { checkMealNow, checkRecipes, mealNowPrompt, weeklyRecipesPrompt } from "./recipes";
@@ -146,6 +153,15 @@ export const TASKS: Record<string, TaskDefinition> = {
     maxOutputTokens: 12000,
     build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
     ground: mergeMeals,
+  },
+  /** Erkannte Mahlzeit ergänzen („noch 150 g Hähnchen und 1 EL Öl“): nur neue Positionen. */
+  meal_amend: {
+    json: true,
+    allowImages: true,
+    temperature: 0.2,
+    maxOutputTokens: 6000,
+    build: (input, images) => ({ prompt: mealAmendPrompt(input, images > 0) }),
+    ground: groundAmend,
   },
   /** Nährwerttabelle vom Foto ablesen (Barcode unbekannt); nur Bild, keine Gesundheitsdaten. */
   nutrition_label: {
