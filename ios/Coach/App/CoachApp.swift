@@ -23,12 +23,17 @@ struct CoachApp: App {
     .onChange(of: scenePhase) { _, phase in
       switch phase {
       case .active:
+        // Wasser aus dem Homescreen-Widget übernehmen, dann Widgets mit dem aktuellen Stand versorgen.
+        WidgetPublisher.takeQueuedActions(model: appModel)
+        WidgetPublisher.publish(model: appModel)
         Task {
           await appModel.syncIfDue()
           await appModel.refreshReminders()
+          WidgetPublisher.publish(model: appModel)
         }
       case .background:
         if !appModel.isDemo { appModel.scheduleBackgroundRefresh() }
+        WidgetPublisher.publish(model: appModel)
         let profile = appModel.settings.profile
         AppRouter.updateQuickActions(
           trainsStrength: profile.onboardingDone && profile.trains(.strength),

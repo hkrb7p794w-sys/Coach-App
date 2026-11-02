@@ -88,6 +88,12 @@ hier notieren und als PR beheben.
       geschlossener App. Spotlight/Kurzbefehle-App: „Training starten in IronLudi“. Funktionieren Einladungs- und
       Mahlzeit-Links weiter?
 
+- [ ] **Homescreen-Widgets (Paket 7 B):** Installiert SideStore die App mit App Group? (Sonst bricht SideStore mit
+      einem App-Group-Fehler ab → melden.) Widgets „Heute“, „Ernährung“, „Health“, „Gym“ hinzufügen und per „Widget
+      bearbeiten“ umstellen; Werte wie in der App? „+250 ml“ im mittleren Ernährungs-Widget zählt sofort, nach dem
+      Öffnen der App steht der Eintrag im Tagebuch (genau einmal). Sperrbildschirm: kcal-Ring, Body Battery. Am
+      nächsten Morgen ohne Öffnen: 0 kcal, „Neuer Tag – App öffnen“.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

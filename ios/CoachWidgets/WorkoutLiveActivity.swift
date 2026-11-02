@@ -7,6 +7,10 @@ import WidgetKit
 struct CoachWidgetsBundle: WidgetBundle {
   var body: some Widget {
     WorkoutLiveActivity()
+    TodayHomeWidget()
+    NutritionHomeWidget()
+    HealthHomeWidget()
+    GymHomeWidget()
   }
 }
 
