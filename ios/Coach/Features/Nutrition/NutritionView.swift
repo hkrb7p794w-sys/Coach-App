@@ -105,6 +105,13 @@ struct NutritionView: View {
         refresh()
         await viewModel.retryPending(ai: model.ai, settings: model.settings, foods: foods)
       }
+      // Schnellaktion / Kurzbefehl „Mahlzeit erfassen“.
+      .onChange(of: AppRouter.shared.pending, initial: true) {
+        guard AppRouter.shared.take(.logMeal) else { return }
+        query = ""
+        viewModel.selectedDay = nil
+        sheet = .capture
+      }
       .sheet(isPresented: $showsDashboardEditor) { NutritionDashboardEditor() }
       .sheet(item: $sharing) { meal in ShareMealSheet(title: meal.title, items: meal.items) }
       .sheet(isPresented: $showsReceived) { ReceivedMealSheet(code: nil) }

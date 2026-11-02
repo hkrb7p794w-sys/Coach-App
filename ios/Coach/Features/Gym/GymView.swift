@@ -107,15 +107,15 @@ struct GymView: View {
       }
       .navigationTitle("Gym")
       .task(id: refreshKey) {
-        viewModel.update(
-          sessions: records.compactMap(\.session),
-          activities: activities.compactMap(\.activity),
-          days: days.prefix(3).compactMap(\.metrics),
-          gym: model.settings.gym
-        )
+        update()
         if !viewModel.hintSource.hasPrefix("KI") {
           await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal, trigger: .automatic)
         }
+      }
+      // Schnellaktion / Kurzbefehl „Training starten“.
+      .onChange(of: AppRouter.shared.pending, initial: true) {
+        guard AppRouter.shared.take(.startWorkout) else { return }
+        startFromShortcut()
       }
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
@@ -134,6 +134,35 @@ struct GymView: View {
         UIApplication.shared.isIdleTimerDisabled = on
       }
     }
+  }
+}
+
+extension GymView {
+  fileprivate func update() {
+    viewModel.update(
+      sessions: records.compactMap(\.session),
+      activities: activities.compactMap(\.activity),
+      days: days.prefix(3).compactMap(\.metrics),
+      gym: model.settings.gym
+    )
+  }
+
+  /// Laufende Einheit öffnen, sonst die nächste geplante starten. Gibt es keine, bleibt es beim Reiter.
+  fileprivate func startFromShortcut() {
+    if viewModel.active != nil {
+      showWorkout = true
+      return
+    }
+    update()
+    if model.settings.profile.mode == .personal {
+      guard let next = RoutineRotation.next(routines: model.settings.gym.routines, sessions: viewModel.sessions)
+      else { return }
+      viewModel.start(next)
+    } else {
+      guard let workout = viewModel.todayWorkout else { return }
+      viewModel.start(workout)
+    }
+    showWorkout = true
   }
 }
 

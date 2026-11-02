@@ -4,6 +4,8 @@ import SwiftUI
 struct CoachApp: App {
   @State private var model = DemoData.isRequested ? DemoData.makeModel() : AppModel()
   @Environment(\.scenePhase) private var scenePhase
+  /// Schnellaktionen am App-Icon (`AppRouter`).
+  @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
   init() {
     // Früh anbinden: Tippt man „Satz erledigt“ auf dem Sperrbildschirm, startet iOS die App ggf. im Hintergrund.
@@ -25,7 +27,12 @@ struct CoachApp: App {
           await appModel.syncIfDue()
           await appModel.refreshReminders()
         }
-      case .background: if !appModel.isDemo { appModel.scheduleBackgroundRefresh() }
+      case .background:
+        if !appModel.isDemo { appModel.scheduleBackgroundRefresh() }
+        let profile = appModel.settings.profile
+        AppRouter.updateQuickActions(
+          trainsStrength: profile.onboardingDone && profile.trains(.strength),
+          aiAvailable: appModel.ai.allows("ai_insights"))
       default: break
       }
     }

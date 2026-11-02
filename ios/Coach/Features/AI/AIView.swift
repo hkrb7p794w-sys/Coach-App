@@ -24,6 +24,7 @@ struct AIView: View {
     let groups = InsightInbox.groups(
       model.settings.insights, topic: topic, focus: Personalization.insightTopics(goals), now: now)
     NavigationStack {
+      ScrollViewReader { proxy in
       List {
         Section {
           TopicChips(selection: $topic, insights: model.settings.insights, now: now)
@@ -63,6 +64,17 @@ struct AIView: View {
           }
         }
         functionsSection
+      }
+      // Schnellaktion / Kurzbefehl „KI-Analyse starten“: zur Analyse springen und sie anstoßen, sofern erlaubt.
+      .onChange(of: AppRouter.shared.pending, initial: true) {
+        guard AppRouter.shared.take(.aiAnalysis) else { return }
+        topic = nil
+        Task {
+          try? await Task.sleep(for: .milliseconds(300))
+          withAnimation { proxy.scrollTo(Self.analysisID, anchor: .top) }
+          analyzeFromShortcut()
+        }
+      }
       }
       .listStyle(.insetGrouped)
       .navigationTitle("AI")
@@ -125,15 +137,24 @@ struct AIView: View {
     }
   }
 
+  private static let analysisID = "analysis"
+
+  private func analyze() async {
+    await viewModel.analyze(
+      topic: topic, model: model, metrics: days.compactMap(\.metrics),
+      activities: activities.compactMap(\.activity), meals: meals, gym: gymSessions.compactMap(\.session))
+  }
+
+  private func analyzeFromShortcut() {
+    guard model.ai.allows("ai_insights"), !viewModel.isAnalyzing else { return }
+    Task { await analyze() }
+  }
+
   private var analysisSection: some View {
     Section {
       if model.ai.allows("ai_insights") {
         Button {
-          Task {
-            await viewModel.analyze(
-              topic: topic, model: model, metrics: days.compactMap(\.metrics),
-              activities: activities.compactMap(\.activity), meals: meals, gym: gymSessions.compactMap(\.session))
-          }
+          Task { await analyze() }
         } label: {
           Label(
             topic.map { "„\($0.label)“ analysieren" } ?? "Alles analysieren",
@@ -164,6 +185,7 @@ struct AIView: View {
           + "Unsichere Aussagen sind gekennzeichnet."
       )
     }
+    .id(Self.analysisID)
   }
 
   private var analysisUnavailableText: String {
