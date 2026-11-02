@@ -279,8 +279,9 @@ public enum GarminMetricsParser {
       else { continue }
       let seconds = milliseconds / 1000
       let shift = offset ?? Double(timeZone.secondsFromGMT(for: Date(timeIntervalSince1970: seconds)))
-      let minute = Int(((seconds + shift).truncatingRemainder(dividingBy: 86_400) + 86_400)
-        .truncatingRemainder(dividingBy: 86_400) / 60)
+      let minute = Int(
+        ((seconds + shift).truncatingRemainder(dividingBy: 86_400) + 86_400)
+          .truncatingRemainder(dividingBy: 86_400) / 60)
       buckets[minute / 15] = Int(raw.rounded())
     }
     return buckets.keys.sorted().map { BodyBatterySample(minute: $0 * 15, value: buckets[$0] ?? 0) }

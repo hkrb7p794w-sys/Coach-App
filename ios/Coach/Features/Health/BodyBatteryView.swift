@@ -47,8 +47,11 @@ struct BodyBatteryView: View {
         }
         Section {
           if summary.relations.isEmpty {
-            Text("Für einen Vergleich braucht es mindestens je 3 Tage mit langen und kurzen Nächten bzw. viel und wenig Stress.")
-              .foregroundStyle(.secondary)
+            Text(
+              "Für einen Vergleich braucht es je mindestens 3 Tage mit langen und kurzen Nächten bzw. viel "
+                + "und wenig Stress."
+            )
+            .foregroundStyle(.secondary)
           }
           ForEach(summary.relations) { relation in
             Label(relation.text, systemImage: relation.id == "sleep" ? "bed.double" : "waveform.path.ecg")
@@ -138,7 +141,9 @@ struct BodyBatteryCurveChart: View {
   var body: some View {
     Chart(curve, id: \.minute) { sample in
       AreaMark(x: .value("Uhrzeit", Double(sample.minute) / 60), y: .value("Body Battery", sample.value))
-        .foregroundStyle(.linearGradient(colors: [.blue.opacity(0.35), .blue.opacity(0.05)], startPoint: .top, endPoint: .bottom))
+        .foregroundStyle(
+          .linearGradient(colors: [.blue.opacity(0.35), .blue.opacity(0.05)], startPoint: .top, endPoint: .bottom)
+        )
         .interpolationMethod(.monotone)
       LineMark(x: .value("Uhrzeit", Double(sample.minute) / 60), y: .value("Body Battery", sample.value))
         .foregroundStyle(.blue)
