@@ -27,9 +27,8 @@ final class SourceStore {
       guard let data = defaults.data(forKey: Self.statesKey),
         let raw = try? JSONDecoder().decode([String: ProviderSyncState].self, from: data)
       else { return [:] }
-      return Dictionary(uniqueKeysWithValues: raw.compactMap { key, value in
-        DataProvider(rawValue: key).map { ($0, value) }
-      })
+      let pairs = raw.compactMap { key, value in DataProvider(rawValue: key).map { ($0, value) } }
+      return Dictionary(uniqueKeysWithValues: pairs)
     }
     set {
       let raw = Dictionary(uniqueKeysWithValues: newValue.map { ($0.key.rawValue, $0.value) })

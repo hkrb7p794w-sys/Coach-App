@@ -4,7 +4,7 @@ import Testing
 @testable import CoachCore
 
 private let day = CalendarDay(year: 2026, month: 11, day: 2)
-private let utc = TimeZone(identifier: "UTC")!
+private let utc = TimeZone(secondsFromGMT: 0) ?? .current
 
 private func activity(
   _ id: Int64, provider: DataProvider? = nil, start: String, minutes: Double, type: String = "running",
@@ -46,9 +46,9 @@ struct SourcePreferenceTests {
     let decoded = try JSONDecoder().decode(SourcePreferences.self, from: Data(json.utf8))
     #expect(decoded.primary == nil)
     #expect(decoded.overrides == [.sleep: .whoop])
-    let roundTrip = try JSONDecoder().decode(
-      SourcePreferences.self, from: JSONEncoder().encode(SourcePreferences(primary: .garmin, overrides: [.hrv: .whoop])))
-    #expect(roundTrip == SourcePreferences(primary: .garmin, overrides: [.hrv: .whoop]))
+    let original = SourcePreferences(primary: .garmin, overrides: [.hrv: .whoop])
+    let roundTrip = try JSONDecoder().decode(SourcePreferences.self, from: JSONEncoder().encode(original))
+    #expect(roundTrip == original)
   }
 
   @Test func catalogIsHonest() {
@@ -85,7 +85,8 @@ struct MetricsMergeTests {
     health.activeKilocalories = 650
 
     let result = MetricsMerge.merge(
-      [.garmin: garmin, .whoop: whoop, .appleHealth: health], day: day, preferences: SourcePreferences(primary: .garmin))
+      [.garmin: garmin, .whoop: whoop, .appleHealth: health], day: day,
+      preferences: SourcePreferences(primary: .garmin))
     // Schlaf als ganze Gruppe von WHOOP: keine Tiefschlafphase von Garmin dazugemischt.
     #expect(result.metrics.sleepSeconds == 7.5 * 3_600)
     #expect(result.metrics.deepSleepSeconds == nil)
@@ -228,7 +229,8 @@ struct SyncLedgerTests {
       SourceEntry(
         provider: .garmin, kind: .activities, externalID: "old", day: day.adding(days: -10), importedAt: now,
         contentHash: "d"),
-      SourceEntry(provider: .appleHealth, kind: .activities, externalID: "x", day: day, importedAt: now, contentHash: "e"),
+      SourceEntry(
+        provider: .appleHealth, kind: .activities, externalID: "x", day: day, importedAt: now, contentHash: "e"),
     ]
     let incoming = [
       SyncLedger.Incoming(externalID: "1", day: day, contentHash: "a"),
@@ -238,7 +240,8 @@ struct SyncLedgerTests {
     ]
     let later = now.addingTimeInterval(60)
     let changes = SyncLedger.reconcile(
-      known: known, incoming: incoming, provider: .garmin, kind: .activities, window: window, complete: true, now: later)
+      known: known, incoming: incoming, provider: .garmin, kind: .activities, window: window, complete: true,
+      now: later)
     #expect(changes.new.map(\.externalID) == ["4"])
     #expect(changes.changed.map(\.externalID) == ["2"])
     #expect(changes.changed.first?.updatedAt == later)
@@ -248,7 +251,8 @@ struct SyncLedgerTests {
     #expect(changes.deleted.first?.status == .deleted)
 
     let partial = SyncLedger.reconcile(
-      known: known, incoming: incoming, provider: .garmin, kind: .activities, window: window, complete: false, now: later)
+      known: known, incoming: incoming, provider: .garmin, kind: .activities, window: window, complete: false,
+      now: later)
     #expect(partial.deleted.isEmpty)
   }
 

@@ -49,9 +49,7 @@ struct DataSourcesView: View {
         }
 
         Section {
-          ForEach(DataKind.allCases.filter { kind in
-            connected.filter { $0.capabilities.contains(kind) }.count > 1
-          }) { kind in
+          ForEach(choosableKinds(connected)) { kind in
             KindPreferenceRow(kind: kind, connected: connected)
           }
         } header: {
@@ -78,6 +76,11 @@ struct DataSourcesView: View {
     }
     .navigationTitle("Datenquellen")
     .onChange(of: settings.sources) { model.applySourcePreferences() }
+  }
+
+  /// Datenarten, die mehr als eine verbundene Quelle liefern kann.
+  private func choosableKinds(_ connected: Set<DataProvider>) -> [DataKind] {
+    DataKind.allCases.filter { kind in connected.filter { $0.capabilities.contains(kind) }.count > 1 }
   }
 }
 
