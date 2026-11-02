@@ -37,7 +37,10 @@ const DIET_RULES: Record<string, string> = {
     "hinweis nennen.",
 };
 
-const PHOTO_RULES = `- Foto: Schätze Mengen über Bezugsgrößen (Teller ca. 26 cm, Besteck, Glas, Hand).
+const PHOTO_RULES = `- Foto: Gehe das Bild systematisch durch: Hauptkomponente (Fleisch, Fisch, Tofu, Ei), Beilage (Reis,
+  Nudeln, Kartoffeln, Brot), Gemüse/Salat, Soßen und Dressings, Fett zum Braten, Toppings (Käse, Nüsse, Kerne),
+  Getränke. Jede erkennbare Komponente als eigene Position.
+- Schätze Mengen über Bezugsgrößen (Teller ca. 26 cm, Besteck, Glas, Hand).
   Typische Unterschätzung bei Öl, Soßen, Dressings, Butter: sichtbare oder sehr wahrscheinliche
   Fette separat aufführen. Große Portionen werden von Bildmodellen systematisch unterschätzt -
   Teller-/Schüsselfüllung und Höhe der Speisen bewusst einbeziehen. Bei Verpackungen
@@ -49,7 +52,8 @@ const SHAPE = `Antwortformat (JSON): {"titel": str, "kategorie": str|null, "hinw
 "naehrwerte_100g": {"kcal": number, "protein_g": number, "carbs_g": number, "sugar_g": number, "fat_g": number,
 "satfat_g": number, "fiber_g": number, "water_g": number, "sodium_mg": number, "potassium_mg": number,
 "magnesium_mg": number, "calcium_mg": number, "iron_mg": number, "zinc_mg": number, "vitd_ug": number,
-"b12_ug": number, "vitc_mg": number, "iodine_ug": number, "omega3_mg": number}}]}`;
+"b12_ug": number, "vitc_mg": number, "iodine_ug": number, "omega3_mg": number}}],
+"vielleicht_vergessen": [str]}`;
 
 export function mealPrompt(input: Record<string, unknown>, hasImage: boolean): string {
   const diet = DIET_RULES[text(input.diet, 20)] ?? "";
@@ -88,11 +92,66 @@ Regeln:
 - Mehrere Mahlzeiten in einer Eingabe (z. B. Frühstück und Mittag): alle Positionen in EIN JSON-Objekt mit einer
   gemeinsamen items-Liste; titel fasst zusammen, kategorie null.
 - hinweis: ein kurzer Satz zu Unsicherheiten (z. B. verdeckte Zutaten, Ölmenge), sonst "".
+- vielleicht_vergessen: bis zu 4 kurze Bestandteile, die oft dabei sind, aber nicht sicher zu sehen oder genannt
+  sind (z. B. "Bratöl", "Soße", "Dressing", "Getränk") – nicht in items aufnehmen. Sonst [].
 ${hasImage ? `${PHOTO_RULES}\n` : ""}${diet ? `${diet}\n` : ""}Häufige eigene Lebensmittel des Nutzers (Namen so übernehmen, wenn sie passen): ${personal}
 
 ${SHAPE}
 
 Mahlzeit: ${meal}`;
+}
+
+/** Bestehende Positionen einer Mahlzeit (Name und Menge), die beim Ergänzen nicht angefasst werden. */
+function existingItems(input: Record<string, unknown>): { name: string; grams: number }[] {
+  const raw = Array.isArray(input.bestand) ? input.bestand.slice(0, 40) : [];
+  return raw.flatMap((entry) => {
+    const record = (typeof entry === "object" && entry !== null ? entry : {}) as Record<string, unknown>;
+    const name = text(record.name, 80);
+    const grams = typeof record.menge_g === "number" && Number.isFinite(record.menge_g) ? record.menge_g : 0;
+    return name ? [{ name, grams }] : [];
+  });
+}
+
+/** Ergänzen einer erkannten Mahlzeit: nur NEUE Positionen aus der Beschreibung des Nutzers. */
+export function mealAmendPrompt(input: Record<string, unknown>, hasImage: boolean): string {
+  const diet = DIET_RULES[text(input.diet, 20)] ?? "";
+  const existing = existingItems(input)
+    .map((item) => `- ${item.name} (${Math.round(item.grams)} g)`)
+    .join("\n");
+  return `Du ergänzt eine bereits erfasste Mahlzeit in einer deutschen Ernährungs-App. Antworte NUR mit JSON.
+
+Schon erfasst (NICHT wiederholen, NICHT ändern):
+${existing || "(nichts)"}
+
+Ergänzung des Nutzers: ${text(input.text, 600)}
+
+Regeln:
+- Liefere in items NUR die Bestandteile, die der Nutzer ergänzen möchte. Bestehende Positionen nie erneut aufführen.
+- Nennt der Nutzer Mengen ("150 g", "1 EL"), übernimm sie genau. EL Öl 10 g, TL 5 g, Schuss 30 ml.
+- Für jede neue Position wie bei der Analyse: name, suchbegriff (Stil des Bundeslebensmittelschlüssels), menge_g,
+  menge_text, getraenk, sicherheit, gruppe (${GROUPS.join(", ")}), naehrwerte_100g (Schätzung je 100 g).
+- titel: "" (der Titel der Mahlzeit bleibt), kategorie: null, hinweis: kurzer Satz zu Unsicherheiten oder "".
+- Ist die Ergänzung unverständlich oder keine Lebensmittelangabe, liefere items: [] und erkläre es im hinweis.
+${hasImage ? "- Das Foto zeigt die Mahlzeit; nutze es nur, um Mengen der genannten Ergänzungen einzuschätzen.\n" : ""}${diet ? `${diet}\n` : ""}
+${SHAPE}`;
+}
+
+/** Wiederholte Positionen (gleicher Name, etwa gleiche Menge wie im Bestand) fallen weg – nur Neues bleibt. */
+export function groundAmend(output: unknown, _requestText: string, input: Record<string, unknown>): unknown {
+  const merged = mergeMeals(output);
+  const record = (typeof merged === "object" && merged !== null ? merged : {}) as Record<string, unknown>;
+  const items = Array.isArray(record.items) ? record.items : [];
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-zäöüß0-9]/g, "");
+  const existing = existingItems(input);
+  const fresh = items.filter((item) => {
+    const entry = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+    const name = normalize(text(entry.name, 80));
+    const grams = typeof entry.menge_g === "number" ? entry.menge_g : 0;
+    return !existing.some(
+      (old) => normalize(old.name) === name && Math.abs(old.grams - grams) <= Math.max(5, old.grams * 0.1),
+    );
+  });
+  return { ...record, items: fresh, verworfen: items.length - fresh.length };
 }
 
 function fmt(value: unknown, unit: string): string {

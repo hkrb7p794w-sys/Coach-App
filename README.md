@@ -70,7 +70,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | fertig (PR 61) |
 | 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | fertig (PR 62) |
 | 54 | Ernährung A: Zuletzt/Häufig/Rezepte/Favoriten beim Erfassen, gegessene Menge nachträglich anpassen | in Arbeit |
-| 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | geplant |
+| 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | in Arbeit |
 | 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | geplant |
 | 57 | Ernährung D: Mahlzeiten teilen per Link | geplant |
 | 58 | Health A: Body Battery mit Tagesverlauf, Aufwachwert und Bezug zu Schlaf/Stress; Ruhekalorien, Puls, Regenerationszeit, Belastung | in Arbeit |

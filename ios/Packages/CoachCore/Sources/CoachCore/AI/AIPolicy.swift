@@ -55,7 +55,7 @@ public enum AITrigger: String, Codable, Sendable {
 public enum AIPolicy {
   public static func kind(of task: String) -> AITaskKind {
     switch task {
-    case "meal_analyze", "nutrition_label": .capture
+    case "meal_analyze", "meal_amend", "nutrition_label": .capture
     case "gym_plan", "weekly_recipes", "meal_now": .planning
     case "ping": .system
     default: .recommendation
