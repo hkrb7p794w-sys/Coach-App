@@ -54,6 +54,18 @@ final class GymViewModel {
     self.defaults = defaults
     active = defaults.data(forKey: Self.activeKey).flatMap { try? JSONDecoder().decode(GymSession.self, from: $0) }
       .map(ExerciseAliases.normalized)
+    discardAbandoned()
+  }
+
+  /// Zustand der offenen Einheit: erst der erste Satz macht sie zum Training (Live-Aktivität, zählt als gemacht).
+  func sessionState(now: Date = .now) -> ActiveSessionState {
+    ActiveSessionState.of(active, now: now)
+  }
+
+  /// Nur geöffnet, nie ein Satz und schon alt (z. B. gestern): still verwerfen, damit sie nicht als laufend gilt.
+  func discardAbandoned(now: Date = .now) {
+    guard sessionState(now: now) == .abandoned else { return }
+    setActive(nil)
   }
 
   func update(
@@ -503,7 +515,8 @@ final class GymViewModel {
 
   /// Inhalt der Live-Aktivität; `nil` ohne laufende Einheit.
   var liveState: WorkoutActivityAttributes.ContentState? {
-    guard let session = active else { return nil }
+    // Keine Live-Aktivität („Los“ in der Dynamic Island), solange nur geöffnet und noch kein Satz gemacht ist.
+    guard let session = active, sessionState().showsLiveActivity else { return nil }
     guard let position = currentPosition else {
       return .init(
         exercise: "Plan geschafft", detail: "\(session.doneSetCount) Sätze – beenden oder fortsetzen",
@@ -621,7 +634,9 @@ final class GymViewModel {
     }
     session.end = now
     // Garmin: erst die Aufzeichnung der Uhr suchen und dort die Sätze ergänzen (`GarminStrengthService`).
-    let syncsGarmin = gym.uploadsToGarmin && (garmin?.isLoggedIn ?? false)
+    // Immer vormerken, wenn der Abgleich an ist – auch ohne Anmeldung gerade jetzt. Der nächste Abruf mit
+    // Garmin-Konto holt es nach (vorher ging die Einheit dann nie zu Garmin).
+    let syncsGarmin = gym.uploadsToGarmin
     if syncsGarmin { session.garmin = GarminLink(status: .pending, updatedAt: now) }
     isSaving = true
     defer { isSaving = false }
@@ -639,10 +654,12 @@ final class GymViewModel {
     RestAlarm.schedule(at: nil)
     let records = GymStats.newRecords(in: session, before: sessions)
     var status = await Self.saveToHealth(record, session: session, context: context, writer: writer)
-    if syncsGarmin, let garmin,
+    if syncsGarmin, let garmin, garmin.isLoggedIn,
       let garminStatus = await GarminStrengthService.reconcile(context: context, garmin: garmin, gym: gym, now: now)
     {
       status += "\n" + garminStatus
+    } else if syncsGarmin {
+      status += "\nGarmin: wird übertragen, sobald du mit dem Garmin-Konto angemeldet bist (Einstellungen)."
     }
     message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
     finished = FinishedWorkout(

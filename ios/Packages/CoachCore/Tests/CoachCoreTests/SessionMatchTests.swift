@@ -76,6 +76,35 @@ struct SessionMatchTests {
         == nil)
   }
 
+  @Test func gymOnAnotherDayCountsForTheWeeksStrengthSession() {
+    // Kraft am Dienstag geplant, Push aber am Montag gemacht: zählt trotzdem (vorher 0 von x).
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
+    let week = SessionMatcher.match(planned: planned, activities: [], gymDays: [monday], today: today)
+    #expect(week.results(on: monday.adding(days: 1)).first?.status == .done)
+    #expect(week.results.filter(\.status.counts).count == 1)
+  }
+
+  @Test func strengthWatchRecordingCountsOnceWithGymSession() {
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
+    // Am Montag App-Einheit plus Uhr-Aufzeichnung derselben Einheit: nur eine Kraft-Einheit erledigt.
+    let watch = activity(7, "strength_training", day: monday, minutes: 50)
+    let week = SessionMatcher.match(planned: planned, activities: [watch], gymDays: [monday], today: today)
+    #expect(week.results.filter { $0.planned.slot.sport == .strength && $0.status.counts }.count == 1)
+    // Nur Uhr-Aufzeichnung ohne App-Einheit, an einem anderen Tag: zählt ebenfalls.
+    let only = SessionMatcher.match(planned: planned, activities: [watch], today: today)
+    #expect(only.results(on: monday.adding(days: 1)).first?.status == .done)
+    #expect(only.results(on: monday.adding(days: 1)).first?.activityID == 7)
+    #expect(!only.extraIDs.contains(7))
+  }
+
+  @Test func extraGymWithoutOpenStrengthSlotChangesNothing() {
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
+    let week = SessionMatcher.match(
+      planned: planned, activities: [], gymDays: [monday, monday.adding(days: 1)], today: today)
+    #expect(week.results.filter(\.status.counts).count == 1)
+    #expect(week.results(on: monday).first?.status == .missed)
+  }
+
   @Test func illnessCapsRecovery() {
     let sick = today.adding(days: -1)
     #expect(MissedSessions.cappedRecovery(.normal, sickDay: sick, today: today) == .locker)

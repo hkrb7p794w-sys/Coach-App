@@ -131,7 +131,9 @@ public enum SessionMatcher {
   ) -> Week {
     var results: [SessionResult] = []
     var used = Set<Int64>()
-    let days = Set(planned.map(\.day)).union(activities.compactMap(\.day))
+    /// Krafttraining an einem Tag ohne offene Kraft-Einheit (z. B. Push am Dienstag statt am Montag).
+    var spareStrength: [CalendarDay] = []
+    let days = Set(planned.map(\.day)).union(activities.compactMap(\.day)).union(gymDays)
     for day in days.sorted() {
       let sessions = planned.filter { $0.day == day }.sorted { $0.index < $1.index }
       let candidates = activities.filter { $0.day == day && ($0.durationSeconds ?? 0) >= minimumSeconds }
@@ -150,6 +152,7 @@ public enum SessionMatcher {
           open.append(session)
         }
       }
+      if gymAvailable { spareStrength.append(day) }
       for session in open {
         // Ersatz: andere Ausdauer-Sportart (Rad statt Lauf), nicht Kraft oder Spaziergang.
         if session.slot.sport.isEndurance,
@@ -165,6 +168,30 @@ public enum SessionMatcher {
             SessionResult(planned: session, status: status, activityID: nil, actualMinutes: nil, intensityNote: nil))
         }
       }
+    }
+    // Kraft an einem anderen Tag zählt für die offene Kraft-Einheit derselben Woche: zuerst eine verpasste oder
+    // heute offene davor, sonst die nächste geplante.
+    // Uhr-Aufzeichnungen von Krafttraining ohne App-Einheit am selben Tag (sonst wäre es doppelt).
+    let spareActivities: [(CalendarDay, Int64?)] = activities.compactMap { activity in
+      guard let day = activity.day, !used.contains(activity.id), activity.sport == .strength,
+        (activity.durationSeconds ?? 0) >= minimumSeconds, !gymDays.contains(day)
+      else { return nil }
+      return (day, activity.id)
+    }
+    let spare: [(CalendarDay, Int64?)] = spareStrength.map { ($0, nil) } + spareActivities
+    for (day, activityID) in spare.sorted(by: { $0.0 < $1.0 }) {
+      let monday = day.adding(days: -day.weekdayIndex)
+      let candidates = results.indices.filter { index in
+        let result = results[index]
+        return result.planned.slot.sport == .strength && !result.status.counts
+          && result.planned.day >= monday && result.planned.day <= monday.adding(days: 6)
+      }
+      let before = candidates.filter { results[$0].planned.day <= day }
+      guard let index = before.first ?? candidates.first else { continue }
+      if let activityID { used.insert(activityID) }
+      results[index] = SessionResult(
+        planned: results[index].planned, status: .done, activityID: activityID, actualMinutes: nil,
+        intensityNote: nil)
     }
     let extras = activities.filter { !used.contains($0.id) && ($0.durationSeconds ?? 0) >= 600 }.map(\.id)
     return Week(

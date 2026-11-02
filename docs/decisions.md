@@ -5,6 +5,22 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Gym: Start erst mit dem ersten Satz, kein Fokus, Garmin nachholen
+
+- **„Gestartet“ heißt: erster Satz abgehakt** (`ActiveSessionState`). Vorher keine Live-Aktivität („Los“ in der
+  Dynamic Island), die Einheit zählt nicht als gemacht. Trainingserinnerungen bleiben nur bis 2 h nach dem Öffnen
+  aus. Nur geöffnete Einheiten von früher werden still verworfen, nicht beendete mit Sätzen zum Speichern angeboten.
+- **Keine Erinnerung während der Einheit:** Neuplanungen laufen nacheinander (vorher konnte eine ältere Planung die
+  Erinnerung für heute nach dem Start wieder eintragen) und prüfen die laufende Einheit direkt vor dem Eintragen.
+- **Fokus während der Einheit entfernt** (Kurzbefehle, Einstellung, `WorkoutFocus`); alte Einstellungen laden weiter.
+- **Garmin:** Jede beendete Einheit wird vorgemerkt, wenn der Abgleich an ist – auch ohne Anmeldung in dem Moment
+  (vorher ging sie dann nie zu Garmin). Abgeglichen wird beim nächsten Abruf mit Garmin-Konto, bis 14 Tage zurück;
+  Fehlschläge nach 6 h erneut (Garmin lehnt doppelte FIT-Uploads selbst ab).
+- **Wochenzählung:** Krafttraining an einem anderen Tag als geplant zählt für die offene Kraft-Einheit derselben Woche
+  (zuerst verpasste davor, sonst die nächste). Eine Uhr-Aufzeichnung am selben Tag wie die App-Einheit zählt nicht
+  doppelt.
+- **Übersprungene Übungen** sind leicht ausgegraut (Leiste, Liste, Fokus-Karte).
+
 ## 2026-11-02 – Mehrere Datenquellen: gemeinsame Architektur (Paket 5, PR A)
 
 - **Je Datenart genau eine Quelle, als ganze Gruppe:** Werte werden nicht gemittelt oder gemischt (Schlafdauer von
