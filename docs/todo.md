@@ -7,6 +7,10 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **Mahlzeiten-Erinnerungen:** Einstellungen › Ernährung: Mittagessen 12:30 an → Mitteilung kommt, außer das
+      Mittagessen ist schon eingetragen? Zeit ändern → neue Zeit gilt? Zeitzone wechseln (Reise) → Ortszeit?
+- [ ] **Übersicht anpassen:** Ernährung › „Übersicht anpassen“: Tagesübersicht einschalten, Karten verschieben –
+      Reihenfolge bleibt nach Neustart?
 - [ ] **Foto ergänzen:** Teller mit Reis, Gemüse und Hähnchen fotografieren → fehlt etwas? Unter „Fehlt etwas?“
       „noch 150 g Hähnchenbrust und 1 EL Olivenöl“ → zwei neue Positionen, die alten unverändert? Hinweis-Knöpfe
       („+ Bratöl“) sinnvoll?
