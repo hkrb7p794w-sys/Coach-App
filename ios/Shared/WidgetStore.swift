@@ -24,6 +24,7 @@ nonisolated enum WidgetStore {
     static let nutrition = "io.github.hkrb7p794w.coach.widget.nutrition"
     static let health = "io.github.hkrb7p794w.coach.widget.health"
     static let gym = "io.github.hkrb7p794w.coach.widget.gym"
+    static let meals = "io.github.hkrb7p794w.coach.widget.meals"
   }
 
   // MARK: Stand der App

@@ -337,13 +337,15 @@ private fun SummaryCard(
                     }
                 }
             }
-            NutritionBudget.line(Nutrient.WATER, targets, totals)?.let { water ->
+            targets[Nutrient.WATER]?.let { target ->
+                val hydration = Diary.hydration(data, day)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Wasser ${liters(water.actual)} / ${liters(water.target)} l",
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    Column(Modifier.weight(1f)) {
+                        Text("Wasser ${liters(hydration.total)} / ${liters(target)} l", style = MaterialTheme.typography.bodyMedium)
+                        if (hydration.food >= 50) {
+                            Text("davon ${liters(hydration.food)} l aus Essen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     TextButton(onClick = { onWater(250.0) }) { Text("+250 ml") }
                     TextButton(onClick = { onWater(500.0) }) { Text("+500 ml") }
                 }

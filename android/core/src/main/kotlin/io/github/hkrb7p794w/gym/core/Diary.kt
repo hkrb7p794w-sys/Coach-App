@@ -51,7 +51,10 @@ object Diary {
     fun logWater(data: AppData, milliliters: Double, at: Long): AppData =
         save(data, Meal(createdAt = at, day = Nutrition.dayKey(at), category = MealCategory.OTHER, title = "Wasser", items = listOf(MealItem.water(milliliters))))
 
-    fun water(data: AppData, day: LocalDate): Double = totals(data, day)[Nutrient.WATER] ?: 0.0
+    fun water(data: AppData, day: LocalDate): Double = hydration(data, day).total
+
+    /** Getränke und Wasser aus Essen (wie auf dem iPhone). */
+    fun hydration(data: AppData, day: LocalDate): Hydration.Total = Hydration.total(Nutrition.meals(day, data.meals).flatMap { it.items })
 
     /** Favorit an/aus für diese Zusammenstellung. */
     fun toggleFavorite(data: AppData, meal: Meal): AppData {

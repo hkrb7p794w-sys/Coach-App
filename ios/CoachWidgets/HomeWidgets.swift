@@ -81,6 +81,12 @@ struct NutritionWidgetIntent: WidgetConfigurationIntent {
   init() {}
 }
 
+struct MealsWidgetIntent: WidgetConfigurationIntent {
+  static let title: LocalizedStringResource = "Mahlzeiten"
+
+  init() {}
+}
+
 enum HealthWidgetMetric: String, AppEnum {
   case bodyBattery, sleep, hrv, recovery, restingHeartRate, stress
 
@@ -172,6 +178,24 @@ struct NutritionHomeWidget: Widget {
     .configurationDisplayName("Ernährung")
     .description("Kalorien, Protein oder letzte Mahlzeit – mittelgroß mit Wasser-Knopf.")
     .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
+  }
+}
+
+/// Mahlzeiten wie bei gängigen Ernährungs-Apps: je Mahlzeit ein Ring (gegessen gegen Richtwert) und „+“, das die App
+/// direkt beim Erfassen dieser Mahlzeit öffnet. Auf dem Sperrbildschirm kompakt (Tippen öffnet das Erfassen).
+struct MealsHomeWidget: Widget {
+  var body: some WidgetConfiguration {
+    AppIntentConfiguration(
+      kind: WidgetStore.Kind.meals, intent: MealsWidgetIntent.self,
+      provider: ConfiguredHomeProvider<MealsWidgetIntent>()
+    ) { entry in
+      MealsWidgetView(display: entry.display)
+        .widgetURL(AppRoute.logMeal.url)
+        .containerBackground(.fill.tertiary, for: .widget)
+    }
+    .configurationDisplayName("Mahlzeiten")
+    .description("Kalorien je Mahlzeit mit „+“ zum Eintragen – auch für den Sperrbildschirm.")
+    .supportedFamilies([.systemMedium, .accessoryRectangular, .accessoryCircular])
   }
 }
 
@@ -319,6 +343,103 @@ private struct MetricLine: View {
       Label(text, systemImage: symbol).font(.caption).lineLimit(1).minimumScaleFactor(0.8)
       if let fraction { ProgressView(value: fraction).tint(.accentColor) }
     }
+  }
+}
+
+struct MealsWidgetView: View {
+  let display: WidgetSnapshot.Display?
+  @Environment(\.widgetFamily) private var family
+
+  private static func symbol(_ category: MealCategory) -> String {
+    switch category {
+    case .breakfast: "cup.and.saucer.fill"
+    case .lunch: "fork.knife"
+    case .dinner: "moon.stars.fill"
+    case .snack, .other: "carrot.fill"
+    }
+  }
+
+  private static func short(_ category: MealCategory) -> String {
+    switch category {
+    case .breakfast: "Früh"
+    case .lunch: "Mittag"
+    case .dinner: "Abend"
+    case .snack, .other: "Snack"
+    }
+  }
+
+  var body: some View {
+    if let nutrition = display?.snapshot.nutrition {
+      let parts =
+        nutrition.meals ?? MealSplit.order.map { WidgetSnapshot.MealPart(category: $0, kcal: 0, target: nil) }
+      switch family {
+      case .accessoryRectangular: rectangular(parts)
+      case .accessoryCircular: circular(nutrition)
+      default: medium(parts, nutrition: nutrition)
+      }
+    } else {
+      NoDataView()
+    }
+  }
+
+  /// Ring mit Symbol, kcal und „+“ je Mahlzeit (Links funktionieren auf dem Homescreen in mittleren Widgets).
+  private func medium(_ parts: [WidgetSnapshot.MealPart], nutrition: WidgetSnapshot.Nutrition) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack {
+        Label("Mahlzeiten", systemImage: "fork.knife").font(.caption.bold()).foregroundStyle(.secondary)
+        Spacer()
+        if let remaining = nutrition.kcalRemaining {
+          Text(remaining >= 0 ? "\(Style.kcal(remaining)) kcal übrig" : "\(Style.kcal(-remaining)) kcal drüber")
+            .font(.caption.bold()).foregroundStyle(remaining >= 0 ? Color.secondary : Color.red)
+        }
+      }
+      HStack(spacing: 0) {
+        ForEach(parts) { part in
+          Link(destination: AppRoute.logMealURL(part.category)) {
+            VStack(spacing: 4) {
+              ZStack {
+                Circle().stroke(.quaternary, lineWidth: 4)
+                Circle().trim(from: 0, to: part.fraction ?? 0)
+                  .stroke(.tint, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                  .rotationEffect(.degrees(-90))
+                Image(systemName: Self.symbol(part.category)).font(.caption)
+              }
+              .frame(width: 38, height: 38)
+              Text("\(Style.kcal(part.kcal)) kcal").font(.caption2).monospacedDigit().lineLimit(1)
+                .minimumScaleFactor(0.7)
+              Image(systemName: "plus.circle.fill").font(.title3).foregroundStyle(.tint)
+            }
+            .frame(maxWidth: .infinity)
+          }
+          .accessibilityLabel("\(part.category.label) eintragen, bisher \(Style.kcal(part.kcal)) kcal")
+        }
+      }
+    }
+  }
+
+  /// Sperrbildschirm: vier Mini-Werte nebeneinander, Tippen öffnet das Erfassen (dort ist die Mahlzeit vorgewählt).
+  private func rectangular(_ parts: [WidgetSnapshot.MealPart]) -> some View {
+    HStack(spacing: 4) {
+      ForEach(parts) { part in
+        VStack(spacing: 1) {
+          Image(systemName: Self.symbol(part.category)).font(.caption2)
+          Text(Style.kcal(part.kcal)).font(.caption2.bold()).monospacedDigit().minimumScaleFactor(0.6)
+          Gauge(value: part.fraction ?? 0) { EmptyView() }.gaugeStyle(.accessoryLinearCapacity)
+          Text(Self.short(part.category)).font(.system(size: 9)).lineLimit(1).minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity)
+      }
+    }
+    .widgetAccentable()
+  }
+
+  private func circular(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
+    Gauge(value: nutrition.kcalFraction ?? 0) {
+      Image(systemName: "plus")
+    } currentValueLabel: {
+      Text(Style.kcal(nutrition.kcalRemaining ?? nutrition.kcal))
+    }
+    .gaugeStyle(.accessoryCircularCapacity)
   }
 }
 
@@ -566,7 +687,11 @@ enum SampleSnapshot {
       week: "2/4 Einheiten · 95 min", weekFraction: 0.5),
     nutrition: .init(
       kcal: 1_450, kcalTarget: 2_400, protein: 95, proteinTarget: 150, waterMilliliters: 1_250, waterTarget: 2_500,
-      lastMeal: .init(title: "Mittagessen", at: .now, kcal: 680)),
+      lastMeal: .init(title: "Mittagessen", at: .now, kcal: 680),
+      meals: [
+        .init(category: .breakfast, kcal: 520, target: 600), .init(category: .lunch, kcal: 680, target: 840),
+        .init(category: .dinner, kcal: 0, target: 720), .init(category: .snack, kcal: 250, target: 240),
+      ]),
     gym: .init(
       next: "Push", nextDetail: "6 Übungen · ca. 55 min", running: false, runningTitle: nil,
       last: .init(title: "Pull", day: CalendarDay(date: .now).adding(days: -2), sets: 18, volumeKg: 7_400),

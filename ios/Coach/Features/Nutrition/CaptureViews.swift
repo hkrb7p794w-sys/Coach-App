@@ -34,9 +34,17 @@ struct CaptureSheet: View {
               Button {
                 showsCamera = true
               } label: {
-                Label("Kamera", systemImage: "camera.fill").frame(maxWidth: .infinity, minHeight: 52)
+                // Symbol und Text ausdrücklich nebeneinander: Als `Label` im Formular blieb das Symbol auf dem
+                // farbigen Knopf unsichtbar (Rückmeldung vom 02.11.2026).
+                HStack(spacing: 8) {
+                  Image(systemName: "camera.fill").symbolRenderingMode(.monochrome)
+                  Text("Kamera")
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 52)
               }
               .buttonStyle(.borderedProminent)
+              .accessibilityLabel("Kamera")
             }
             PhotosPicker(selection: $photoItem, matching: .images) {
               Label("Foto", systemImage: "photo").frame(maxWidth: .infinity, minHeight: 52)

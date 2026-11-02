@@ -84,13 +84,18 @@ enum WidgetPublisher {
       hasGarminData: !days.isEmpty)
     let food = meals.filter { !$0.isWater }
     let totals = NutritionSummary.totals(food.flatMap(\.items))
-    let water = NutritionSummary.totals(meals.filter(\.isWater).flatMap(\.items))[.water] ?? 0
+    // Flüssigkeit aus Getränken und Lebensmitteln wie in der Übersicht der App.
+    let water = Hydration.total(meals.flatMap(\.items)).total
+    var mealKilocalories: [MealCategory: Double] = [:]
+    for meal in food {
+      mealKilocalories[MealSplit.slot(meal.category), default: 0] += NutritionSummary.totals(meal.items)[.kcal] ?? 0
+    }
     let lastMeal = food.last.map {
       WidgetSnapshot.LastMeal(
         title: $0.title, at: $0.createdAt, kcal: NutritionSummary.totals($0.items)[.kcal] ?? 0)
     }
     let nutrition = WidgetSnapshot.nutrition(
-      targets: targets.values, totals: totals, water: water, lastMeal: lastMeal)
+      targets: targets.values, totals: totals, water: water, lastMeal: lastMeal, mealKilocalories: mealKilocalories)
 
     // Gym nur mit Krafttraining im Profil.
     var gymPart: WidgetSnapshot.Gym?

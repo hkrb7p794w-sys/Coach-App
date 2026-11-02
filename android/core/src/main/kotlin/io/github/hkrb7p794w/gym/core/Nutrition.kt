@@ -413,3 +413,22 @@ object PortionGuess {
         return German.number(rounded, 2)
     }
 }
+
+/**
+ * Flüssigkeit des Tages wie `Hydration` in CoachCore: Getränke und Wasser aus Lebensmitteln. Getränke ohne
+ * Wasserangabe zählen mit ihrer Menge (1 ml ≈ 1 g), Lebensmittel ohne Angabe gar nicht.
+ */
+object Hydration {
+    data class Total(val drinks: Double = 0.0, val food: Double = 0.0) {
+        val total: Double get() = drinks + food
+    }
+
+    fun milliliters(item: MealItem): Double {
+        item.per100g[Nutrient.WATER]?.let { return maxOf(0.0, it) * item.grams / 100 }
+        return if (item.isDrink) maxOf(0.0, item.grams) else 0.0
+    }
+
+    fun total(items: List<MealItem>): Total = items.fold(Total()) { sum, item ->
+        if (item.isDrink) sum.copy(drinks = sum.drinks + milliliters(item)) else sum.copy(food = sum.food + milliliters(item))
+    }
+}

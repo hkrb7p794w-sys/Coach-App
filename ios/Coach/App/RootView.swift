@@ -65,7 +65,7 @@ struct RootView: View {
     // Ziel in der App coach://open/<route> (Widgets, Kurzbefehle).
     .onOpenURL { url in
       if let route = AppRoute(url: url) {
-        router.open(route)
+        router.open(route, mealCategory: AppRoute.mealCategory(from: url))
       } else if let link = SharedMealLink(url: url) {
         sharedMeal = link
       } else {

@@ -36,6 +36,17 @@ public enum AppRoute: String, Codable, CaseIterable, Sendable, Identifiable {
     URL(string: "\(Self.scheme)://\(Self.host)/\(rawValue)") ?? URL(fileURLWithPath: "/")
   }
 
+  /// „Mahlzeit erfassen“ für eine bestimmte Mahlzeit (Mahlzeiten-Widget): `coach://open/logMeal?mahlzeit=…`.
+  public static func logMealURL(_ category: MealCategory) -> URL {
+    URL(string: "\(AppRoute.logMeal.url.absoluteString)?mahlzeit=\(category.rawValue)") ?? AppRoute.logMeal.url
+  }
+
+  /// Mahlzeit aus einem Link (`?mahlzeit=mittagessen`), sonst `nil`.
+  public static func mealCategory(from url: URL) -> MealCategory? {
+    URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+      .first { $0.name == "mahlzeit" }?.value.flatMap(MealCategory.init(rawValue:))
+  }
+
   /// Reiter der Route. Ohne Gym-Reiter landen Gym-Ziele in „Training“ statt ins Leere.
   public func tab(trainsStrength: Bool) -> AppTab {
     switch self {

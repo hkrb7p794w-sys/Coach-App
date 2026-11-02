@@ -9,6 +9,7 @@ struct CoachWidgetsBundle: WidgetBundle {
     WorkoutLiveActivity()
     TodayHomeWidget()
     NutritionHomeWidget()
+    MealsHomeWidget()
     HealthHomeWidget()
     GymHomeWidget()
   }

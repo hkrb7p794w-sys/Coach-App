@@ -39,6 +39,27 @@ final class NutritionViewModel {
   var draft: Draft?
   /// Zeitpunkt des letzten Speicherns im Entwurf (z. B. Rezept „eingetragen“).
   private(set) var lastSaved: Date?
+  /// Vorgewählte Mahlzeit (z. B. „+“ bei „Mittagessen“ im Widget); gilt für den nächsten Entwurf.
+  var preferredCategory: MealCategory?
+
+  /// Vorgewählte Mahlzeit vor der Einschätzung der KI, sonst deren Vorschlag, sonst Uhrzeit.
+  func currentCategoryOr(_ guess: MealCategory?) -> MealCategory {
+    if let preferred = preferredCategory {
+      preferredCategory = nil
+      return preferred
+    }
+    return guess ?? Self.category(at: .now)
+  }
+
+  /// Mahlzeit für einen neuen Entwurf: vorgewählt, sonst nach Uhrzeit.
+  func currentCategory(at date: Date) -> MealCategory {
+    if let preferred = preferredCategory {
+      preferredCategory = nil
+      return preferred
+    }
+    return Self.category(at: date)
+  }
+
   /// Barcode ohne Treffer bei Open Food Facts – selbst anlegen oder Etikett fotografieren.
   var missingBarcode: String?
 
@@ -101,7 +122,7 @@ final class NutritionViewModel {
     }
     await work {
       let input = MealNow.input(
-        remaining: remaining, category: Self.category(at: now), diet: settings.nutrition.diet,
+        remaining: remaining, category: currentCategory(at: now), diet: settings.nutrition.diet,
         preferences: settings.recipes, pantry: settings.pantry, favorites: foods.prefix(15).map(\.name))
       let response = try await ai.run(task: "meal_now", input: input)
       let result = MealNow.suggestions(
@@ -117,7 +138,7 @@ final class NutritionViewModel {
   func draft(
     from recipe: Recipe, hint: String = "Vorschlag „Was jetzt?“ (Nährwerte KI-geschätzt)", now: Date = .now
   ) {
-    draft = Draft(title: recipe.title, category: Self.category(at: now), hint: hint, items: recipe.ingredients)
+    draft = Draft(title: recipe.title, category: currentCategory(at: now), hint: hint, items: recipe.ingredients)
   }
 
   // MARK: - Ohne Netz
@@ -144,7 +165,7 @@ final class NutritionViewModel {
   /// Mahlzeit heute (bzw. am gewählten Tag) erneut eintragen.
   func repeatMeal(_ record: MealRecord, context: ModelContext, foods: [FoodRecord], now: Date = .now) {
     log(
-      title: record.title, category: Self.category(at: now), items: record.items, context: context, foods: foods,
+      title: record.title, category: currentCategory(at: now), items: record.items, context: context, foods: foods,
       label: "\(record.title) erneut eingetragen", now: now)
   }
 
@@ -157,7 +178,7 @@ final class NutritionViewModel {
 
   func newManualDraft(now: Date = .now) {
     let item = MealItem(name: "", grams: 100, source: .manual, per100g: NutrientValues())
-    draft = Draft(title: "", category: Self.category(at: now), hint: "", items: [item])
+    draft = Draft(title: "", category: currentCategory(at: now), hint: "", items: [item])
   }
 
   /// Unbekannter Barcode: leere Position mit Barcode – beim Speichern merkt sich die App das Produkt.
@@ -165,7 +186,7 @@ final class NutritionViewModel {
     missingBarcode = nil
     var item = MealItem(name: "", grams: 100, source: .manual, per100g: NutrientValues())
     item.barcode = barcode
-    draft = Draft(title: "", category: Self.category(at: now), hint: "Werte vom Etikett je 100 g", items: [item])
+    draft = Draft(title: "", category: currentCategory(at: now), hint: "Werte vom Etikett je 100 g", items: [item])
   }
 
   /// Nährwerttabelle fotografiert: die KI liest Name, Werte je 100 g und Portion; gespeichert unter dem Barcode.
@@ -183,7 +204,7 @@ final class NutritionViewModel {
       }
       item.barcode = barcode
       draft = Draft(
-        title: item.name, category: Self.category(at: now), hint: "Vom Etikett gelesen – bitte kurz prüfen.",
+        title: item.name, category: currentCategory(at: now), hint: "Vom Etikett gelesen – bitte kurz prüfen.",
         items: [item])
     }
   }
@@ -192,7 +213,7 @@ final class NutritionViewModel {
   func draft(with item: MealItem, now: Date = .now) {
     var fresh = item
     fresh.id = UUID()
-    draft = Draft(title: item.name, category: Self.category(at: now), hint: "", items: [fresh])
+    draft = Draft(title: item.name, category: currentCategory(at: now), hint: "", items: [fresh])
   }
 
   /// Zeitpunkt für einen Eintrag am gewählten Tag: heute jetzt, sonst derselbe Tag zur aktuellen Uhrzeit.
@@ -267,7 +288,7 @@ final class NutritionViewModel {
       }
       draft = Draft(
         title: analysis.title.isEmpty ? text : analysis.title,
-        category: analysis.category ?? Self.category(at: .now),
+        category: currentCategoryOr(analysis.category),
         hint: analysis.hint,
         items: analysis.items.map { self.preferKnownFood($0, foods: foods) },
         photo: jpeg, possiblyMissing: analysis.possiblyMissing
