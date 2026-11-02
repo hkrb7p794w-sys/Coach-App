@@ -206,7 +206,16 @@ object Backup {
             .sortedByDescending { it.startedAt }
         val routines = current.routines + imported.routines.filter { r -> current.routines.none { it.id == r.id } }
         val custom = current.customExercises + imported.customExercises.filter { e -> current.customExercises.none { it.id == e.id } }
-        return current.copy(sessions = sessions, routines = routines, customExercises = custom)
+        val meals = (current.meals + imported.meals.filter { m -> current.meals.none { it.id == m.id } }).sortedBy { it.createdAt }
+        val favorites = current.favorites + imported.favorites.filter { f -> current.favorites.none { it.id == f.id } }
+        val foods = current.foods + imported.foods.filter { f -> current.foods.none { FoodSearch.normalized(it.name) == FoodSearch.normalized(f.name) } }
+        // Einstellungen der Sicherung nur übernehmen, wenn auf dem Gerät noch nichts eingerichtet ist (neues Handy).
+        val nutrition = if (current.nutrition.configured || !imported.nutrition.configured) current.nutrition else imported.nutrition
+        return current.copy(
+            sessions = sessions, routines = routines, customExercises = custom, meals = meals, favorites = favorites,
+            foods = foods, nutrition = nutrition, dayTypes = imported.dayTypes + current.dayTypes,
+            weekDayTypes = if (current.weekDayTypes.isEmpty()) imported.weekDayTypes else current.weekDayTypes,
+        )
     }
 
     fun fileName(now: Long, zone: ZoneId = ZoneId.systemDefault()): String =

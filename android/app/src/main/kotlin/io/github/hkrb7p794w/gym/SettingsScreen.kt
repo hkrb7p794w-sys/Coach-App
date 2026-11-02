@@ -81,7 +81,7 @@ fun SettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -> Unit) {
 
             SectionTitle("Sicherung")
             Text(
-                "Deine Trainings liegen nur auf diesem Handy. Android sichert sie automatisch im Google-Konto, wenn " +
+                "Deine Trainings und Mahlzeiten liegen nur auf diesem Handy. Android sichert sie automatisch im Google-Konto, wenn " +
                     "„Sicherung“ in den Android-Einstellungen an ist. Zusätzlich kannst du hier eine Datei speichern " +
                     "(z. B. in Google Drive) und auf einem neuen Handy wieder einspielen – dabei geht nichts verloren.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -98,8 +98,9 @@ fun SettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -> Unit) {
 
             SectionTitle("Über")
             Text(
-                "IronLudi Gym ${BuildConfig.VERSION_NAME} · ${data.sessions.size} Trainings · ${viewModel.library.size} Übungen. " +
-                    "Steigerungsregeln wie in der iPhone-App (Doppelprogression). Keine Internetverbindung, kein Konto.",
+                "IronLudi ${BuildConfig.VERSION_NAME} · ${data.sessions.size} Trainings · ${data.meals.size} Mahlzeiten · " +
+                    "${viewModel.library.size} Übungen. Regeln wie in der iPhone-App (Doppelprogression, Ernährungsziele, BLS 4.0). " +
+                    "Kein Konto; Internet nur für KI über deinen Worker und Barcodes (Open Food Facts).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

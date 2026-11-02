@@ -3,7 +3,8 @@
  * Die CI (`.github/workflows/android.yml`) legt APK und Versionsangaben in Workers KV ab (Namespace „coach-releases“),
  * der Worker liefert sie unter einem geheimen Pfad aus.
  *
- * GET /android/<key>/                   – Seite mit Version und Download-Knopf (zum Öffnen auf dem Handy)
+ * GET /android/<key>/                   – Seite mit Version und Download-Knopf (zum Öffnen auf dem Handy); mit
+ *                                         `#zugang=<Gast-Token>` zusätzlich „In der App verbinden“ (KI-Zugang)
  * GET /android/<key>/IronLudi-Gym.apk   – aktuelle App
  *
  * <key> = die ersten 32 Hex-Zeichen von SHA-256("android:" + COACH_APP_TOKEN). Die iPhone-App zeigt den fertigen Link
@@ -79,7 +80,20 @@ small,.muted{color:var(--muted)} ol{padding-left:20px} li{margin:6px 0}
 <li>Warnt Google Play Protect („App nicht geprüft“): „Weitere Details“ › „Trotzdem installieren“.</li>
 </ol>
 <strong>Aktualisieren</strong><p>Diese Seite wieder öffnen und die neue Version genauso installieren – die Trainings bleiben erhalten.</p></div>
+<div class="card" id="connect" hidden><strong>2. KI verbinden</strong>
+<p>Nach der Installation hier tippen – die App übernimmt deinen persönlichen Zugang für Foto- und Textauswertung.</p>
+<a class="button" id="connect-link" href="#">In der App verbinden</a></div>
 <p><small>Privater Link – bitte nicht öffentlich teilen.</small></p>
+<script>
+// Der Zugang steht im Anker (#zugang=…) und wird nie an den Server geschickt.
+(function () {
+  var match = /[#&]zugang=([^&]+)/.exec(location.hash);
+  if (!match) return;
+  var link = "ironludi://connect?worker=" + encodeURIComponent(location.origin) + "&token=" + match[1];
+  document.getElementById("connect-link").setAttribute("href", link);
+  document.getElementById("connect").hidden = false;
+})();
+</script>
 </main></body></html>`;
 }
 

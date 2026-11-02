@@ -1,7 +1,24 @@
-# Android-App „IronLudi Gym“ (technisch)
+# Android-App „IronLudi“ (technisch)
 
-Gym-Logging für Android, erste Version für eine Person ohne Garmin (Auftrag vom 02.11.2026). Bedienung und
+Gym-Logging und Ernährung für Android, für eine Person ohne Garmin (Aufträge vom 02.11.2026). Bedienung und
 Installation für Nutzer:innen: [`installation.md`](installation.md).
+
+## Ernährung (Teil 1, wie auf dem iPhone)
+
+| Funktion | Android | Quelle der Regeln |
+|---|---|---|
+| Tagesziele kcal/Protein/KH/Fett/Wasser + Mikronährstoffe | ✓ (Tagestyp je Wochentag bzw. Tag statt Garmin-Aktivitäten) | Port `NutritionPlanner.compute`, gleiche Formeln und Schutzgrenzen (REDs, ±1 %/0,5 % pro Woche) |
+| Suche in 7.000 Lebensmitteln (BLS 4.0), offline | ✓ | Port `BLS.search`/`match`, gleiche `bls.tsv`, alle 24 Zuordnungsfälle der CoachCore-Tests |
+| KI per Text, Foto (Kamera/Galerie), Ergänzen, „vielleicht vergessen“ | ✓ über den Worker (`meal_analyze`, `meal_amend`) | gleiche Aufgaben und Antwortschema wie iPhone |
+| Barcode (Google-Code-Scanner) + Open Food Facts, Nummer von Hand | ✓ | Port `OpenFoodFacts` |
+| Zuletzt, Häufig, Favoriten, Wie gestern, Schnell-Eintrag, Wasser, Portion anpassen, Rückgängig | ✓ | Port `MealSuggestions`, `MealShortcuts`, `MealPortion`, `QuickLog` |
+| Wochenstreifen mit kcal je Tag, frühere Tage nachtragen | ✓ | |
+| Rezepte/Meal-Prep, Einkaufsliste, „Was jetzt?“, Abendauswertung, Erinnerungen, Teilen, Gewichtsverlauf, Mikronährstoff-Übersicht, Offline-Warteschlange | **noch nicht** (Teil 2) | |
+
+KI-Zugang: Gast-Token aus dem Link der iPhone-App („Android-Link erstellen“, `#zugang=…` auf der Download-Seite →
+`ironludi://connect?worker=…&token=…`) oder von Hand in Ernährung › Zahnrad › KI-Zugang. Gespeichert in privaten
+App-Einstellungen, ausgenommen von Android-Backups (`res/xml/*backup*`). An die KI gehen nur Text/Foto der Mahlzeit,
+Ernährungsweise und Namen eigener Lebensmittel – keine Körperwerte.
 
 ## Aufbau
 
@@ -9,12 +26,14 @@ Installation für Nutzer:innen: [`installation.md`](installation.md).
 |---|---|
 | `android/core/` | Reine Kotlin-Logik ohne Android: Datenmodell, Doppelprogression (Port von `GymProgression` aus CoachCore), Statistik, Trainingsablauf, Sicherung/Zusammenführen. Tests: `GymCoreTest`. |
 | `android/app/` | Jetpack Compose (Material 3, Hell/Dunkel nach System): Reiter Training, Verlauf, Pläne, Übungen; Einstellungen mit Pausenzeit, Bildschirm-an und Sicherung. |
-| `android/app/src/main/assets/exercises.json` | Übungsbibliothek, **erzeugt** aus `ExerciseLibrary.swift`/`ExerciseCatalog.swift` mit `python3 android/tools/export_exercises.py` (CI prüft mit `--check`). Gleiche IDs und Sprünge wie auf dem iPhone. |
+| `android/app/src/main/assets/exercises.json`, `bls.tsv` | Übungsbibliothek, **erzeugt** aus `ExerciseLibrary.swift`/`ExerciseCatalog.swift`, und die BLS-Tabelle aus CoachCore, beides mit `python3 android/tools/export_exercises.py` (CI prüft mit `--check`). |
 | `.github/workflows/android.yml` | Linux-Runner: `:core:test`, `:app:assembleRelease`, APK als Artefakt; auf `main` Upload nach Workers KV. |
 | `worker/src/android.ts` | Private Download-Seite `/android/<key>/` und APK; `<key>` = SHA-256("android:" + Haupt-Token), erste 32 Hex-Zeichen. |
 
-Daten: eine JSON-Datei `gym.json` im App-Speicher, atomar geschrieben (Zwischendatei + Umbenennen). Ist sie nicht
-lesbar, legt die App eine Kopie an und warnt statt zu überschreiben. Keine Internet-Berechtigung, nur `VIBRATE`.
+Daten: eine JSON-Datei `gym.json` im App-Speicher (Trainings und Mahlzeiten), atomar geschrieben (Zwischendatei +
+Umbenennen). Ist sie nicht lesbar, legt die App eine Kopie an und warnt statt zu überschreiben. Berechtigungen:
+`INTERNET` (KI über den Worker, Open Food Facts), `VIBRATE`. Keine Kamera-Berechtigung (Fotos über die Kamera-App,
+Barcodes über den Google-Code-Scanner der Play-Dienste).
 Android Auto Backup ist an (`allowBackup`), dazu Sicherung/Einspielen als Datei (führt über IDs zusammen, nichts
 geht verloren).
 
@@ -44,6 +63,6 @@ python3 tools/export_exercises.py   # nach Änderungen an der Swift-Bibliothek
 
 ## Bewusst nicht in Version 1
 
-Garmin, Health Connect, KI, Ernährung, Widgets, Rangliste. Die Logik dafür liegt in Swift (CoachCore); ein Port
+Garmin, Health Connect, Widgets, Rangliste, Ernährung Teil 2 (siehe Tabelle oben). Die Logik dafür liegt in Swift (CoachCore); ein Port
 lohnt erst bei Bedarf (siehe `docs/plattform-paket7.md`, Abschnitt 2.3). Pausentimer läuft nur, solange die App
 offen ist (keine Benachrichtigung im Hintergrund).

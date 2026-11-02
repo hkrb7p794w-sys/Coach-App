@@ -5,6 +5,24 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Android: Ernährung wie auf dem iPhone (Teil 1)
+
+- **Auftrag:** „Die Android-Version soll die gleiche Ernährungsapp haben wie die iPhone-Version.“ Umfang auf dem
+  iPhone rund 7.000 Zeilen; Teil 1 deckt den täglichen Gebrauch ab (Tabelle in `docs/android.md`), Teil 2 folgt.
+- **Regeln portiert, nicht neu erfunden:** Ziele (`NutritionPlanner.compute`), BLS-Suche und -Zuordnung, Portionen,
+  Vorschläge, Open Food Facts als Kotlin-Port; die BLS-Tabelle ist dieselbe Datei. Gegenprobe mit den Testfällen aus
+  CoachCore (alle 24 BLS-Zuordnungen, Gewichtssprünge) und einer von Hand gerechneten Zielberechnung.
+- **Ohne Garmin:** Der Tagestyp (Ruhetag … sehr hart) kommt aus einem Wochenschema bzw. der Auswahl für den Tag; der
+  Verbrauch der Einheit wie beim geplanten Tag auf dem iPhone ((MET − 1) × kg × Stunden).
+- **KI-Zugang je Person:** Die iPhone-App erstellt pro Android-Link ein Gast-Token (Paket 8) und hängt es als Anker
+  `#zugang=…` an die Download-Seite. Browser schicken den Anker nicht an den Server; die Seite baut daraus
+  `ironludi://connect?…`. Token in privaten App-Einstellungen, von Android-Backups ausgenommen.
+- **Barcode ohne Kamera-Berechtigung** über den Google-Code-Scanner (Play-Dienste); ohne Play-Dienste Eingabe der
+  Nummer. Fotos über die System-Kamera (FileProvider), ebenfalls ohne Kamera-Berechtigung.
+- Quellen: Google Code Scanner <https://developers.google.com/ml-kit/vision/barcode-scanning/code-scanner>,
+  Android Backup-Regeln <https://developer.android.com/identity/data/autobackup#include-exclude-android-12>,
+  URL-Anker werden nicht übertragen (RFC 3986, Abschnitt 3.5).
+
 ## 2026-11-02 – Android-App: eigenes Kotlin-Projekt nur fürs Gym
 
 - **Auftrag:** Android-App für den Bruder des Nutzers, nur Gym-Logging, kein Garmin (Rückfrage beantwortet).

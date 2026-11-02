@@ -119,6 +119,16 @@ public enum GuestToken {
   public static func isGuest(_ token: String) -> Bool { token.hasPrefix(prefix) }
 }
 
+/// Link zur Android-Download-Seite mit Gastzugang im Anker: Der Browser schickt den Anker nicht an den Server, die
+/// Seite macht daraus `ironludi://connect?worker=…&token=…` für die Android-App.
+public enum AndroidLink {
+  public static func url(base: URL, guestToken: String) -> URL? {
+    let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+    let token = guestToken.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+    return URL(string: base.absoluteString + "#zugang=" + token)
+  }
+}
+
 public enum LeagueCode {
   /// Gleiche Regel wie im Worker: 6–40 Zeichen, Kleinbuchstaben, Ziffern, Bindestrich.
   public static func isValid(_ code: String) -> Bool {

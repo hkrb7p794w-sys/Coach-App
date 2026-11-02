@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Übungsbibliothek für die Android-App aus CoachCore (Swift) übernehmen.
+"""Übungsbibliothek und BLS-Tabelle für die Android-App aus CoachCore (Swift) übernehmen.
 
 Liest `ExerciseLibrary.swift` (Übungen mit Anleitung) und `ExerciseCatalog.swift` (Gewichtssprünge aus dem
 Garmin-Katalog) und schreibt `android/app/src/main/assets/exercises.json`. So haben iPhone und Android dieselben
-Übungen, IDs und Progressionsregeln. `--check` meldet nur, ob die Datei aktuell ist (für CI).
+Übungen, IDs und Progressionsregeln. Dazu wird `Resources/bls.tsv` (Bundeslebensmittelschlüssel) unverändert nach
+`assets/bls.tsv` kopiert. `--check` meldet nur, ob beide Dateien aktuell sind (für CI).
 """
 
 import json
@@ -14,6 +15,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 GYM = ROOT / "ios/Packages/CoachCore/Sources/CoachCore/Gym"
 OUT = ROOT / "android/app/src/main/assets/exercises.json"
+BLS_IN = ROOT / "ios/Packages/CoachCore/Sources/CoachCore/Resources/bls.tsv"
+BLS_OUT = ROOT / "android/app/src/main/assets/bls.tsv"
 
 GROUPS = {
     "chest": "Brust", "back": "Rücken", "shoulders": "Schultern", "biceps": "Bizeps", "triceps": "Trizeps",
@@ -96,14 +99,21 @@ def main() -> int:
         print(f"Nur {len(exercises)} Übungen gefunden – hat sich das Swift-Format geändert?", file=sys.stderr)
         return 1
     content = json.dumps(exercises, ensure_ascii=False, indent=1) + "\n"
+    bls = BLS_IN.read_bytes()
     if "--check" in sys.argv:
+        stale = []
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != content:
-            print("exercises.json ist veraltet: python3 android/tools/export_exercises.py", file=sys.stderr)
+            stale.append("exercises.json")
+        if not BLS_OUT.exists() or BLS_OUT.read_bytes() != bls:
+            stale.append("bls.tsv")
+        if stale:
+            print(f"{', '.join(stale)} veraltet: python3 android/tools/export_exercises.py", file=sys.stderr)
             return 1
-        print(f"exercises.json aktuell ({len(exercises)} Übungen)")
+        print(f"exercises.json ({len(exercises)} Übungen) und bls.tsv aktuell")
         return 0
     OUT.write_text(content, encoding="utf-8")
-    print(f"{len(exercises)} Übungen nach {OUT.relative_to(ROOT)} geschrieben")
+    BLS_OUT.write_bytes(bls)
+    print(f"{len(exercises)} Übungen und BLS-Tabelle nach {OUT.parent.relative_to(ROOT)} geschrieben")
     return 0
 
 

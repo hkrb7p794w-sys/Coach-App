@@ -1,6 +1,8 @@
 package io.github.hkrb7p794w.gym
 
+import android.content.Intent
 import android.os.Build
+import android.widget.Toast
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,9 +21,23 @@ import androidx.compose.ui.platform.LocalContext
 class MainActivity : ComponentActivity() {
     private val viewModel: GymViewModel by viewModels()
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleLink(intent)
+    }
+
+    /** `ironludi://connect?worker=…&token=…` von der Download-Seite: KI-Zugang übernehmen. */
+    private fun handleLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        val (worker, token) = WorkerAccess.fromLink(uri) ?: return
+        viewModel.nutrition.connect(worker, token)
+        Toast.makeText(this, "KI-Zugang verbunden", Toast.LENGTH_LONG).show()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleLink(intent)
         setContent {
             GymTheme {
                 GymApp(viewModel)

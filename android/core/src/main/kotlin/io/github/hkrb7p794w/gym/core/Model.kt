@@ -133,6 +133,16 @@ data class AppData(
     val routines: List<Routine> = emptyList(),
     val customExercises: List<Exercise> = emptyList(),
     val settings: Settings = Settings(),
+    // Ernährung (seit Version 1.1; ältere Sicherungen haben diese Felder nicht und bekommen die Standardwerte).
+    val meals: List<Meal> = emptyList(),
+    val favorites: List<FavoriteMeal> = emptyList(),
+    /** Eigene Lebensmittel und Barcode-Treffer (Open Food Facts) zum Wiederfinden ohne Netz. */
+    val foods: List<MealItem> = emptyList(),
+    val nutrition: NutritionSettings = NutritionSettings(),
+    /** Tagestyp je Tag (yyyy-MM-dd), von der Person gewählt; fehlt er, gilt der Standard der Einstellungen. */
+    val dayTypes: Map<String, DayType> = emptyMap(),
+    /** Tagestyp, wenn für einen Tag nichts gewählt ist (Wochentag 1 = Montag … 7 = Sonntag). */
+    val weekDayTypes: Map<Int, DayType> = emptyMap(),
 ) {
     companion object {
         const val CURRENT_VERSION = 1

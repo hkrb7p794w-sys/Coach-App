@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mahlzeitenfotos für die Kamera-App (nur im Cache, werden nach der Auswertung nicht gebraucht). -->
+<paths>
+    <cache-path name="photos" path="photos/" />
+</paths>
