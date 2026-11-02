@@ -51,7 +51,7 @@ struct AIPolicyTests {
     ]
     for entry in entries { log = AIUsageLog.appending(entry, to: log) }
     #expect(log.count == 3)
-    #expect(log.last?.error?.count == 160)
+    #expect(log.first?.error?.count == 160)
     let summary = AIUsageLog.summary(log, since: now.addingTimeInterval(-30 * 86_400))
     #expect(summary.requests == 3)
     #expect(summary.failures == 1)
