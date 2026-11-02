@@ -163,7 +163,8 @@ struct GarminStrengthSyncTests {
       for: "eigen_schulterdruecken_maschine", name: "Schulterdrücken Maschine", group: .shoulders)
     #expect(press.category == "SHOULDER_PRESS")
     #expect(GarminStrengthSync.garminName(for: "eigen_x", name: "Butterfly", group: .chest).category == "FLYE")
-    #expect(GarminStrengthSync.garminName(for: "eigen_x", name: "Bench Dips", group: .triceps).name == "BODY_WEIGHT_DIP")
+    #expect(
+      GarminStrengthSync.garminName(for: "eigen_x", name: "Bench Dips", group: .triceps).name == "BODY_WEIGHT_DIP")
     #expect(
       GarminStrengthSync.garminName(for: "eigen_x", name: "Kurzhantel Curl Schrägbank", group: .biceps).category
         == "CURL")
