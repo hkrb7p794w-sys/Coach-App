@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hantel, 108 dp Raster mit sicherer Zone in der Mitte (66 dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:pathData="M44,51h20v6h-20z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M35,40h7a2,2 0,0 1,2 2v24a2,2 0,0 1,-2 2h-7a2,2 0,0 1,-2 -2v-24a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M66,40h7a2,2 0,0 1,2 2v24a2,2 0,0 1,-2 2h-7a2,2 0,0 1,-2 -2v-24a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M27,45h4a2,2 0,0 1,2 2v14a2,2 0,0 1,-2 2h-4a2,2 0,0 1,-2 -2v-14a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M77,45h4a2,2 0,0 1,2 2v14a2,2 0,0 1,-2 2h-4a2,2 0,0 1,-2 -2v-14a2,2 0,0 1,2 -2z" />
+</vector>

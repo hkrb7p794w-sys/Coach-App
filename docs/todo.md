@@ -87,6 +87,7 @@ hier notieren und als PR beheben.
       „Unbekannt“, Satzdauer realistisch. Welche eigenen Übungen landen noch falsch?
 - [ ] **Dunkelmodus:** Einstellungen › Darstellung „Dunkel“ → alle Reiter, Sheets und Daisy gut lesbar; zurück auf „Wie System“ folgt sofort dem iPhone.
 - [ ] **Einladung (Paket 8):** Begleiter & Rangliste › „Einladungslink erstellen“ › teilen → zweites iPhone tritt bei, Rangliste zeigt beide; dort keine SideStore-Quelle und kein Einladungsknopf, nur der Code. **Falls früher schon Links verschickt:** Haupt-Token wechseln (`docs/qualitaet-paket8.md`, Abschnitt 7).
+- [ ] **Android (IronLudi Gym):** Zuerst die Secrets `ANDROID_KEYSTORE_PASSWORD`/`ANDROID_KEYSTORE_B64` setzen (`docs/android.md`). Dann iPhone › Einstellungen › KI-Worker › „Android-App teilen“ → Link auf Android öffnen, installieren; Training mit Plan, Satz abhaken (Pause vibriert), beenden → Verlauf; nach zweitem Training „Erhöhen auf …“-Vorschlag; Sicherung speichern/einspielen; ein Update über denselben Link behält die Daten.
 - [ ] **Schnellaktionen (Paket 7 A):** Nach dem ersten Öffnen lange aufs App-Icon drücken → „Training starten“,
       „Mahlzeit erfassen“, „Health öffnen“, „KI-Analyse starten“. Jede springt in den richtigen Reiter, auch bei
       geschlossener App. Spotlight/Kurzbefehle-App: „Training starten in IronLudi“. Funktionieren Einladungs- und

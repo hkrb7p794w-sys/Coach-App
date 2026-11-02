@@ -3,6 +3,7 @@
  * Groq weiter. Die KI-Keys liegen nur hier (Worker-Secrets), nie in der App.
  *
  * GET  /sidestore/<key>/… – private SideStore-Quelle (siehe sidestore.ts)
+ * GET  /android/<key>/…  – private Download-Seite der Android-App (siehe android.ts)
  * GET  /v1/health        – ohne Anmeldung, zeigt Version und welche Anbieter konfiguriert sind
  * /v1/league/…          – Rangliste (siehe league.ts), Authorization: Bearer <COACH_APP_TOKEN>
  * POST /v1/ai/generate   – Authorization: Bearer <COACH_APP_TOKEN> oder Gast-Token (siehe auth.ts)
@@ -10,6 +11,7 @@
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
+import { handleAndroid } from "./android";
 import { authenticate, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
 import { GroundingError } from "./grounding";
 import { handleLeague, type LeagueStore } from "./league";
@@ -52,6 +54,8 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
 
   const sidestore = await handleSideStore(request, env.COACH_APP_TOKEN, env.RELEASES);
   if (sidestore) return sidestore;
+  const android = await handleAndroid(request, env.COACH_APP_TOKEN, env.RELEASES);
+  if (android) return android;
 
   if (request.method === "GET" && pathname === "/v1/health") {
     return json(200, {

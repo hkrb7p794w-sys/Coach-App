@@ -226,13 +226,22 @@ private struct SettingsForm: View {
           Label("SideStore-Quelle kopieren", systemImage: "doc.on.doc")
         }
       }
+      if let android = model.ai.androidDownloadURL {
+        ShareLink(
+          item: android, subject: Text("IronLudi Gym für Android"),
+          message: Text("Hier kannst du IronLudi Gym für Android laden:")
+        ) {
+          Label("Android-App teilen", systemImage: "square.and.arrow.up")
+        }
+      }
     } header: {
       Text("KI-Worker")
     } footer: {
       Text(
         "Adresse und App-Token aus der Einrichtung des Cloudflare Workers (siehe docs/einrichtung.md). "
           + "Datenschutz „reduziert“: An die KI gehen nur Einordnungen (z. B. „Schlaf kurz“), keine Rohwerte. "
-          + "Die SideStore-Quelle ist privat: Wer den Link hat, kann die App laden – nur an Vertraute weitergeben."
+          + "SideStore-Quelle und Android-Link sind privat: Wer den Link hat, kann die App laden – nur an Vertraute "
+          + "weitergeben."
       )
     }
   }

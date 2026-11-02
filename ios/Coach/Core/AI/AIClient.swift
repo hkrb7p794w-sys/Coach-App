@@ -81,6 +81,21 @@ final class AIClient {
     return base.appending(path: "sidestore/\(Self.sideStoreKey(token: token))/source.json")
   }
 
+  /// Private Download-Seite der Android-App (`worker/src/android.ts`): Pfad aus SHA-256("android:" + Token).
+  /// Wie die SideStore-Quelle nur mit dem Haupt-Token.
+  var androidDownloadURL: URL? {
+    guard let base = Self.normalizedURL(workerURL), let token = secrets.string(for: .aiAppToken), !token.isEmpty,
+      !GuestToken.isGuest(token)
+    else { return nil }
+    return base.appending(
+      path: "android/\(Self.secretPath(prefix: "android", token: token))", directoryHint: .isDirectory)
+  }
+
+  static func secretPath(prefix: String, token: String) -> String {
+    let digest = SHA256.hash(data: Data("\(prefix):\(token)".utf8))
+    return String(digest.map { String(format: "%02x", $0) }.joined().prefix(32))
+  }
+
   static func sideStoreKey(token: String) -> String {
     let digest = SHA256.hash(data: Data("sidestore:\(token)".utf8))
     return String(digest.map { String(format: "%02x", $0) }.joined().prefix(32))
