@@ -5,6 +5,28 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Plattform: Schnellaktionen, Kurzbefehle, Navigation per Route (Paket 7, PR A)
+
+- **Eine Route für alles von außen:** `AppRoute` (CoachCore, getestet) wählt Reiter und Aktion; `AppRouter` in der
+  App hält die offene Anforderung, die Zielansicht übernimmt sie genau einmal (`take`). Genutzt von Schnellaktionen
+  am App-Icon, App Shortcuts und Links `coach://open/<route>` (später Widgets). Alte Links bleiben.
+- **Schnellaktionen dynamisch** (`UIApplication.shortcutItems`, gesetzt beim Verlassen der App), nicht in der
+  Info.plist: nur, was für die Person funktioniert – „Training starten“ nur mit Krafttraining, „KI-Analyse“ nur mit
+  eingerichteter und erlaubter KI. iOS zeigt höchstens vier. Annahme über einen Szenen-Delegaten nur für
+  `performActionFor`; Fenster und Links verwaltet weiter SwiftUI. Quelle: Apple „Add Home Screen quick actions“.
+- **App Shortcuts** als vier Intents ohne Parameter mit `openAppWhenRun` (Titel als Konstanten, weil Xcode sie beim
+  Bauen ausliest; `nonisolated` wie die Intents der Live-Aktivität). Kein Entitlement nötig.
+- **„Training starten“** öffnet die laufende Einheit, sonst startet es die nächste geplante (Rotation bzw. Saisonplan).
+  Unschädlich, weil eine Einheit erst mit dem ersten Satz zählt; nie begonnene verwirft die App.
+- **Deployment-Target bleibt iOS 18.0:** iOS 18 läuft auf denselben Geräten wie iOS 17 (ab XS/XR); iOS 26 würde
+  XS/XR ausschließen. AlarmKit bleibt hinter `#available(iOS 26)`.
+- **Android:** keine App jetzt. Wenn nötig: Compose-Oberfläche und CoachCore in Swift über das Swift SDK für Android
+  (offiziell seit Swift 6.3) nach einem Machbarkeitstest; kein Rewrite der iOS-App, keine zweite Logik in Kotlin.
+- **Homescreen-Widgets** in eigener PR: App Group nötig. SideStore legt sie auch für kostenlose Konten an, hängt aber
+  die Team-ID an (`group.<id>.<TEAMID>`, Quellcode `FetchProvisioningProfilesOperation`); die App liest die echte
+  Gruppe aus `embedded.mobileprovision`. Die frühere Einschätzung „unsicher“ (Paket 4) ist damit präzisiert.
+  Begründung und Matrix: `docs/plattform-paket7.md`.
+
 ## 2026-11-02 – Persönliche Ziele und Prioritäten (Paket 6)
 
 - **Zentral in `Personalization`:** Hauptziel, Nebenziele, Prioritäten und Tracker liegen im Profil. Was daraus folgt

@@ -24,45 +24,57 @@ struct AIView: View {
     let groups = InsightInbox.groups(
       model.settings.insights, topic: topic, focus: Personalization.insightTopics(goals), now: now)
     NavigationStack {
-      List {
-        Section {
-          TopicChips(selection: $topic, insights: model.settings.insights, now: now)
-            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-        }
-        if groups.new.isEmpty && groups.open.isEmpty {
+      ScrollViewReader { proxy in
+        List {
           Section {
-            Text(
-              topic == nil
-                ? "Gerade keine offenen Empfehlungen. Die Regeln der App melden sich, sobald es etwas gibt."
-                : "Zu „\(topic?.label ?? "")“ gibt es gerade nichts Offenes."
-            )
-            .foregroundStyle(.secondary)
+            TopicChips(selection: $topic, insights: model.settings.insights, now: now)
+              .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+          }
+          if groups.new.isEmpty && groups.open.isEmpty {
+            Section {
+              Text(
+                topic == nil
+                  ? "Gerade keine offenen Empfehlungen. Die Regeln der App melden sich, sobald es etwas gibt."
+                  : "Zu „\(topic?.label ?? "")“ gibt es gerade nichts Offenes."
+              )
+              .foregroundStyle(.secondary)
+            }
+          }
+          if !groups.new.isEmpty {
+            Section("Neu") { rows(groups.new) }
+          }
+          if !groups.open.isEmpty {
+            Section("Aktuell") { rows(groups.open) }
+          }
+          analysisSection
+          if !groups.expired.isEmpty {
+            Section {
+              rows(groups.expired)
+            } header: {
+              Text("Nicht mehr aktuell")
+            } footer: {
+              Text("Gilt nicht mehr, weil sich deine Daten geändert haben oder die Zeit abgelaufen ist.")
+            }
+          }
+          if !groups.closed.isEmpty {
+            Section(isExpanded: $showsClosed) {
+              rows(groups.closed)
+            } header: {
+              Text("Umgesetzt und verworfen (\(groups.closed.count))")
+            }
+          }
+          functionsSection
+        }
+        // Schnellaktion / Kurzbefehl „KI-Analyse starten“: zur Analyse springen und sie anstoßen, sofern erlaubt.
+        .onChange(of: AppRouter.shared.pending, initial: true) {
+          guard AppRouter.shared.take(.aiAnalysis) else { return }
+          topic = nil
+          Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            withAnimation { proxy.scrollTo(Self.analysisID, anchor: .top) }
+            analyzeFromShortcut()
           }
         }
-        if !groups.new.isEmpty {
-          Section("Neu") { rows(groups.new) }
-        }
-        if !groups.open.isEmpty {
-          Section("Aktuell") { rows(groups.open) }
-        }
-        analysisSection
-        if !groups.expired.isEmpty {
-          Section {
-            rows(groups.expired)
-          } header: {
-            Text("Nicht mehr aktuell")
-          } footer: {
-            Text("Gilt nicht mehr, weil sich deine Daten geändert haben oder die Zeit abgelaufen ist.")
-          }
-        }
-        if !groups.closed.isEmpty {
-          Section(isExpanded: $showsClosed) {
-            rows(groups.closed)
-          } header: {
-            Text("Umgesetzt und verworfen (\(groups.closed.count))")
-          }
-        }
-        functionsSection
       }
       .listStyle(.insetGrouped)
       .navigationTitle("AI")
@@ -125,15 +137,24 @@ struct AIView: View {
     }
   }
 
+  private static let analysisID = "analysis"
+
+  private func analyze() async {
+    await viewModel.analyze(
+      topic: topic, model: model, metrics: days.compactMap(\.metrics),
+      activities: activities.compactMap(\.activity), meals: meals, gym: gymSessions.compactMap(\.session))
+  }
+
+  private func analyzeFromShortcut() {
+    guard model.ai.allows("ai_insights"), !viewModel.isAnalyzing else { return }
+    Task { await analyze() }
+  }
+
   private var analysisSection: some View {
     Section {
       if model.ai.allows("ai_insights") {
         Button {
-          Task {
-            await viewModel.analyze(
-              topic: topic, model: model, metrics: days.compactMap(\.metrics),
-              activities: activities.compactMap(\.activity), meals: meals, gym: gymSessions.compactMap(\.session))
-          }
+          Task { await analyze() }
         } label: {
           Label(
             topic.map { "„\($0.label)“ analysieren" } ?? "Alles analysieren",
@@ -164,6 +185,7 @@ struct AIView: View {
           + "Unsichere Aussagen sind gekennzeichnet."
       )
     }
+    .id(Self.analysisID)
   }
 
   private var analysisUnavailableText: String {
