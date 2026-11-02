@@ -106,7 +106,7 @@ struct MetricsMergeTests {
     let result = MetricsMerge.merge(
       [.garmin: garmin, .appleHealth: health], day: day, preferences: SourcePreferences(overrides: [.sleep: .garmin]))
     #expect(result.sources[.sleep] == .appleHealth)
-    #expect(result.metrics.sleepSeconds == 6 * 3_600)
+    #expect(result.metrics.sleepSeconds == 21_600.0)
     #expect(result.sources[.steps] == .garmin)
     #expect(result.sources[.hrv] == nil)
   }
