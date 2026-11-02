@@ -343,7 +343,8 @@ struct NutritionView: View {
         Task {
           try? await Task.sleep(for: .milliseconds(450))
           viewModel.draft = NutritionViewModel.Draft(
-            title: title, category: category, hint: "", items: items.map(MealPortion.restored).map { item in
+            title: title, category: category, hint: "",
+            items: items.map(MealPortion.restored).map { item in
               var copy = item
               copy.id = UUID()
               return copy
