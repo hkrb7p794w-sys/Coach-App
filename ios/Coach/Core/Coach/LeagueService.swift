@@ -21,10 +21,14 @@ final class LeagueService {
 
   var canUse: Bool { ai.isConfigured }
 
-  /// Einladungslink mit Worker-Adresse, App-Token und Code.
-  var inviteURL: URL? {
-    guard settings.league.isJoined, let token = ai.appToken, let base = AIClient.normalizedURL(ai.workerURL)
-    else { return nil }
+  /// Einladungen verschickt nur, wer den Worker betreibt; Gäste geben den Code weiter.
+  var canInvite: Bool { settings.league.isJoined && ai.isConfigured && !ai.isGuest }
+
+  /// Einladungslink mit Worker-Adresse, eigens ausgestelltem Gast-Token und Code. Das Haupt-Token bleibt auf dem
+  /// iPhone; jede Einladung bekommt ein eigenes Token, das sich im Worker einzeln sperren lässt.
+  func makeInvite() async throws -> URL? {
+    guard canInvite, let base = AIClient.normalizedURL(ai.workerURL) else { return nil }
+    let token = try await ai.createGuestToken()
     return LeagueInvite(workerURL: base.absoluteString, token: token, code: settings.league.code).url
   }
 

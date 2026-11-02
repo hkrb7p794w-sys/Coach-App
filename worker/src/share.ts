@@ -9,7 +9,8 @@
  * DELETE /v1/share/meal/<code> – zurückziehen
  * GET    /m/<code>             – Seite ohne Anmeldung und ohne Inhalt, öffnet coach://meal/<code> (für Messenger)
  *
- * Alle /v1-Aufrufe mit Authorization: Bearer <COACH_APP_TOKEN> (Prüfung in index.ts).
+ * Alle /v1-Aufrufe mit Haupt- oder Gast-Token (Prüfung in index.ts). Zurückziehen darf nur, wer geteilt hat
+ * (Mahlzeiten von vor dieser Regel ohne Besitzer: jede angemeldete Person, sie verfallen ohnehin nach 7 Tagen).
  */
 
 export interface ShareStore {
@@ -89,6 +90,7 @@ export async function handleShare(
   request: Request,
   store: ShareStore | undefined,
   now: Date,
+  caller = "owner",
   code: () => string = () => newCode(),
 ): Promise<Response | null> {
   const { pathname } = new URL(request.url);
@@ -113,7 +115,7 @@ export async function handleShare(
     const expiresAt = new Date(now.getTime() + SHARE_TTL_SECONDS * 1000).toISOString();
     await store.put(
       `share:${shareCode}`,
-      JSON.stringify({ ...meal, sharedAt: now.toISOString(), expiresAt }),
+      JSON.stringify({ ...meal, sharedAt: now.toISOString(), expiresAt, owner: caller }),
       {
         expirationTtl: SHARE_TTL_SECONDS,
       },
@@ -122,14 +124,22 @@ export async function handleShare(
   }
 
   if (!CODE.test(id)) return json(400, { error: "Ungültiger Code" });
+  if (request.method !== "GET" && request.method !== "DELETE")
+    return json(405, { error: "Nur GET oder DELETE" });
+  const stored = await store.get(`share:${id}`);
+  if (!stored) {
+    return request.method === "DELETE"
+      ? json(200, { ok: true })
+      : json(404, { error: "Code unbekannt oder abgelaufen" });
+  }
+  const { owner, ...meal } = JSON.parse(stored) as Record<string, unknown>;
   if (request.method === "DELETE") {
+    if (owner !== undefined && owner !== caller)
+      return json(403, { error: "Nur wer geteilt hat, kann zurückziehen" });
     await store.delete(`share:${id}`);
     return json(200, { ok: true });
   }
-  if (request.method !== "GET") return json(405, { error: "Nur GET oder DELETE" });
-  const stored = await store.get(`share:${id}`);
-  if (!stored) return json(404, { error: "Code unbekannt oder abgelaufen" });
-  return new Response(stored, {
+  return new Response(JSON.stringify(meal), {
     status: 200,
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });

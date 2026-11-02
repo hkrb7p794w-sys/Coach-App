@@ -136,13 +136,21 @@ enum CoachSchema {
     GymSessionRecord.self, SourceRecord.self,
   ]
 
+  /// Der Speicher auf dem iPhone ließ sich nicht öffnen (z. B. fehlgeschlagene Migration); die App läuft nur im
+  /// Arbeitsspeicher. Die Datei bleibt unangetastet, aber neue Einträge gehen beim Beenden verloren – die App warnt.
+  nonisolated(unsafe) private(set) static var isTemporary = false
+  nonisolated(unsafe) private(set) static var openError: String?
+
   static func makeContainer(inMemory: Bool = false) -> ModelContainer {
     let schema = Schema(models)
     let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
     do {
       return try ModelContainer(for: schema, configurations: [configuration])
     } catch {
-      // Lieber mit leerem Speicher starten als abstürzen; Daten kommen beim nächsten Abruf von Garmin.
+      // Lieber ohne Daten starten als abstürzen. Garmin-Werte kommen beim nächsten Abruf wieder; Mahlzeiten und
+      // Gym-Einheiten liegen nur in der (unveränderten) Datei und sind erst nach einem Update mit Korrektur zurück.
+      isTemporary = true
+      openError = String(describing: error)
       let fallback = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
       do {
         return try ModelContainer(for: schema, configurations: [fallback])

@@ -88,4 +88,5 @@ Fehlt ein Secret, endet der Lauf grün mit dem Hinweis „Deploy übersprungen �
   vorher. Neuen Key wie in Schritt 1 erzeugen und eintragen.
 - **KI-Key wechseln**: GitHub-Secret ändern und Schritt 6.1 wiederholen. In der App ändert sich nichts.
 - **App-Token wechseln**: Secret `COACH_APP_TOKEN` ändern, Schritt 6.1 wiederholen und das neue Token in der
-  App eintragen.
+  App eintragen. Dabei werden alle Gast-Tokens ungültig (Einladungen neu verschicken) und der Link der
+  SideStore-Quelle ändert sich (neuen Link aus den Einstellungen in SideStore hinzufügen).

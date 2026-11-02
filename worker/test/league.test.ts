@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { guestToken } from "../src/auth";
 import { handle } from "../src/index";
 import { type LeagueEntry, type LeagueStore, MAX_MEMBERS, mondayOf, parseEntry, ranked } from "../src/league";
 import { env, fakeDeps } from "./helpers";
@@ -92,6 +93,37 @@ describe("league", () => {
     expect(post.status).toBe(405);
     const noStore = await handle(request("/v1/league/paar-123"), env, fakeDeps([]));
     expect(noStore.status).toBe(503);
+  });
+
+  it("Gäste können nur ihren eigenen Eintrag ändern oder löschen", async () => {
+    const store = memoryStore();
+    const withKV = { ...env, LEAGUE: store as unknown as KVNamespace };
+    const deps = () => fakeDeps([], NOW);
+    const master = env.COACH_APP_TOKEN ?? "";
+    const lea = await guestToken(master, "leaaaaaaaaaa");
+    const tom = await guestToken(master, "tomaaaaaaaaa");
+    const path = "/v1/league/paar-123/members/lea-00001";
+    expect((await handle(request(path, "PUT", body("Lea", 50), lea), withKV, deps())).status).toBe(200);
+    // Fremder Gast und sogar das Haupt-Token: weder überschreiben noch löschen.
+    expect((await handle(request(path, "PUT", body("Fake", 999), tom), withKV, deps())).status).toBe(403);
+    expect((await handle(request(path, "DELETE", undefined, tom), withKV, deps())).status).toBe(403);
+    expect((await handle(request(path, "DELETE", undefined, master), withKV, deps())).status).toBe(403);
+    const list = await handle(request("/v1/league/paar-123"), withKV, deps());
+    const members = ((await list.json()) as { members: Record<string, unknown>[] }).members;
+    expect(members.map((m) => m.name)).toEqual(["Lea"]);
+    expect(members[0]?.owner).toBeUndefined();
+    expect((await handle(request(path, "DELETE", undefined, lea), withKV, deps())).status).toBe(200);
+  });
+
+  it("Einträge von vor der Besitzregel übernimmt der nächste Schreibzugriff", async () => {
+    const store = memoryStore();
+    const withKV = { ...env, LEAGUE: store as unknown as KVNamespace };
+    const old = parseEntry("alex-0001", body("Alex", 10), new Date(NOW));
+    store.data.set("league:paar-123:alex-0001", old);
+    const path = "/v1/league/paar-123/members/alex-0001";
+    const put = await handle(request(path, "PUT", body("Alex", 20)), withKV, fakeDeps([], NOW));
+    expect(put.status).toBe(200);
+    expect((store.data.get("league:paar-123:alex-0001") as { owner?: string }).owner).toBe("owner");
   });
 
   it("begrenzt die Zahl der Mitglieder", async () => {

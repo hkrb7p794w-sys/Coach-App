@@ -73,8 +73,10 @@ final class AIClient {
   }
 
   /// Private SideStore-Quelle des Workers (`worker/src/sidestore.ts`): Pfad aus SHA-256("sidestore:" + Token).
+  /// Nur mit dem Haupt-Token: Ein Gast-Token öffnet die Quelle nicht (`worker/src/auth.ts`).
   var sideStoreSourceURL: URL? {
-    guard let base = Self.normalizedURL(workerURL), let token = secrets.string(for: .aiAppToken), !token.isEmpty
+    guard let base = Self.normalizedURL(workerURL), let token = secrets.string(for: .aiAppToken), !token.isEmpty,
+      !GuestToken.isGuest(token)
     else { return nil }
     return base.appending(path: "sidestore/\(Self.sideStoreKey(token: token))/source.json")
   }
@@ -160,9 +162,19 @@ final class AIClient {
     return try JSONDecoder().decode(AIResponse.self, from: data)
   }
 
-  /// App-Token für den Einladungslink der Rangliste.
+  /// App-Token für die Anmeldung am Worker.
   var appToken: String? {
     secrets.string(for: .aiAppToken).flatMap { $0.isEmpty ? nil : $0 }
+  }
+
+  /// Eingeladen (Gast-Token) statt Betreiber:in des Workers.
+  var isGuest: Bool { appToken.map(GuestToken.isGuest) ?? false }
+
+  /// Neues Gast-Token für eine Einladung (nur mit dem Haupt-Token).
+  func createGuestToken() async throws -> String {
+    struct Invite: Decodable { let token: String }
+    let data = try await send(path: "v1/invite", method: "POST")
+    return try JSONDecoder().decode(Invite.self, from: data).token
   }
 
   /// Anfrage an den Worker mit App-Token; liefert den Antwortkörper bei Status 2xx.

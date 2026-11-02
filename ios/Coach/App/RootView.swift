@@ -40,6 +40,9 @@ struct RootView: View {
       }
       .badge(InsightInbox.unreadCount(model.settings.insights, now: .now))
     }
+    .safeAreaInset(edge: .top, spacing: 0) {
+      if CoachSchema.isTemporary && !model.isDemo { StorageWarningBanner() }
+    }
     .task { await model.syncIfDue() }
     // Schnellaktion, Kurzbefehl oder Link: Reiter wählen; die Aktion übernimmt die Zielansicht.
     .onChange(of: router.pending, initial: true) {
@@ -99,4 +102,23 @@ struct RootView: View {
 #Preview {
   RootView()
     .environment(AppModel(inMemory: true, secrets: InMemorySecretStore(), defaults: UserDefaults()))
+}
+
+/// Warnung, wenn der Datenspeicher nicht geöffnet werden konnte (`CoachSchema.isTemporary`).
+private struct StorageWarningBanner: View {
+  var body: some View {
+    Label {
+      Text(
+        "Gespeicherte Daten konnten nicht geöffnet werden. Neue Einträge gehen beim Schließen verloren – "
+          + "bitte nichts erfassen und auf ein Update warten. Deine bisherigen Daten bleiben erhalten.")
+    } icon: {
+      Image(systemName: "exclamationmark.triangle.fill")
+    }
+    .font(.footnote)
+    .foregroundStyle(.primary)
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(.orange.opacity(0.25))
+    .accessibilityElement(children: .combine)
+  }
 }

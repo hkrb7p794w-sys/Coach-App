@@ -74,7 +74,9 @@ public struct LeagueEntry: Codable, Equatable, Sendable, Identifiable {
   }
 }
 
-/// Einladung in die Rangliste: Worker-Adresse, App-Token und Ranglisten-Code als Link `coach://join?…`.
+/// Einladung in die Rangliste: Worker-Adresse, Gast-Token und Ranglisten-Code als Link `coach://join?…`.
+/// Das Gast-Token stellt der Worker eigens für die Einladung aus (`POST /v1/invite`); das Haupt-Token verlässt das
+/// iPhone nicht.
 /// Wer den Link öffnet, nutzt denselben Worker – Profil, Garmin-Konto und Daten bleiben auf dem eigenen iPhone.
 public struct LeagueInvite: Equatable, Sendable {
   public static let scheme = "coach"
@@ -107,6 +109,14 @@ public struct LeagueInvite: Equatable, Sendable {
     return URL(
       string: "\(Self.scheme)://join?worker=\(encode(workerURL))&token=\(encode(token))&league=\(encode(code))")
   }
+}
+
+/// Gast-Token des Workers (`worker/src/auth.ts`): `g1.<id>.<signatur>`. Gäste nutzen KI, Rangliste und geteilte
+/// Mahlzeiten, laden aber niemanden ein und sehen die private SideStore-Quelle nicht.
+public enum GuestToken {
+  public static let prefix = "g1."
+
+  public static func isGuest(_ token: String) -> Bool { token.hasPrefix(prefix) }
 }
 
 public enum LeagueCode {

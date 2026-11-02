@@ -7,7 +7,9 @@
  * PUT    /v1/league/<code>/members/<id> – eigenen Eintrag setzen
  * DELETE /v1/league/<code>/members/<id> – Rangliste verlassen
  *
- * Alle Aufrufe mit Authorization: Bearer <COACH_APP_TOKEN> (Prüfung in index.ts).
+ * Alle Aufrufe mit Haupt- oder Gast-Token (Prüfung in index.ts). Ein Eintrag gehört dem Token, das ihn zuerst
+ * gesetzt hat: Andere dürfen ihn weder überschreiben noch löschen. Einträge von vor dieser Regel (ohne Besitzer)
+ * übernimmt der nächste Schreibzugriff.
  */
 
 export interface LeagueEntry {
@@ -23,6 +25,14 @@ export interface LeagueEntry {
   done: number;
   planned: number;
   updatedAt: string;
+}
+
+/** Gespeicherte Metadaten: Eintrag plus Besitzer (wird nie ausgeliefert). */
+type StoredEntry = LeagueEntry & { owner?: string };
+
+function publicEntry(stored: StoredEntry): LeagueEntry {
+  const { owner: _owner, ...entry } = stored;
+  return entry;
 }
 
 export interface LeagueStore {
@@ -102,6 +112,7 @@ export async function handleLeague(
   request: Request,
   store: LeagueStore | undefined,
   now: Date,
+  caller = "owner",
 ): Promise<Response | null> {
   const { pathname, searchParams } = new URL(request.url);
   const match = /^\/v1\/league\/([^/]+)(?:\/members\/([^/]+))?$/.exec(pathname);
@@ -114,7 +125,10 @@ export async function handleLeague(
   if (member === undefined) {
     if (request.method !== "GET") return json(405, { error: "Nur GET" });
     const { keys } = await store.list({ prefix, limit: MAX_MEMBERS });
-    const entries = keys.map((key) => key.metadata as LeagueEntry | undefined).filter((e) => e !== undefined);
+    const entries = keys
+      .map((key) => key.metadata as StoredEntry | undefined)
+      .filter((e) => e !== undefined)
+      .map(publicEntry);
     // Die App schickt ihren Montag mit (lokale Zeitzone); sonst zählt der UTC-Montag.
     const week = searchParams.get("week") ?? "";
     return json(200, { members: ranked(entries, WEEK.test(week) ? week : mondayOf(now)) });
@@ -122,11 +136,17 @@ export async function handleLeague(
 
   if (!MEMBER.test(member)) return json(400, { error: "Ungültige Mitglieds-ID" });
   const key = prefix + member;
+  if (request.method !== "PUT" && request.method !== "DELETE")
+    return json(405, { error: "Nur PUT oder DELETE" });
+  const { keys } = await store.list({ prefix, limit: MAX_MEMBERS + 1 });
+  const existing = keys.find((k) => k.name === key)?.metadata as StoredEntry | undefined;
+  if (existing?.owner !== undefined && existing.owner !== caller) {
+    return json(403, { error: "Eintrag gehört jemand anderem" });
+  }
   if (request.method === "DELETE") {
     await store.delete(key);
     return json(200, { ok: true });
   }
-  if (request.method !== "PUT") return json(405, { error: "Nur PUT oder DELETE" });
   let body: unknown;
   try {
     body = JSON.parse(await request.text());
@@ -135,11 +155,11 @@ export async function handleLeague(
   }
   const entry = parseEntry(member, body, now);
   if (typeof entry === "string") return json(400, { error: entry });
-  const { keys } = await store.list({ prefix, limit: MAX_MEMBERS + 1 });
   if (keys.length >= MAX_MEMBERS && !keys.some((k) => k.name === key)) {
     return json(409, { error: "Rangliste ist voll" });
   }
   // Alles in den Metadaten (≤ 1024 Bytes): Eine list()-Abfrage liefert die ganze Rangliste.
-  await store.put(key, "", { metadata: entry, expirationTtl: LEAGUE_TTL_SECONDS });
+  const stored: StoredEntry = { ...entry, owner: caller };
+  await store.put(key, "", { metadata: stored, expirationTtl: LEAGUE_TTL_SECONDS });
   return json(200, { member: entry });
 }

@@ -51,6 +51,7 @@ describe("Mahlzeiten teilen", () => {
       request("POST", "/v1/share/meal", meal),
       store,
       now,
+      "owner",
       () => "abcdefgh23",
     );
     expect(created?.status).toBe(200);
@@ -73,6 +74,32 @@ describe("Mahlzeiten teilen", () => {
     expect(body.items[1]?.per100g).toEqual({ kcal: 110 });
 
     await handleShare(request("DELETE", "/v1/share/meal/abcdefgh23"), store, now);
+    expect((await handleShare(request("GET", "/v1/share/meal/abcdefgh23"), store, now))?.status).toBe(404);
+  });
+
+  it("nur wer geteilt hat, darf zurückziehen", async () => {
+    const store = memoryStore();
+    const now = new Date("2026-11-02T10:00:00Z");
+    await handleShare(
+      request("POST", "/v1/share/meal", meal),
+      store,
+      now,
+      "guest:aaaaaaaaaaaa",
+      () => "abcdefgh23",
+    );
+    const foreign = await handleShare(request("DELETE", "/v1/share/meal/abcdefgh23"), store, now, "owner");
+    expect(foreign?.status).toBe(403);
+    // Lesen dürfen alle mit Zugang (dafür ist der Code da).
+    expect(
+      (await handleShare(request("GET", "/v1/share/meal/abcdefgh23"), store, now, "owner"))?.status,
+    ).toBe(200);
+    const own = await handleShare(
+      request("DELETE", "/v1/share/meal/abcdefgh23"),
+      store,
+      now,
+      "guest:aaaaaaaaaaaa",
+    );
+    expect(own?.status).toBe(200);
     expect((await handleShare(request("GET", "/v1/share/meal/abcdefgh23"), store, now))?.status).toBe(404);
   });
 

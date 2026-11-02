@@ -5,6 +5,26 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Gast-Tokens statt Haupt-Token in Einladungen (Paket 8)
+
+- **Fund:** Der Einladungslink der Rangliste enthielt `COACH_APP_TOKEN`. Wer ihn hatte, konnte alles, was die
+  Betreiber:in kann (KI, alle Ranglisten und Mahlzeiten, SideStore-Pfad ableiten), und ließ sich nicht einzeln
+  aussperren. Zudem konnte jede Person fremde Ranglisten-Einträge überschreiben/löschen und fremde Mahlzeiten
+  zurückziehen.
+- **Jetzt:** `POST /v1/invite` (nur Haupt-Token) stellt je Einladung ein Gast-Token `g1.<id>.<HMAC-SHA-256(Haupt-Token,
+  "guest:"+id)>` aus. Der Worker speichert dafür nichts; gesperrt wird über `REVOKED_GUESTS`. Gäste dürfen KI,
+  Rangliste und Mahlzeiten teilen, aber nicht einladen; die SideStore-Quelle hängt weiter am Haupt-Token.
+- **Besitzer je Eintrag** (`owner` in KV, nie ausgeliefert): Ranglisten-Eintrag und geteilte Mahlzeit ändern bzw.
+  löschen nur, wer sie angelegt hat. Alte Einträge ohne Besitzer übernimmt der nächste Schreibzugriff, alte
+  Mahlzeiten verfallen nach 7 Tagen – keine Daten gehen verloren.
+- **Bewusst nicht:** Benutzerkonten mit Anmeldung und serverseitige Nutzerdaten (Bericht `docs/qualitaet-paket8.md`,
+  Vorschlag E5) – das wäre ein anderer Dienst als „Daten bleiben auf dem iPhone“.
+- **Speicher nicht lesbar:** Die App startet weiter ohne Absturz im Arbeitsspeicher, zeigt aber jetzt eine
+  Warnleiste, weil dort erfasste Mahlzeiten und Gym-Einheiten beim Beenden verloren gingen.
+- Quellen: HMAC nach RFC 2104, Web Crypto `crypto.subtle.sign("HMAC", …)` in Workers
+  (<https://developers.cloudflare.com/workers/runtime-apis/web-crypto/>); KV-Limits
+  <https://developers.cloudflare.com/kv/platform/limits/>.
+
 ## 2026-11-02 – Dunkelmodus: Auswahl in der App
 
 - Die Oberfläche nutzt durchgehend Systemfarben und folgte schon immer dem Dunkelmodus des iPhones

@@ -32,11 +32,30 @@ extension StubbedNetworkTests {
       let league = LeagueService(ai: ai, settings: settings)
       #expect(!league.canUse)
       try league.accept(
-        LeagueInvite(workerURL: "https://coach-ai.example.workers.dev", token: "tok-123", code: "team-abc234xyz9"))
+        LeagueInvite(
+          workerURL: "https://coach-ai.example.workers.dev", token: "g1.abcdefghijk2.0123", code: "team-abc234xyz9"))
       #expect(league.canUse)
       #expect(settings.league.code == "team-abc234xyz9")
-      let invite = try #require(league.inviteURL)
-      #expect(LeagueInvite(url: invite)?.token == "tok-123")
+      // Gäste laden nicht weiter ein und sehen die private SideStore-Quelle nicht.
+      #expect(ai.isGuest)
+      #expect(!league.canInvite)
+      #expect(ai.sideStoreSourceURL == nil)
+    }
+
+    /// Die Einladung enthält ein frisch ausgestelltes Gast-Token, nie das eigene Haupt-Token.
+    @Test func inviteCarriesGuestTokenNotOwnToken() async throws {
+      let (settings, ai, _) = try environment()
+      try ai.configure(url: "https://coach-ai.example.workers.dev", token: "haupt-token")
+      settings.league.code = "team-abc234xyz9"
+      let league = LeagueService(ai: ai, settings: settings)
+      #expect(league.canInvite)
+      StubURLProtocol.install { _ in (200, #"{"id":"abcdefghijk2","token":"g1.abcdefghijk2.0123"}"#) }
+      let url = try #require(try await league.makeInvite())
+      #expect(LeagueInvite(url: url)?.token == "g1.abcdefghijk2.0123")
+      #expect(!url.absoluteString.contains("haupt-token"))
+      let request = try #require(StubURLProtocol.requests.first)
+      #expect(request.url?.path() == "/v1/invite")
+      #expect(request.httpMethod == "POST")
     }
 
     @Test func syncSendsOnlyNameAndPoints() async throws {
