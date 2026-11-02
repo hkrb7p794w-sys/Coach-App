@@ -14,7 +14,7 @@ Gebaut wird ausschließlich in GitHub Actions, installiert per SideStore (kosten
 | `ios/CoachWidgets/`, `ios/Shared/` | Widget-Erweiterung für die Live-Aktivität der Gym-Einheit; `Shared` gehört zu App und Erweiterung |
 | `ios/CoachTests/` | App-Tests (Swift Testing), laufen nur im Simulator (macOS) |
 | `ios/Packages/CoachCore/` | Reine Logik **ohne** Apple-Frameworks – testbar auf Linux mit `swift test` |
-| `worker/` | Cloudflare Worker (TypeScript): KI-Weiterleitung Gemini → Groq, Prompts in `src/tasks.ts` |
+| `worker/` | Cloudflare Worker (TypeScript): KI-Weiterleitung über austauschbare Anbieter (`src/providers.ts`: Gemini, Workers AI, Groq, eigener Server), Prompts in `src/tasks.ts` |
 | `docs/` | Entscheidungen (`decisions.md`) und Anleitungen für den Nutzer |
 | `.github/workflows/` | `ios-build.yml` (macOS, nur manuell), `swift.yml` und `worker.yml` (Linux, bei PRs; Worker-Deploy auf `main`) |
 

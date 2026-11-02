@@ -11,6 +11,7 @@
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { GroundingError } from "./grounding";
 import { handleLeague, type LeagueStore } from "./league";
+import { listPriceUsd, parsePreference, providerInfo } from "./providers";
 import { handleSideStore } from "./sidestore";
 import { findTask } from "./tasks";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
@@ -63,6 +64,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
       status: "ok",
       version: VERSION,
       providers: { gemini: Boolean(env.GEMINI_API_KEY), groq: Boolean(env.GROQ_API_KEY) },
+      providerList: providerInfo(env),
       configured: Boolean(env.COACH_APP_TOKEN),
     });
   }
@@ -123,6 +125,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
       },
       env,
       deps,
+      parsePreference(body.provider),
     );
     let output: unknown = result.text;
     if (task.json) {
@@ -143,7 +146,19 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
         throw error;
       }
     }
-    return json(200, { output, model: result.model, provider: result.provider });
+    return json(200, {
+      output,
+      model: result.model,
+      provider: result.provider,
+      ...(result.usage
+        ? {
+            usage: {
+              ...result.usage,
+              listPriceUsd: listPriceUsd(result.provider, result.model, result.usage),
+            },
+          }
+        : {}),
+    });
   } catch (error) {
     if (error instanceof AllProvidersFailed) return json(502, { error: error.message });
     deps.log(`[worker] Unerwarteter Fehler: ${String(error)}`);

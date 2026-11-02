@@ -33,6 +33,7 @@ private struct SettingsForm: View {
         garminSection
         HealthImportSection()
         aiSection
+        AISettingsSection()
         Section("Coach") {
           if model.settings.profile.mode == .season {
             NavigationLink("Saison & Rennen") { SeasonSettingsView() }

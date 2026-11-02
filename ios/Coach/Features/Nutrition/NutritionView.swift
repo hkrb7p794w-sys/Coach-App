@@ -441,7 +441,7 @@ struct NutritionView: View {
             recovery: recoveryText)
         }
       }
-      .disabled(viewModel.isWorking || !model.ai.isConfigured)
+      .disabled(viewModel.isWorking || !model.ai.allows("nutrition_review"))
       if !viewModel.reviewPoints.isEmpty {
         EvidenceDisclosure(ruleIDs: viewModel.reviewSources + NutritionViewModel.reviewEvidence)
       }

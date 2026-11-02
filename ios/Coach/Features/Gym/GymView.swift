@@ -104,7 +104,7 @@ struct GymView: View {
           gym: model.settings.gym
         )
         if !viewModel.hintSource.hasPrefix("KI") {
-          await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal)
+          await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal, trigger: .automatic)
         }
       }
       .fullScreenCover(isPresented: $showWorkout) {

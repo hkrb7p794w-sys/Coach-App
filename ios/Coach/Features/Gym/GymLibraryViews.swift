@@ -652,7 +652,7 @@ struct GymHintsSection: View {
         HStack {
           Text("Tipps für die nächste Einheit")
           Spacer()
-          if model.ai.isConfigured {
+          if model.ai.allows("gym_hints") {
             Button("Neu", systemImage: "sparkles") {
               Task { await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal) }
             }
