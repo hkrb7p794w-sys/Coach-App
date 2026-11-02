@@ -603,42 +603,42 @@ private struct BudgetSection: View {
   }
 
   private var ring: some View {
-      HStack(spacing: 20) {
-        if let kcal = NutritionBudget.line(.kcal, targets: targets.values, totals: totals) {
-          CalorieRing(line: kcal)
-        }
-        VStack(alignment: .leading, spacing: 10) {
-          ForEach(NutritionBudget.main, id: \.self) { nutrient in
-            if let line = NutritionBudget.line(nutrient, targets: targets.values, totals: totals) {
-              MacroBar(line: line)
-            }
+    HStack(spacing: 20) {
+      if let kcal = NutritionBudget.line(.kcal, targets: targets.values, totals: totals) {
+        CalorieRing(line: kcal)
+      }
+      VStack(alignment: .leading, spacing: 10) {
+        ForEach(NutritionBudget.main, id: \.self) { nutrient in
+          if let line = NutritionBudget.line(nutrient, targets: targets.values, totals: totals) {
+            MacroBar(line: line)
           }
         }
       }
-      .padding(.vertical, 6)
+    }
+    .padding(.vertical, 6)
   }
 
   private func waterRow(_ target: Double) -> some View {
-        HStack {
-          Image(systemName: "drop.fill").foregroundStyle(.cyan)
-          Text("Wasser \(GermanFormat.decimal(water / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
-            .monospacedDigit()
-          Spacer()
-          Menu {
-            ForEach([150.0, 330, 500, 750], id: \.self) { amount in
-              Button("\(Int(amount)) ml") { addWater(amount) }
-            }
-          } label: {
-            Label("+250 ml", systemImage: "plus")
-              .font(.subheadline.bold())
-              .padding(.horizontal, 12)
-              .frame(minHeight: 40)
-              .background(.cyan.opacity(0.15), in: Capsule())
-          } primaryAction: {
-            addWater(250)
-          }
-          .accessibilityHint("Gedrückt halten für andere Mengen")
+    HStack {
+      Image(systemName: "drop.fill").foregroundStyle(.cyan)
+      Text("Wasser \(GermanFormat.decimal(water / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
+        .monospacedDigit()
+      Spacer()
+      Menu {
+        ForEach([150.0, 330, 500, 750], id: \.self) { amount in
+          Button("\(Int(amount)) ml") { addWater(amount) }
         }
+      } label: {
+        Label("+250 ml", systemImage: "plus")
+          .font(.subheadline.bold())
+          .padding(.horizontal, 12)
+          .frame(minHeight: 40)
+          .background(.cyan.opacity(0.15), in: Capsule())
+      } primaryAction: {
+        addWater(250)
+      }
+      .accessibilityHint("Gedrückt halten für andere Mengen")
+    }
   }
 }
 

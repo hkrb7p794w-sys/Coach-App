@@ -19,12 +19,13 @@ struct MealReminderTests {
     let logged: Set<String> = [ReminderPlanner.loggedKey(day: today, category: .lunch)]
     let notes = ReminderPlanner.meals(settings, today: today, minutesNow: 600, logged: logged)
     let ids = notes.map(\.id)
-    #expect(ids == [
-      "coach.reminder.meal.2026-11-02.abendessen",
-      "coach.reminder.meal.2026-11-03.fruehstueck",
-      "coach.reminder.meal.2026-11-03.mittagessen",
-      "coach.reminder.meal.2026-11-03.abendessen",
-    ])
+    #expect(
+      ids == [
+        "coach.reminder.meal.2026-11-02.abendessen",
+        "coach.reminder.meal.2026-11-03.fruehstueck",
+        "coach.reminder.meal.2026-11-03.mittagessen",
+        "coach.reminder.meal.2026-11-03.abendessen",
+      ])
     #expect(notes.first?.hour == 19)
     #expect(notes.first?.title == "Abendessen eintragen")
     // Alles aus: keine Mitteilung.
