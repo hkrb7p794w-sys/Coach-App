@@ -15,6 +15,48 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 - **`probability: 100`** je Übung wie bei einer in Connect bearbeiteten Übung.
 - **Satzdauer beim Ersetzen** wie im FIT-Export (3 s je Wiederholung, mind. 20 s) statt pauschal bis 2:00.
 - **„Sätze erneut übertragen“** in der Einheit: baut immer auf der gesicherten Original-Aufzeichnung der Uhr auf.
+## 2026-11-02 – Homescreen-Widgets mit App Group (Paket 7, PR B)
+
+- **App Group** `group.io.github.hkrb7p794w.coach` für App und Erweiterung. SideStore macht daraus
+  `…coach.<TEAMID>` und weist beide zu; die App liest die echte ID aus `embedded.mobileprovision`
+  (`AppGroupProfile`, getestet) und prüft sie mit `containerURL(forSecurityApplicationGroupIdentifier:)`. Die
+  Erweiterung wird jetzt mit eigenen Entitlements pseudo-signiert, damit SideStore die Gruppe sieht.
+- **Nur ein Stand-Dokument in der Gruppe** (`WidgetSnapshot`), die Datenbank bleibt im Container der App – kein
+  Umzug, kein Risiko für vorhandene Daten. Widgets rechnen nur Tageswechsel und wartendes Wasser ein.
+- **Interaktiv nur „+250 ml Wasser“:** Widgets dürfen nur Knöpfe/Schalter mit App Intents (Apple „Adding
+  interactivity to widgets and Live Activities“); der Intent läuft in der Erweiterung und kann die Datenbank nicht
+  schreiben, deshalb Warteschlange, die die App übernimmt. Mahlzeit erfassen geht im Widget nicht (keine Eingabe) –
+  der Knopf öffnet die App (`coach://open/logMeal`).
+- **Konfigurierbar** über `AppIntentConfiguration` (Ernährung: Anzeige; Health: Wert; Gym: Anzeige). Die Erweiterung
+  läuft mit `SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated`, weil `@Parameter` in `nonisolated`-Strukturen der
+  MainActor-Voreinstellung nicht ging (Commit 0c05ddb).
+- **CoachCore in der Erweiterung** (≈ 0,9 MB Ressourcen mehr) statt eigener Kopie der Datentypen: eine Definition,
+  auf Linux getestet.
+- **Aktualisierung:** beim Öffnen, nach dem Abruf, beim Verlassen und nach dem Hintergrundabruf
+  (`WidgetCenter.reloadAllTimelines`); Zeitleiste mit Eintrag ab Mitternacht. Quelle: Apple „Keeping a widget up to
+  date“.
+
+## 2026-11-02 – Plattform: Schnellaktionen, Kurzbefehle, Navigation per Route (Paket 7, PR A)
+
+- **Eine Route für alles von außen:** `AppRoute` (CoachCore, getestet) wählt Reiter und Aktion; `AppRouter` in der
+  App hält die offene Anforderung, die Zielansicht übernimmt sie genau einmal (`take`). Genutzt von Schnellaktionen
+  am App-Icon, App Shortcuts und Links `coach://open/<route>` (später Widgets). Alte Links bleiben.
+- **Schnellaktionen dynamisch** (`UIApplication.shortcutItems`, gesetzt beim Verlassen der App), nicht in der
+  Info.plist: nur, was für die Person funktioniert – „Training starten“ nur mit Krafttraining, „KI-Analyse“ nur mit
+  eingerichteter und erlaubter KI. iOS zeigt höchstens vier. Annahme über einen Szenen-Delegaten nur für
+  `performActionFor`; Fenster und Links verwaltet weiter SwiftUI. Quelle: Apple „Add Home Screen quick actions“.
+- **App Shortcuts** als vier Intents ohne Parameter mit `openAppWhenRun` (Titel als Konstanten, weil Xcode sie beim
+  Bauen ausliest; `nonisolated` wie die Intents der Live-Aktivität). Kein Entitlement nötig.
+- **„Training starten“** öffnet die laufende Einheit, sonst startet es die nächste geplante (Rotation bzw. Saisonplan).
+  Unschädlich, weil eine Einheit erst mit dem ersten Satz zählt; nie begonnene verwirft die App.
+- **Deployment-Target bleibt iOS 18.0:** iOS 18 läuft auf denselben Geräten wie iOS 17 (ab XS/XR); iOS 26 würde
+  XS/XR ausschließen. AlarmKit bleibt hinter `#available(iOS 26)`.
+- **Android:** keine App jetzt. Wenn nötig: Compose-Oberfläche und CoachCore in Swift über das Swift SDK für Android
+  (offiziell seit Swift 6.3) nach einem Machbarkeitstest; kein Rewrite der iOS-App, keine zweite Logik in Kotlin.
+- **Homescreen-Widgets** in eigener PR: App Group nötig. SideStore legt sie auch für kostenlose Konten an, hängt aber
+  die Team-ID an (`group.<id>.<TEAMID>`, Quellcode `FetchProvisioningProfilesOperation`); die App liest die echte
+  Gruppe aus `embedded.mobileprovision`. Die frühere Einschätzung „unsicher“ (Paket 4) ist damit präzisiert.
+  Begründung und Matrix: `docs/plattform-paket7.md`.
 
 ## 2026-11-02 – Persönliche Ziele und Prioritäten (Paket 6)
 

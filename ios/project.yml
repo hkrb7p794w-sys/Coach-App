@@ -38,6 +38,10 @@ targets:
       properties:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
+        # Gemeinsamer Speicher mit den Homescreen-Widgets. SideStore hängt die Team-ID an; die App liest die
+        # tatsächliche Gruppe aus dem Provisioning-Profil (WidgetStore).
+        com.apple.security.application-groups:
+          - group.io.github.hkrb7p794w.coach
     info:
       path: Coach/Resources/Info.plist
       properties:
@@ -79,8 +83,8 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: "NO"
-  # Widget-Erweiterung nur für die Live-Aktivität. Kostet bei SideStore mit kostenloser Apple-ID eine zusätzliche
-  # App-ID (10 je 7 Tage), siehe docs/decisions.md.
+  # Widget-Erweiterung: Live-Aktivität und Homescreen-/Sperrbildschirm-Widgets. Kostet bei SideStore mit kostenloser
+  # Apple-ID eine zusätzliche App-ID (10 je 7 Tage), siehe docs/decisions.md.
   CoachWidgets:
     type: app-extension
     platform: iOS
@@ -91,6 +95,12 @@ targets:
       - sdk: WidgetKit.framework
       - sdk: SwiftUI.framework
       - sdk: ActivityKit.framework
+      - package: CoachCore
+    entitlements:
+      path: CoachWidgets/CoachWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.io.github.hkrb7p794w.coach
     info:
       path: CoachWidgets/Info.plist
       properties:
@@ -105,6 +115,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.hkrb7p794w.coach.widgets
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: "NO"
+        # Ohne MainActor-Voreinstellung: `@Parameter` in Konfigurations-Intents geht sonst nicht. Gemeinsame Dateien
+        # (Shared) geben ihre Isolation ausdrücklich an.
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
   CoachTests:
     type: bundle.unit-test
     platform: iOS

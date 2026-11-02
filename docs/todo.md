@@ -85,6 +85,16 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übungsnamen:** Einheit › Garmin Connect › „Sätze erneut übertragen“ → in Garmin Connect Übungen statt
       „Unbekannt“, Satzdauer realistisch. Welche eigenen Übungen landen noch falsch?
+- [ ] **Schnellaktionen (Paket 7 A):** Nach dem ersten Öffnen lange aufs App-Icon drücken → „Training starten“,
+      „Mahlzeit erfassen“, „Health öffnen“, „KI-Analyse starten“. Jede springt in den richtigen Reiter, auch bei
+      geschlossener App. Spotlight/Kurzbefehle-App: „Training starten in IronLudi“. Funktionieren Einladungs- und
+      Mahlzeit-Links weiter?
+
+- [ ] **Homescreen-Widgets (Paket 7 B):** Installiert SideStore die App mit App Group? (Sonst bricht SideStore mit
+      einem App-Group-Fehler ab → melden.) Widgets „Heute“, „Ernährung“, „Health“, „Gym“ hinzufügen und per „Widget
+      bearbeiten“ umstellen; Werte wie in der App? „+250 ml“ im mittleren Ernährungs-Widget zählt sofort, nach dem
+      Öffnen der App steht der Eintrag im Tagebuch (genau einmal). Sperrbildschirm: kcal-Ring, Body Battery. Am
+      nächsten Morgen ohne Öffnen: 0 kcal, „Neuer Tag – App öffnen“.
 
 ## Gestrichen
 

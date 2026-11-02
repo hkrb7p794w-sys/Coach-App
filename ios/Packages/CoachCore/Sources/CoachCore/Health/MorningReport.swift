@@ -4,7 +4,7 @@ import Foundation
 /// Empfehlung nach festen Regeln (`RecoveryEvaluator` plus persönliche Abweichungen). Fehlende Werte werden genannt,
 /// nie geschätzt; mit wenigen Daten bleibt der Bericht kurz und sagt das.
 public struct MorningReport: Equatable, Sendable {
-  public enum Status: String, Equatable, Sendable {
+  public enum Status: String, Codable, Equatable, Sendable {
     case good, normal, attention, missing
   }
 

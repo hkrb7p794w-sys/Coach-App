@@ -185,6 +185,8 @@ final class AppModel {
   func backgroundRefresh() async {
     scheduleBackgroundRefresh()
     await syncIfDue()
+    // Neue Nacht-/Tageswerte auch auf dem Homescreen.
+    WidgetPublisher.publish(model: self)
   }
 
   func scheduleBackgroundRefresh() {

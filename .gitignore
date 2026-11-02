@@ -12,6 +12,7 @@ ios/*.xcodeproj/
 ios/Coach/Resources/Info.plist
 ios/CoachWidgets/Info.plist
 ios/Coach/Resources/Coach.entitlements
+ios/CoachWidgets/CoachWidgets.entitlements
 xcuserdata/
 DerivedData/
 build/

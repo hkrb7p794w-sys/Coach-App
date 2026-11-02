@@ -11,6 +11,7 @@ struct TrainingView: View {
   @Query(sort: \ActivityRecord.startLocal, order: .reverse) private var activities: [ActivityRecord]
   @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
   @State private var viewModel = TrainingViewModel()
+  @State private var showsHealth = false
 
   private var refreshKey: String {
     "\(days.last?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.heartRate.hashValue)-"
@@ -121,6 +122,11 @@ struct TrainingView: View {
       }
       .navigationTitle("Training")
       .refreshable { await model.syncNow() }
+      // Schnellaktion / Kurzbefehl „Health öffnen“.
+      .navigationDestination(isPresented: $showsHealth) { HealthDashboardView() }
+      .onChange(of: AppRouter.shared.pending, initial: true) {
+        if AppRouter.shared.take(.health) { showsHealth = true }
+      }
       .task(id: refreshKey) {
         viewModel.update(
           days: days.compactMap(\.metrics),
