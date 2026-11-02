@@ -134,6 +134,11 @@ struct MorningReportView: View {
         }
         NavigationLink("Schlaf-Coach") { SleepCoachView() }
       }
+      WakeAlarmSection(
+        wake: WakePlan.Time(minutes: model.settings.sleep.wakeMinutes),
+        tonightMinutes: SleepCoach.report(
+          days: days.compactMap(\.metrics), settings: model.settings.sleep, goal: model.settings.profile.goal,
+          today: report.day)?.tonightMinutes ?? Int(model.settings.sleep.targetHours * 60))
 
       if !report.missing.isEmpty {
         Section {

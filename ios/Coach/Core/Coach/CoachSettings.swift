@@ -25,6 +25,7 @@ final class CoachSettings {
   static let recipesKey = "coach.recipes"
   static let weightsKey = "coach.weights"
   static let sleepKey = "coach.sleep"
+  static let healthDashboardKey = "coach.healthDashboard"
   static let importedNotesKey = "coach.importedNotes"
   static let userSourcesKey = "coach.userSources"
   static let ownRecipesKey = "coach.ownRecipes"
@@ -128,6 +129,11 @@ final class CoachSettings {
   /// Schlaf-Coach: Ziel, Weckzeit, Erinnerung.
   var sleep: SleepSettings {
     didSet { save(sleep, forKey: Self.sleepKey) }
+  }
+
+  /// Widgets im Gesundheitsbereich (Reihenfolge, Darstellung, ausgeblendet).
+  var healthDashboard: HealthDashboard {
+    didSet { save(healthDashboard, forKey: Self.healthDashboardKey) }
   }
 
   /// Eigene wissenschaftliche Quellen, die die KI zusätzlich berücksichtigt.
@@ -237,6 +243,10 @@ final class CoachSettings {
     sleep =
       defaults.data(forKey: Self.sleepKey).flatMap { try? JSONDecoder().decode(SleepSettings.self, from: $0) }
       ?? SleepSettings()
+    healthDashboard =
+      defaults.data(forKey: Self.healthDashboardKey).flatMap {
+        try? JSONDecoder().decode(HealthDashboard.self, from: $0)
+      } ?? HealthDashboard()
     userSources =
       defaults.data(forKey: Self.userSourcesKey).flatMap { try? JSONDecoder().decode([UserSource].self, from: $0) }
       ?? []
