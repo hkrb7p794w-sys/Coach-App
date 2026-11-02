@@ -5,6 +5,24 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Android-App: eigenes Kotlin-Projekt nur fürs Gym
+
+- **Auftrag:** Android-App für den Bruder des Nutzers, nur Gym-Logging, kein Garmin (Rückfrage beantwortet).
+- **Kotlin + Jetpack Compose statt Swift SDK für Android:** Der Swift-Weg ist noch nicht erprobt (Paket 7, 2.3) und
+  in GitHub Actions nicht vorinstalliert; Compose baut auf jedem Linux-Runner mit vorinstalliertem Android-SDK. Die
+  Regeln bleiben gleich: Doppelprogression als Port von `GymProgression` mit denselben Testfällen
+  (`nextWeightMatchesLegacy`), Übungsbibliothek wird aus den Swift-Quellen **erzeugt** (`export_exercises.py`, CI
+  prüft), damit beide Apps nicht auseinanderlaufen.
+- **Kein Netz, kein Konto, kein Token:** Daten in einer JSON-Datei auf dem Handy, Sicherung als Datei und über
+  Android Auto Backup. Die App braucht den Worker nicht.
+- **Verteilung wie die SideStore-Quelle:** APK in Workers KV (`android.apk`, `android.json`), Seite unter
+  `/android/<SHA-256("android:"+Haupt-Token)>/`. Gast-Tokens ergeben keinen gültigen Pfad. Upload nur mit festem
+  Signaturschlüssel (GitHub-Secrets), sonst ließen sich installierte Apps nicht aktualisieren.
+- Quellen: Android „Install unknown apps“ / APK-Signatur
+  (<https://developer.android.com/studio/publish/app-signing>), Auto Backup
+  (<https://developer.android.com/identity/data/autobackup>), Workers-KV-Limits (25 MiB je Wert)
+  <https://developers.cloudflare.com/kv/platform/limits/>.
+
 ## 2026-11-02 – Gast-Tokens statt Haupt-Token in Einladungen (Paket 8)
 
 - **Fund:** Der Einladungslink der Rangliste enthielt `COACH_APP_TOKEN`. Wer ihn hatte, konnte alles, was die

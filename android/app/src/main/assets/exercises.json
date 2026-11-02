@@ -1,0 +1,1307 @@
+[
+ {
+  "id": "bankdruecken",
+  "name": "Bankdrücken",
+  "group": "Brust",
+  "secondary": [
+   "Trizeps",
+   "Schultern"
+  ],
+  "equipment": [
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Auf der Bank liegen, Füße fest am Boden, Schulterblätter zusammen und nach unten ziehen.",
+   "Stange kontrolliert zur unteren Brust senken, Ellbogen etwa 45–70° vom Körper.",
+   "Gerade nach oben drücken, ohne das Gesäß von der Bank zu heben."
+  ]
+ },
+ {
+  "id": "kurzhantel_bankdruecken",
+  "name": "Kurzhantel-Bankdrücken",
+  "group": "Brust",
+  "secondary": [
+   "Trizeps",
+   "Schultern"
+  ],
+  "equipment": [
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hanteln auf Brusthöhe, Handflächen zeigen Richtung Füße.",
+   "Hanteln über der Brust zusammenführen, ohne sie anzuschlagen.",
+   "Langsam senken, bis eine leichte Dehnung in der Brust spürbar ist."
+  ]
+ },
+ {
+  "id": "schraegbankdruecken",
+  "name": "Schrägbankdrücken",
+  "group": "Brust",
+  "secondary": [
+   "Schultern",
+   "Trizeps"
+  ],
+  "equipment": [
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Bank auf etwa 30° stellen.",
+   "Stange zur oberen Brust senken, Schulterblätter bleiben zurückgezogen.",
+   "Kontrolliert nach oben drücken."
+  ]
+ },
+ {
+  "id": "kurzhantel_schraegbankdruecken",
+  "name": "Kurzhantel-Schrägbankdrücken",
+  "group": "Brust",
+  "secondary": [
+   "Schultern",
+   "Trizeps"
+  ],
+  "equipment": [
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Bank auf etwa 30° stellen, Hanteln neben der oberen Brust.",
+   "Über der Brust zusammendrücken, Ellbogen leicht angewinkelt lassen.",
+   "Langsam und kontrolliert senken."
+  ]
+ },
+ {
+  "id": "brustpresse",
+  "name": "Brustpresse",
+  "group": "Brust",
+  "secondary": [
+   "Trizeps",
+   "Schultern"
+  ],
+  "equipment": [
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 5.0,
+  "percent": 2.5,
+  "instructions": [
+   "Sitz so einstellen, dass die Griffe auf Höhe der mittleren Brust sind.",
+   "Nach vorn drücken, ohne die Ellbogen ganz durchzustrecken.",
+   "Langsam zurückführen, Rücken bleibt an der Lehne."
+  ]
+ },
+ {
+  "id": "fliegende",
+  "name": "Fliegende (Brust)",
+  "group": "Brust",
+  "secondary": [
+   "Schultern"
+  ],
+  "equipment": [
+   "dumbbell",
+   "cable",
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.25,
+  "percent": 2.5,
+  "instructions": [
+   "Arme leicht gebeugt, Ellbogen bleiben während der Bewegung im gleichen Winkel.",
+   "In einem weiten Bogen öffnen, bis die Brust gedehnt ist.",
+   "Im selben Bogen zusammenführen und die Brust anspannen."
+  ]
+ },
+ {
+  "id": "liegestuetze",
+  "name": "Liegestütze",
+  "group": "Brust",
+  "secondary": [
+   "Trizeps",
+   "Schultern",
+   "Rumpf"
+  ],
+  "equipment": [
+   "bodyweight"
+  ],
+  "tracking": "reps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 20,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hände etwas breiter als schulterbreit, Körper bildet eine gerade Linie.",
+   "Brust bis knapp über den Boden senken, Ellbogen etwa 45° vom Körper.",
+   "Kräftig hochdrücken. Leichter: Hände erhöht auf einer Bank."
+  ]
+ },
+ {
+  "id": "klimmzug",
+  "name": "Klimmzug",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps"
+  ],
+  "equipment": [
+   "pullupBar"
+  ],
+  "tracking": "reps",
+  "compound": true,
+  "lowerReps": 5,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Stange etwas breiter als schulterbreit greifen, aus dem Hang starten.",
+   "Schulterblätter nach unten ziehen und das Kinn über die Stange ziehen.",
+   "Kontrolliert ganz absenken. Leichter: mit Widerstandsband."
+  ]
+ },
+ {
+  "id": "latziehen",
+  "name": "Latziehen",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps"
+  ],
+  "equipment": [
+   "cable",
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Oberschenkel unter dem Polster fixieren, Stange breit greifen.",
+   "Stange zur oberen Brust ziehen, Ellbogen nach unten und hinten.",
+   "Langsam nach oben führen, bis die Arme gestreckt sind."
+  ]
+ },
+ {
+  "id": "latziehen_einarmig",
+  "name": "Latziehen einarmig",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps"
+  ],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Griff mit einer Hand fassen, leicht zur Seite lehnen.",
+   "Ellbogen Richtung Hüfte ziehen.",
+   "Langsam strecken und die Dehnung im Rücken spüren."
+  ]
+ },
+ {
+  "id": "rudern_langhantel",
+  "name": "Langhantelrudern",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps",
+   "Beine"
+  ],
+  "equipment": [
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hüfte beugen, Oberkörper etwa 45° nach vorn, Rücken gerade.",
+   "Stange zum Bauchnabel ziehen, Schulterblätter zusammen.",
+   "Kontrolliert senken, Rücken bleibt neutral."
+  ]
+ },
+ {
+  "id": "rudern_kurzhantel",
+  "name": "Kurzhantelrudern",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps"
+  ],
+  "equipment": [
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Eine Hand und ein Knie auf der Bank, Rücken gerade.",
+   "Hantel zur Hüfte ziehen, Ellbogen nah am Körper.",
+   "Langsam strecken, ohne den Oberkörper zu drehen."
+  ]
+ },
+ {
+  "id": "rudern_kabel",
+  "name": "Rudern am Kabel",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps"
+  ],
+  "equipment": [
+   "cable",
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Aufrecht sitzen, Knie leicht gebeugt.",
+   "Griff zum Bauch ziehen, Schulterblätter zusammen, Brust raus.",
+   "Arme kontrolliert strecken, ohne nach vorn zu kippen."
+  ]
+ },
+ {
+  "id": "rudern_koerpergewicht",
+  "name": "Rudern mit Körpergewicht",
+  "group": "Rücken",
+  "secondary": [
+   "Bizeps"
+  ],
+  "equipment": [
+   "bodyweight",
+   "barbell",
+   "band"
+  ],
+  "tracking": "reps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Unter eine Stange (z. B. im Rack) legen und sie greifen, Körper gestreckt.",
+   "Brust zur Stange ziehen, Schulterblätter zusammen.",
+   "Langsam senken. Leichter: Füße näher, Körper aufrechter."
+  ]
+ },
+ {
+  "id": "kabel_pullover",
+  "name": "Kabel-Pullover",
+  "group": "Rücken",
+  "secondary": [],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Vor dem Kabelzug stehen, Stange oder Seil mit gestreckten Armen fassen.",
+   "Mit fast gestreckten Armen im Bogen bis zu den Oberschenkeln ziehen.",
+   "Langsam zurück, bis die Arme über Kopfhöhe sind."
+  ]
+ },
+ {
+  "id": "rueckenstrecker",
+  "name": "Rückenstrecker (Hyperextension)",
+  "group": "Rücken",
+  "secondary": [
+   "Beine"
+  ],
+  "equipment": [
+   "bench",
+   "machine",
+   "bodyweight"
+  ],
+  "tracking": "reps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hüfte am Polster, Füße fixiert, Rücken gerade.",
+   "Oberkörper aus der Hüfte senken.",
+   "Bis zur geraden Linie aufrichten, nicht ins Hohlkreuz gehen."
+  ]
+ },
+ {
+  "id": "schulterdruecken",
+  "name": "Schulterdrücken",
+  "group": "Schultern",
+  "secondary": [
+   "Trizeps"
+  ],
+  "equipment": [
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Stehen, Stange auf Höhe der Schlüsselbeine, Bauch und Gesäß fest.",
+   "Stange senkrecht über den Kopf drücken, Kopf leicht zurück.",
+   "Kontrolliert zurück zur Startposition."
+  ]
+ },
+ {
+  "id": "kurzhantel_schulterdruecken",
+  "name": "Kurzhantel-Schulterdrücken",
+  "group": "Schultern",
+  "secondary": [
+   "Trizeps"
+  ],
+  "equipment": [
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Sitzend oder stehend, Hanteln auf Schulterhöhe.",
+   "Über den Kopf drücken, ohne die Hanteln anzuschlagen.",
+   "Langsam bis auf Schulterhöhe senken."
+  ]
+ },
+ {
+  "id": "seitheben",
+  "name": "Seitheben",
+  "group": "Schultern",
+  "secondary": [],
+  "equipment": [
+   "dumbbell",
+   "cable",
+   "band"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.0,
+  "percent": 2.5,
+  "instructions": [
+   "Leicht nach vorn geneigt stehen, Arme minimal gebeugt.",
+   "Arme seitlich bis auf Schulterhöhe heben, Ellbogen führen.",
+   "Langsam senken, ohne Schwung."
+  ]
+ },
+ {
+  "id": "frontheben",
+  "name": "Frontheben",
+  "group": "Schultern",
+  "secondary": [],
+  "equipment": [
+   "dumbbell",
+   "cable",
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 1.0,
+  "percent": 2.5,
+  "instructions": [
+   "Aufrecht stehen, Gewicht vor den Oberschenkeln.",
+   "Mit fast gestreckten Armen bis auf Schulterhöhe heben.",
+   "Kontrolliert senken."
+  ]
+ },
+ {
+  "id": "reverse_fly",
+  "name": "Reverse Fly",
+  "group": "Schultern",
+  "secondary": [
+   "Rücken"
+  ],
+  "equipment": [
+   "dumbbell",
+   "cable",
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.0,
+  "percent": 2.5,
+  "instructions": [
+   "Oberkörper nach vorn geneigt, Rücken gerade.",
+   "Arme seitlich nach hinten öffnen, Schulterblätter zusammen.",
+   "Langsam zurückführen."
+  ]
+ },
+ {
+  "id": "face_pull",
+  "name": "Face Pull",
+  "group": "Schultern",
+  "secondary": [
+   "Rücken"
+  ],
+  "equipment": [
+   "cable",
+   "band"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Seil auf Augenhöhe, mit beiden Händen greifen.",
+   "Zum Gesicht ziehen, Hände auseinander, Ellbogen hoch.",
+   "Kurz halten, dann kontrolliert strecken."
+  ]
+ },
+ {
+  "id": "aufrechtes_rudern",
+  "name": "Aufrechtes Rudern",
+  "group": "Schultern",
+  "secondary": [],
+  "equipment": [
+   "barbell",
+   "dumbbell",
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Gewicht vor dem Körper, Griff etwa schulterbreit.",
+   "Ellbogen seitlich bis knapp unter Schulterhöhe ziehen.",
+   "Langsam senken; bei Schulterbeschwerden lieber Seitheben."
+  ]
+ },
+ {
+  "id": "shrugs",
+  "name": "Shrugs",
+  "group": "Schultern",
+  "secondary": [
+   "Rücken"
+  ],
+  "equipment": [
+   "barbell",
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Aufrecht stehen, Gewicht an gestreckten Armen.",
+   "Schultern senkrecht zu den Ohren ziehen.",
+   "Kurz halten und langsam senken."
+  ]
+ },
+ {
+  "id": "bizeps_curl",
+  "name": "Bizeps-Curl",
+  "group": "Bizeps",
+  "secondary": [
+   "Unterarme"
+  ],
+  "equipment": [
+   "barbell",
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Aufrecht stehen, Ellbogen am Körper.",
+   "Gewicht ohne Schwung zur Schulter beugen.",
+   "Langsam strecken, bis die Arme fast gerade sind."
+  ]
+ },
+ {
+  "id": "kurzhantel_curl",
+  "name": "Kurzhantel-Curl",
+  "group": "Bizeps",
+  "secondary": [
+   "Unterarme"
+  ],
+  "equipment": [
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 1.0,
+  "percent": 2.5,
+  "instructions": [
+   "Hanteln seitlich, Handflächen nach vorn.",
+   "Abwechselnd oder gleichzeitig beugen, Ellbogen bleiben am Körper.",
+   "Kontrolliert senken."
+  ]
+ },
+ {
+  "id": "hammer_curl",
+  "name": "Hammer Curl",
+  "group": "Bizeps",
+  "secondary": [
+   "Unterarme"
+  ],
+  "equipment": [
+   "dumbbell",
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Handflächen zeigen zueinander.",
+   "Hanteln zur Schulter beugen, Ellbogen fest am Körper.",
+   "Langsam senken."
+  ]
+ },
+ {
+  "id": "trizeps_pushdown",
+  "name": "Trizeps-Pushdown",
+  "group": "Trizeps",
+  "secondary": [],
+  "equipment": [
+   "cable",
+   "band"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Am Kabelzug stehen, Ellbogen fest an den Seiten.",
+   "Griff nach unten drücken, bis die Arme gestreckt sind.",
+   "Langsam bis etwa 90° zurück, Ellbogen bleiben ruhig."
+  ]
+ },
+ {
+  "id": "trizepsstrecken",
+  "name": "Trizepsstrecken",
+  "group": "Trizeps",
+  "secondary": [],
+  "equipment": [
+   "dumbbell",
+   "cable",
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Gewicht über dem Kopf oder liegend über der Stirn halten.",
+   "Nur im Ellbogen beugen und das Gewicht hinter den Kopf senken.",
+   "Strecken, Oberarme bleiben ruhig."
+  ]
+ },
+ {
+  "id": "dips",
+  "name": "Dips",
+  "group": "Trizeps",
+  "secondary": [
+   "Brust",
+   "Schultern"
+  ],
+  "equipment": [
+   "bodyweight"
+  ],
+  "tracking": "reps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "An parallelen Holmen oder einer Bank abstützen.",
+   "Senken, bis die Oberarme etwa parallel zum Boden sind.",
+   "Kräftig hochdrücken. Bei Schulterbeschwerden auslassen."
+  ]
+ },
+ {
+  "id": "handgelenk_curl",
+  "name": "Handgelenk-Curl",
+  "group": "Unterarme",
+  "secondary": [],
+  "equipment": [
+   "dumbbell",
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.0,
+  "percent": 2.5,
+  "instructions": [
+   "Unterarme auf den Oberschenkeln, Handgelenke über dem Knie.",
+   "Gewicht nur im Handgelenk anheben.",
+   "Langsam senken."
+  ]
+ },
+ {
+  "id": "kniebeuge",
+  "name": "Kniebeuge",
+  "group": "Beine",
+  "secondary": [
+   "Rumpf"
+  ],
+  "equipment": [
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 5.0,
+  "instructions": [
+   "Stange auf dem oberen Rücken, Füße etwa schulterbreit, Zehen leicht nach außen.",
+   "Hüfte nach hinten und unten, Knie folgen den Zehen, Rücken bleibt gerade.",
+   "So tief wie sauber möglich, dann kraftvoll aufstehen."
+  ]
+ },
+ {
+  "id": "goblet_squat",
+  "name": "Goblet Squat",
+  "group": "Beine",
+  "secondary": [
+   "Rumpf"
+  ],
+  "equipment": [
+   "dumbbell",
+   "kettlebell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hantel vor der Brust halten, Füße schulterbreit.",
+   "Tief in die Hocke gehen, Ellbogen zwischen den Knien.",
+   "Aufrecht aufstehen. Gut zum Lernen der Kniebeuge."
+  ]
+ },
+ {
+  "id": "beinpresse",
+  "name": "Beinpresse",
+  "group": "Beine",
+  "secondary": [],
+  "equipment": [
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 12,
+  "step": 5.0,
+  "percent": 5.0,
+  "instructions": [
+   "Füße schulterbreit mittig auf der Platte.",
+   "Schlitten senken, bis die Knie etwa 90° gebeugt sind, Gesäß bleibt am Polster.",
+   "Drücken, ohne die Knie ganz durchzustrecken."
+  ]
+ },
+ {
+  "id": "ausfallschritt",
+  "name": "Ausfallschritte",
+  "group": "Beine",
+  "secondary": [
+   "Rumpf"
+  ],
+  "equipment": [
+   "dumbbell",
+   "bodyweight",
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 5.0,
+  "instructions": [
+   "Großer Schritt nach vorn, Oberkörper aufrecht.",
+   "Hinteres Knie Richtung Boden senken, vorderes Knie über dem Fuß.",
+   "Über die Ferse zurückdrücken; Seiten wechseln."
+  ]
+ },
+ {
+  "id": "bulgarische_kniebeuge",
+  "name": "Bulgarische Kniebeuge",
+  "group": "Beine",
+  "secondary": [
+   "Rumpf"
+  ],
+  "equipment": [
+   "dumbbell",
+   "bodyweight",
+   "bench"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hinterer Fuß auf der Bank, vorderer Fuß weit genug vorn.",
+   "Senkrecht nach unten gehen, bis der vordere Oberschenkel etwa waagerecht ist.",
+   "Über die vordere Ferse hochdrücken."
+  ]
+ },
+ {
+  "id": "rumaenisches_kreuzheben",
+  "name": "Rumänisches Kreuzheben",
+  "group": "Beine",
+  "secondary": [
+   "Rücken"
+  ],
+  "equipment": [
+   "barbell",
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 10,
+  "step": 2.5,
+  "percent": 5.0,
+  "instructions": [
+   "Gewicht vor den Oberschenkeln, Knie leicht gebeugt.",
+   "Hüfte weit nach hinten schieben, Gewicht nah an den Beinen, Rücken gerade.",
+   "Bei Dehnung der Oberschenkelrückseite die Hüfte nach vorn bringen."
+  ]
+ },
+ {
+  "id": "kreuzheben",
+  "name": "Kreuzheben",
+  "group": "Beine",
+  "secondary": [
+   "Rücken",
+   "Unterarme"
+  ],
+  "equipment": [
+   "barbell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 5,
+  "upperReps": 8,
+  "step": 5.0,
+  "percent": 5.0,
+  "instructions": [
+   "Füße hüftbreit, Stange über der Fußmitte, schulterbreit greifen.",
+   "Rücken gerade, Brust raus, Stange vom Boden drücken und nah am Körper führen.",
+   "Oben aufrecht stehen, kontrolliert ablegen."
+  ]
+ },
+ {
+  "id": "hueftstoss",
+  "name": "Hüftstoß",
+  "group": "Beine",
+  "secondary": [],
+  "equipment": [
+   "barbell",
+   "dumbbell",
+   "machine",
+   "bodyweight"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 5.0,
+  "percent": 5.0,
+  "instructions": [
+   "Oberer Rücken an der Bank, Gewicht auf der Hüfte, Füße hüftbreit.",
+   "Hüfte hochdrücken, bis Oberkörper und Oberschenkel eine Linie bilden.",
+   "Gesäß oben anspannen, langsam senken."
+  ]
+ },
+ {
+  "id": "beinstrecken",
+  "name": "Beinstrecken",
+  "group": "Beine",
+  "secondary": [],
+  "equipment": [
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 5.0,
+  "instructions": [
+   "Knie auf Höhe der Drehachse, Polster über den Knöcheln.",
+   "Beine strecken und kurz halten.",
+   "Langsam senken."
+  ]
+ },
+ {
+  "id": "beinbeugen",
+  "name": "Beinbeugen",
+  "group": "Beine",
+  "secondary": [],
+  "equipment": [
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 5.0,
+  "instructions": [
+   "Polster knapp über den Fersen.",
+   "Beine gegen den Widerstand beugen.",
+   "Kontrolliert strecken."
+  ]
+ },
+ {
+  "id": "wadenheben",
+  "name": "Wadenheben",
+  "group": "Beine",
+  "secondary": [],
+  "equipment": [
+   "machine",
+   "dumbbell",
+   "bodyweight"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 5.0,
+  "instructions": [
+   "Fußballen auf einer Kante, Fersen frei.",
+   "So hoch wie möglich auf die Zehen.",
+   "Langsam senken, bis die Waden gedehnt sind."
+  ]
+ },
+ {
+  "id": "kettlebell_swing",
+  "name": "Kettlebell Swing",
+  "group": "Beine",
+  "secondary": [
+   "Rücken",
+   "Rumpf"
+  ],
+  "equipment": [
+   "kettlebell"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 10,
+  "upperReps": 20,
+  "step": 4.0,
+  "percent": 2.5,
+  "instructions": [
+   "Kettlebell zwischen den Beinen nach hinten schwingen, Rücken gerade.",
+   "Hüfte explosiv nach vorn strecken, die Arme führen nur.",
+   "Kettlebell bis Brusthöhe schwingen lassen."
+  ]
+ },
+ {
+  "id": "plank",
+  "name": "Plank (Unterarmstütz)",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "bodyweight"
+  ],
+  "tracking": "time",
+  "compound": false,
+  "lowerReps": 20,
+  "upperReps": 60,
+  "step": 2.5,
+  "percent": 0.0,
+  "instructions": [
+   "Auf Unterarmen und Zehen, Körper bildet eine gerade Linie.",
+   "Bauch und Gesäß anspannen, Hüfte weder durchhängen noch hochstrecken.",
+   "Ruhig weiteratmen."
+  ]
+ },
+ {
+  "id": "seitstuetz",
+  "name": "Seitstütz",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "bodyweight"
+  ],
+  "tracking": "time",
+  "compound": false,
+  "lowerReps": 20,
+  "upperReps": 45,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Auf einem Unterarm, Füße übereinander.",
+   "Hüfte heben, bis der Körper gerade ist.",
+   "Halten, dann Seite wechseln."
+  ]
+ },
+ {
+  "id": "dead_bug",
+  "name": "Dead Bug",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "bodyweight"
+  ],
+  "tracking": "reps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Rückenlage, Arme nach oben, Beine im 90°-Winkel.",
+   "Gegengleich einen Arm und ein Bein strecken, unterer Rücken bleibt am Boden.",
+   "Zurück und Seite wechseln."
+  ]
+ },
+ {
+  "id": "crunch",
+  "name": "Crunch",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "bodyweight"
+  ],
+  "tracking": "reps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Rückenlage, Knie gebeugt.",
+   "Oberkörper einrollen, bis die Schulterblätter abheben.",
+   "Langsam ablegen."
+  ]
+ },
+ {
+  "id": "crunch_geraet",
+  "name": "Crunch am Gerät",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "machine",
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Am Gerät oder kniend am Kabel mit Seil.",
+   "Oberkörper einrollen, Bewegung aus dem Bauch.",
+   "Kontrolliert zurück."
+  ]
+ },
+ {
+  "id": "beinheben",
+  "name": "Beinheben",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "pullupBar",
+   "bodyweight"
+  ],
+  "tracking": "reps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Hängend oder liegend, Beine gestreckt oder angewinkelt.",
+   "Beine heben, ohne zu schwingen.",
+   "Langsam senken."
+  ]
+ },
+ {
+  "id": "pallof",
+  "name": "Pallof Press",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "cable",
+   "band"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Seitlich zum Kabel stehen, Griff vor der Brust.",
+   "Arme nach vorn strecken und der Drehung widerstehen.",
+   "Kurz halten, zurück; Seite wechseln."
+  ]
+ },
+ {
+  "id": "rotation",
+  "name": "Rumpfrotation",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "cable",
+   "band",
+   "dumbbell"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Seitlich zum Kabel, Arme gestreckt.",
+   "Oberkörper kontrolliert drehen, Hüfte bleibt stabil.",
+   "Langsam zurück; Seite wechseln."
+  ]
+ },
+ {
+  "id": "fliegende_kabel_hoch",
+  "name": "Flyings am hohen Kabel",
+  "group": "Brust",
+  "secondary": [
+   "Schultern"
+  ],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.25,
+  "percent": 2.5,
+  "instructions": [
+   "Zwischen den Kabeltürmen stehen, Griffe von oben, Arme leicht gebeugt.",
+   "In einem Bogen vor dem Körper nach unten zusammenführen.",
+   "Kontrolliert öffnen, bis die Brust gedehnt ist."
+  ]
+ },
+ {
+  "id": "reverse_fly_kabel",
+  "name": "Reverse Flyings am hohen Kabel",
+  "group": "Schultern",
+  "secondary": [
+   "Rücken"
+  ],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.25,
+  "percent": 2.5,
+  "instructions": [
+   "Kabel über Kreuz auf Schulterhöhe greifen.",
+   "Arme seitlich nach hinten öffnen, Schulterblätter zusammen.",
+   "Langsam zurückführen."
+  ]
+ },
+ {
+  "id": "seitheben_kabel",
+  "name": "Einarmiges Seitheben am tiefen Kabel",
+  "group": "Schultern",
+  "secondary": [],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 1.25,
+  "percent": 2.5,
+  "instructions": [
+   "Seitlich zum Kabelzug stehen, Griff mit der äußeren Hand von unten.",
+   "Arm seitlich bis Schulterhöhe heben.",
+   "Langsam senken, ohne Schwung."
+  ]
+ },
+ {
+  "id": "hammer_curl_kabel",
+  "name": "Curls in Hammerhaltung am Kabel",
+  "group": "Bizeps",
+  "secondary": [
+   "Unterarme"
+  ],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Seil am tiefen Kabel, Handflächen zueinander.",
+   "Zur Schulter beugen, Ellbogen bleiben am Körper.",
+   "Langsam strecken."
+  ]
+ },
+ {
+  "id": "kabel_curl_liegend",
+  "name": "Curls am Kabel liegend",
+  "group": "Bizeps",
+  "secondary": [],
+  "equipment": [
+   "cable",
+   "bench"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 8,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Rücklings vor dem Kabelzug liegen, Stange am tiefen Kabel.",
+   "Unterarme zur Schulter beugen, Oberarme bleiben am Boden.",
+   "Kontrolliert strecken."
+  ]
+ },
+ {
+  "id": "trizeps_kabel_schraegbank",
+  "name": "Armstrecken am tiefen Kabel auf Schrägbank",
+  "group": "Trizeps",
+  "secondary": [],
+  "equipment": [
+   "cable",
+   "bench"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Auf der Schrägbank mit dem Rücken zum tiefen Kabel, Seil über dem Kopf.",
+   "Unterarme nach oben strecken, Ellbogen zeigen nach vorn.",
+   "Langsam beugen, bis der Trizeps gedehnt ist."
+  ]
+ },
+ {
+  "id": "crunch_kabel",
+  "name": "Crunches am Kabel kniend",
+  "group": "Rumpf",
+  "secondary": [],
+  "equipment": [
+   "cable"
+  ],
+  "tracking": "weightReps",
+  "compound": false,
+  "lowerReps": 10,
+  "upperReps": 15,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Vor dem hohen Kabel knien, Seil neben dem Kopf halten.",
+   "Oberkörper einrollen, Ellbogen Richtung Knie.",
+   "Langsam aufrichten, Hüfte bleibt ruhig."
+  ]
+ },
+ {
+  "id": "dips_barren",
+  "name": "Dips am Barren",
+  "group": "Trizeps",
+  "secondary": [
+   "Brust",
+   "Schultern"
+  ],
+  "equipment": [
+   "bodyweight",
+   "machine"
+  ],
+  "tracking": "weightReps",
+  "compound": true,
+  "lowerReps": 6,
+  "upperReps": 12,
+  "step": 2.5,
+  "percent": 2.5,
+  "instructions": [
+   "Wie in GymBook mit Gewichtsangabe (Zusatzgewicht bzw. Unterstützung am Gerät).",
+   "Senken, bis die Oberarme etwa waagerecht sind.",
+   "Kräftig hochdrücken, Schultern bleiben unten."
+  ]
+ }
+]

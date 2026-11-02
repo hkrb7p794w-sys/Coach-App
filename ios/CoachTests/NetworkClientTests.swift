@@ -133,6 +133,17 @@ extension StubbedNetworkTests {
     }
 
     /// Gleicher Schlüssel wie im Worker (`worker/src/sidestore.ts`), Erwartungswert mit Python berechnet.
+    @Test func androidDownloadMatchesWorker() throws {
+      #expect(AIClient.secretPath(prefix: "android", token: "app-token-123") == "3d5b0ebdcfa5865d774ee00e8f93d04d")
+      let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+      let client = AIClient(secrets: InMemorySecretStore(), defaults: defaults)
+      #expect(client.androidDownloadURL == nil)
+      try client.configure(url: "https://coach-ai.example.workers.dev", token: "app-token-123")
+      #expect(
+        client.androidDownloadURL?.absoluteString
+          == "https://coach-ai.example.workers.dev/android/3d5b0ebdcfa5865d774ee00e8f93d04d/")
+    }
+
     @Test func sideStoreSourceMatchesWorker() throws {
       #expect(AIClient.sideStoreKey(token: "app-token-123") == "ee99266b889655b045c7352ceb212936")
       let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))

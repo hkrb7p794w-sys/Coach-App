@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Farben und Hell/Dunkel übernimmt Compose (Material 3, folgt dem System). -->
+    <style name="Theme.IronLudiGym" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>

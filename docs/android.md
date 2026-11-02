@@ -1,0 +1,49 @@
+# Android-App „IronLudi Gym“ (technisch)
+
+Gym-Logging für Android, erste Version für eine Person ohne Garmin (Auftrag vom 02.11.2026). Bedienung und
+Installation für Nutzer:innen: [`installation.md`](installation.md).
+
+## Aufbau
+
+| Pfad | Inhalt |
+|---|---|
+| `android/core/` | Reine Kotlin-Logik ohne Android: Datenmodell, Doppelprogression (Port von `GymProgression` aus CoachCore), Statistik, Trainingsablauf, Sicherung/Zusammenführen. Tests: `GymCoreTest`. |
+| `android/app/` | Jetpack Compose (Material 3, Hell/Dunkel nach System): Reiter Training, Verlauf, Pläne, Übungen; Einstellungen mit Pausenzeit, Bildschirm-an und Sicherung. |
+| `android/app/src/main/assets/exercises.json` | Übungsbibliothek, **erzeugt** aus `ExerciseLibrary.swift`/`ExerciseCatalog.swift` mit `python3 android/tools/export_exercises.py` (CI prüft mit `--check`). Gleiche IDs und Sprünge wie auf dem iPhone. |
+| `.github/workflows/android.yml` | Linux-Runner: `:core:test`, `:app:assembleRelease`, APK als Artefakt; auf `main` Upload nach Workers KV. |
+| `worker/src/android.ts` | Private Download-Seite `/android/<key>/` und APK; `<key>` = SHA-256("android:" + Haupt-Token), erste 32 Hex-Zeichen. |
+
+Daten: eine JSON-Datei `gym.json` im App-Speicher, atomar geschrieben (Zwischendatei + Umbenennen). Ist sie nicht
+lesbar, legt die App eine Kopie an und warnt statt zu überschreiben. Keine Internet-Berechtigung, nur `VIBRATE`.
+Android Auto Backup ist an (`allowBackup`), dazu Sicherung/Einspielen als Datei (führt über IDs zusammen, nichts
+geht verloren).
+
+## Signaturschlüssel (einmalig, Pflicht vor der ersten Installation)
+
+Android installiert ein Update nur, wenn es mit **demselben Schlüssel** signiert ist. Der Schlüssel liegt nur als
+GitHub-Secret, nie im Repo. Ohne die Secrets baut die CI nur mit Debug-Signatur (jeder Lauf anders) und lädt
+**nichts** hoch.
+
+1. GitHub › Repo › Settings › Secrets and variables › Actions › **New repository secret**.
+2. `ANDROID_KEYSTORE_PASSWORD` = Passwort, `ANDROID_KEYSTORE_B64` = Schlüsseldatei als Base64 (beides aus der
+   Datei, die Claude erzeugt hat, oder selbst: `keytool -genkeypair -keystore ironludi.jks -storetype PKCS12
+   -alias ironludi -keyalg RSA -keysize 3072 -validity 18250` und `base64 -w0 ironludi.jks`).
+3. Den Schlüssel zusätzlich privat aufheben (z. B. Passwort-Manager). Geht er verloren, lassen sich installierte
+   Apps nicht mehr aktualisieren: dann Sicherung speichern, neu installieren, Sicherung einspielen.
+4. Danach baut der nächste Merge auf `main` (oder Actions › Android › Run workflow) die signierte Version und stellt
+   sie bereit.
+
+## Lokal
+
+```sh
+cd android
+./gradlew -PcoreOnly :core:test     # ohne Android-SDK (z. B. Claude-Code-Sitzung)
+./gradlew :core:test :app:assembleRelease   # mit Android-SDK
+python3 tools/export_exercises.py   # nach Änderungen an der Swift-Bibliothek
+```
+
+## Bewusst nicht in Version 1
+
+Garmin, Health Connect, KI, Ernährung, Widgets, Rangliste. Die Logik dafür liegt in Swift (CoachCore); ein Port
+lohnt erst bei Bedarf (siehe `docs/plattform-paket7.md`, Abschnitt 2.3). Pausentimer läuft nur, solange die App
+offen ist (keine Benachrichtigung im Hintergrund).

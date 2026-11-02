@@ -1,0 +1,128 @@
+# Android-App „IronLudi Gym“ (android/): Tests der Logik, APK bauen und auf main über den Worker bereitstellen.
+#
+# - Pull Request: Tests + APK (als Artefakt). Bei Fehlern schreibt der Job die Compiler-/Testfehler als PR-Kommentar.
+# - Push auf main: zusätzlich Upload nach Workers KV für die private Download-Seite (worker/src/android.ts) –
+#   nur mit dem festen Signaturschlüssel (Secrets ANDROID_KEYSTORE_B64/ANDROID_KEYSTORE_PASSWORD), damit sich
+#   installierte Apps immer aktualisieren lassen.
+# Läuft auf Linux (Android-SDK ist auf den GitHub-Runnern vorinstalliert), zählt also einfach, nicht zehnfach.
+name: Android
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - "ios/Packages/CoachCore/Sources/CoachCore/Gym/ExerciseLibrary.swift"
+      - "ios/Packages/CoachCore/Sources/CoachCore/Gym/ExerciseCatalog.swift"
+      - ".github/workflows/android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "ios/Packages/CoachCore/Sources/CoachCore/Gym/ExerciseLibrary.swift"
+      - "ios/Packages/CoachCore/Sources/CoachCore/Gym/ExerciseCatalog.swift"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Übungsbibliothek aus CoachCore aktuell?
+        run: python3 tools/export_exercises.py --check
+
+      - name: Java 17 und Signaturschlüssel
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "${JAVA_HOME_17_X64:-}" ]; then echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"; fi
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/ironludi.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/ironludi.jks" >> "$GITHUB_ENV"
+            echo "SIGNED=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_B64 fehlt – APK nur mit Debug-Signatur, keine Bereitstellung (docs/android.md)"
+            echo "SIGNED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Tests und APK
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --console=plain :core:test :app:assembleRelease 2>&1 | tee "$RUNNER_TEMP/build.log"
+          APK=app/build/outputs/apk/release/app-release.apk
+          ls -lh "$APK"
+          SIZE=$(stat -c %s "$APK")
+          # Workers KV nimmt höchstens 25 MiB je Wert.
+          if [ "$SIZE" -gt 26000000 ]; then echo "::error::APK zu groß für Workers KV ($SIZE Bytes)"; exit 1; fi
+          cp "$APK" "$RUNNER_TEMP/IronLudi-Gym.apk"
+
+      - name: APK als Artefakt
+        uses: actions/upload-artifact@v7
+        with:
+          name: IronLudi-Gym-${{ github.run_number }}
+          path: ${{ runner.temp }}/IronLudi-Gym.apk
+          retention-days: 14
+
+      - name: Fehler als PR-Kommentar
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          LOG="$RUNNER_TEMP/build.log"
+          [ -f "$LOG" ] || echo "Kein Build-Protokoll (Fehler vor dem Build, siehe Actions)." > "$LOG"
+          {
+            echo "❌ Android-Build $GITHUB_RUN_NUMBER fehlgeschlagen"
+            echo
+            echo '```'
+            grep -E "^e: |^w: .*error|error:|FAILED|What went wrong|Could not|> .*Exception|AssertionFailedError|expected:" -A2 "$LOG" | head -c 60000 || tail -n 80 "$LOG"
+            echo '```'
+          } > comment.md
+          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@comment.md > /dev/null
+
+      - name: Bereitstellen (Workers KV, private Download-Seite)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && env.SIGNED == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KV_ID: 103715a4f0004a398c9e75637a2edf36
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Cloudflare-Secrets fehlen – keine Bereitstellung"
+            exit 0
+          fi
+          APK="$RUNNER_TEMP/IronLudi-Gym.apk"
+          python3 - "$APK" <<'PY'
+          import datetime, json, os, sys
+          build = int(os.environ["BUILD_NUMBER"])
+          info = {
+              "versionName": f"1.0.{build}",
+              "versionCode": build,
+              "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "size": os.path.getsize(sys.argv[1]),
+          }
+          json.dump(info, open("android.json", "w", encoding="utf-8"))
+          PY
+          cat android.json
+          WRANGLER="npx --yes wrangler@4.152.0"
+          $WRANGLER kv key put --namespace-id "$KV_ID" --remote android.apk --path "$APK"
+          # Zuletzt die Versionsangaben, damit die Seite nie auf eine fehlende APK zeigt.
+          $WRANGLER kv key put --namespace-id "$KV_ID" --remote android.json --path android.json
