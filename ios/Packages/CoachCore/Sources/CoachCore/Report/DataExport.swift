@@ -66,6 +66,11 @@ public enum DataExport {
   public struct File: Equatable, Sendable {
     public var name: String
     public var content: String
+
+    public init(name: String, content: String) {
+      self.name = name
+      self.content = content
+    }
   }
 
   // MARK: - Markdown
