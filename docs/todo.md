@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **Mahlzeit teilen:** Mahlzeit lange drücken › „Teilen …“ → Nachricht an die zweite Person; Link öffnet
+      IronLudi mit Vorschau? „In mein Tagebuch“ legt einen neuen Eintrag an, Mengen und Nährwerte stimmen?
+      „Freigabe zurückziehen“ → Code danach unbekannt?
 - [ ] **Mahlzeiten-Erinnerungen:** Einstellungen › Ernährung: Mittagessen 12:30 an → Mitteilung kommt, außer das
       Mittagessen ist schon eingetragen? Zeit ändern → neue Zeit gilt? Zeitzone wechseln (Reise) → Ortszeit?
 - [ ] **Übersicht anpassen:** Ernährung › „Übersicht anpassen“: Tagesübersicht einschalten, Karten verschieben –
