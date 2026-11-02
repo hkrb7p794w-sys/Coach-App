@@ -62,7 +62,9 @@ enum CoachFacts {
     if !recentGym.isEmpty {
       lines.append("Krafteinheiten in den letzten 4 Wochen: \(recentGym.count)")
     }
-    let recentActivities = activities.filter { $0.day >= today.adding(days: -28) && $0.day <= today }
+    let recentActivities = activities.filter { activity in
+      activity.day.map { $0 >= today.adding(days: -28) && $0 <= today } ?? false
+    }
     if !recentActivities.isEmpty {
       let minutes = recentActivities.compactMap(\.durationSeconds).reduce(0, +) / 60
       lines.append(
@@ -86,7 +88,7 @@ enum CoachFacts {
     } else if !metrics.contains(where: { $0.day >= today.adding(days: -7) && ($0.sleepSeconds ?? 0) > 0 }) {
       result.append("Keine Schlafdaten der letzten 7 Tage")
     }
-    if !activities.contains(where: { $0.day >= today.adding(days: -14) }) {
+    if !activities.contains(where: { ($0.day.map { $0 >= today.adding(days: -14) }) ?? false }) {
       result.append("Keine Ausdaueraktivitäten in den letzten 2 Wochen")
     }
     if !gym.contains(where: { $0.day >= today.adding(days: -42) }) {
