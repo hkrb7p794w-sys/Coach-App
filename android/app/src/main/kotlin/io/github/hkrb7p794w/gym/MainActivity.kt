@@ -29,9 +29,20 @@ class MainActivity : ComponentActivity() {
     /** `ironludi://connect?worker=…&token=…` von der Download-Seite: KI-Zugang übernehmen. */
     private fun handleLink(intent: Intent?) {
         val uri = intent?.data ?: return
+        if (uri.scheme == "coach" && uri.host == "meal") {
+            // Geteilte Mahlzeit: als Entwurf öffnen (Ernährung).
+            viewModel.nutrition.openShared(uri.toString(), java.time.LocalDate.now())
+            return
+        }
         val (worker, token) = WorkerAccess.fromLink(uri) ?: return
         viewModel.nutrition.connect(worker, token)
         Toast.makeText(this, "KI-Zugang verbunden", Toast.LENGTH_LONG).show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Erinnerungen nach jeder Änderung bzw. jedem Öffnen neu planen (überspringt Eingetragenes).
+        ReminderScheduler.schedule(this, viewModel.data.value)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

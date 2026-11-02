@@ -88,6 +88,10 @@ data class NutritionSettings(
     val weeklyChangePercent: Double? = null,
     /** Einmal ausgefüllt: sonst fragt die App beim ersten Öffnen nach den Körperwerten. */
     val configured: Boolean = false,
+    /** Übernommene Anpassung aus dem Gewichtsverlauf (kcal pro Tag, ±500). */
+    val energyAdjustmentKcal: Double = 0.0,
+    /** Zielgewicht für die Prognose (optional). */
+    val targetWeightKg: Double? = null,
 ) {
     companion object {
         /** Schutzgrenzen wie `GoalRules` in CoachCore: höchstens 1 % Abnahme, 0,5 % Zunahme pro Woche. */
@@ -136,7 +140,7 @@ object NutritionPlanner {
             adjustPercent = (daily / dayEnergy * 100).coerceIn(-25.0, 15.0)
         }
         val goalPercent = adjustPercent * dayType.goalScale
-        var energy = dayEnergy * (1 + goalPercent / 100)
+        var energy = dayEnergy * (1 + goalPercent / 100) + settings.energyAdjustmentKcal.coerceIn(-500.0, 500.0)
 
         val bodyFat = settings.bodyFatPercent ?: if (settings.isFemale) 25.0 else 15.0
         val fatFreeMass = weight * (1 - bodyFat / 100)
@@ -226,6 +230,7 @@ data class MealAnalysis(
                 barcode = obj.string("barcode")?.takeIf(OpenFoodFacts::isValidBarcode),
                 portion = PortionGuess.from(amountText, grams),
                 searchTerm = obj.string("suchbegriff")?.take(80),
+                group = obj.string("gruppe"),
             )
             return bls?.enrich(item) ?: item
         }

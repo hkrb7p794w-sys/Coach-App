@@ -40,6 +40,7 @@ sealed interface Page {
     data class RoutineEditor(val id: String?) : Page
     data object Settings : Page
     data object NutritionSettings : Page
+    data object Recipes : Page
 }
 
 @Composable
@@ -79,6 +80,7 @@ fun GymApp(viewModel: GymViewModel) {
         is Page.RoutineEditor -> RoutineEditorScreen(viewModel, data, page.id, onBack = ::back)
         Page.Settings -> SettingsScreen(viewModel, data, onBack = ::back)
         Page.NutritionSettings -> NutritionSettingsScreen(viewModel, data, onBack = ::back)
+        Page.Recipes -> RecipesScreen(viewModel, data, onBack = ::back)
         // Ränder: Die Reiter haben eigene Titelleisten (Statusleiste), die Navigationsleiste den unteren Rand.
         null -> Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -117,6 +119,7 @@ private val PageStackSaver = androidx.compose.runtime.saveable.listSaver<List<Pa
                 is Page.RoutineEditor -> "r:${page.id.orEmpty()}"
                 Page.Settings -> "settings"
                 Page.NutritionSettings -> "nutrition-settings"
+                Page.Recipes -> "recipes"
             }
         }
     },
@@ -128,6 +131,7 @@ private val PageStackSaver = androidx.compose.runtime.saveable.listSaver<List<Pa
                 text.startsWith("r:") -> Page.RoutineEditor(text.removePrefix("r:").ifEmpty { null })
                 text == "settings" -> Page.Settings
                 text == "nutrition-settings" -> Page.NutritionSettings
+                text == "recipes" -> Page.Recipes
                 else -> null
             }
         }

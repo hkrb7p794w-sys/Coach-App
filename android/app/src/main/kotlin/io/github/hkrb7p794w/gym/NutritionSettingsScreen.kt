@@ -126,6 +126,13 @@ fun NutritionSettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (settings.goal == NutritionGoal.LOSE) {
+                var target by rememberSaveable { mutableStateOf(settings.targetWeightKg?.let(::formatKg).orEmpty()) }
+                NumberField("Zielgewicht kg (optional, für die Prognose)", target, Modifier.fillMaxWidth()) { text ->
+                    target = text
+                    change { it.copy(targetWeightKg = if (text.isBlank()) null else parseDecimal(text)?.takeIf { v -> v in 30.0..250.0 } ?: it.targetWeightKg) }
+                }
+            }
             Text("Ernährungsweise (für die KI-Auswertung)", style = MaterialTheme.typography.labelLarge)
             ChipRow(Diet.entries.map { it to it.label }, selected = settings.diet) { diet -> change { it.copy(diet = diet) } }
 
@@ -153,6 +160,8 @@ fun NutritionSettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -
                     }) { Text(current.label) }
                 }
             }
+
+            RemindersSection(viewModel, data)
 
             WorkerAccessSection(viewModel)
         }
@@ -195,5 +204,66 @@ private fun <T> ChipRow(options: List<Pair<T, String>>, selected: T, onSelect: (
         options.forEach { (value, label) ->
             FilterChip(selected = selected == value, onClick = { onSelect(value) }, label = { Text(label) })
         }
+    }
+}
+
+/** Erinnerungen an Mahlzeiten (je Mahlzeit ein Schalter und eine Uhrzeit) und abends „Tag auswerten“. */
+@Composable
+private fun RemindersSection(viewModel: GymViewModel, data: AppData) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val permission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { }
+    fun ensurePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU && !ReminderScheduler.canNotify(context)) {
+            permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    var editing by rememberSaveable { mutableStateOf<String?>(null) }
+    SectionTitle("Erinnerungen")
+    Text(
+        "Keine Erinnerung, wenn die Mahlzeit an dem Tag schon eingetragen ist.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    io.github.hkrb7p794w.gym.core.MealReminders.CATEGORIES.forEach { category ->
+        val slot = data.reminders.slot(category) ?: return@forEach
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(category.label, Modifier.width(110.dp))
+            TextButton(onClick = { editing = category.name }) { Text("%02d:%02d".format(slot.hour, slot.minute)) }
+            androidx.compose.material3.Switch(
+                checked = slot.enabled,
+                onCheckedChange = { on ->
+                    if (on) ensurePermission()
+                    viewModel.update { it.copy(reminders = it.reminders.with(category, slot.copy(enabled = on))) }
+                },
+            )
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Abends 20:00 „Tag auswerten“", Modifier.weight(1f))
+        androidx.compose.material3.Switch(
+            checked = data.reminders.review,
+            onCheckedChange = { on ->
+                if (on) ensurePermission()
+                viewModel.update { it.copy(reminders = it.reminders.copy(review = on)) }
+            },
+        )
+    }
+    editing?.let { name ->
+        val category = io.github.hkrb7p794w.gym.core.MealCategory.valueOf(name)
+        val slot = data.reminders.slot(category) ?: return@let
+        val state = androidx.compose.material3.rememberTimePickerState(initialHour = slot.hour, initialMinute = slot.minute, is24Hour = true)
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { editing = null },
+            title = { Text("${category.label}: Uhrzeit") },
+            text = { androidx.compose.material3.TimeInput(state = state) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.update { it.copy(reminders = it.reminders.with(category, slot.copy(hour = state.hour, minute = state.minute))) }
+                    editing = null
+                }) { Text("Übernehmen") }
+            },
+            dismissButton = { TextButton(onClick = { editing = null }) { Text("Abbrechen") } },
+        )
     }
 }

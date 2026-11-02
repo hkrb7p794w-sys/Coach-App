@@ -1,0 +1,37 @@
+[
+ {
+  "id": "nutrition.energy",
+  "title": "Energiebedarf",
+  "statement": "Der Grundumsatz wird mit der Mifflin-St-Jeor-Formel geschätzt; der Tagesbedarf ergibt sich aus Alltag und Training. Geplante, noch nicht aufgezeichnete Einheiten schätzt die App über MET-Werte; die Makros richten sich nach dieser Energie, Fett bleibt bei mindestens 20 %."
+ },
+ {
+  "id": "nutrition.carbs",
+  "title": "Kohlenhydrate nach Belastung",
+  "statement": "Der Kohlenhydratbedarf richtet sich nach der Trainingsbelastung des Tages (etwa 3 bis 10 g pro kg Körpergewicht)."
+ },
+ {
+  "id": "nutrition.protein",
+  "title": "Protein",
+  "statement": "1,4–2,0 g Protein pro kg Körpergewicht und Tag, verteilt auf Portionen von etwa 0,25 g/kg alle 3–4 Stunden."
+ },
+ {
+  "id": "nutrition.reds",
+  "title": "Genug Energie",
+  "statement": "Dauerhaft zu wenig Energie im Verhältnis zum Training schadet Gesundheit und Leistung; eine Untergrenze schützt davor."
+ },
+ {
+  "id": "recovery.sleep",
+  "title": "Schlafdauer",
+  "statement": "Erwachsene brauchen regelmäßig mindestens 7 Stunden Schlaf; Schlafmangel verschlechtert Ausdauerleistung und Erholung."
+ },
+ {
+  "id": "weight.trend",
+  "title": "Gewichtsverlauf statt Formel",
+  "statement": "Der Körper reagiert verzögert auf eine geänderte Energiezufuhr; feste Faustregeln wie 7.700 kcal je kg überschätzen die Abnahme auf Dauer. Deshalb vergleicht die App den gemessenen Verlauf mit dem Plan und passt in kleinen Schritten an. Tägliches Wiegen half in einer randomisierten Studie beim Abnehmen."
+ },
+ {
+  "id": "weightloss.rate",
+  "title": "Tempo beim Abnehmen",
+  "statement": "Langsames Abnehmen (etwa 0,7 % des Körpergewichts pro Woche) bewahrte in einer Studie mit Leistungssportlern mehr Muskelmasse und Kraft als schnelles (1,4 %). Nach einem Jahr waren die Werte gleich; empfohlen werden 0,5–1 kg pro Woche."
+ }
+]

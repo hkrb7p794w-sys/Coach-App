@@ -5,6 +5,23 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Android: Ernährung Teil 2
+
+- Rezepte/Meal-Prep, „Was esse ich jetzt?“, Wochenplan mit Einkaufsliste, Tag auswerten, Gewichtsverlauf mit
+  Prognose, Teilen und Erinnerungen als Port der CoachCore-Regeln (`RecipePlanner`, `MealNow`, `OwnRecipe`,
+  `WeightTrend`, `WeightForecast`, `ReminderPlanner.meals`). Gegenprobe mit den Testfällen aus `RecipeTests`,
+  `WeightForecastTests` und `SafeguardTests`.
+- **KI-Texte nur auf Regeln gestützt:** Die Regeltexte (`Evidence.swift`) werden für die Android-App erzeugt
+  (`assets/evidence.json`, CI prüft), damit `nutrition_review` und `weekly_recipes` dieselbe Grundlage bekommen.
+- **Ohne Uhr** schickt die Auswertung den Tagestyp aus dem Wochenschema und „Erholung: keine Daten“, nie erfundene
+  Werte.
+- **Erinnerungen:** immer nur die nächste als ungenauer Alarm (`setAndAllowWhileIdle`, keine Sonderberechtigung für
+  exakte Alarme); der Empfänger liest beim Auslösen den Stand und lässt eingetragene Mahlzeiten aus. Neu planen nach
+  Neustart und Update (`BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`).
+- **Teilen** über denselben Worker-Endpunkt wie das iPhone; der Link `/m/<code>` öffnet auf Android `coach://meal/…`.
+- Quellen: AlarmManager <https://developer.android.com/develop/background-work/services/alarms/schedule>,
+  Benachrichtigungs-Berechtigung <https://developer.android.com/develop/ui/views/notifications/notification-permission>.
+
 ## 2026-11-02 – Android: Ernährung wie auf dem iPhone (Teil 1)
 
 - **Auftrag:** „Die Android-Version soll die gleiche Ernährungsapp haben wie die iPhone-Version.“ Umfang auf dem

@@ -5,6 +5,7 @@ package io.github.hkrb7p794w.gym
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,11 +24,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -87,6 +91,14 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
     val lastLogged by model.lastLogged.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
+    val shareText by model.shareText.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(shareText) {
+        val text = shareText ?: return@LaunchedEffect
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text)
+        context.startActivity(android.content.Intent.createChooser(send, "Mahlzeit teilen"))
+        model.clearShareText()
+    }
     LaunchedEffect(lastLogged) {
         val meal = lastLogged ?: return@LaunchedEffect
         val result = snackbar.showSnackbar("„${meal.title}“ eingetragen", actionLabel = "Rückgängig", duration = SnackbarDuration.Short)
@@ -106,6 +118,7 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
             TopAppBar(
                 title = { Text("Ernährung") },
                 actions = {
+                    TextButton(onClick = { open(Page.Recipes) }) { Text("Rezepte & Woche") }
                     IconButton(onClick = { open(Page.NutritionSettings) }) { Icon(Icons.Filled.Settings, contentDescription = "Ernährung einstellen") }
                 },
             )
@@ -159,6 +172,12 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
             item {
                 SummaryCard(data, day, targets.values, totals, onDayType = { choosingDayType = true }, onWater = { model.logWater(it, day) })
             }
+            if (data.pending.isNotEmpty()) {
+                item { PendingCard(data.pending.size, onRetry = model::retryPending) }
+            }
+            if (model.access.isConfigured) {
+                item { NowCard(viewModel, day) }
+            }
             if (meals.isEmpty()) {
                 item {
                     Text(
@@ -182,10 +201,20 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
                             onClick = { model.edit(meal) },
                             onFavorite = { viewModel.update { Diary.toggleFavorite(it, meal) } },
                             onPortion = { portionFor = meal },
+                            onShare = if (model.access.isConfigured) ({ model.share(meal) }) else null,
+                            onRecipe = {
+                                viewModel.update { Diary.saveRecipe(it, io.github.hkrb7p794w.gym.core.OwnRecipe.from(meal.title, meal.items)) }
+                                open(Page.Recipes)
+                            },
                         )
                     }
                 }
             }
+            if (model.access.isConfigured && meals.isNotEmpty()) {
+                item { ReviewCard(viewModel, day) }
+            }
+            item { NutrientsCard(targets.values, totals) }
+            item { WeightCard(viewModel, data) }
         }
     }
 
@@ -325,7 +354,16 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun MealCard(meal: Meal, isFavorite: Boolean, onClick: () -> Unit, onFavorite: () -> Unit, onPortion: () -> Unit) {
+private fun MealCard(
+    meal: Meal,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onFavorite: () -> Unit,
+    onPortion: () -> Unit,
+    onShare: (() -> Unit)?,
+    onRecipe: () -> Unit,
+) {
+    var menu by remember { mutableStateOf(false) }
     val totals = meal.totals
     Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -343,12 +381,19 @@ private fun MealCard(meal: Meal, isFavorite: Boolean, onClick: () -> Unit, onFav
                     Text("${(fraction * 100).toInt()} % gegessen", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
                 }
             }
-            TextButton(onClick = onPortion) { Text("Portion") }
             IconButton(onClick = onFavorite) {
                 Icon(
                     if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     contentDescription = if (isFavorite) "Favorit entfernen" else "Als Favorit merken",
                 )
+            }
+            Box {
+                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "Mehr") }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(text = { Text("Portion anpassen") }, onClick = { menu = false; onPortion() })
+                    if (onShare != null) DropdownMenuItem(text = { Text("Teilen …") }, onClick = { menu = false; onShare() })
+                    DropdownMenuItem(text = { Text("Als Rezept speichern") }, onClick = { menu = false; onRecipe() })
+                }
             }
         }
     }

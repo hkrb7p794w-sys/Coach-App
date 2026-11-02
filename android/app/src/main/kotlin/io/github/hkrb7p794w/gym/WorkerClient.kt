@@ -106,6 +106,27 @@ class WorkerClient(private val access: WorkerAccess) {
         }
     }
 
+    /** Mahlzeit teilen (`POST /v1/share/meal`); liefert den Code. */
+    suspend fun share(body: JsonObject): String {
+        if (!access.isConfigured) throw WorkerException("Zum Teilen muss der KI-Zugang verbunden sein.")
+        val (status, text) = request("POST", "${access.url}/v1/share/meal", body.toString(), auth = true, timeoutMs = 20_000)
+        val json = runCatching { GymJson.parseToJsonElement(text) }.getOrNull() as? JsonObject
+        if (status !in 200..299) throw WorkerException((json?.get("error") as? JsonPrimitive)?.content ?: "Teilen fehlgeschlagen ($status)")
+        return (json?.get("code") as? JsonPrimitive)?.content ?: throw WorkerException("Kein Code erhalten")
+    }
+
+    /** Geteilte Mahlzeit holen (`GET /v1/share/meal/<code>`). */
+    suspend fun shared(code: String): JsonElement {
+        if (!access.isConfigured) throw WorkerException("Zum Öffnen muss der KI-Zugang verbunden sein.")
+        val (status, text) = request("GET", "${access.url}/v1/share/meal/$code", null, auth = true, timeoutMs = 20_000)
+        if (status == 404) throw WorkerException("Code unbekannt oder abgelaufen (Mahlzeiten gelten 7 Tage).")
+        if (status !in 200..299) throw WorkerException("Fehler $status")
+        return GymJson.parseToJsonElement(text)
+    }
+
+    /** Link zur Weiterleitungsseite des Workers (`/m/<code>`). */
+    fun shareLink(code: String): String = "${access.url}/m/$code"
+
     /** Produkt bei Open Food Facts (öffentlich, ohne Token; eigener User-Agent laut OFF-Regeln). */
     suspend fun openFoodFacts(barcode: String): JsonElement? {
         val (status, text) = request("GET", OpenFoodFacts.url(barcode), null, auth = false, timeoutMs = 15_000)

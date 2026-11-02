@@ -143,6 +143,15 @@ data class AppData(
     val dayTypes: Map<String, DayType> = emptyMap(),
     /** Tagestyp, wenn für einen Tag nichts gewählt ist (Wochentag 1 = Montag … 7 = Sonntag). */
     val weekDayTypes: Map<Int, DayType> = emptyMap(),
+    // Ernährung Teil 2 (seit Version 1.2).
+    val recipes: List<OwnRecipe> = emptyList(),
+    val recipePreferences: RecipePreferences = RecipePreferences(),
+    val weeklyPlan: WeeklyRecipePlan? = null,
+    /** Abgehakte Einträge der Einkaufsliste (kleingeschriebene Namen). */
+    val shoppingDone: Set<String> = emptySet(),
+    val weights: List<WeightEntry> = emptyList(),
+    val reminders: MealReminders = MealReminders(),
+    val pending: List<PendingAnalysis> = emptyList(),
 ) {
     companion object {
         const val CURRENT_VERSION = 1

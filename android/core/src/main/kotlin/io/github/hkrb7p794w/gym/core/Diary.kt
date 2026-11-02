@@ -88,4 +88,44 @@ object Diary {
             date to (totals(data, date)[Nutrient.KCAL] ?: 0.0)
         }
     }
+
+    // MARK: Rezepte (Meal-Prep)
+
+    fun saveRecipe(data: AppData, recipe: OwnRecipe): AppData {
+        val exists = data.recipes.any { it.id == recipe.id }
+        return data.copy(recipes = if (exists) data.recipes.map { if (it.id == recipe.id) recipe else it } else data.recipes + recipe)
+    }
+
+    fun deleteRecipe(data: AppData, id: String): AppData = data.copy(recipes = data.recipes.filter { it.id != id })
+
+    /** Portion bzw. Menge eines Rezepts eintragen und den Vorrat verringern. */
+    fun logRecipe(data: AppData, recipe: OwnRecipe, grams: Double?, category: MealCategory, at: Long): AppData {
+        val item = recipe.item(grams)
+        val (logged, _) = logCopy(data, recipe.name, listOf(item), category, at)
+        return saveRecipe(logged, recipe.consumed(item.grams))
+    }
+
+    // MARK: Gewicht
+
+    fun addWeight(data: AppData, day: LocalDate, kilograms: Double): AppData {
+        if (kilograms !in 25.0..300.0) return data
+        val weights = WeightTrend.merged(data.weights.filter { it.day != day.toString() } + WeightEntry(day.toString(), round1(kilograms)))
+        // Das aktuelle Gewicht fließt in die Ziele ein (neueste Wägung).
+        val latest = weights.lastOrNull()?.kilograms ?: kilograms
+        return data.copy(weights = weights, nutrition = data.nutrition.copy(weightKg = latest))
+    }
+
+    fun deleteWeight(data: AppData, day: String): AppData = data.copy(weights = data.weights.filter { it.day != day })
+
+    /** Vorschlag aus dem Gewichtsverlauf übernehmen (Summe auf ±500 kcal begrenzt). */
+    fun applyAdjustment(data: AppData, kcal: Double): AppData {
+        val total = (data.nutrition.energyAdjustmentKcal + kcal).coerceIn(-500.0, 500.0)
+        return data.copy(nutrition = data.nutrition.copy(energyAdjustmentKcal = total))
+    }
+
+    // MARK: Ohne Netz
+
+    fun enqueue(data: AppData, pending: PendingAnalysis): AppData = data.copy(pending = (data.pending + pending).takeLast(10))
+
+    fun dequeue(data: AppData, id: String): AppData = data.copy(pending = data.pending.filter { it.id != id })
 }

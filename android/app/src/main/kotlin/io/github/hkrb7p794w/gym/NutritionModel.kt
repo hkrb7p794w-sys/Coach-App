@@ -15,6 +15,17 @@ import io.github.hkrb7p794w.gym.core.MealCategory
 import io.github.hkrb7p794w.gym.core.MealItem
 import io.github.hkrb7p794w.gym.core.Nutrition
 import io.github.hkrb7p794w.gym.core.OpenFoodFacts
+import io.github.hkrb7p794w.gym.core.EvidenceInput
+import io.github.hkrb7p794w.gym.core.EvidenceRule
+import io.github.hkrb7p794w.gym.core.GymJson
+import io.github.hkrb7p794w.gym.core.MealNow
+import io.github.hkrb7p794w.gym.core.MealShare
+import io.github.hkrb7p794w.gym.core.Nutrient
+import io.github.hkrb7p794w.gym.core.PendingAnalysis
+import io.github.hkrb7p794w.gym.core.Recipe
+import io.github.hkrb7p794w.gym.core.RecipeDayTarget
+import io.github.hkrb7p794w.gym.core.RecipePlanner
+import io.github.hkrb7p794w.gym.core.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -69,6 +80,30 @@ class NutritionModel(
     /** Zuletzt per Schnell-Eintrag gespeichert – für „Rückgängig“. */
     private val _lastLogged = MutableStateFlow<Meal?>(null)
     val lastLogged: StateFlow<Meal?> = _lastLogged.asStateFlow()
+
+    /** Regeln, auf die sich KI-Texte stützen dürfen (aus CoachCore, `assets/evidence.json`). */
+    val evidence: List<EvidenceRule> = runCatching {
+        application.assets.open("evidence.json").bufferedReader().use { GymJson.decodeFromString<List<EvidenceRule>>(it.readText()) }
+    }.getOrDefault(emptyList())
+
+    data class NowResult(val recipes: List<Recipe>, val notes: List<String>)
+
+    private val _now = MutableStateFlow<NowResult?>(null)
+    /** „Was esse ich jetzt?“ – letzte Vorschläge. */
+    val now: StateFlow<NowResult?> = _now.asStateFlow()
+
+    data class Review(val day: String, val points: List<String>, val sources: List<EvidenceRule>)
+
+    private val _review = MutableStateFlow<Review?>(null)
+    val review: StateFlow<Review?> = _review.asStateFlow()
+
+    /** Text zum Teilen einer Mahlzeit (Link und Code), für das Android-Teilen-Menü. */
+    private val _shareText = MutableStateFlow<String?>(null)
+    val shareText: StateFlow<String?> = _shareText.asStateFlow()
+
+    fun clearShareText() {
+        _shareText.value = null
+    }
 
     init {
         scope.launch(Dispatchers.Default) {
@@ -156,7 +191,7 @@ class NutritionModel(
         FoodSearch.ownFoods(data.meals).sortedByDescending { it.useCount }.take(40).map { it.title }
 
     /** Mahlzeit per Text und/oder Foto auswerten (Worker-Aufgabe `meal_analyze`, wie auf dem iPhone). */
-    fun analyze(text: String, photo: String?, day: LocalDate) {
+    fun analyze(text: String, photo: String?, day: LocalDate, queueOnNetworkError: Boolean = true) {
         scope.launch {
             _busy.value = "KI wertet aus …"
             try {
@@ -183,6 +218,173 @@ class NutritionModel(
                     photo = photo,
                     possiblyMissing = analysis.possiblyMissing,
                 )
+            } catch (error: WorkerException) {
+                if (error.isNetwork && queueOnNetworkError) {
+                    // Ohne Netz: merken und später auswerten statt verlieren (wie die Warteschlange auf dem iPhone).
+                    update { Diary.enqueue(it, PendingAnalysis(createdAt = System.currentTimeMillis(), day = day.toString(), text = text, photo = photo)) }
+                    _message.value = "Ohne Netz gespeichert – wird ausgewertet, sobald du wieder online bist (Ernährung › „Jetzt auswerten“)."
+                } else {
+                    _message.value = error.message
+                }
+            } finally {
+                _busy.value = null
+            }
+        }
+    }
+
+    /** Wartende Auswertungen nacheinander abarbeiten: die erste als Entwurf, der Rest bleibt in der Warteschlange. */
+    fun retryPending() {
+        val next = current().pending.firstOrNull() ?: return
+        update { Diary.dequeue(it, next.id) }
+        analyze(next.text, next.photo, LocalDate.parse(next.day))
+    }
+
+    // MARK: Was esse ich jetzt?
+
+    fun suggestNow(day: LocalDate) {
+        val data = current()
+        val targets = Diary.targets(data, day)
+        val totals = Diary.totals(data, day)
+        val remaining = listOf(Nutrient.KCAL, Nutrient.PROTEIN, Nutrient.CARBS, Nutrient.FAT).associate {
+            it.key to maxOf(0.0, (targets.values[it] ?: 0.0) - (totals[it] ?: 0.0))
+        }
+        val kcal = MealNow.targetKcal(remaining[Nutrient.KCAL] ?: 0.0)
+        if (kcal == null) {
+            _now.value = NowResult(emptyList(), listOf("Heute ist kaum noch etwas übrig – höchstens ein kleiner, proteinreicher Snack."))
+            return
+        }
+        scope.launch {
+            _busy.value = "KI sucht passende Gerichte …"
+            try {
+                val favorites = data.favorites.map { it.title } + personalFoods(data)
+                val input = MealNow.input(remaining, category(), data.nutrition.diet, data.recipePreferences, favorites)
+                val output = client.run("meal_now", input)
+                val (recipes, notes) = MealNow.suggestions(output, kcal, data.nutrition.diet, data.recipePreferences.allergens, _bls.value)
+                _now.value = NowResult(recipes, notes)
+                if (recipes.isEmpty()) _message.value = "Keine passenden Vorschläge erhalten – bitte noch einmal."
+            } catch (error: WorkerException) {
+                _message.value = error.message
+            } finally {
+                _busy.value = null
+            }
+        }
+    }
+
+    fun clearNow() {
+        _now.value = null
+    }
+
+    /** Vorschlag oder Rezept übernehmen: Entwurf zum Prüfen. */
+    fun draftFrom(recipe: Recipe, day: LocalDate, hint: String) {
+        newDraft(day, recipe.ingredients.map { it.copy(id = java.util.UUID.randomUUID().toString()) }, title = recipe.title, hint = hint)
+        changeDraft { it.copy(category = if (recipe.meal == MealCategory.OTHER) it.category else recipe.meal) }
+    }
+
+    // MARK: Tag auswerten
+
+    fun reviewDay(day: LocalDate) {
+        val data = current()
+        val targets = Diary.targets(data, day)
+        val totals = Diary.totals(data, day)
+        val meals = Nutrition.meals(day, data.meals).filterNot { meal -> meal.items.all { it.isDrink && it.name == "Wasser" } }
+        scope.launch {
+            _busy.value = "KI wertet den Tag aus …"
+            try {
+                val input = buildJsonObject {
+                    put("weekday", day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.GERMANY))
+                    put("time", java.time.LocalTime.now().withSecond(0).withNano(0).toString())
+                    put("dayType", targets.dayType.label)
+                    put("dayTypeSource", "Wochenplan")
+                    put("phase", data.nutrition.goal.label)
+                    put("training", buildJsonArray { if (targets.dayType != io.github.hkrb7p794w.gym.core.DayType.REST) add(JsonPrimitive(targets.dayType.example)) })
+                    put("planned", buildJsonArray {})
+                    put("recovery", "keine Daten (ohne Uhr)")
+                    put("goal", data.nutrition.goal.label)
+                    put("diet", data.nutrition.diet.label)
+                    put("mealCount", meals.size)
+                    put("meals", buildJsonArray { meals.forEach { add(JsonPrimitive("${it.category.label}: ${it.title}")) } })
+                    put("nutrients", buildJsonArray {
+                        Nutrient.entries.forEach { nutrient ->
+                            val target = targets.values[nutrient] ?: return@forEach
+                            add(buildJsonObject {
+                                put("label", nutrient.label)
+                                put("unit", nutrient.unit)
+                                put("actual", totals[nutrient] ?: 0.0)
+                                put("target", target)
+                                put("upperLimit", nutrient.isUpperLimit)
+                            })
+                        }
+                    })
+                    put("evidence", EvidenceInput.json(evidence, EvidenceInput.REVIEW))
+                }
+                val output = client.run("nutrition_review", input)
+                _review.value = Review(day.toString(), EvidenceInput.points(output), EvidenceInput.sources(output, evidence))
+            } catch (error: WorkerException) {
+                _message.value = error.message
+            } finally {
+                _busy.value = null
+            }
+        }
+    }
+
+    // MARK: Wochenplan
+
+    fun planWeek(start: LocalDate) {
+        val data = current()
+        val days = (0L until 7L).map { start.plusDays(it) }
+        val targets = days.map { RecipeDayTarget.of(it, Diary.targets(data, it)) }
+        // Lücken der letzten 7 Tage (nur Tage mit Einträgen).
+        val history = (1L..7L).map { start.minusDays(it) }.map { Diary.totals(data, it) }.filter { (it[Nutrient.KCAL] ?: 0.0) > 0 }
+        val gaps = RecipePlanner.gaps(history, Diary.targets(data, start).values)
+        scope.launch {
+            _busy.value = "KI plant die Woche …"
+            try {
+                val input = RecipePlanner.input(
+                    targets, data.recipePreferences, data.nutrition.diet, data.nutrition.goal.label, gaps,
+                    data.favorites.map { it.title }, EvidenceInput.json(evidence, RecipePlanner.EVIDENCE),
+                )
+                val output = client.run("weekly_recipes", input)
+                val plan = RecipePlanner.plan(output, targets, data.nutrition.diet, data.recipePreferences.allergens, _bls.value, System.currentTimeMillis())
+                if (plan == null) {
+                    _message.value = "Kein brauchbarer Wochenplan erhalten – bitte noch einmal."
+                } else {
+                    update { it.copy(weeklyPlan = plan, shoppingDone = emptySet()) }
+                }
+            } catch (error: WorkerException) {
+                _message.value = error.message
+            } finally {
+                _busy.value = null
+            }
+        }
+    }
+
+    // MARK: Teilen
+
+    fun share(meal: Meal) {
+        scope.launch {
+            _busy.value = "Link wird erstellt …"
+            try {
+                val code = client.share(MealShare.body(meal.title, meal.items))
+                _shareText.value = MealShare.message(meal.title, meal.totals[Nutrient.KCAL] ?: 0.0, client.shareLink(code), code)
+            } catch (error: WorkerException) {
+                _message.value = error.message
+            } finally {
+                _busy.value = null
+            }
+        }
+    }
+
+    fun openShared(text: String, day: LocalDate) {
+        val code = MealShare.code(text)
+        if (code == null) {
+            _message.value = "Kein gültiger Code: Er hat 10 Zeichen (Buchstaben und Ziffern)."
+            return
+        }
+        scope.launch {
+            _busy.value = "Mahlzeit wird geholt …"
+            try {
+                val (title, items) = MealShare.items(client.shared(code)) ?: throw WorkerException("Die geteilte Mahlzeit ist leer.")
+                newDraft(day, items, title = title, hint = "Geteilte Mahlzeit – Mengen prüfen")
             } catch (error: WorkerException) {
                 _message.value = error.message
             } finally {

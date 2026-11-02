@@ -17,6 +17,20 @@ GYM = ROOT / "ios/Packages/CoachCore/Sources/CoachCore/Gym"
 OUT = ROOT / "android/app/src/main/assets/exercises.json"
 BLS_IN = ROOT / "ios/Packages/CoachCore/Sources/CoachCore/Resources/bls.tsv"
 BLS_OUT = ROOT / "android/app/src/main/assets/bls.tsv"
+EVIDENCE_IN = ROOT / "ios/Packages/CoachCore/Sources/CoachCore/Evidence/Evidence.swift"
+EVIDENCE_OUT = ROOT / "android/app/src/main/assets/evidence.json"
+# Regeln, auf die sich die KI-Texte der Android-App stützen dürfen.
+EVIDENCE_IDS = ["nutrition.energy", "nutrition.carbs", "nutrition.protein", "nutrition.reds", "recovery.sleep",
+                "weight.trend", "weightloss.rate"]
+
+
+def evidence(text: str) -> list:
+    pattern = re.compile(r'EvidenceRule\(\s*id:\s*"([^"]+)",\s*title:\s*"((?:[^"\\]|\\.)*)",\s*statement:\s*"((?:[^"\\]|\\.)*)"', re.S)
+    found = {m.group(1): (m.group(2), m.group(3)) for m in pattern.finditer(text)}
+    missing = [i for i in EVIDENCE_IDS if i not in found]
+    if missing:
+        raise SystemExit(f"Evidenz-Regeln nicht gefunden: {missing}")
+    return [{"id": i, "title": found[i][0], "statement": found[i][1].replace('\\"', '"')} for i in EVIDENCE_IDS]
 
 GROUPS = {
     "chest": "Brust", "back": "Rücken", "shoulders": "Schultern", "biceps": "Bizeps", "triceps": "Trizeps",
@@ -100,8 +114,11 @@ def main() -> int:
         return 1
     content = json.dumps(exercises, ensure_ascii=False, indent=1) + "\n"
     bls = BLS_IN.read_bytes()
+    rules = json.dumps(evidence(EVIDENCE_IN.read_text(encoding="utf-8")), ensure_ascii=False, indent=1) + "\n"
     if "--check" in sys.argv:
         stale = []
+        if not EVIDENCE_OUT.exists() or EVIDENCE_OUT.read_text(encoding="utf-8") != rules:
+            stale.append("evidence.json")
         if not OUT.exists() or OUT.read_text(encoding="utf-8") != content:
             stale.append("exercises.json")
         if not BLS_OUT.exists() or BLS_OUT.read_bytes() != bls:
@@ -113,6 +130,7 @@ def main() -> int:
         return 0
     OUT.write_text(content, encoding="utf-8")
     BLS_OUT.write_bytes(bls)
+    EVIDENCE_OUT.write_text(rules, encoding="utf-8")
     print(f"{len(exercises)} Übungen und BLS-Tabelle nach {OUT.parent.relative_to(ROOT)} geschrieben")
     return 0
 
