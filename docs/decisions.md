@@ -41,6 +41,20 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 - **Alternative Quellen:** Apple Health hat keine Body Battery. Ohne Garmin bleibt sie leer und die App sagt das.
 - **Persönlicher Bereich (`PersonalNorm`):** Mittelwert ± 1 SD der letzten 30 Tage ohne heute, mindestens 7 Tage
   (Prinzip wie bei HRV nach Plews et al. 2013). Details in `docs/health-paket2.md`.
+## 2026-11-02 – Ernährung: Erinnerungen je Mahlzeit und konfigurierbare Übersicht (Paket 4, PR C)
+
+- **Erinnerungen:** Frühstück, Mittagessen, Snack und Abendessen mit eigener Uhrzeit und eigenem Schalter (Standard
+  aus). Lokale Mitteilungen für heute und morgen; keine, wenn die Mahlzeit an dem Tag schon erfasst ist (die App plant
+  bei jeder neuen oder gelöschten Mahlzeit neu) oder die Zeit vorbei ist. Uhrzeiten sind Ortszeit: Bei einem Wechsel
+  der Zeitzone (`NSSystemTimeZoneDidChange`) plant die App neu. iOS lässt höchstens 64 geplante Mitteilungen zu –
+  zwei Tage Vorlauf halten Platz für die übrigen Erinnerungen.
+- **Übersicht aus Karten:** Kalorien und Makros, Tagesübersicht (gegessen, Ziel, übrig, Fortschritt, Mahlzeiten,
+  Makros), Wasser, „Was esse ich jetzt?“, Schnell eintragen, Mahlzeiten, alle Nährstoffe – ein- und ausblendbar und
+  per Ziehen sortierbar („Übersicht anpassen“). Neue Karten künftiger Versionen erscheinen hinten.
+- **Widget auf dem Homescreen geprüft, nicht umgesetzt:** Ein WidgetKit-Widget bräuchte eine App Group, über die App
+  und Erweiterung die Tageswerte teilen. Mit SideStore und kostenloser Apple-ID ist das unsicher (Gruppen-IDs werden
+  umgeschrieben); die Live-Aktivität kommt ohne aus. Die Karten im Reiter decken dieselben Werte ab.
+
 ## 2026-11-02 – Ernährung: Foto-Analyse ergänzen ohne Überschreiben (Paket 4, PR B)
 
 - **Gründlicher hinschauen:** Der Foto-Prompt geht das Bild systematisch durch (Hauptkomponente, Beilage, Gemüse,
