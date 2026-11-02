@@ -10,6 +10,7 @@ final class CoachSettings {
   static let aiKey = "coach.ai"
   static let aiUsageKey = "coach.aiUsage"
   static let insightsKey = "coach.insights"
+  static let customPromptsKey = "coach.customPrompts"
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
@@ -56,6 +57,11 @@ final class CoachSettings {
   /// Empfehlungen im Reiter „AI“ mit Bearbeitungsstand.
   var insights: [Insight] {
     didSet { save(insights, forKey: Self.insightsKey) }
+  }
+
+  /// Eigene Prompts der Prompt-Bibliothek.
+  var customPrompts: [PromptTemplate] {
+    didSet { save(customPrompts, forKey: Self.customPromptsKey) }
   }
 
   var nutrition: NutritionSettings {
@@ -182,6 +188,10 @@ final class CoachSettings {
       ?? []
     insights =
       defaults.data(forKey: Self.insightsKey).flatMap { try? JSONDecoder().decode([Insight].self, from: $0) } ?? []
+    customPrompts =
+      defaults.data(forKey: Self.customPromptsKey).flatMap {
+        try? JSONDecoder().decode([PromptTemplate].self, from: $0)
+      } ?? []
     nutrition =
       defaults.data(forKey: Self.nutritionKey).flatMap { try? JSONDecoder().decode(NutritionSettings.self, from: $0) }
       ?? NutritionSettings()
