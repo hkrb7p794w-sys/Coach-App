@@ -96,6 +96,9 @@ struct SleepCoachView: View {
       } footer: {
         Text("Erwachsene brauchen regelmäßig 7–9 Stunden. Feste Zeiten, auch am Wochenende, helfen am meisten.")
       }
+      WakeAlarmSection(
+        wake: WakePlan.Time(hour: settings.sleep.wakeHour, minute: settings.sleep.wakeMinute),
+        tonightMinutes: report?.tonightMinutes ?? Int(settings.sleep.targetHours * 60))
     }
     .navigationTitle("Schlaf-Coach")
     .task(id: "\(settings.sleep.hashValue)-\(report?.bedtimeMinutes ?? -1)") {

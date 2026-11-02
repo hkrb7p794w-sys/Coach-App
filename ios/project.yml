@@ -65,6 +65,8 @@ targets:
           und Ernährung einzuordnen.
         NSHealthUpdateUsageDescription: >-
           IronLudi speichert deine Krafttrainings als Workouts in Health.
+        NSAlarmKitUsageDescription: >-
+          IronLudi stellt auf deinen Wunsch einen Wecker zur empfohlenen Aufstehzeit.
         NSCameraUsageDescription: >-
           IronLudi nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
         NSMicrophoneUsageDescription: >-

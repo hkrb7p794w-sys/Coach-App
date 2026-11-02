@@ -5,6 +5,22 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Health: Widgets und Wecker (Paket 2, PR C)
+
+- **Wecker über AlarmKit** (iOS 26, <https://developer.apple.com/documentation/alarmkit/scheduling-an-alarm-with-alarmkit>):
+  echter System-Wecker, Erlaubnis einmalig über `NSAlarmKitUsageDescription` („If the key is missing … apps can't
+  schedule alarms“). Nur Alarm-Darstellung ohne Countdown, daher keine Live-Activity-Erweiterung nötig (Apple:
+  „AlarmKit expects a widget extension if an app supports a countdown presentation“). Kein Entitlement, läuft also
+  mit SideStore und kostenloser Apple-ID.
+- **Uhrzeit statt Zeitpunkt** (`Alarm.Schedule.relative`), damit Zeitumstellung/Zeitzone nichts verschieben.
+- **iOS 18–25:** keine öffentliche Schnittstelle zum Stellen von Weckern; nur Hinweis auf die Uhr-App. Die
+  bestehende Schlafenszeit-Erinnerung bleibt eine Mitteilung, kein Wecker.
+- **Widgets:** Konfiguration in `CoachCore` (`HealthDashboard`), tolerant beim Laden (unbekannte und doppelte Einträge
+  fallen weg). Angeboten wird nur, was in den letzten 30 Tagen Daten hat. Auswahl der Kennzahlen und was bewusst
+  fehlt: `docs/health-paket2.md`.
+- **Ort:** „Gesundheit“ ganz oben im Reiter Training (Morning Report, Widgets, Body Battery); die einzelnen Einträge
+  „Morning Report“ und „Body Battery“ dort entfallen.
+
 ## 2026-11-02 – Health: Morning Report (Paket 2, PR B)
 
 - **Regeln entscheiden:** Grundlage ist `RecoveryEvaluator` (HRV-Status, Readiness, Ruhepuls +5 bpm, Schlaf unter
