@@ -80,8 +80,11 @@ enum GarminStrengthService {
     do {
       let path = GarminConnect.exerciseSetsPath(activityID: activityID)
       let original = try await garmin.data(path: path)
-      let existing = try JSONValue(data: original)
       try backup(original, activityID: activityID)
+      // Immer von der echten Aufzeichnung der Uhr ausgehen (Sicherung vom ersten Mal), damit erneutes Übertragen
+      // nicht auf schon ersetzten Sätzen aufbaut.
+      let base = (try? Data(contentsOf: backupURL(activityID: activityID))) ?? original
+      let existing = try JSONValue(data: base)
       var result = GarminStrengthSync.payload(existing: existing, session: session, custom: gym.customExercises)
       do {
         _ = try await garmin.send(method: "PUT", path: path, json: JSONEncoder().encode(result.payload))

@@ -5,6 +5,16 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Garmin: eigene Übungen nicht mehr „Unbekannt“
+
+- **Ursache:** Eigene Übungen (`eigen_…`, auch aus dem GymBook-Import) standen in keiner Zuordnung; nachgeschlagen
+  wurde ohne die eigenen Übungen, also Kategorie `UNKNOWN` – Garmin Connect zeigt „Unbekannt“.
+- **Jetzt:** Zuordnung über Stichwörter im Namen auf eine Übung der Bibliothek (Wortanfang, genauere zuerst:
+  „Schulterdrücken Maschine“ → Schulterdrücken, „Bench Dips“ → Dips), sonst über die Muskelgruppe, die an jeder
+  geloggten Übung steht (auch nach Löschen der eigenen Übung). Gilt für Satz-Übertragung und FIT-Upload.
+- **`probability: 100`** je Übung wie bei einer in Connect bearbeiteten Übung.
+- **Satzdauer beim Ersetzen** wie im FIT-Export (3 s je Wiederholung, mind. 20 s) statt pauschal bis 2:00.
+- **„Sätze erneut übertragen“** in der Einheit: baut immer auf der gesicherten Original-Aufzeichnung der Uhr auf.
 ## 2026-11-02 – Homescreen-Widgets mit App Group (Paket 7, PR B)
 
 - **App Group** `group.io.github.hkrb7p794w.coach` für App und Erweiterung. SideStore macht daraus

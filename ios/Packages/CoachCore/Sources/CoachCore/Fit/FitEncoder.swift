@@ -130,7 +130,7 @@ public enum StrengthFitExport {
     var clock = Double(startStamp)
     var index: UInt32 = 0
     for (offset, (exercise, set)) in sets.enumerated() {
-      let mapping = GarminExerciseMapping.code(for: exercise.exerciseID)
+      let mapping = GarminExerciseMapping.code(for: exercise.exerciseID, name: exercise.name, group: exercise.group)
       let duration = active[offset]
       let isTime = ExerciseLibrary.info(exercise.exerciseID)?.tracking == .time
       var fields: [FitEncoder.Field] = [
@@ -270,10 +270,13 @@ public enum GarminExerciseMapping {
     "rotation": Code(category: core, subtype: 46),
   ]
 
-  /// Unbekannte oder eigene Übungen über die Muskelgruppe einer passenden Kategorie zuordnen.
-  public static func code(for exerciseID: String) -> Code {
+  /// Unbekannte oder eigene Übungen (`eigen_…`, auch aus dem GymBook-Import) erst über den Namen
+  /// („Schulterdrücken Maschine“ → Schulterdrücken), dann über die Muskelgruppe einer passenden Kategorie zuordnen.
+  /// Name und Gruppe stehen an jeder geloggten Übung – auch wenn die eigene Übung inzwischen gelöscht ist.
+  public static func code(for exerciseID: String, name: String = "", group: MuscleGroup? = nil) -> Code {
     if let code = table[exerciseID] { return code }
-    switch ExerciseLibrary.info(exerciseID)?.group {
+    if let key = libraryID(forName: name), let code = table[key] { return code }
+    switch ExerciseLibrary.info(exerciseID)?.group ?? group {
     case .chest: return Code(category: benchPress, subtype: nil)
     case .back: return Code(category: row, subtype: nil)
     case .shoulders: return Code(category: shoulderPress, subtype: nil)
@@ -283,5 +286,57 @@ public enum GarminExerciseMapping {
     case .core: return Code(category: core, subtype: nil)
     default: return Code(category: unknown, subtype: nil)
     }
+  }
+
+  /// Stichwörter im Namen → Übung der Bibliothek. Genauere zuerst (Schrägbank vor Bank, Hammer-Curl vor Curl).
+  // swift-format-ignore
+  static let keywords: [(words: [String], id: String)] = [
+    (["dips"], "dips"),
+    (["schraegbankdr", "schraegbank dr", "incline bench", "incline press"], "schraegbankdruecken"),
+    (["bankdr", "bench press"], "bankdruecken"),
+    (["brustpresse", "chest press", "chestpress"], "brustpresse"),
+    (["butterfly reverse", "reverse butterfly", "reverse fly", "reverse flys", "rear delt"], "reverse_fly"),
+    (["butterfly", "fliegende", "flys", "flye", "cable cross", "kabelzug brust"], "fliegende"),
+    (["liegestue", "push up", "pushup", "push-up"], "liegestuetze"),
+    (["face pull", "facepull"], "face_pull"),
+    (["latzug", "latzieh", "lat pull", "pulldown"], "latziehen"),
+    (["klimmz", "pull up", "pullup", "chin up", "chinup"], "klimmzug"),
+    (["pullover"], "kabel_pullover"),
+    (["aufrechtes rudern", "upright row"], "aufrechtes_rudern"),
+    (["rudern", "row"], "rudern_kabel"),
+    (["schulterdr", "shoulder press", "overhead press", "military", "nackendr"], "schulterdruecken"),
+    (["seitheb", "lateral raise", "seitlich"], "seitheben"),
+    (["frontheb", "front raise"], "frontheben"),
+    (["shrug", "schulterheb"], "shrugs"),
+    (["beinbeug", "leg curl", "beincurl"], "beinbeugen"),
+    (["beinstreck", "leg extension"], "beinstrecken"),
+    (["hammer"], "hammer_curl"),
+    (["handgelenk", "wrist"], "handgelenk_curl"),
+    (["trizeps", "triceps", "pushdown", "french press", "skull"], "trizeps_pushdown"),
+    (["curl", "bizeps", "biceps"], "bizeps_curl"),
+    (["beinpresse", "leg press"], "beinpresse"),
+    (["bulgar", "split squat"], "bulgarische_kniebeuge"),
+    (["ausfall", "lunge"], "ausfallschritt"),
+    (["goblet"], "goblet_squat"),
+    (["kniebeug", "squat", "hackenschmidt"], "kniebeuge"),
+    (["rumaen", "romanian", "rdl", "gestreckt"], "rumaenisches_kreuzheben"),
+    (["kreuzheb", "deadlift"], "kreuzheben"),
+    (["hip thrust", "hueftstoss", "hueftheb", "glute bridge", "beckenheb"], "hueftstoss"),
+    (["kettlebell swing"], "kettlebell_swing"),
+    (["waden", "calf"], "wadenheben"),
+    (["rueckenstreck", "hyperext", "back extension"], "rueckenstrecker"),
+    (["seitstuetz", "side plank"], "seitstuetz"),
+    (["plank", "unterarmstuetz"], "plank"),
+    (["beinheb", "leg raise", "knee raise", "knieheb"], "beinheben"),
+    (["crunch", "bauchpresse", "sit up", "situp"], "crunch"),
+    (["russian twist", "rotation", "woodchop", "holzhack"], "rotation"),
+  ]
+
+  /// Übung der Bibliothek zu einem frei eingegebenen Namen; `nil`, wenn kein Stichwort passt. Stichwörter gelten
+  /// am Wortanfang („Kabelrudern“ passt nicht auf „row“ in „Arrow“, aber auch nicht auf „rudern“).
+  public static func libraryID(forName name: String) -> String? {
+    let text = " " + ExerciseCatalog.slug(name).replacingOccurrences(of: "_", with: " ") + " "
+    guard text.count > 2 else { return nil }
+    return keywords.first { entry in entry.words.contains { text.contains(" " + $0) } }?.id
   }
 }
