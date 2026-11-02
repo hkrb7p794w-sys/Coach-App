@@ -73,9 +73,9 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | fertig (PR 64) |
 | 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | fertig (PR 65) |
 | 57 | Ernährung D: Mahlzeiten teilen per Link | fertig (PR 66) |
-| 58 | Health A: Body Battery mit Tagesverlauf, Aufwachwert und Bezug zu Schlaf/Stress; Ruhekalorien, Puls, Regenerationszeit, Belastung | in Arbeit |
-| 59 | Health B: Morning Report mit persönlichen Normalbereichen | in Arbeit |
-| 60 | Health C: konfigurierbare Health-Widgets, Wecker zur Aufstehzeit | in Arbeit |
+| 58 | Health A: Body Battery mit Tagesverlauf, Aufwachwert und Bezug zu Schlaf/Stress; Ruhekalorien, Puls, Regenerationszeit, Belastung | fertig (PR 67) |
+| 59 | Health B: Morning Report mit persönlichen Normalbereichen | fertig (PR 68) |
+| 60 | Health C: konfigurierbare Health-Widgets, Wecker zur Aufstehzeit | fertig (PR 69) |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
