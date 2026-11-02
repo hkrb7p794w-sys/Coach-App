@@ -21,9 +21,7 @@ struct RootView: View {
       Tab("Heute", systemImage: "sun.max") {
         TodayView()
       }
-      Tab("Plan", systemImage: "calendar") {
-        if profile.mode == .season { PlanView() } else { MyWeekView() }
-      }
+      // Der Plan liegt im Reiter Training (Entscheidung vom 02.11.2026: fünf Reiter ohne „Mehr“).
       Tab("Training", systemImage: "heart.text.square") {
         TrainingView()
       }
@@ -35,6 +33,10 @@ struct RootView: View {
           GymView()
         }
       }
+      Tab("AI", systemImage: "sparkles") {
+        AIView()
+      }
+      .badge(InsightInbox.unreadCount(model.settings.insights, now: .now))
     }
     .task { await model.syncIfDue() }
     .task(id: reminderKey) {

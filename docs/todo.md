@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **Reiter „AI“:** Plan jetzt unter Training › Plan? Empfehlungen erscheinen (z. B. Stillstand im Gym), Wischen
+      setzt „umgesetzt“/„verworfen“, Zahl am Reiter stimmt. „Alles analysieren“ liefert belegte Empfehlungen ohne
+      Quellenangaben im Text; „Worauf beruht das?“ zeigt die Grundlage. Mit wenig Daten: fehlende Daten genannt?
 - [ ] **KI-Stufen und Anbieter:** Einstellungen › KI: „Nur auf Anfrage“ → beim Öffnen von „Heute“ keine KI-Notiz,
       „Neu formulieren“ geht. „Aus“ → Mahlzeit beschreiben meldet „KI ist ausgeschaltet“, Export geht. „Datenschutz
       zuerst“ → Anbieter und Nutzung zeigt Workers AI. Nach dem Worker-Deploy: Workers AI als „eingerichtet“?

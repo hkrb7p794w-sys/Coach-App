@@ -67,7 +67,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 49 | Gym Paket 1 C: Garmin – Sätze in die Uhr-Aktivität, keine doppelten Aktivitäten und Kalorien | fertig (PR 58) |
 | 50 | Ernährung: Nährwerte aus dem Bundeslebensmittelschlüssel (BLS 4.0, offline), KI nur zum Zerlegen, BLS-Suche | fertig (PR 59) |
 | 51 | KI A: austauschbare Anbieter (Gemini, Workers AI, Groq, eigener Server), KI-Stufen, Nutzungsprotokoll, Modellbewertung | in Arbeit |
-| 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | geplant |
+| 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | in Arbeit |
 | 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | geplant |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)

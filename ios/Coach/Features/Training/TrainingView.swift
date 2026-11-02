@@ -26,6 +26,12 @@ struct TrainingView: View {
       List {
         Section {
           HubRow(
+            title: "Plan", symbol: "calendar", color: .orange, value: "",
+            caption: settings.profile.mode == .season ? "Saisonplan und Woche" : "Deine Woche"
+          ) {
+            if settings.profile.mode == .season { PlanView() } else { MyWeekView() }
+          }
+          HubRow(
             title: "Erholung", symbol: "bed.double.fill", color: .indigo,
             value: viewModel.recovery.first.map {
               Formatters.number($0.trend.latest?.value, unit: $0.unit, digits: $0.digits)

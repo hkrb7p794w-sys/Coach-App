@@ -9,6 +9,7 @@ final class CoachSettings {
   static let privacyKey = "coach.privacy"
   static let aiKey = "coach.ai"
   static let aiUsageKey = "coach.aiUsage"
+  static let insightsKey = "coach.insights"
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
@@ -50,6 +51,11 @@ final class CoachSettings {
   /// Internes Protokoll der KI-Anfragen (ohne Inhalte), neueste zuerst.
   var aiUsage: [AIUsageEntry] {
     didSet { save(aiUsage, forKey: Self.aiUsageKey) }
+  }
+
+  /// Empfehlungen im Reiter „AI“ mit Bearbeitungsstand.
+  var insights: [Insight] {
+    didSet { save(insights, forKey: Self.insightsKey) }
   }
 
   var nutrition: NutritionSettings {
@@ -174,6 +180,8 @@ final class CoachSettings {
     aiUsage =
       defaults.data(forKey: Self.aiUsageKey).flatMap { try? JSONDecoder().decode([AIUsageEntry].self, from: $0) }
       ?? []
+    insights =
+      defaults.data(forKey: Self.insightsKey).flatMap { try? JSONDecoder().decode([Insight].self, from: $0) } ?? []
     nutrition =
       defaults.data(forKey: Self.nutritionKey).flatMap { try? JSONDecoder().decode(NutritionSettings.self, from: $0) }
       ?? NutritionSettings()
