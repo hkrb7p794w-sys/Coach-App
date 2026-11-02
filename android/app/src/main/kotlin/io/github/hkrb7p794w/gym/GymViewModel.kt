@@ -69,10 +69,15 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun update(change: (AppData) -> AppData) {
-        val next = change(_data.value)
-        if (next == _data.value) return
+        val previous = _data.value
+        val next = change(previous)
+        if (next == previous) return
         _data.value = next
         viewModelScope.launch { save(next) }
+        // Erinnerungen hängen an Einstellungen und Einträgen (eingetragene Mahlzeiten lösen keine aus).
+        if (next.reminders != previous.reminders || next.meals.size != previous.meals.size) {
+            ReminderScheduler.schedule(getApplication(), next)
+        }
     }
 
     /** Atomar schreiben: erst Zwischendatei, dann umbenennen – ein Absturz beim Speichern zerstört nichts. */

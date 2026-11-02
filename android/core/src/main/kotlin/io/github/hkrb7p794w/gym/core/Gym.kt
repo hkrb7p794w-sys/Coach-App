@@ -215,6 +215,9 @@ object Backup {
             sessions = sessions, routines = routines, customExercises = custom, meals = meals, favorites = favorites,
             foods = foods, nutrition = nutrition, dayTypes = imported.dayTypes + current.dayTypes,
             weekDayTypes = if (current.weekDayTypes.isEmpty()) imported.weekDayTypes else current.weekDayTypes,
+            recipes = current.recipes + imported.recipes.filter { r -> current.recipes.none { it.id == r.id } },
+            weights = WeightTrend.merged(imported.weights + current.weights),
+            weeklyPlan = current.weeklyPlan ?: imported.weeklyPlan,
         )
     }
 

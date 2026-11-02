@@ -3,7 +3,7 @@
 Gym-Logging und Ernährung für Android, für eine Person ohne Garmin (Aufträge vom 02.11.2026). Bedienung und
 Installation für Nutzer:innen: [`installation.md`](installation.md).
 
-## Ernährung (Teil 1, wie auf dem iPhone)
+## Ernährung (wie auf dem iPhone)
 
 | Funktion | Android | Quelle der Regeln |
 |---|---|---|
@@ -13,7 +13,15 @@ Installation für Nutzer:innen: [`installation.md`](installation.md).
 | Barcode (Google-Code-Scanner) + Open Food Facts, Nummer von Hand | ✓ | Port `OpenFoodFacts` |
 | Zuletzt, Häufig, Favoriten, Wie gestern, Schnell-Eintrag, Wasser, Portion anpassen, Rückgängig | ✓ | Port `MealSuggestions`, `MealShortcuts`, `MealPortion`, `QuickLog` |
 | Wochenstreifen mit kcal je Tag, frühere Tage nachtragen | ✓ | |
-| Rezepte/Meal-Prep, Einkaufsliste, „Was jetzt?“, Abendauswertung, Erinnerungen, Teilen, Gewichtsverlauf, Mikronährstoff-Übersicht, Offline-Warteschlange | **noch nicht** (Teil 2) | |
+| Eigene Rezepte/Meal-Prep mit Portionen, gekochtem Gewicht und Vorrat | ✓ (Teil 2) | Port `OwnRecipe` |
+| „Was esse ich jetzt?“ (3 Gerichte zum Rest des Tages) | ✓ (Teil 2) über `meal_now` | Port `MealNow`, Prüfung Ernährungsweise/Allergene (`RecipePlanner.violations`) |
+| Wochenplan mit Rezepten (KI) + Einkaufsliste nach Abteilung | ✓ (Teil 2) über `weekly_recipes` | Port `RecipePlanner.plan/fit/shoppingList`, `ShoppingAisle` |
+| Tag auswerten (KI, gestützt auf die Regeln der App) | ✓ (Teil 2) über `nutrition_review` | Regeltexte aus `Evidence.swift` (`assets/evidence.json`) |
+| Gewicht: Eingabe, Trend 28 Tage, Vorschlag ±kcal, Prognose beim Abnehmen | ✓ (Teil 2) | Port `WeightTrend`, `WeightForecast`, Schutzgrenzen `GoalRules` |
+| Mahlzeiten teilen (Link/Code, 7 Tage) und geteilte öffnen | ✓ (Teil 2) über `/v1/share/meal` | gleiches Format wie iPhone, iPhone und Android tauschen untereinander |
+| Erinnerungen je Mahlzeit + abends „Tag auswerten“ (keine, wenn schon eingetragen) | ✓ (Teil 2), AlarmManager | Port `ReminderPlanner.meals` |
+| Alle Nährstoffe mit Ziel, Offline-Warteschlange für KI | ✓ (Teil 2) | |
+| Rezept vom Foto, Nährwerttabelle vom Etikett, konfigurierbare Kartenreihenfolge, Verbrauch aus Gewicht + Zufuhr | **noch nicht** | |
 
 KI-Zugang: Gast-Token aus dem Link der iPhone-App („Android-Link erstellen“, `#zugang=…` auf der Download-Seite →
 `ironludi://connect?worker=…&token=…`) oder von Hand in Ernährung › Zahnrad › KI-Zugang. Gespeichert in privaten
@@ -32,7 +40,8 @@ Ernährungsweise und Namen eigener Lebensmittel – keine Körperwerte.
 
 Daten: eine JSON-Datei `gym.json` im App-Speicher (Trainings und Mahlzeiten), atomar geschrieben (Zwischendatei +
 Umbenennen). Ist sie nicht lesbar, legt die App eine Kopie an und warnt statt zu überschreiben. Berechtigungen:
-`INTERNET` (KI über den Worker, Open Food Facts), `VIBRATE`. Keine Kamera-Berechtigung (Fotos über die Kamera-App,
+`INTERNET` (KI über den Worker, Open Food Facts), `VIBRATE`, `POST_NOTIFICATIONS` und `RECEIVE_BOOT_COMPLETED`
+(Erinnerungen, Standard aus). Keine Kamera-Berechtigung (Fotos über die Kamera-App,
 Barcodes über den Google-Code-Scanner der Play-Dienste).
 Android Auto Backup ist an (`allowBackup`), dazu Sicherung/Einspielen als Datei (führt über IDs zusammen, nichts
 geht verloren).
@@ -63,6 +72,6 @@ python3 tools/export_exercises.py   # nach Änderungen an der Swift-Bibliothek
 
 ## Bewusst nicht in Version 1
 
-Garmin, Health Connect, Widgets, Rangliste, Ernährung Teil 2 (siehe Tabelle oben). Die Logik dafür liegt in Swift (CoachCore); ein Port
+Garmin, Health Connect, Widgets, Rangliste und die in der Tabelle als „noch nicht“ markierten Punkte. Die Logik dafür liegt in Swift (CoachCore); ein Port
 lohnt erst bei Bedarf (siehe `docs/plattform-paket7.md`, Abschnitt 2.3). Pausentimer läuft nur, solange die App
 offen ist (keine Benachrichtigung im Hintergrund).

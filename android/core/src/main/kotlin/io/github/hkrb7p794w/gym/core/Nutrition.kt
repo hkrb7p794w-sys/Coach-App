@@ -141,6 +141,8 @@ data class MealItem(
     val searchTerm: String? = null,
     /** Menge vor einer Portionsanpassung; `null` = nie angepasst. */
     val plannedGrams: Double? = null,
+    /** Lebensmittelgruppe der KI (`gemuese`, `milch` …) für die Einkaufsliste. */
+    val group: String? = null,
 ) {
     val amounts: NutrientMap get() = per100g.scaled(grams)
 

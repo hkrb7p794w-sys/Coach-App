@@ -77,6 +77,7 @@ fun CaptureDialog(viewModel: GymViewModel, data: AppData, day: LocalDate, onDism
     var manualBarcode by rememberSaveable { mutableStateOf<String?>(null) }
     var quickEntry by rememberSaveable { mutableStateOf(false) }
     var ownFood by rememberSaveable { mutableStateOf(false) }
+    var sharedCode by rememberSaveable { mutableStateOf<String?>(null) }
     // Über Neustarts der Aktivität hinweg merken (die Kamera-App kann sie beenden).
     var photoUri by rememberSaveable { mutableStateOf<String?>(null) }
     val connected = model.access.isConfigured
@@ -195,6 +196,9 @@ fun CaptureDialog(viewModel: GymViewModel, data: AppData, day: LocalDate, onDism
                         OutlinedButton(onClick = { quickEntry = true }) { Text("Schnell-Eintrag (kcal)") }
                         OutlinedButton(onClick = { ownFood = true }) { Text("Eigenes Lebensmittel") }
                     }
+                    if (connected) {
+                        TextButton(onClick = { sharedCode = "" }) { Text("Geteilte Mahlzeit öffnen") }
+                    }
                 }
                 item { HorizontalDivider() }
                 item {
@@ -225,6 +229,18 @@ fun CaptureDialog(viewModel: GymViewModel, data: AppData, day: LocalDate, onDism
                         FoodRow(food.item()) { pick(food.item()) }
                     }
                 } else {
+                    if (data.recipes.isNotEmpty()) {
+                        item { SectionTitle("Rezepte") }
+                        items(data.recipes, key = { "rec-" + it.id }) { recipe ->
+                            QuickRow(
+                                recipe.name + (recipe.remainingPortions?.let { " · Vorrat ${formatKg(it)}" } ?: ""),
+                                recipe.item().amounts[Nutrient.KCAL],
+                            ) {
+                                viewModel.update { io.github.hkrb7p794w.gym.core.Diary.logRecipe(it, recipe, null, category, System.currentTimeMillis()) }
+                                onDismiss()
+                            }
+                        }
+                    }
                     val yesterday = MealSuggestions.yesterday(data.meals, category, LocalDate.now())
                     if (yesterday.isNotEmpty()) {
                         item { SectionTitle("Wie gestern") }
@@ -297,6 +313,28 @@ fun CaptureDialog(viewModel: GymViewModel, data: AppData, day: LocalDate, onDism
                 }, enabled = value.length >= 8) { Text("Suchen") }
             },
             dismissButton = { TextButton(onClick = { manualBarcode = null }) { Text("Abbrechen") } },
+        )
+    }
+    sharedCode?.let { value ->
+        AlertDialog(
+            onDismissRequest = { sharedCode = null },
+            title = { Text("Geteilte Mahlzeit öffnen") },
+            text = {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { sharedCode = it.trim() },
+                    label = { Text("Link oder Code (10 Zeichen)") },
+                    singleLine = true,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    model.openShared(value, day)
+                    sharedCode = null
+                    onDismiss()
+                }, enabled = value.isNotBlank()) { Text("Öffnen") }
+            },
+            dismissButton = { TextButton(onClick = { sharedCode = null }) { Text("Abbrechen") } },
         )
     }
     if (quickEntry) {
