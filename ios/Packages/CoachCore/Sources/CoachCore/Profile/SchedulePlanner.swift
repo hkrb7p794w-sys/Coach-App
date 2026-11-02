@@ -59,6 +59,11 @@ public enum SchedulePlanner {
       if profile.trains(.strength) { wanted[.strength] = min(wanted[.strength] ?? 2, 2) }
     }
 
+    // Festgelegte Haupt- und Nebenziele (Paket 6) verschieben die Gewichte, z. B. mehr Kraft bei Muskelaufbau.
+    if let goals = profile.goals {
+      wanted = Personalization.adjustCounts(wanted, goals: goals, profile: profile)
+    }
+
     // Einsteiger:innen starten mit weniger Einheiten je Sportart.
     if level == .beginner {
       for sport in TrainingSport.allCases where sport.isEndurance {
@@ -75,6 +80,13 @@ public enum SchedulePlanner {
       case .triathlon: return [.run, .bike, .swim, .strength, .other]
       case .marathon, .halfMarathon, .run10k, .run5k: return [.run, .strength, .bike, .swim, .other]
       case .other: break
+      }
+    }
+    if let goals = profile.goals {
+      switch goals.primary {
+      case .muscleGain, .strength: return [.strength, .run, .bike, .swim, .other]
+      case .endurance: return [.run, .bike, .swim, .strength, .other]
+      default: break
       }
     }
     switch profile.goal {

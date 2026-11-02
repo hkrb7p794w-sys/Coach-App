@@ -20,7 +20,9 @@ struct AIView: View {
 
   var body: some View {
     let now = Date.now
-    let groups = InsightInbox.groups(model.settings.insights, topic: topic, now: now)
+    let goals = model.settings.profile.effectiveGoals(today: CalendarDay(date: now))
+    let groups = InsightInbox.groups(
+      model.settings.insights, topic: topic, focus: Personalization.insightTopics(goals), now: now)
     NavigationStack {
       List {
         Section {

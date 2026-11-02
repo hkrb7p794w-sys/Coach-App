@@ -79,7 +79,8 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 61 | Datenquellen A: gemeinsame Architektur (Vorrang je Datenart, keine Doppelten, Herkunft, Sync-Status), Integrationsmatrix | fertig (PR 70) |
 | 62 | Datenquellen B: WHOOP (OAuth über den Worker) | geplant |
 | 63 | Datenquellen C: Polar AccessLink | geplant |
-| 64 | Gym-Rückmeldungen: Übersprungenes ausgegraut, Start erst mit dem ersten Satz, keine Erinnerung im Training, Fokus entfernt, Garmin nachholen, Wochenzählung | in Arbeit |
+| 64 | Gym-Rückmeldungen: Übersprungenes ausgegraut, Start erst mit dem ersten Satz, keine Erinnerung im Training, Fokus entfernt, Garmin nachholen, Wochenzählung | fertig (PR 71) |
+| 65 | Onboarding und Personalisierung: Haupt-/Nebenziele, Prioritäten, Tracker; Wirkung auf Plan, KI, Dashboard, Belastung; Verlauf | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

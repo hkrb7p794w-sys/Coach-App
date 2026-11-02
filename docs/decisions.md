@@ -5,6 +5,20 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Persönliche Ziele und Prioritäten (Paket 6)
+
+- **Zentral in `Personalization`:** Hauptziel, Nebenziele, Prioritäten und Tracker liegen im Profil. Was daraus folgt
+  (Plan-Vorschlag, Belastungsgrenze, Reihenfolge der Empfehlungen, Standard-Widgets, KI-Leitlinie), steht an einer
+  getesteten Stelle. Wirkungsmatrix: `docs/personalisierung.md`.
+- **`FitnessGoal` bleibt** als Richtung für Ernährung und Gewicht (Schutzgrenzen hängen daran) und wird aus den
+  Zielen abgeleitet statt separat gefragt.
+- **Vorsichtiger bei Recovery/Gesundheit:** Wochenbelastung warnt ab +20 % statt +30 %. Das ist ein Praxiswert;
+  die 30 % stammen aus der bestehenden Regel.
+- **Verlauf statt Überschreiben:** Neue Ziele gelten ab dem Tag der Änderung; frühere Stände bleiben mit Startdatum
+  erhalten.
+- **Saisonplan:** Ziele sind änderbar, ohne in ein persönliches Profil zu wechseln; ohne Angabe gilt
+  Wettkampfvorbereitung.
+
 ## 2026-11-02 – Gym: Start erst mit dem ersten Satz, kein Fokus, Garmin nachholen
 
 - **„Gestartet“ heißt: erster Satz abgehakt** (`ActiveSessionState`). Vorher keine Live-Aktivität („Los“ in der

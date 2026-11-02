@@ -34,7 +34,9 @@ public enum ChatContext {
     let full = facts.privacy == .full
     var lines: [String] = []
     let profile = facts.profile
-    lines.append("Ziel: \(profile.goal.label); Sportarten: \(profile.sports.map(\.label).joined(separator: ", ")).")
+    lines.append("Sportarten: \(profile.sports.map(\.label).joined(separator: ", ")).")
+    // Haupt-/Nebenziele und Prioritäten: Die KI richtet Analyse und Empfehlungen danach aus (Paket 6).
+    lines += Personalization.contextLines(profile.effectiveGoals(today: CalendarDay(date: .now)))
     if let event = profile.event {
       lines.append(
         "Wettkampf: \(event.name) (\(event.kind.label)) am \(GermanFormat.date(event.date))"

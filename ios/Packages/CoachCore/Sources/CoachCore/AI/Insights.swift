@@ -193,10 +193,14 @@ public enum InsightInbox {
     public var expired: [Insight] = []
   }
 
-  public static func groups(_ insights: [Insight], topic: InsightTopic? = nil, now: Date) -> Groups {
+  /// `focus`: Themen in der Reihenfolge der Prioritäten der Person; bei gleicher Dringlichkeit zuerst.
+  public static func groups(
+    _ insights: [Insight], topic: InsightTopic? = nil, focus: [InsightTopic] = [], now: Date
+  ) -> Groups {
     var groups = Groups()
+    func rank(_ topic: InsightTopic) -> Int { focus.firstIndex(of: topic) ?? focus.count }
     let sorted = insights.filter { topic == nil || $0.topic == topic }
-      .sorted { ($0.priority, $1.created) < ($1.priority, $0.created) }
+      .sorted { ($0.priority, rank($0.topic), $1.created) < ($1.priority, rank($1.topic), $0.created) }
     for insight in sorted {
       switch insight.status {
       case .done, .dismissed: groups.closed.append(insight)

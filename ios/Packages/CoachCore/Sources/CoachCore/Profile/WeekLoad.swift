@@ -40,9 +40,10 @@ public enum WeekLoad {
   }
 
   /// Gym-Einheiten der App, die schon als Garmin-Krafttraining vorliegen, zählen nur einmal (`ActivityFeed`).
+  /// `maxIncrease`: Warnschwelle; aus den Zielen (`Personalization.maxLoadIncrease`), sonst 30 %.
   public static func check(
     activities: [GarminActivity], gym: [ActivityFeed.GymItem] = [], today: CalendarDay,
-    timeZone: TimeZone = .current
+    timeZone: TimeZone = .current, maxIncrease: Double = WeekLoad.maxIncrease
   ) -> Result {
     let start = today.adding(days: -27)
     let recent = activities.filter { ($0.day.map { $0 >= start && $0 <= today }) ?? false }
