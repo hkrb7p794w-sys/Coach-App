@@ -11,6 +11,7 @@ final class CoachSettings {
   static let aiUsageKey = "coach.aiUsage"
   static let insightsKey = "coach.insights"
   static let customPromptsKey = "coach.customPrompts"
+  static let favoriteMealsKey = "coach.favoriteMeals"
   static let nutritionKey = "coach.nutrition"
   static let heartRateKey = "coach.heartRate"
   static let competitionKey = "coach.competitionDecisions"
@@ -57,6 +58,11 @@ final class CoachSettings {
   /// Empfehlungen im Reiter „AI“ mit Bearbeitungsstand.
   var insights: [Insight] {
     didSet { save(insights, forKey: Self.insightsKey) }
+  }
+
+  /// Favorisierte Mahlzeiten (Vorlagen, getrennt von Rezepten und Tagebuch).
+  var favoriteMeals: [FavoriteMeal] {
+    didSet { save(favoriteMeals, forKey: Self.favoriteMealsKey) }
   }
 
   /// Eigene Prompts der Prompt-Bibliothek.
@@ -188,6 +194,9 @@ final class CoachSettings {
       ?? []
     insights =
       defaults.data(forKey: Self.insightsKey).flatMap { try? JSONDecoder().decode([Insight].self, from: $0) } ?? []
+    favoriteMeals =
+      defaults.data(forKey: Self.favoriteMealsKey).flatMap { try? JSONDecoder().decode([FavoriteMeal].self, from: $0) }
+      ?? []
     customPrompts =
       defaults.data(forKey: Self.customPromptsKey).flatMap {
         try? JSONDecoder().decode([PromptTemplate].self, from: $0)

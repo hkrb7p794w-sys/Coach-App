@@ -66,9 +66,13 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 48 | Gym Paket 1 B: Trainingspläne leichter erreichbar, Übungsbibliothek mit Filter, Muskel-Heatmap | fertig (PR 57) |
 | 49 | Gym Paket 1 C: Garmin – Sätze in die Uhr-Aktivität, keine doppelten Aktivitäten und Kalorien | fertig (PR 58) |
 | 50 | Ernährung: Nährwerte aus dem Bundeslebensmittelschlüssel (BLS 4.0, offline), KI nur zum Zerlegen, BLS-Suche | fertig (PR 59) |
-| 51 | KI A: austauschbare Anbieter (Gemini, Workers AI, Groq, eigener Server), KI-Stufen, Nutzungsprotokoll, Modellbewertung | in Arbeit |
-| 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | in Arbeit |
-| 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | in Arbeit |
+| 51 | KI A: austauschbare Anbieter (Gemini, Workers AI, Groq, eigener Server), KI-Stufen, Nutzungsprotokoll, Modellbewertung | fertig (PR 60) |
+| 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | fertig (PR 61) |
+| 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | fertig (PR 62) |
+| 54 | Ernährung A: Zuletzt/Häufig/Rezepte/Favoriten beim Erfassen, gegessene Menge nachträglich anpassen | in Arbeit |
+| 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | geplant |
+| 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | geplant |
+| 57 | Ernährung D: Mahlzeiten teilen per Link | geplant |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.

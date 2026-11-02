@@ -5,6 +5,18 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Ernährung: Schnell erfassen, Favoriten, gegessene Menge (Paket 4, PR A)
+
+- **Getrennte Dinge:** Tagebuch-Eintrag (`MealRecord`), Rezept (`OwnRecipe`) und Favorit (`FavoriteMeal`). Aus
+  Rezept, Favorit oder früherer Mahlzeit einzutragen legt immer eine neue Kopie an (neue IDs).
+- **Schnellauswahl im Erfassen-Bildschirm:** Zuletzt (jede Zusammenstellung einmal), Häufig (mindestens zweimal in
+  60 Tagen, über alle Tageszeiten), Rezepte, Favoriten. „+“ trägt mit einem Tipp ein (Rückgängig wie in der
+  Schnell-Leiste), Antippen öffnet den Entwurf. Vorbild sind übliche Ernährungs-Apps (YAZIO u. a.): wiederkehrendes
+  Essen in einem Tipp statt Suchen.
+- **Gegessene Menge:** 25/50/75/100 % oder frei (5–150 %) für gespeicherte Einträge. Gerechnet wird immer von der
+  ursprünglichen Menge (`MealItem.plannedGrams`, optionales JSON-Feld – keine Migration); 100 % stellt sie wieder her.
+  Favoriten speichern stets die ursprüngliche Menge.
+
 ## 2026-11-02 – KI-Export mit Datenauswahl, Formaten und Prompt-Bibliothek (Paket 3, PR C)
 
 - **Datenauswahl:** Gym, Ausdauertraining, Gesundheit, Schlaf, Ernährung, Gewicht und Körper, Erholung,
