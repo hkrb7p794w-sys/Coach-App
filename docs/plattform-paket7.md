@@ -148,6 +148,26 @@ Prüfung – nicht sinnvoll. **Empfehlung: iOS 18.0 beibehalten.**
   `isSupported` trotzdem.
 - HealthKit: unter SideStore mit kostenloser Apple-ID kann das Recht fehlen (bekannt, Weg ohne vorhanden).
 
+### 2.5 Umsetzung der Widgets (PR B)
+
+| Widget | Größen | Konfiguration | Tippen |
+|---|---|---|---|
+| Heute | klein, mittel | – | Reiter Heute |
+| Ernährung | klein, mittel, Sperrbildschirm (Kreis, Rechteck, Zeile) | verbleibende Kalorien, Tageskalorien, Protein, letzte Mahlzeit | Ernährung; mittel: „+250 ml“ (interaktiv), „Erfassen“ |
+| Health | klein, Sperrbildschirm (Kreis, Rechteck, Zeile) | Body Battery, Schlaf, HRV, Recovery, Ruhepuls, Stress | Gesundheitsbereich |
+| Gym | klein, mittel, Sperrbildschirm (Rechteck) | nächstes Training, letzte Einheit, Wochenfortschritt | Gym; mittel: „Starten“/„Fortsetzen“ |
+
+- **Stand:** `WidgetSnapshot` (CoachCore, getestet) – die App schreibt ihn beim Öffnen, nach dem Abruf, beim
+  Verlassen und nach dem Hintergrundabruf und lädt die Widgets neu. Rechnung wie in den Reitern (Tagesampel,
+  Ernährungsziel, Morning Report, Gym-Rotation), ohne KI.
+- **Neuer Tag ohne Öffnen:** ab Mitternacht zeigen die Widgets 0 kcal ohne Ziel, keinen Plan („Neuer Tag – App
+  öffnen“) und die Gym-Wochenzählung ab Montag von vorn – nichts wird geschätzt. Gesundheitswerte gelten noch einen
+  Tag, danach „Kein Wert von letzter Nacht“.
+- **Wasser-Knopf:** schreibt in `WidgetActionQueue` (Dateikoordination); die App legt beim Öffnen echte
+  Wasser-Einträge an. Einträge älter als 7 Tage verfallen.
+- **Ohne App Group** zeigen die Widgets einen Hinweis; die App funktioniert unverändert.
+- Konfigurations-Intents brauchen `@Parameter`; die Erweiterung läuft daher ohne MainActor-Voreinstellung.
+
 ## 3. Langfristige Architektur
 
 | Erweiterung | Eignung heute | Nötige Verbesserung |
@@ -167,8 +187,8 @@ Datenbankort, Aufteilung der Reiter. Keine dieser Änderungen hätte für Paket 
 
 | # | Schritt | Nutzen | Risiko | Stand |
 |---|---|---|---|---|
-| A | `AppRoute`/`AppRouter`, Schnellaktionen am App-Icon, App Shortcuts, diese Analyse | hoch, sofort spürbar | gering (keine neuen Rechte) | diese PR |
-| B | Homescreen- und Sperrbildschirm-Widgets (Heute, Gym, Ernährung, Health) mit App Group, konfigurierbar, „+250 ml Wasser“ interaktiv | hoch | mittel (App Group unter SideStore) | nächste PR |
+| A | `AppRoute`/`AppRouter`, Schnellaktionen am App-Icon, App Shortcuts, diese Analyse | hoch, sofort spürbar | gering (keine neuen Rechte) | fertig (PR 73) |
+| B | Homescreen- und Sperrbildschirm-Widgets (Heute, Gym, Ernährung, Health) mit App Group, konfigurierbar, „+250 ml Wasser“ interaktiv | hoch | mittel (App Group unter SideStore) | umgesetzt (PR B), Gerätetest offen |
 | C | Kontrollzentrum/Aktionstaste („Training starten“, „Mahlzeit erfassen“) | mittel | gering | nach Gerätetest von B |
 | D | Android-Machbarkeitstest (CoachCore mit Swift SDK für Android) | nur bei Bedarf | – | zurückgestellt |
 

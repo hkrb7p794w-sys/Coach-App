@@ -133,9 +133,18 @@ jobs:
               if [ -d "$item" ]; then ldid -S "$item/$(basename "$item" .framework)"; else ldid -S "$item"; fi
             done
           fi
-          # Widget-Erweiterung (Live-Aktivität) ebenfalls pseudo-signieren.
+          # Widget-Erweiterung mit ihren Entitlements (App Group) pseudo-signieren – SideStore liest sie daraus.
           if [ -d "$APP/PlugIns" ]; then
-            for ext in "$APP"/PlugIns/*.appex; do ldid -S "$ext/$(basename "$ext" .appex)"; done
+            for ext in "$APP"/PlugIns/*.appex; do
+              name=$(basename "$ext" .appex)
+              if [ -f "ios/$name/$name.entitlements" ]; then
+                ldid -S"ios/$name/$name.entitlements" "$ext/$name"
+              else
+                ldid -S "$ext/$name"
+              fi
+              echo "Entitlements von $name:" | tee -a "$LOG"
+              ldid -e "$ext/$name" | tee -a "$LOG"
+            done
           fi
           ldid -Sios/Coach/Resources/Coach.entitlements "$APP/Coach"
           echo "Entitlements der IPA:" | tee -a "$LOG"
