@@ -60,14 +60,12 @@ struct GymBookTests {
   }
 }
 
-struct WorkoutFocusTests {
-  @Test func shortcutURLRunsNamedShortcutAndReturns() throws {
-    let url = try #require(WorkoutFocus.url(turningOn: true))
-    #expect(url.absoluteString.hasPrefix("shortcuts://x-callback-url/run-shortcut?name=IronLudi%20Training%20an"))
-    #expect(url.absoluteString.contains("x-success=coach://gym"))
-    #expect(WorkoutFocus.url(turningOn: false)?.absoluteString.contains("Training%20aus") == true)
-    let old = #"{"routines":[],"customExercises":[],"equipment":["cable"],"tracksRIR":true}"#
+struct GymSettingsLegacyTests {
+  /// Der Fokus während der Einheit wurde entfernt; alte Einstellungen mit dem Schlüssel laden weiter.
+  @Test func oldSettingsWithFocusKeyStillDecode() throws {
+    let old = #"{"routines":[],"customExercises":[],"equipment":["cable"],"tracksRIR":true,"focusShortcuts":true}"#
     let decoded = try JSONDecoder().decode(GymSettings.self, from: Data(old.utf8))
-    #expect(decoded.focusShortcuts == false)
+    #expect(decoded.tracksRIR)
+    #expect(decoded.equipment == [.cable])
   }
 }

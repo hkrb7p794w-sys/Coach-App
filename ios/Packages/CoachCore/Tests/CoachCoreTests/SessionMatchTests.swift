@@ -76,6 +76,35 @@ struct SessionMatchTests {
         == nil)
   }
 
+  @Test func gymOnAnotherDayCountsForTheWeeksStrengthSession() {
+    // Kraft am Dienstag geplant, Push aber am Montag gemacht: zählt trotzdem (vorher 0 von x).
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
+    let week = SessionMatcher.match(planned: planned, activities: [], gymDays: [monday], today: today)
+    #expect(week.results(on: monday.adding(days: 1)).first?.status == .done)
+    #expect(week.results.filter(\.status.counts).count == 1)
+  }
+
+  @Test func strengthWatchRecordingCountsOnceWithGymSession() {
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
+    // Am Montag App-Einheit plus Uhr-Aufzeichnung derselben Einheit: nur eine Kraft-Einheit erledigt.
+    let watch = activity(7, "strength_training", day: monday, minutes: 50)
+    let week = SessionMatcher.match(planned: planned, activities: [watch], gymDays: [monday], today: today)
+    #expect(week.results.filter { $0.planned.slot.sport == .strength && $0.status.counts }.count == 1)
+    // Nur Uhr-Aufzeichnung ohne App-Einheit, an einem anderen Tag: zählt ebenfalls.
+    let only = SessionMatcher.match(planned: planned, activities: [watch], today: today)
+    #expect(only.results(on: monday.adding(days: 1)).first?.status == .done)
+    #expect(only.results(on: monday.adding(days: 1)).first?.activityID == 7)
+    #expect(!only.extraIDs.contains(7))
+  }
+
+  @Test func extraGymWithoutOpenStrengthSlotChangesNothing() {
+    let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
+    let week = SessionMatcher.match(
+      planned: planned, activities: [], gymDays: [monday, monday.adding(days: 1)], today: today)
+    #expect(week.results.filter(\.status.counts).count == 1)
+    #expect(week.results(on: monday).first?.status == .missed)
+  }
+
   @Test func illnessCapsRecovery() {
     let sick = today.adding(days: -1)
     #expect(MissedSessions.cappedRecovery(.normal, sickDay: sick, today: today) == .locker)
@@ -94,5 +123,27 @@ struct SessionMatchTests {
     #expect(swim.trainingLoad == 60)
     #expect(swim.name == "Schwimmen (nachgetragen)")
     #expect(swim.day == CalendarDay(date: start, timeZone: .gmt))
+  }
+}
+
+struct WeeklyVolumeGymTests {
+  /// Montag, 2.11.2026.
+  let monday = CalendarDay(year: 2026, month: 11, day: 2)
+
+  @Test func appGymSessionCountsAsStrength() {
+    // Push in der App, keine Uhr-Aufzeichnung: zählt im Saisonplan als Kraft-Einheit (vorher 0).
+    let week = WeeklyVolume(activities: [], weekContaining: monday, gymDays: [monday])
+    #expect(week.sessions[.strength] == 1)
+  }
+
+  @Test func watchRecordingOfSameDayIsNotCountedTwice() {
+    var watch = GarminActivity(id: 1)
+    watch.typeKey = "strength_training"
+    watch.startLocal = "\(monday.iso) 18:00:00"
+    watch.durationSeconds = 3_000
+    let week = WeeklyVolume(
+      activities: [watch], weekContaining: monday, gymDays: [monday, monday.adding(days: 2), monday.adding(days: 9)])
+    // Montag (Uhr + App) einmal, Mittwoch (nur App) einmal; nächste Woche zählt nicht.
+    #expect(week.sessions[.strength] == 2)
   }
 }

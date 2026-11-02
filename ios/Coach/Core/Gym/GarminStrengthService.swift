@@ -19,17 +19,22 @@ enum GarminStrengthService {
     FileManager.default.fileExists(atPath: backupURL(activityID: activityID).path)
   }
 
-  /// Wartende Einheiten der letzten 3 Tage abgleichen; gibt eine Meldung für die zuletzt bearbeitete zurück.
+  /// Wartende Einheiten der letzten 14 Tage abgleichen (auch nach längerer Zeit ohne Anmeldung); fehlgeschlagene
+  /// werden nach 6 Stunden erneut versucht. Gibt eine Meldung für die zuletzt bearbeitete zurück.
   @discardableResult
   static func reconcile(
     context: ModelContext, garmin: GarminConnectSession, gym: GymSettings, now: Date = .now
   ) async -> String? {
     guard garmin.isLoggedIn else { return nil }
-    let since = now.addingTimeInterval(-3 * 86_400)
+    let since = now.addingTimeInterval(-14 * 86_400)
     let records =
       (try? context.fetch(FetchDescriptor<GymSessionRecord>(predicate: #Predicate { $0.start >= since })))
       ?? []
-    let pending = records.filter { $0.session?.garmin?.status == .pending }
+    let pending = records.filter { record in
+      guard let link = record.session?.garmin else { return false }
+      let retry = link.status == .failed && now.timeIntervalSince(link.updatedAt) >= 6 * 3_600
+      return link.status == .pending || retry
+    }
     guard !pending.isEmpty else { return nil }
 
     // Aktivitäten: gespeicherte und die neuesten direkt von Connect (die Uhr-Aufzeichnung kommt oft erst später).
@@ -43,7 +48,9 @@ enum GarminStrengthService {
 
     var message: String?
     for record in pending {
-      guard let session = record.session else { continue }
+      guard var session = record.session else { continue }
+      // Erneuter Versuch nach einem Fehler: wie eine wartende Einheit behandeln.
+      session.garmin?.status = .pending
       switch GarminStrengthSync.action(
         for: session, activities: activities, linked: linked, now: now, fallbackUpload: gym.garminFallbackUpload)
       {

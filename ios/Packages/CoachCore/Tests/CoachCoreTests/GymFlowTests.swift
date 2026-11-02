@@ -113,3 +113,52 @@ struct GymFlowTests {
     #expect(old.exercises[0].exerciseID == "crunch")
   }
 }
+
+struct ActiveSessionStateTests {
+  private let calendar: Calendar = {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 3_600) ?? .current
+    return calendar
+  }()
+
+  private func session(start: Date, doneSets: Int) -> GymSession {
+    let sets = (0..<3).map { LoggedSet(reps: 10, weightKg: 50, done: $0 < doneSets) }
+    return GymSession(
+      workoutKey: nil, title: "Push", start: start,
+      exercises: [LoggedExercise(exerciseID: "bench", name: "Bankdrücken", group: .chest, sets: sets)])
+  }
+
+  @Test func openedButNotStartedHasNoLiveActivity() throws {
+    let start = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 17)))
+    let state = ActiveSessionState.of(
+      session(start: start, doneSets: 0), now: start.addingTimeInterval(600), calendar: calendar)
+    #expect(state == .notStarted)
+    #expect(!state.showsLiveActivity)
+    #expect(state.suppressesReminders)
+    #expect(!state.countsAsTrained)
+  }
+
+  @Test func firstSetMakesItRunning() throws {
+    let start = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 17)))
+    let state = ActiveSessionState.of(
+      session(start: start, doneSets: 1), now: start.addingTimeInterval(1_200), calendar: calendar)
+    #expect(state == .running)
+    #expect(state.showsLiveActivity && state.suppressesReminders && state.countsAsTrained)
+  }
+
+  @Test func oldSessionsAreAbandonedOrUnfinished() throws {
+    let start = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 1, hour: 18)))
+    let next = start.addingTimeInterval(15 * 3_600)
+    let empty = ActiveSessionState.of(session(start: start, doneSets: 0), now: next, calendar: calendar)
+    #expect(empty == .abandoned)
+    #expect(!empty.suppressesReminders)
+    let withSets = ActiveSessionState.of(session(start: start, doneSets: 2), now: next, calendar: calendar)
+    #expect(withSets == .unfinished)
+    #expect(!withSets.showsLiveActivity)
+    #expect(ActiveSessionState.of(nil, now: next) == .none)
+    // Geöffnet vor drei Stunden, nichts gemacht: Erinnerung darf wieder kommen.
+    let today = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 9)))
+    let late = today.addingTimeInterval(3 * 3_600)
+    #expect(ActiveSessionState.of(session(start: today, doneSets: 0), now: late, calendar: calendar) == .abandoned)
+  }
+}

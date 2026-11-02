@@ -28,6 +28,9 @@ final class ReminderService: NSObject {
 
   private let settings: CoachSettings
   private let center: UNUserNotificationCenter?
+  /// Laufende Neuplanung: Aufrufe kommen nacheinander dran. Sonst könnte eine ältere Planung (vor dem Start der
+  /// Einheit begonnen) nach einer neueren ihre Erinnerung für heute wieder eintragen.
+  @ObservationIgnored private var lastRefresh: Task<Void, Never>?
 
   init(settings: CoachSettings, center: UNUserNotificationCenter? = .current()) {
     self.settings = settings
@@ -57,6 +60,18 @@ final class ReminderService: NSObject {
     seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), loggedMeals: Set<String> = [],
     now: Date = .now
   ) async {
+    let previous = lastRefresh
+    let task = Task { @MainActor in
+      await previous?.value
+      await self.performRefresh(seasonSchedule: seasonSchedule, log: log, loggedMeals: loggedMeals, now: now)
+    }
+    lastRefresh = task
+    await task.value
+  }
+
+  private func performRefresh(
+    seasonSchedule: SeasonSchedule?, log: TrainingLog, loggedMeals: Set<String>, now: Date
+  ) async {
     guard let center else { return }
     let status = await center.notificationSettings().authorizationStatus
     var allowed = status == .authorized || status == .provisional || status == .ephemeral
@@ -74,9 +89,11 @@ final class ReminderService: NSObject {
 
     // Während einer laufenden Krafteinheit keine Erinnerung für heute (auch nicht für eine weitere Einheit).
     let today = CalendarDay(date: now)
-    let training = GymViewModel.shared.active != nil
+    let training = GymViewModel.shared.sessionState(now: now).suppressesReminders
     let planned = config.enabled ? reminders(seasonSchedule: seasonSchedule, log: log, now: now) : []
     for reminder in planned where !(training && reminder.day == today) {
+      // Unmittelbar vor dem Eintragen erneut prüfen: Die Einheit kann inzwischen gestartet sein.
+      if reminder.day == today, GymViewModel.shared.sessionState().suppressesReminders { continue }
       let content = UNMutableNotificationContent()
       content.title = reminder.title
       content.body = ReminderPlanner.body(for: reminder, lead: CompanionVoice.reminderLead(settings.companion))

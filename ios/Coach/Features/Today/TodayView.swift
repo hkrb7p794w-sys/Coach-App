@@ -16,7 +16,15 @@ struct TodayView: View {
     let settings = model.settings
     return "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(gymSessions.count)-"
       + "\(settings.season.hashValue)-\(settings.competitionDecisions.values.map(\.rawValue).sorted())-"
-      + "\(settings.profile.hashValue)-\(settings.planAdjustments.hashValue)-\(settings.illnessDay?.iso ?? "")"
+      + "\(settings.profile.hashValue)-\(settings.planAdjustments.hashValue)-\(settings.illnessDay?.iso ?? "")-"
+      + "\(GymViewModel.shared.active?.doneSetCount ?? -1)"
+  }
+
+  /// Laufende Einheit mit mindestens einem Satz zählt in der Wochenübersicht schon mit.
+  private var runningGymDay: [CalendarDay] {
+    let gym = GymViewModel.shared
+    guard let active = gym.active, gym.sessionState().countsAsTrained else { return [] }
+    return [active.day]
   }
 
   private var gymItems: [ActivityFeed.GymItem] {
@@ -146,7 +154,7 @@ struct TodayView: View {
           days: days.compactMap(\.metrics),
           activities: activities.compactMap(\.activity),
           settings: model.settings,
-          gymDays: gymSessions.compactMap { $0.session?.day },
+          gymDays: gymSessions.compactMap { $0.session?.day } + runningGymDay,
           gym: gymItems
         )
         await viewModel.loadNote(ai: model.ai, settings: model.settings)

@@ -256,6 +256,10 @@ private struct FocusCard: View {
         Text("Supersatz \(label)").font(.caption.bold()).foregroundStyle(.tint)
       }
       Text(exercise.name).font(.title.bold()).multilineTextAlignment(.center)
+        .foregroundStyle(exercise.skipped ? .secondary : .primary)
+      if exercise.skipped {
+        Text("Übersprungen").font(.caption.bold()).foregroundStyle(.secondary)
+      }
       if let set = target.set {
         HStack(spacing: 12) {
           SetKindMenu(set: exercise.sets[set], index: set, total: exercise.sets.count) { kind in
@@ -350,6 +354,7 @@ private struct ExerciseStrip: View {
                 Text("\(progress.done)/\(progress.total)").monospacedDigit().foregroundStyle(.secondary)
               }
               .font(.subheadline)
+              .opacity(exercise.skipped && !complete ? 0.5 : 1)
               .padding(.horizontal, 12)
               .frame(minHeight: 40)
               .background(
@@ -852,6 +857,8 @@ private struct ExerciseCard: View {
         SetRow(index: index, set: set, info: info, exerciseID: exercise.id, viewModel: viewModel) { field in
           editing = SetValueTarget(exerciseID: exercise.id, set: index, field: field)
         }
+        // Übersprungen: leicht ausgegraut, offene Sätze bleiben bedienbar (Wieder aufnehmen im Menü).
+        .opacity(Self.dimmed(exercise, set: set) ? 0.45 : 1)
         .swipeActions {
           Button("Löschen", role: .destructive) { viewModel.removeSet(index, from: exercise.id) }
         }
@@ -863,12 +870,21 @@ private struct ExerciseCard: View {
           Text(label).font(.headline).foregroundStyle(.tint)
         }
         Text(exercise.name).font(.headline)
+          .foregroundStyle(exercise.skipped ? .secondary : .primary)
+        if exercise.skipped {
+          Text("übersprungen").font(.caption).foregroundStyle(.secondary)
+        }
         Spacer()
         ExerciseMenu(exercise: exercise, session: session, viewModel: viewModel, showsFocus: true)
       }
     } footer: {
       ExerciseNotes(exercise: exercise, viewModel: viewModel, centered: false)
     }
+  }
+
+  /// Offene Sätze einer übersprungenen Übung (erledigte bleiben normal sichtbar).
+  static func dimmed(_ exercise: LoggedExercise, set: LoggedSet) -> Bool {
+    exercise.skipped && !set.done
   }
 }
 

@@ -13,7 +13,6 @@ struct GymView: View {
   @State private var viewModel = GymViewModel.shared
   @State private var showWorkout = false
   /// Fokus wurde für die laufende Einheit eingeschaltet.
-  @State private var focusOn = false
 
   private var refreshKey: String {
     "\(records.count)-\(records.first?.savedToHealth ?? false)-\(activities.count)-\(days.first?.dayKey ?? "")-"
@@ -30,6 +29,17 @@ struct GymView: View {
             } label: {
               Label("\(active.title) fortsetzen · \(active.doneSetCount) Sätze", systemImage: "play.circle.fill")
                 .font(.headline)
+            }
+          } footer: {
+            switch viewModel.sessionState() {
+            case .unfinished:
+              Text(
+                "Diese Einheit vom \(Formatters.shortDate(active.day)) wurde nicht beendet. Öffnen und „Beenden“ "
+                  + "tippen, damit sie gespeichert, für die Woche gezählt und an Garmin übertragen wird.")
+            case .notStarted:
+              Text("Noch kein Satz abgehakt – erst mit dem ersten Satz gilt die Einheit als gestartet.")
+            default:
+              EmptyView()
             }
           }
         } else if model.settings.profile.mode == .personal {
@@ -109,15 +119,6 @@ struct GymView: View {
       }
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
-      }
-      // Fokus während der Einheit (Kurzbefehle der Person): an nach dem ersten Satz – der kurze Wechsel in die
-      // Kurzbefehle-App fällt dann in die Pause statt in den Start –, aus nach Beenden oder Verwerfen.
-      .onChange(of: viewModel.active?.doneSetCount ?? -1) { _, count in
-        guard model.settings.gym.focusShortcuts else { return }
-        let wanted = count > 0 || (focusOn && count >= 0)
-        guard wanted != focusOn, let url = WorkoutFocus.url(turningOn: wanted) else { return }
-        focusOn = wanted
-        UIApplication.shared.open(url)
       }
       // Start oder Ende einer Einheit: Erinnerungen für heute neu planen (keine Start-Erinnerung im Training).
       .onChange(of: viewModel.active?.id) { _, _ in

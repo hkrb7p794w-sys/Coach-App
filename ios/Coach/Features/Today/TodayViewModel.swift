@@ -71,7 +71,7 @@ final class TodayViewModel {
         \.restingHeartRate, in: days, daysBefore: 1...7, today: referenceDay)
     ).limited(byForm: FitnessForm.series(activities: activities, today: today))
     let hasRecovery = metrics != nil || recommendation.isLimitedByForm
-    let week = WeeklyVolume(activities: activities, weekContaining: today)
+    let week = WeeklyVolume(activities: activities, weekContaining: today, gymDays: gymDays)
     let plan = SeasonPlan.state(today: today, config: settings.season, week: week)
     let todayPlan = schedule.map {
       Self.todayPlan(

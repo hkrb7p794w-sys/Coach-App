@@ -324,8 +324,6 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var uploadsToGarmin: Bool = true
   /// Ohne Aufzeichnung der Uhr nach einigen Stunden als eigene Aktivität hochladen.
   public var garminFallbackUpload: Bool = true
-  /// Fokus „Nicht stören“ bzw. „Fitness“ per Kurzbefehl ein- und ausschalten (`WorkoutFocus`).
-  public var focusShortcuts: Bool = false
   /// Bildschirm während der Einheit nicht sperren.
   public var keepsScreenOn: Bool = true
   /// Langhantelstange in kg (Standard 20) und vorhandene Scheiben für den Scheibenrechner.
@@ -369,7 +367,6 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     tracksRIR = (try? container.decodeIfPresent(Bool.self, forKey: .tracksRIR)) ?? true
     uploadsToGarmin = (try? container.decodeIfPresent(Bool.self, forKey: .uploadsToGarmin)) ?? true
     garminFallbackUpload = (try? container.decodeIfPresent(Bool.self, forKey: .garminFallbackUpload)) ?? true
-    focusShortcuts = (try? container.decodeIfPresent(Bool.self, forKey: .focusShortcuts)) ?? false
     keepsScreenOn = (try? container.decodeIfPresent(Bool.self, forKey: .keepsScreenOn)) ?? true
     barKg = (try? container.decodeIfPresent(Double.self, forKey: .barKg)) ?? PlateCalculator.standardBar
     plates = (try? container.decodeIfPresent([Double].self, forKey: .plates)) ?? PlateCalculator.standardPlates

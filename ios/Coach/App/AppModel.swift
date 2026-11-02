@@ -100,8 +100,10 @@ final class AppModel {
     let activities = (try? context.fetch(activityQuery)) ?? []
     let gym = (try? context.fetch(gymQuery)) ?? []
     var gymDays = Set(gym.compactMap { CalendarDay(iso: $0.dayKey) })
-    // Laufende Einheit zählt schon als trainiert: keine Start-Erinnerung mitten im Training.
-    if let active = GymViewModel.shared.active { gymDays.insert(active.day) }
+    // Laufende Einheit (mindestens ein Satz) zählt schon als trainiert; nur geöffnet zählt nicht.
+    if let active = GymViewModel.shared.active, GymViewModel.shared.sessionState(now: now).countsAsTrained {
+      gymDays.insert(active.day)
+    }
     return TrainingLog(activities: activities.compactMap(\.activity), gymDays: gymDays)
   }
 
@@ -133,6 +135,8 @@ final class AppModel {
   /// Nach Fehlschlägen wartet der automatische Abruf länger (1 min … 6 h); manuell geht es immer.
   func syncIfDue() async {
     guard !isDemo else { return }
+    // Nur geöffnete, nie begonnene Einheit von früher verwerfen (keine Live-Aktivität, zählt nicht).
+    GymViewModel.shared.discardAbandoned()
     let states = sources.syncStates
     let garminDue = states[.garmin].map { $0.isDue(now: .now, minimumInterval: SyncPlan.minimumInterval) } ?? true
     if garmin.isConfigured, garminDue, SyncPlan.isDue(lastSync: sync.lastSync, now: .now) {
