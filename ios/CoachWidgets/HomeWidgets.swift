@@ -143,13 +143,15 @@ struct AddWaterIntent: AppIntent {
 struct TodayHomeWidget: Widget {
   var body: some WidgetConfiguration {
     AppIntentConfiguration(
-      kind: WidgetStore.Kind.today, intent: TodayWidgetIntent.self, provider: ConfiguredHomeProvider<TodayWidgetIntent>()
+      kind: WidgetStore.Kind.today, intent: TodayWidgetIntent.self,
+      provider: ConfiguredHomeProvider<TodayWidgetIntent>()
     ) { entry in
       TodayWidgetView(
         display: entry.display, showsNutrition: entry.config.showsNutrition,
-        showsBodyBattery: entry.config.showsBodyBattery)
-        .widgetURL(AppRoute.today.url)
-        .containerBackground(.fill.tertiary, for: .widget)
+        showsBodyBattery: entry.config.showsBodyBattery
+      )
+      .widgetURL(AppRoute.today.url)
+      .containerBackground(.fill.tertiary, for: .widget)
     }
     .configurationDisplayName("Heute")
     .description("Tagesampel, nächste Einheit, Kalorien und Body Battery.")
@@ -436,7 +438,9 @@ struct HealthWidgetView: View {
       switch family {
       case .accessoryCircular:
         if metric == .bodyBattery, let gauge = display.healthIsOld ? nil : health?.gauge {
-          Gauge(value: gauge, in: 0...100) { Image(systemName: metric.symbol) } currentValueLabel: {
+          Gauge(value: gauge, in: 0...100) {
+            Image(systemName: metric.symbol)
+          } currentValueLabel: {
             Text("\(Int(gauge))")
           }
           .gaugeStyle(.accessoryCircular)

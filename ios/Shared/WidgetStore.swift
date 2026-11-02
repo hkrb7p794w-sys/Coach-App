@@ -47,7 +47,8 @@ nonisolated enum WidgetStore {
     guard let url = containerURL?.appendingPathComponent(WidgetActionQueue.fileName) else { return }
     var coordinationError: NSError?
     NSFileCoordinator().coordinate(writingItemAt: url, options: [], error: &coordinationError) { url in
-      var queue = (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(WidgetActionQueue.self, from: $0) }
+      var queue =
+        (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(WidgetActionQueue.self, from: $0) }
         ?? WidgetActionQueue()
       change(&queue)
       if let data = try? JSONEncoder().encode(queue) { try? data.write(to: url, options: .atomic) }
