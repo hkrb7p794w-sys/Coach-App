@@ -220,4 +220,10 @@ struct DaisyGeometryTests {
       DaisyGeometry.pose(mood: .hopeful, time: 1.3, reduceMotion: true)
         == DaisyGeometry.pose(mood: .hopeful, time: 7.7, reduceMotion: true))
   }
+
+  @Test func guestTokensAreRecognized() {
+    #expect(GuestToken.isGuest("g1.abcdefghijk2.0123abcd"))
+    #expect(!GuestToken.isGuest("mein-haupt-token"))
+    #expect(!GuestToken.isGuest(""))
+  }
 }

@@ -163,6 +163,9 @@ struct MotivationSettingsView: View {
   @State private var photo: UIImage?
   @State private var joinCode = ""
   @State private var confirmLeave = false
+  @State private var invite: URL?
+  @State private var inviteError: String?
+  @State private var isCreatingInvite = false
 
   var body: some View {
     @Bindable var settings = model.settings
@@ -214,12 +217,22 @@ struct MotivationSettingsView: View {
         TextField("Dein Name in der Rangliste", text: $settings.league.name)
         if settings.league.isJoined {
           LabeledContent("Code", value: settings.league.code)
-          if let invite = model.league.inviteURL {
+          if let invite {
             ShareLink(
               item: invite, subject: Text("IronLudi-Rangliste"), message: Text("Mach mit in meiner IronLudi-Rangliste!")
             ) {
               Label("Einladungslink teilen", systemImage: "square.and.arrow.up")
             }
+          } else if model.league.canInvite {
+            Button {
+              Task { await createInvite() }
+            } label: {
+              Label("Einladungslink erstellen", systemImage: "link.badge.plus")
+            }
+            .disabled(isCreatingInvite)
+          }
+          if let inviteError {
+            Text(inviteError).font(.footnote).foregroundStyle(.red)
           }
           Button("Rangliste verlassen", role: .destructive) { confirmLeave = true }
         } else {
@@ -240,13 +253,18 @@ struct MotivationSettingsView: View {
           Text("Für die Rangliste muss der KI-Worker eingerichtet sein (Einstellungen › KI-Worker).")
         } else {
           Text(
-            "Geteilt werden nur Name, Symbol und Punkte – keine Gesundheitsdaten. Der Einladungslink enthält "
-              + "auch das App-Token deines Workers; schicke ihn nur an Personen, denen du vertraust. Jede Person "
-              + "richtet in ihrer App eigenes Profil und Garmin-Konto ein.")
+            model.league.canInvite
+              ? "Geteilt werden nur Name, Symbol und Punkte – keine Gesundheitsdaten. Jeder Einladungslink enthält "
+                + "einen eigenen Gastzugang zu deinem Worker (KI, Rangliste, geteilte Mahlzeiten), nicht dein "
+                + "App-Token. Erstelle für jede Person einen eigenen Link. Jede Person richtet in ihrer App eigenes "
+                + "Profil und Garmin-Konto ein."
+              : "Geteilt werden nur Name, Symbol und Punkte – keine Gesundheitsdaten. Gib zum Einladen den Code "
+                + "weiter; Einladungslinks erstellt, wer den Worker betreibt.")
         }
       }
     }
     .navigationTitle("Begleiter & Rangliste")
+    .onChange(of: model.settings.league.code) { _, _ in invite = nil }
     .task { photo = CompanionPhoto.load() }
     .onChange(of: pickedPhoto) { _, item in
       guard let item else { return }
@@ -259,6 +277,17 @@ struct MotivationSettingsView: View {
     }
     .confirmationDialog("Rangliste verlassen?", isPresented: $confirmLeave, titleVisibility: .visible) {
       Button("Verlassen", role: .destructive) { Task { await model.league.leave() } }
+    }
+  }
+
+  private func createInvite() async {
+    isCreatingInvite = true
+    defer { isCreatingInvite = false }
+    do {
+      invite = try await model.league.makeInvite()
+      inviteError = nil
+    } catch {
+      inviteError = "Einladung nicht erstellt: \(error.localizedDescription)"
     }
   }
 }

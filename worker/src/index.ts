@@ -5,10 +5,12 @@
  * GET  /sidestore/<key>/… – private SideStore-Quelle (siehe sidestore.ts)
  * GET  /v1/health        – ohne Anmeldung, zeigt Version und welche Anbieter konfiguriert sind
  * /v1/league/…          – Rangliste (siehe league.ts), Authorization: Bearer <COACH_APP_TOKEN>
- * POST /v1/ai/generate   – Authorization: Bearer <COACH_APP_TOKEN>
+ * POST /v1/ai/generate   – Authorization: Bearer <COACH_APP_TOKEN> oder Gast-Token (siehe auth.ts)
+ * POST /v1/invite        – nur Haupt-Token: Gast-Token für eine Einladung
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
+import { authenticate, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
 import { GroundingError } from "./grounding";
 import { handleLeague, type LeagueStore } from "./league";
 import { listPriceUsd, parsePreference, providerInfo } from "./providers";
@@ -29,17 +31,6 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-/** Vergleich in konstanter Zeit (bezogen auf den Inhalt), damit das Token nicht erraten werden kann. */
-export function tokensMatch(given: string, expected: string): boolean {
-  const a = new TextEncoder().encode(given);
-  const b = new TextEncoder().encode(expected);
-  let diff = a.length ^ b.length;
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
-  }
-  return diff === 0;
-}
-
 function parseImages(value: unknown): ImageInput[] | string {
   if (value === undefined) return [];
   if (!Array.isArray(value)) return "images muss eine Liste sein";
@@ -53,6 +44,8 @@ function parseImages(value: unknown): ImageInput[] | string {
   }
   return images;
 }
+
+export { tokensMatch };
 
 export async function handle(request: Request, env: Env, deps: Deps = defaultDeps): Promise<Response> {
   const { pathname } = new URL(request.url);
@@ -77,26 +70,36 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
 
   const isLeague = pathname.startsWith("/v1/league/");
   const isShare = pathname.startsWith("/v1/share/");
-  if (pathname !== "/v1/ai/generate" && !isLeague && !isShare) return json(404, { error: "Nicht gefunden" });
+  const isInvite = pathname === "/v1/invite";
+  if (pathname !== "/v1/ai/generate" && !isLeague && !isShare && !isInvite)
+    return json(404, { error: "Nicht gefunden" });
   if (!isLeague && !isShare && request.method !== "POST") return json(405, { error: "Nur POST" });
 
   if (!env.COACH_APP_TOKEN)
     return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
-  const header = request.headers.get("authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (!token || !tokensMatch(token, env.COACH_APP_TOKEN)) return json(401, { error: "Nicht autorisiert" });
+  const principal = await authenticate(request.headers.get("authorization") ?? "", env);
+  if (!principal) return json(401, { error: "Nicht autorisiert" });
+
+  if (isInvite) {
+    // Nur wer den Worker betreibt, lädt ein; Gäste geben den Ranglisten-Code weiter.
+    if (principal.kind !== "owner") return json(403, { error: "Nur mit dem Haupt-Token" });
+    const id = newGuestID();
+    return json(200, { id, token: await guestToken(env.COACH_APP_TOKEN, id) });
+  }
 
   if (isShare) {
     const store = env.LEAGUE as unknown as ShareStore | undefined;
     return (
-      (await handleShare(request, store, new Date(deps.now()))) ?? json(404, { error: "Nicht gefunden" })
+      (await handleShare(request, store, new Date(deps.now()), principalKey(principal))) ??
+      json(404, { error: "Nicht gefunden" })
     );
   }
 
   if (isLeague) {
     const store = env.LEAGUE as unknown as LeagueStore | undefined;
     return (
-      (await handleLeague(request, store, new Date(deps.now()))) ?? json(404, { error: "Nicht gefunden" })
+      (await handleLeague(request, store, new Date(deps.now()), principalKey(principal))) ??
+      json(404, { error: "Nicht gefunden" })
     );
   }
 

@@ -3,6 +3,8 @@ export interface Env {
   GEMINI_API_KEY?: string;
   GROQ_API_KEY?: string;
   COACH_APP_TOKEN?: string;
+  /** Gesperrte Gast-IDs (siehe auth.ts), durch Komma getrennt. */
+  REVOKED_GUESTS?: string;
   /** Workers KV „coach-releases“: IPA und Versionsangaben für die private SideStore-Quelle. */
   RELEASES?: KVNamespace;
   /** Workers KV „coach-league“: Ranglisten (nur Namen und Punkte). */
