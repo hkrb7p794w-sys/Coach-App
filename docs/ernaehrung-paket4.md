@@ -35,3 +35,14 @@ Stand: 02.11.2026. Analyse, Plan in vier PRs, Datenmodell und offene Grenzen.
 - **Portionsanpassung** ändert nur den Tagebuch-Eintrag. Je Position steht die ursprüngliche Menge in
   `MealItem.plannedGrams` (JSON, optional – keine SwiftData-Migration); 100 % stellt den Ausgangszustand her.
   Nährwerte je 100 g bleiben, Summen ändern sich also genau proportional.
+
+## Offene Grenzen
+
+- **Homescreen-Widget:** geprüft, nicht umgesetzt – braucht eine App Group, die mit SideStore und kostenloser
+  Apple-ID unsicher ist. Die Karten im Reiter zeigen dieselben Werte.
+- **Freundesfunktion:** nicht umgesetzt (keine Konten, keine Personendaten beim Worker); Teilen per Code reicht für
+  Nutzer derselben Installation. Personen mit eigenem Worker können keine Codes eines anderen Workers abrufen.
+- **Erinnerungen:** lokale Mitteilungen werden beim Öffnen und bei Änderungen neu geplant; wird eine Mahlzeit auf
+  einem anderen Gerät erfasst, weiß das iPhone es erst nach dem nächsten Öffnen.
+- **Foto-Ergänzung:** Die KI schätzt Mengen; genannte Mengen werden übernommen, sonst bleiben es Schätzungen.
+- Nicht auf einem Gerät getestet; Prüfpunkte in `docs/todo.md`.

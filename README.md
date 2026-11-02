@@ -69,10 +69,10 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 51 | KI A: austauschbare Anbieter (Gemini, Workers AI, Groq, eigener Server), KI-Stufen, Nutzungsprotokoll, Modellbewertung | fertig (PR 60) |
 | 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | fertig (PR 61) |
 | 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | fertig (PR 62) |
-| 54 | Ernährung A: Zuletzt/Häufig/Rezepte/Favoriten beim Erfassen, gegessene Menge nachträglich anpassen | in Arbeit |
-| 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | in Arbeit |
-| 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | in Arbeit |
-| 57 | Ernährung D: Mahlzeiten teilen per Link | geplant |
+| 54 | Ernährung A: Zuletzt/Häufig/Rezepte/Favoriten beim Erfassen, gegessene Menge nachträglich anpassen | fertig (PR 63) |
+| 55 | Ernährung B: Foto-Analyse ergänzen per Text und Hinweisen, nur neue Positionen | fertig (PR 64) |
+| 56 | Ernährung C: Erinnerungen je Mahlzeit, konfigurierbares Dashboard | fertig (PR 65) |
+| 57 | Ernährung D: Mahlzeiten teilen per Link | fertig (PR 66) |
 | 58 | Health A: Body Battery mit Tagesverlauf, Aufwachwert und Bezug zu Schlaf/Stress; Ruhekalorien, Puls, Regenerationszeit, Belastung | in Arbeit |
 | 59 | Health B: Morning Report mit persönlichen Normalbereichen | geplant |
 | 60 | Health C: konfigurierbare Health-Widgets, Wecker zur Aufstehzeit | geplant |

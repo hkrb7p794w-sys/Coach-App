@@ -4,6 +4,7 @@ import SwiftUI
 struct RootView: View {
   @Environment(AppModel.self) private var model
   @State private var invite: LeagueInvite?
+  @State private var sharedMeal: SharedMealLink?
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
   private var reminderKey: Int {
@@ -48,7 +49,15 @@ struct RootView: View {
       Task { await model.refreshReminders() }
     }
     // Einladungslink coach://join?… (Rangliste).
-    .onOpenURL { url in invite = LeagueInvite(url: url) }
+    // Geteilte Mahlzeit coach://meal/<code>.
+    .onOpenURL { url in
+      if let link = SharedMealLink(url: url) {
+        sharedMeal = link
+      } else {
+        invite = LeagueInvite(url: url)
+      }
+    }
+    .sheet(item: $sharedMeal) { link in ReceivedMealSheet(code: link.code) }
     .sheet(isPresented: Binding(get: { invite != nil }, set: { if !$0 { invite = nil } })) {
       if let invite { JoinLeagueSheet(invite: invite) }
     }
