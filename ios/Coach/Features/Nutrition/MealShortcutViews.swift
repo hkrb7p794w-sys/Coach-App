@@ -224,7 +224,8 @@ struct AmendSection: View {
     }
     draft.items.append(contentsOf: result.items)
     let kcal = Int((NutritionSummary.totals(result.items)[.kcal] ?? 0).rounded())
-    note = "Ergänzt: \(result.items.map(\.name).joined(separator: ", ")) (\(kcal) kcal, geschätzt)."
+    note =
+      "Ergänzt: \(result.items.map(\.name).joined(separator: ", ")) (\(kcal) kcal, geschätzt)."
       + (result.hint.isEmpty ? "" : " \(result.hint)")
     let added = Set(result.items.map { FoodSearch.normalized($0.name) })
     draft.possiblyMissing.removeAll { hint in added.contains { $0.contains(FoodSearch.normalized(hint)) } }
