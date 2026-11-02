@@ -356,6 +356,12 @@ extension GarminMetricsParser {
     var metrics = DailyMetrics(day: day)
     metrics.trainingReadiness = score
     metrics.trainingReadinessLevel = first["level"]?.stringValue
+    // `recoveryTime` in Minuten; „REACHED_ZERO“ heißt erholt, auch wenn noch der alte Wert drinsteht.
+    if first["recoveryTimeChangePhrase"]?.stringValue == "REACHED_ZERO" {
+      metrics.recoveryHours = 0
+    } else if let minutes = first["recoveryTime"]?.doubleValue, minutes >= 0 {
+      metrics.recoveryHours = (minutes / 6).rounded() / 10
+    }
     return [day: metrics]
   }
 
@@ -367,6 +373,11 @@ extension GarminMetricsParser {
     else { return [:] }
     var metrics = DailyMetrics(day: day)
     metrics.trainingStatus = phrase
+    // Akute/chronische Belastung: `acuteTrainingLoadDTO` desselben Geräteeintrags.
+    if let load = json.objects(containingKey: "dailyTrainingLoadAcute").first {
+      metrics.acuteLoad = load["dailyTrainingLoadAcute"]?.doubleValue.flatMap { $0 >= 0 ? $0 : nil }
+      metrics.chronicLoad = load["dailyTrainingLoadChronic"]?.doubleValue.flatMap { $0 > 0 ? $0 : nil }
+    }
     return [day: metrics]
   }
 

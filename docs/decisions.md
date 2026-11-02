@@ -5,6 +5,26 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Health: Body Battery und weitere Garmin-Werte (Paket 2, PR A)
+
+- **Fehler behoben:** `bodyBattery/reports/daily` liefert den Tag unter `date`, nicht unter `calendarDate`
+  (python-garminconnect, `BodyBatteryEntry`). Der Parser hat die Antwort deshalb bisher verworfen; Höchst- und
+  Tiefstwert kamen nur aus der Tageszusammenfassung. Jetzt werden beide Schlüssel gelesen.
+- **Tagesverlauf:** `bodyBatteryValuesArray` hat Zeitstempel in GMT (ms). Umrechnung in Ortszeit über
+  `startTimestampLocal − startTimestampGMT` (stimmt auch auf Reisen), sonst über die Zeitzone des iPhones.
+  Gespeichert wird je Viertelstunde der letzte Wert (höchstens 96 Werte je Tag, als JSON im bestehenden
+  `DailyMetricsRecord`, keine Migration). Liefert `bodyBatteryValueDescriptorDTOList` andere Stellen
+  (Status an Stelle 1), werden sie daraus gelesen.
+- **Aufwachwert:** `bodyBatteryAtWakeTime` (Garmin-Konto), sonst Verlaufswert zur Aufwachzeit, sonst Höchstwert
+  bis 12 Uhr.
+- **Zusammenhang Schlaf/Stress:** nur Vergleich eigener Tage (Aufladung nach Nächten ab 7 h vs. kürzer; Verbrauch an
+  Tagen über/unter dem eigenen Stress-Median), mindestens 3 Tage je Gruppe, ausdrücklich keine Ursache.
+- **Neue Felder:** Ruhekalorien (`bmrKilocalories`, Apple Health `basalEnergyBurned`), Puls tief/hoch
+  (`minHeartRate`/`maxHeartRate`), Regenerationszeit (`recoveryTime` in Minuten, `REACHED_ZERO` = erholt) und
+  akute/chronische Last (`acuteTrainingLoadDTO`). Feldnamen aus python-garminconnect (`typed.py`).
+- **Alternative Quellen:** Apple Health hat keine Body Battery. Ohne Garmin bleibt sie leer und die App sagt das.
+- **Persönlicher Bereich (`PersonalNorm`):** Mittelwert ± 1 SD der letzten 30 Tage ohne heute, mindestens 7 Tage
+  (Prinzip wie bei HRV nach Plews et al. 2013). Details in `docs/health-paket2.md`.
 ## 2026-11-02 – Ernährung: Mahlzeiten teilen per Code, ohne Freundesliste (Paket 4, PR D)
 
 - **Ablauf:** Mahlzeit lange drücken › „Teilen …“. Der Worker legt Titel und Positionen (Mengen, Nährwerte je 100 g,

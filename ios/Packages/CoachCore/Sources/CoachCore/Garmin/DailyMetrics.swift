@@ -45,6 +45,20 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
   /// Einschlaf- und Aufwachzeit in Minuten nach Mitternacht (Ortszeit), z. B. 23:30 → 1410.
   public var sleepStartMinutes: Double?
   public var sleepEndMinutes: Double?
+  /// Body Battery beim Aufwachen (Garmin-Konto `bodyBatteryAtWakeTime`).
+  public var bodyBatteryAtWake: Double?
+  /// Tagesverlauf der Body Battery, höchstens ein Wert je 15 Minuten.
+  public var bodyBatteryCurve: [BodyBatterySample]?
+  /// Grundumsatz („Ruhekalorien“) des Tages.
+  public var restingKilocalories: Double?
+  /// Niedrigster und höchster Puls des Tages.
+  public var minHeartRate: Double?
+  public var maxHeartRate: Double?
+  /// Regenerationszeit der Uhr in Stunden (Training Readiness, nur Garmin-Konto).
+  public var recoveryHours: Double?
+  /// Akute (7 Tage) und chronische (28 Tage) Trainingsbelastung der Uhr (nur Garmin-Konto).
+  public var acuteLoad: Double?
+  public var chronicLoad: Double?
 
   public init(day: CalendarDay) {
     self.day = day
@@ -91,6 +105,14 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
     result.enduranceScore = other.enduranceScore ?? enduranceScore
     result.sleepStartMinutes = other.sleepStartMinutes ?? sleepStartMinutes
     result.sleepEndMinutes = other.sleepEndMinutes ?? sleepEndMinutes
+    result.bodyBatteryAtWake = other.bodyBatteryAtWake ?? bodyBatteryAtWake
+    result.bodyBatteryCurve = other.bodyBatteryCurve ?? bodyBatteryCurve
+    result.restingKilocalories = other.restingKilocalories ?? restingKilocalories
+    result.minHeartRate = other.minHeartRate ?? minHeartRate
+    result.maxHeartRate = other.maxHeartRate ?? maxHeartRate
+    result.recoveryHours = other.recoveryHours ?? recoveryHours
+    result.acuteLoad = other.acuteLoad ?? acuteLoad
+    result.chronicLoad = other.chronicLoad ?? chronicLoad
     return result
   }
 
@@ -104,9 +126,22 @@ public struct DailyMetrics: Codable, Equatable, Sendable {
       ("Atemfrequenz", respirationWaking ?? respirationSleep), ("SpO2", spo2Average),
       ("Schlafphasen", deepSleepSeconds), ("Fitnessalter", fitnessAge), ("VO2max", vo2Max),
       ("Training Readiness", trainingReadiness), ("Trainingsstatus", trainingStatus),
-      ("Endurance Score", enduranceScore),
+      ("Endurance Score", enduranceScore), ("Body-Battery-Verlauf", bodyBatteryCurve),
+      ("Ruhekalorien", restingKilocalories), ("Höchster Puls", maxHeartRate),
+      ("Regenerationszeit", recoveryHours), ("Akute Belastung", acuteLoad),
     ]
     return fields.compactMap { $0.1 == nil ? nil : $0.0 }
+  }
+}
+
+/// Ein Wert des Body-Battery-Tagesverlaufs: Minuten nach Mitternacht (Ortszeit) und Stand 0–100.
+public struct BodyBatterySample: Codable, Equatable, Hashable, Sendable {
+  public var minute: Int
+  public var value: Int
+
+  public init(minute: Int, value: Int) {
+    self.minute = minute
+    self.value = value
   }
 }
 
@@ -135,6 +170,10 @@ public enum GarminMetricsParser {
       metrics.respirationWaking = positive(record.first("avgWakingRespirationValue", "averageRespirationValue"))
       metrics.spo2Average = positive(record.first("averageSpo2", "averageSpO2", "avgSpo2"))
       metrics.spo2Lowest = positive(record.first("lowestSpo2", "lowestSpO2"))
+      metrics.bodyBatteryAtWake = nonNegative(record.first("bodyBatteryAtWakeTime"))
+      metrics.restingKilocalories = positive(record.first("bmrKilocalories"))
+      metrics.minHeartRate = positive(record.first("minHeartRate", "minHeartRateInBeatsPerMinute"))
+      metrics.maxHeartRate = positive(record.first("maxHeartRate", "maxHeartRateInBeatsPerMinute"))
     }
   }
 
@@ -190,17 +229,78 @@ public enum GarminMetricsParser {
     return (seconds / 60).rounded()
   }
 
-  /// `/wellness-service/wellness/bodyBattery/reports/daily`: je Tag ggf. eine Werteliste
-  /// `bodyBatteryValuesArray` mit `[Zeitstempel, Wert]`.
-  public static func bodyBattery(_ json: JSONValue) -> DayMap {
-    records(in: json) { record, metrics in
-      let values = (record["bodyBatteryValuesArray"]?.arrayValue ?? [])
-        .compactMap { $0.arrayValue?.dropFirst().first?.doubleValue }
-        .filter { $0 >= 0 }
-      metrics.bodyBatteryHigh = values.max() ?? nonNegative(record.first("bodyBatteryHighestValue", "charged"))
+  /// `/wellness-service/wellness/bodyBattery/reports/daily`: Liste mit einem Eintrag je Tag. Der Tag steht unter
+  /// `date` (nicht `calendarDate` wie sonst), die Werte in `bodyBatteryValuesArray` als `[Zeitstempel GMT in ms,
+  /// Wert]` – oder, laut `bodyBatteryValueDescriptorDTOList`, mit Status an Stelle 1 und dem Wert an Stelle 2.
+  public static func bodyBattery(_ json: JSONValue, timeZone: TimeZone = .current) -> DayMap {
+    var result = DayMap()
+    let entries = json.objects(containingKey: "bodyBatteryValuesArray") + json.objects(containingKey: "charged")
+    for record in entries {
+      guard let text = (record["calendarDate"] ?? record["date"])?.stringValue,
+        let day = CalendarDay(iso: String(text.prefix(10)))
+      else { continue }
+      var metrics = DailyMetrics(day: day)
+      let samples = bodyBatterySamples(record, timeZone: timeZone)
+      let values = samples.map { Double($0.value) }
+      metrics.bodyBatteryHigh = values.max() ?? nonNegative(record.first("bodyBatteryHighestValue"))
       metrics.bodyBatteryLow = values.min() ?? nonNegative(record.first("bodyBatteryLowestValue"))
       metrics.bodyBatteryLatest = values.last ?? nonNegative(record.first("bodyBatteryMostRecentValue"))
+      metrics.bodyBatteryCharged = nonNegative(record["charged"])
+      metrics.bodyBatteryDrained = nonNegative(record["drained"])
+      metrics.bodyBatteryCurve = samples.isEmpty ? nil : samples
+      result[day] = result[day].map { $0.merging(metrics) } ?? metrics
     }
+    return result
+  }
+
+  /// Werte als Ortszeit-Minuten, je Viertelstunde der letzte Wert. Der Versatz zur Ortszeit kommt aus
+  /// `startTimestampLocal`/`startTimestampGMT` (stimmt auch auf Reisen), sonst aus `timeZone`.
+  static func bodyBatterySamples(_ record: [String: JSONValue], timeZone: TimeZone) -> [BodyBatterySample] {
+    var timeIndex = 0
+    var valueIndex = 1
+    for descriptor in record["bodyBatteryValueDescriptorDTOList"]?.arrayValue ?? [] {
+      guard let index = descriptor["bodyBatteryValueDescriptorIndex"]?.doubleValue,
+        let key = descriptor["bodyBatteryValueDescriptorKey"]?.stringValue
+      else { continue }
+      if key == "timestamp" { timeIndex = Int(index) }
+      if key == "bodyBatteryLevel" { valueIndex = Int(index) }
+    }
+    var offset: Double?
+    if let local = (record["startTimestampLocal"]?.stringValue).flatMap(gmtSeconds),
+      let gmt = (record["startTimestampGMT"]?.stringValue).flatMap(gmtSeconds)
+    {
+      offset = local - gmt
+    }
+    var buckets: [Int: Int] = [:]
+    for entry in record["bodyBatteryValuesArray"]?.arrayValue ?? [] {
+      guard let row = entry.arrayValue, row.count > max(timeIndex, valueIndex),
+        let milliseconds = row[timeIndex].doubleValue, let raw = row[valueIndex].doubleValue,
+        raw >= 0, raw <= 100
+      else { continue }
+      let seconds = milliseconds / 1000
+      let shift = offset ?? Double(timeZone.secondsFromGMT(for: Date(timeIntervalSince1970: seconds)))
+      let minute = Int(
+        ((seconds + shift).truncatingRemainder(dividingBy: 86_400) + 86_400)
+          .truncatingRemainder(dividingBy: 86_400) / 60)
+      buckets[minute / 15] = Int(raw.rounded())
+    }
+    return buckets.keys.sorted().map { BodyBatterySample(minute: $0 * 15, value: buckets[$0] ?? 0) }
+  }
+
+  /// „2026-04-21T00:00:00.0“ als Sekunden (ohne Zeitzone gelesen, nur für Differenzen).
+  static func gmtSeconds(_ text: String) -> Double? {
+    let parts = text.prefix(19).split(whereSeparator: { "-T:".contains($0) }).compactMap { Int($0) }
+    guard parts.count == 6 else { return nil }
+    var components = DateComponents()
+    components.year = parts[0]
+    components.month = parts[1]
+    components.day = parts[2]
+    components.hour = parts[3]
+    components.minute = parts[4]
+    components.second = parts[5]
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+    return calendar.date(from: components)?.timeIntervalSince1970
   }
 
   /// `/usersummary-service/stats/stress/daily/{start}/{end}`.

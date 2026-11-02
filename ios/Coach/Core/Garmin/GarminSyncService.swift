@@ -99,7 +99,7 @@ final class GarminSyncService {
     }
     for chunk in range.chunks(maxDays: 28) {
       sources.append((.sleepSummaries(chunk), GarminMetricsParser.sleep))
-      sources.append((.bodyBattery(chunk), GarminMetricsParser.bodyBattery))
+      sources.append((.bodyBattery(chunk), { GarminMetricsParser.bodyBattery($0) }))
     }
     // Einzeltage für heute: Zusammenfassungen hängen teils hinterher.
     sources.append((.hrv(today), GarminMetricsParser.hrv))
