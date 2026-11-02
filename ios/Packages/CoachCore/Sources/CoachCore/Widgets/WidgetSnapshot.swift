@@ -78,10 +78,12 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
     public var waterMilliliters: Double
     public var waterTarget: Double?
     public var lastMeal: LastMeal?
+    /// kcal je Mahlzeit (Frühstück, Mittag, Abend, Snacks); `nil` bei Ständen von vor dem Mahlzeiten-Widget.
+    public var meals: [MealPart]?
 
     public init(
       kcal: Double, kcalTarget: Double?, protein: Double, proteinTarget: Double?, waterMilliliters: Double,
-      waterTarget: Double?, lastMeal: LastMeal?
+      waterTarget: Double?, lastMeal: LastMeal?, meals: [MealPart]? = nil
     ) {
       self.kcal = kcal
       self.kcalTarget = kcalTarget
@@ -90,6 +92,7 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
       self.waterMilliliters = waterMilliliters
       self.waterTarget = waterTarget
       self.lastMeal = lastMeal
+      self.meals = meals
     }
 
     /// Übrig (negativ = darüber); `nil` ohne Ziel.
@@ -103,6 +106,22 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
       guard let target, target > 0 else { return nil }
       return min(max(value / target, 0), 1)
     }
+  }
+
+  /// Eine Mahlzeit im Mahlzeiten-Widget: gegessen und Richtwert (Anteil am Tagesziel, `MealSplit`).
+  public struct MealPart: Codable, Equatable, Sendable, Identifiable {
+    public var category: MealCategory
+    public var kcal: Double
+    public var target: Double?
+    public var id: MealCategory { category }
+
+    public init(category: MealCategory, kcal: Double, target: Double?) {
+      self.category = category
+      self.kcal = kcal
+      self.target = target
+    }
+
+    public var fraction: Double? { Nutrition.fraction(kcal, target) }
   }
 
   public struct LastMeal: Codable, Equatable, Sendable {
@@ -238,7 +257,7 @@ extension WidgetSnapshot {
       snapshot.nutrition = nutrition.map { _ in
         Nutrition(
           kcal: 0, kcalTarget: nil, protein: 0, proteinTarget: nil, waterMilliliters: 0, waterTarget: nil,
-          lastMeal: nil)
+          lastMeal: nil, meals: MealSplit.order.map { MealPart(category: $0, kcal: 0, target: nil) })
       }
       if var gym = snapshot.gym {
         gym.running = false
@@ -327,11 +346,18 @@ extension WidgetSnapshot {
 
   /// Ernährung des Tages aus Zielen und Summen; Wasser zählt mit, die letzte Mahlzeit ohne reines Wasser.
   public static func nutrition(
-    targets: NutrientValues?, totals: NutrientValues, water: Double, lastMeal: LastMeal?
+    targets: NutrientValues?, totals: NutrientValues, water: Double, lastMeal: LastMeal?,
+    mealKilocalories: [MealCategory: Double] = [:]
   ) -> Nutrition {
-    Nutrition(
+    let meals = MealSplit.order.map { category in
+      MealPart(
+        category: category, kcal: (mealKilocalories[category] ?? 0).rounded(),
+        target: MealSplit.target(category, dayKilocalories: targets?[.kcal]))
+    }
+    return Nutrition(
       kcal: totals[.kcal] ?? 0, kcalTarget: targets?[.kcal], protein: totals[.protein] ?? 0,
-      proteinTarget: targets?[.protein], waterMilliliters: water, waterTarget: targets?[.water], lastMeal: lastMeal)
+      proteinTarget: targets?[.protein], waterMilliliters: water, waterTarget: targets?[.water], lastMeal: lastMeal,
+      meals: meals)
   }
 }
 

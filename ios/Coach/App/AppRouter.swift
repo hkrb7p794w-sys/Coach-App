@@ -11,6 +11,8 @@ final class AppRouter {
 
   struct Request: Equatable {
     let route: AppRoute
+    /// Vorgewählte Mahlzeit („+“ im Mahlzeiten-Widget).
+    var mealCategory: MealCategory?
     let id = UUID()
   }
 
@@ -18,8 +20,8 @@ final class AppRouter {
   /// Angeforderte, noch nicht ausgeführte Route. Jede Anforderung ist neu (zweimal „Mahlzeit erfassen“ geht).
   private(set) var pending: Request?
 
-  func open(_ route: AppRoute) {
-    pending = Request(route: route)
+  func open(_ route: AppRoute, mealCategory: MealCategory? = nil) {
+    pending = Request(route: route, mealCategory: mealCategory)
   }
 
   /// Übernimmt die Aktion, wenn sie zur Route passt.

@@ -249,4 +249,16 @@ class NutritionPart2Test {
         assertEquals(1, merged.recipes.size)
         assertEquals(1, merged.weights.size)
     }
+
+    @Test
+    fun hydrationLikeCoachCore() {
+        val coffee = MealItem(name = "Kaffee", grams = 250.0, source = FoodSource.BLS, per100g = nutrients(Nutrient.WATER to 98.0), isDrink = true)
+        val juice = MealItem(name = "Saft", grams = 200.0, source = FoodSource.AI, per100g = nutrients(Nutrient.KCAL to 45.0), isDrink = true)
+        val soup = MealItem(name = "Suppe", grams = 300.0, source = FoodSource.BLS, per100g = nutrients(Nutrient.WATER to 90.0))
+        val bread = MealItem(name = "Brot", grams = 50.0, source = FoodSource.MANUAL, per100g = nutrients(Nutrient.KCAL to 250.0))
+        val total = Hydration.total(listOf(coffee, juice, soup, bread, MealItem.water(500.0)))
+        assertEquals(945.0, total.drinks)
+        assertEquals(270.0, total.food)
+        assertEquals(1215.0, total.total)
+    }
 }

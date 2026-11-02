@@ -107,7 +107,9 @@ struct NutritionView: View {
       }
       // Schnellaktion / Kurzbefehl „Mahlzeit erfassen“.
       .onChange(of: AppRouter.shared.pending, initial: true) {
+        let mealCategory = AppRouter.shared.pending?.mealCategory
         guard AppRouter.shared.take(.logMeal) else { return }
+        viewModel.preferredCategory = mealCategory
         query = ""
         viewModel.selectedDay = nil
         sheet = .capture
@@ -488,8 +490,9 @@ struct NutritionView: View {
 
   // MARK: - Wasser und Rückgängig
 
-  private var waterCount: Double {
-    NutritionSummary.totals(todaysMeals.filter(\.isWater).flatMap(\.items))[.water] ?? 0
+  /// Flüssigkeit des Tages: Getränke und Wasser aus Lebensmitteln (`Hydration`), nicht nur „Wasser“-Einträge.
+  private var waterCount: Hydration.Total {
+    Hydration.total(todaysMeals.flatMap(\.items))
   }
 
   private func logWater(_ milliliters: Double) {
@@ -605,7 +608,7 @@ private struct DayStrip: View {
 private struct BudgetSection: View {
   let targets: NutritionTargets
   let totals: NutrientValues
-  let water: Double
+  let water: Hydration.Total
   var showsRing = true
   var showsWater = true
   let addWater: (Double) -> Void
@@ -638,8 +641,14 @@ private struct BudgetSection: View {
   private func waterRow(_ target: Double) -> some View {
     HStack {
       Image(systemName: "drop.fill").foregroundStyle(.cyan)
-      Text("Wasser \(GermanFormat.decimal(water / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
-        .monospacedDigit()
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Wasser \(GermanFormat.decimal(water.total / 1000)) / \(GermanFormat.decimal(target / 1000)) l")
+          .monospacedDigit()
+        if water.food >= 50 {
+          Text("davon \(GermanFormat.decimal(water.food / 1000)) l aus Essen")
+            .font(.caption).foregroundStyle(.secondary)
+        }
+      }
       Spacer()
       Menu {
         ForEach([150.0, 330, 500, 750], id: \.self) { amount in

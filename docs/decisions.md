@@ -5,6 +5,20 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Wasser aus Mahlzeiten, Mahlzeiten-Widget, Kamera-Knopf
+
+- **Wasser zählt alles, was getrunken und gegessen wird** (`Hydration` in CoachCore, gleich auf Android): Getränke
+  mit ihrem Wasserwert (Kaffee, Saft, Milch; ohne Angabe 1 ml je g) und das Wasser in Lebensmitteln laut BLS bzw.
+  KI. Das Ziel (~35 ml/kg) ist die gesamte Wasserzufuhr; laut EFSA (2010) kommen üblicherweise rund 20 % aus dem
+  Essen. Die Übersicht zeigt den Anteil „aus Essen“ getrennt. Quelle: EFSA Panel on Dietetic Products (2010),
+  „Scientific Opinion on Dietary Reference Values for water“, doi:10.2903/j.efsa.2010.1459.
+- **Mahlzeiten-Widget** nach dem Vorbild von Yazio (Wunsch des Nutzers): je Mahlzeit Ring und „+“, das direkt das
+  Erfassen dieser Mahlzeit öffnet (`coach://open/logMeal?mahlzeit=…`). Richtwerte je Mahlzeit 25/35/30/10 %
+  (`MealSplit`) – nur zur Orientierung, die Ziele gelten für den Tag. Auf dem Sperrbildschirm kompakt
+  (`accessoryRectangular`): Einzelne Links sind dort nicht möglich, Tippen öffnet das Erfassen.
+- **Kamera-Knopf:** Als `Label` auf dem farbigen Knopf im Formular war das Symbol unsichtbar; jetzt Symbol und Text
+  ausdrücklich nebeneinander.
+
 ## 2026-11-02 – Android: Ernährung Teil 2
 
 - Rezepte/Meal-Prep, „Was esse ich jetzt?“, Wochenplan mit Einkaufsliste, Tag auswerten, Gewichtsverlauf mit

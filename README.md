@@ -88,6 +88,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 70 | Android-App „IronLudi Gym“ (Gym-Logging, Kotlin/Compose), private Download-Seite über den Worker, Installationsanleitung iPhone/Android | fertig (PR 78) |
 | 71 | Android Ernährung Teil 1: Tagesziele, BLS 4.0, KI per Text/Foto, Barcode, Favoriten/Häufig/Wie gestern, KI-Zugang per Link | fertig (PR 79) |
 | 72 | Android Ernährung Teil 2: Rezepte/Meal-Prep, Was jetzt?, Wochenplan + Einkaufsliste, Tag auswerten, Gewicht + Prognose, Teilen, Erinnerungen, Offline-Warteschlange | fertig (PR 80) |
+| 73 | Ernährung: Wasser aus Getränken und Essen, Mahlzeiten-Widget (Sperrbildschirm/Homescreen, „+“ je Mahlzeit), Kamera-Knopf | fertig (PR 81) |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version (bewertet in `docs/plattform-paket7.md`: erst bei Bedarf, dann
