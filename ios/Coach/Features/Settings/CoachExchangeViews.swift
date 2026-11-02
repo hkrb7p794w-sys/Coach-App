@@ -3,70 +3,165 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// Manueller KI-Coach, Teil 1: alle Daten eines Zeitraums als eine Datei für ChatGPT, Gemini oder Claude.
+/// KI-Export: Zeitraum, Daten und Format wählen; als Datei teilen oder kopieren. Mit „Antwortformat beilegen“ ist es
+/// Teil 1 des manuellen KI-Coachs (die Antwort kommt über „KI-Antwort importieren“ zurück).
 struct CoachExportView: View {
   @Environment(AppModel.self) private var model
   @Query(sort: \DailyMetricsRecord.dayKey) private var days: [DailyMetricsRecord]
   @Query(sort: \ActivityRecord.startLocal) private var activities: [ActivityRecord]
   @Query(sort: \GymSessionRecord.start) private var gymSessions: [GymSessionRecord]
   @Query(sort: \MealRecord.createdAt) private var meals: [MealRecord]
-  @State private var presetDays: Int? = 30
-  @State private var from = Calendar.current.date(byAdding: .day, value: -29, to: .now) ?? .now
-  @State private var to = Date.now
-  @State private var file: URL?
+  @State private var range = ExportRange()
+  @State private var categories = Set(ExportCategory.allCases)
+  @State private var format = ExportFormat.markdown
+  @State private var withImportFormat = true
+  @State private var files: [URL] = []
   @State private var copied = false
 
-  private var range: (start: CalendarDay, end: CalendarDay) {
-    let today = CalendarDay(date: .now)
-    if let presetDays { return (today.adding(days: -(presetDays - 1)), today) }
-    let start = CalendarDay(date: min(from, to))
-    let end = CalendarDay(date: max(from, to))
-    return (start, end)
-  }
-
   var body: some View {
+    let input = ExportInput.make(
+      model: model, days: days, activities: activities, gymSessions: gymSessions, meals: meals)
+    let counts = DataExport.counts(input, from: range.start, to: range.end)
     Form {
+      ExportRangeSection(range: $range)
       Section {
-        Picker("Zeitraum", selection: $presetDays) {
-          ForEach(CoachExport.presets) { Text($0.label).tag(Optional($0.days)) }
-          Text("Eigener").tag(Int?.none)
+        ForEach(ExportCategory.allCases, id: \.self) { category in
+          Toggle(
+            isOn: Binding(
+              get: { categories.contains(category) },
+              set: { on in
+                if on { categories.insert(category) } else { categories.remove(category) }
+              })
+          ) {
+            VStack(alignment: .leading, spacing: 2) {
+              Text(category.label)
+              Text("\(counts[category] ?? 0) Einträge · \(category.detail)").font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
         }
-        if presetDays == nil {
-          DatePicker("Von", selection: $from, in: ...Date.now, displayedComponents: .date)
-          DatePicker("Bis", selection: $to, in: ...Date.now, displayedComponents: .date)
-        }
+      } header: {
+        Text("Daten")
       } footer: {
-        Text("Zeitraum: \(range.start.iso) bis \(range.end.iso)")
+        Text("Profil und Ziel sind immer dabei. Ohne Einträge im Zeitraum bleibt ein Bereich leer.")
       }
       Section {
-        Button("Export erstellen", systemImage: "doc.badge.arrow.up") { makeFile() }
-        if let file {
-          ShareLink(item: file) {
-            Label("Datei teilen (z. B. an ChatGPT, Gemini, Claude)", systemImage: "square.and.arrow.up")
+        Picker("Format", selection: $format) {
+          ForEach(ExportFormat.allCases, id: \.self) { Text($0.label).tag($0) }
+        }
+        if format == .markdown {
+          Toggle("Antwortformat für den Import beilegen", isOn: $withImportFormat)
+        }
+      } footer: {
+        Text(formatNote)
+      }
+      Section {
+        Button("Export erstellen", systemImage: "doc.badge.arrow.up") { makeFiles(input) }
+          .disabled(categories.isEmpty)
+        if !files.isEmpty {
+          ShareLink(items: files) {
+            Label(
+              files.count == 1 ? "Datei teilen" : "\(files.count) Dateien teilen", systemImage: "square.and.arrow.up")
           }
-          Button(copied ? "Kopiert" : "Als Text kopieren", systemImage: copied ? "checkmark" : "doc.on.doc") {
-            UIPasteboard.general.string = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
-            copied = true
+          if format != .csv {
+            Button(copied ? "Kopiert" : "Als Text kopieren", systemImage: copied ? "checkmark" : "doc.on.doc") {
+              UIPasteboard.general.string = files.first.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+              copied = true
+            }
           }
         }
       } footer: {
         Text(
-          "Eine Markdown-Datei mit Profil, Plan, Trainingspläne, Tageswerten, Aktivitäten, Krafteinheiten mit allen "
-            + "Sätzen, Ernährung und Gewicht. Oben steht eine Anleitung für die KI mit dem Antwortformat – ihre "
-            + "Antwort fügst du unter „KI-Antwort importieren“ ein. Die Datei enthält Gesundheitsdaten; teile sie "
-            + "nur mit Diensten, denen du sie anvertrauen willst.")
+          "Die Dateien enthalten Gesundheitsdaten. Teile sie nur mit Diensten, denen du sie anvertrauen willst – oder "
+            + "nutze ein lokales Modell.")
       }
     }
     .navigationTitle("Daten für KI exportieren")
-    .onChange(of: presetDays) { file = nil }
-    .onChange(of: from) { file = nil }
-    .onChange(of: to) { file = nil }
+    .onChange(of: range) { files = [] }
+    .onChange(of: categories) { files = [] }
+    .onChange(of: format) { files = [] }
+    .onChange(of: withImportFormat) { files = [] }
   }
 
-  private func makeFile() {
+  private var formatNote: String {
+    switch format {
+    case .markdown:
+      "Lesbar für Menschen und jede KI. Mit Antwortformat schlägt die KI Planänderungen so vor, dass die App sie "
+        + "prüfen und übernehmen kann."
+    case .json: "Strukturiert mit festen Feldnamen; fehlende Werte sind null. Gut für längere Analysen."
+    case .csv: "Eine Tabelle je Bereich – gut für Tabellenkalkulationen und Datenanalyse-Werkzeuge."
+    }
+  }
+
+  private func makeFiles(_ input: CoachExport.Input) {
+    let stem = "IronLudi-\(range.start.iso)-bis-\(range.end.iso)"
+    let output: [DataExport.File]
+    switch format {
+    case .markdown:
+      output = [
+        DataExport.File(
+          name: "\(stem).md",
+          content: DataExport.markdown(
+            input, from: range.start, to: range.end, categories: categories, withImportFormat: withImportFormat))
+      ]
+    case .json:
+      output = [
+        DataExport.File(
+          name: "\(stem).json",
+          content: DataExport.json(input, from: range.start, to: range.end, categories: categories))
+      ]
+    case .csv:
+      output = DataExport.csv(input, from: range.start, to: range.end, categories: categories)
+    }
+    files = ExportInput.write(output)
+    copied = false
+  }
+}
+
+/// Zeitraum eines Exports: Vorgabe (7, 30, 90, 365 Tage) oder eigene Daten.
+struct ExportRange: Equatable {
+  var presetDays: Int? = 30
+  var from = Calendar.current.date(byAdding: .day, value: -29, to: .now) ?? .now
+  var to = Date.now
+
+  var start: CalendarDay {
+    if let presetDays { return CalendarDay(date: .now).adding(days: -(presetDays - 1)) }
+    return CalendarDay(date: min(from, to))
+  }
+
+  var end: CalendarDay {
+    presetDays == nil ? CalendarDay(date: max(from, to)) : CalendarDay(date: .now)
+  }
+}
+
+struct ExportRangeSection: View {
+  @Binding var range: ExportRange
+
+  var body: some View {
+    Section {
+      Picker("Zeitraum", selection: $range.presetDays) {
+        ForEach(CoachExport.presets) { Text($0.label).tag(Optional($0.days)) }
+        Text("Eigener").tag(Int?.none)
+      }
+      if range.presetDays == nil {
+        DatePicker("Von", selection: $range.from, in: ...Date.now, displayedComponents: .date)
+        DatePicker("Bis", selection: $range.to, in: ...Date.now, displayedComponents: .date)
+      }
+    } footer: {
+      Text("Zeitraum: \(range.start.iso) bis \(range.end.iso)")
+    }
+  }
+}
+
+/// Daten der App für Export und Prompts.
+enum ExportInput {
+  static func make(
+    model: AppModel, days: [DailyMetricsRecord], activities: [ActivityRecord], gymSessions: [GymSessionRecord],
+    meals: [MealRecord]
+  ) -> CoachExport.Input {
     let settings = model.settings
     let today = CalendarDay(date: .now)
-    let input = CoachExport.Input(
+    return CoachExport.Input(
       profile: settings.profile, schedule: settings.schedule(inWeekOf: today), routines: settings.gym.routines,
       custom: settings.gym.customExercises, equipment: settings.gym.equipment, metrics: days.compactMap(\.metrics),
       activities: activities.compactMap(\.activity), gym: gymSessions.compactMap(\.session),
@@ -75,15 +170,16 @@ struct CoachExportView: View {
           CoachExport.Meal(day: $0, category: record.category.label, title: record.title, items: record.items)
         }
       }, weights: model.allWeights, userSources: settings.userSources)
-    let text = CoachExport.markdown(input, from: range.start, to: range.end)
-    let url = FileManager.default.temporaryDirectory
-      .appendingPathComponent("IronLudi-Export-\(range.start.iso)-bis-\(range.end.iso).md")
-    do {
-      try text.write(to: url, atomically: true, encoding: .utf8)
-      file = url
-      copied = false
-    } catch {
-      file = nil
+  }
+
+  /// Schreibt die Dateien in einen eigenen temporären Ordner (alte Exporte werden ersetzt).
+  static func write(_ files: [DataExport.File]) -> [URL] {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent("ki-export", isDirectory: true)
+    try? FileManager.default.removeItem(at: folder)
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    return files.compactMap { file in
+      let url = folder.appendingPathComponent(file.name)
+      return (try? file.content.write(to: url, atomically: true, encoding: .utf8)) == nil ? nil : url
     }
   }
 }

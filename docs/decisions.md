@@ -5,6 +5,21 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – KI-Export mit Datenauswahl, Formaten und Prompt-Bibliothek (Paket 3, PR C)
+
+- **Datenauswahl:** Gym, Ausdauertraining, Gesundheit, Schlaf, Ernährung, Gewicht und Körper, Erholung,
+  Trainingsverlauf (Wochenübersicht). Profil und Ziel sind immer dabei. Die Ansicht zeigt je Bereich die Zahl der
+  Einträge im Zeitraum.
+- **Formate:** Markdown (lesbar; optional mit dem Antwortformat des manuellen KI-Coachs für den Import), JSON (feste
+  Feldnamen, `null` = nicht gemessen) und CSV (eine Tabelle je Bereich, Komma, Punkt als Dezimalzeichen). Fehlende
+  Werte sind nie 0, damit keine KI etwas hineinliest. Krafttraining der Uhr steht nicht doppelt unter Ausdauer.
+- **Prompt-Bibliothek:** acht Vorlagen (Training, Erholung, Ernährung, Trainingsplanung, Stagnation, langfristiger
+  Fortschritt, Schlaf, Gewicht). Platzhalter `{zeitraum}`, `{tage}`, `{ziel}`, `{sportarten}`; die passenden Daten
+  und Arbeitsregeln (nur aus den Daten, Lücken benennen, Unsicherheit kennzeichnen, keine Diagnosen, feste Gliederung)
+  werden angehängt. Eigene Prompts lassen sich anlegen, aus Vorlagen ableiten, ändern und löschen.
+- **Datenschutz:** Der Export verlässt das iPhone nur, wenn die Person ihn teilt oder kopiert; der Hinweis auf
+  Gesundheitsdaten steht in beiden Ansichten.
+
 ## 2026-11-02 – Reiter „AI“: Empfehlungen an einem Ort (Paket 3, PR B)
 
 - **Fünf Reiter:** Heute, Training, Ernährung, Gym, AI. Der Plan (Saisonplan bzw. eigene Woche) liegt oben im Reiter

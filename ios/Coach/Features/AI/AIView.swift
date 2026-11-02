@@ -183,6 +183,11 @@ struct AIView: View {
         Label("Rezeptideen für die Woche", systemImage: "frying.pan")
       }
       NavigationLink {
+        PromptLibraryView()
+      } label: {
+        Label("Prompt-Bibliothek für externe KI", systemImage: "text.bubble")
+      }
+      NavigationLink {
         CoachExportView()
       } label: {
         Label("Daten für eine externe KI exportieren", systemImage: "square.and.arrow.up")

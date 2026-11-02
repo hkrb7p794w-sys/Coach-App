@@ -7,6 +7,9 @@ hier notieren und als PR beheben.
 
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
+- [ ] **KI-Export und Prompts:** AI › Daten exportieren: nur Gym und Schlaf wählen → Datei enthält nur diese? JSON
+      und CSV lassen sich teilen? AI › Prompt-Bibliothek › Trainingsanalyse kopieren und in ChatGPT/Gemini einfügen:
+      Antwort in der Gliederung, fehlende Daten genannt? Eigenen Prompt anlegen und wieder öffnen.
 - [ ] **Reiter „AI“:** Plan jetzt unter Training › Plan? Empfehlungen erscheinen (z. B. Stillstand im Gym), Wischen
       setzt „umgesetzt“/„verworfen“, Zahl am Reiter stimmt. „Alles analysieren“ liefert belegte Empfehlungen ohne
       Quellenangaben im Text; „Worauf beruht das?“ zeigt die Grundlage. Mit wenig Daten: fehlende Daten genannt?

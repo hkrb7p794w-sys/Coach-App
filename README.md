@@ -68,7 +68,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 50 | Ernährung: Nährwerte aus dem Bundeslebensmittelschlüssel (BLS 4.0, offline), KI nur zum Zerlegen, BLS-Suche | fertig (PR 59) |
 | 51 | KI A: austauschbare Anbieter (Gemini, Workers AI, Groq, eigener Server), KI-Stufen, Nutzungsprotokoll, Modellbewertung | in Arbeit |
 | 52 | KI B: Reiter „AI“ mit Empfehlungen nach Themen (neu, gelesen, umgesetzt, verworfen), Plan im Reiter Training | in Arbeit |
-| 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | geplant |
+| 53 | KI C: Export mit Datenauswahl und Formaten, Prompt-Bibliothek mit eigenen Prompts | in Arbeit |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version.
