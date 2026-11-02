@@ -52,12 +52,17 @@ final class ReminderService: NSObject {
   }
 
   /// Fragt beim ersten Mal nach der Erlaubnis und plant die Erinnerungen der nächsten 14 Tage neu.
-  func refresh(seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), now: Date = .now) async {
+  /// `loggedMeals`: schon erfasste Mahlzeiten (`ReminderPlanner.loggedKey`) – dafür gibt es keine Erinnerung.
+  func refresh(
+    seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), loggedMeals: Set<String> = [],
+    now: Date = .now
+  ) async {
     guard let center else { return }
     let status = await center.notificationSettings().authorizationStatus
     var allowed = status == .authorized || status == .provisional || status == .ephemeral
     let config = settings.reminders
-    let wanted = config.enabled || config.equipment || config.weekPlanning || config.nutritionReview
+    let wanted =
+      config.enabled || config.equipment || config.weekPlanning || config.nutritionReview || config.meals.anyEnabled
     if status == .notDetermined, wanted {
       allowed = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
     }
@@ -86,7 +91,7 @@ final class ReminderService: NSObject {
     }
 
     // Ausrüstung am Vorabend und Wochenplanung am Sonntag (iOS erlaubt höchstens 64 geplante Mitteilungen).
-    for note in notes(seasonSchedule: seasonSchedule, log: log, now: now) {
+    for note in notes(seasonSchedule: seasonSchedule, log: log, loggedMeals: loggedMeals, now: now) {
       let content = UNMutableNotificationContent()
       content.title = note.title
       content.body = note.body
@@ -101,7 +106,9 @@ final class ReminderService: NSObject {
     }
   }
 
-  func notes(seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), now: Date = .now) -> [ScheduledNote] {
+  func notes(
+    seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), loggedMeals: Set<String> = [], now: Date = .now
+  ) -> [ScheduledNote] {
     let today = CalendarDay(date: now)
     let parts = Calendar.current.dateComponents([.hour, .minute], from: now)
     let minutesNow = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
@@ -120,6 +127,7 @@ final class ReminderService: NSObject {
     if config.nutritionReview {
       result += ReminderPlanner.nutritionReview(today: today, minutesNow: minutesNow)
     }
+    result += ReminderPlanner.meals(config.meals, today: today, minutesNow: minutesNow, logged: loggedMeals)
     return result
   }
 

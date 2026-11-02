@@ -43,6 +43,10 @@ struct RootView: View {
       guard profile.onboardingDone else { return }
       await model.refreshReminders()
     }
+    // Andere Zeitzone (Reise): Essens- und Trainingszeiten gelten in der neuen Ortszeit.
+    .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+      Task { await model.refreshReminders() }
+    }
     // Einladungslink coach://join?… (Rangliste).
     .onOpenURL { url in invite = LeagueInvite(url: url) }
     .sheet(isPresented: Binding(get: { invite != nil }, set: { if !$0 { invite = nil } })) {

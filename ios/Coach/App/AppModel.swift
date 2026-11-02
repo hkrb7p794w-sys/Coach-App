@@ -67,7 +67,21 @@ final class AppModel {
   func refreshReminders() async {
     guard settings.profile.onboardingDone, !isDemo else { return }
     await reminders.refresh(
-      seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil, log: trainingLog())
+      seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil, log: trainingLog(),
+      loggedMeals: loggedMeals())
+  }
+
+  /// Heute und morgen schon erfasste Mahlzeiten (Wasser zählt nicht) – dafür keine Erinnerung.
+  func loggedMeals(now: Date = .now) -> Set<String> {
+    let today = CalendarDay(date: now)
+    let start = today.iso
+    let end = today.adding(days: 1).iso
+    let query = FetchDescriptor<MealRecord>(predicate: #Predicate { $0.dayKey >= start && $0.dayKey <= end })
+    let meals = (try? container.mainContext.fetch(query)) ?? []
+    return Set(
+      meals.filter { !$0.isWater }.compactMap { meal in
+        CalendarDay(iso: meal.dayKey).map { ReminderPlanner.loggedKey(day: $0, category: meal.category) }
+      })
   }
 
   /// Aktivitäten und Krafteinheiten dieser und der letzten Woche.

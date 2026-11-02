@@ -55,6 +55,18 @@ struct NutritionSettingsView: View {
       }
 
       Section {
+        ForEach(MealReminderSettings.categories, id: \.self) { category in
+          MealReminderRow(category: category, slot: mealSlot(category, settings: settings))
+        }
+      } header: {
+        Text("Erinnerungen an Mahlzeiten")
+      } footer: {
+        Text(
+          "Zur gewohnten Zeit kommt eine Mitteilung – aber nur, wenn die Mahlzeit an dem Tag noch nicht erfasst ist. "
+            + "Die Zeiten gelten in der aktuellen Zeitzone, auch auf Reisen.")
+      }
+
+      Section {
         Toggle("Abends um 20 Uhr „Tag auswerten“", isOn: $settings.reminders.nutritionReview)
         Button("Rezept-Vorlieben …") { showsRecipePreferences = true }
       } header: {
@@ -75,6 +87,37 @@ struct NutritionSettingsView: View {
     }
     .navigationTitle("Ernährung")
     .sheet(isPresented: $showsRecipePreferences) { RecipePreferencesView() }
+  }
+}
+
+extension NutritionSettingsView {
+  func mealSlot(_ category: MealCategory, settings: CoachSettings) -> Binding<MealReminderSettings.Slot> {
+    Binding(
+      get: { settings.reminders.meals[category] ?? .init(hour: 12, minute: 0) },
+      set: { settings.reminders.meals[category] = $0 })
+  }
+}
+
+/// Schalter und Uhrzeit einer Mahlzeit.
+private struct MealReminderRow: View {
+  let category: MealCategory
+  @Binding var slot: MealReminderSettings.Slot
+
+  var body: some View {
+    Toggle(category.label, isOn: $slot.enabled)
+    if slot.enabled {
+      DatePicker(
+        "Uhrzeit",
+        selection: Binding(
+          get: {
+            Calendar.current.date(bySettingHour: slot.hour, minute: slot.minute, second: 0, of: .now) ?? .now
+          },
+          set: { date in
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+            slot = .init(enabled: true, hour: parts.hour ?? slot.hour, minute: parts.minute ?? slot.minute)
+          }),
+        displayedComponents: .hourAndMinute)
+    }
   }
 }
 
