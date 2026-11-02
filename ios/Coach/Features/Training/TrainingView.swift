@@ -38,6 +38,10 @@ struct TrainingView: View {
             } ?? "–", caption: "HRV, Ruhepuls, Schlaf"
           ) { List { RecoverySections(viewModel: viewModel) }.navigationTitle("Erholung") }
           HubRow(
+            title: "Morning Report", symbol: "sunrise.fill", color: .orange,
+            value: "", caption: "Nacht, Erholung, Empfehlung"
+          ) { MorningReportView() }
+          HubRow(
             title: "Body Battery", symbol: "bolt.batteryblock.fill", color: .blue,
             value: BodyBatteryAnalysis.summary(days: days.compactMap(\.metrics), today: today).current
               .map { String(Int($0)) } ?? "–",

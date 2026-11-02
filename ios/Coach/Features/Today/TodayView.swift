@@ -73,6 +73,13 @@ struct TodayView: View {
           let allActivities = activities.compactMap(\.activity)
           let gymDays = Set(gymSessions.compactMap { $0.session?.day })
           let today = snapshot.plan.today
+          // Morning Report bis 12 Uhr ganz oben; danach über „Gesundheit“ im Reiter Training.
+          if Calendar.current.component(.hour, from: .now) < 12 {
+            MorningReportCard(
+              report: MorningReportBuilder.make(
+                model: model, days: days.compactMap(\.metrics), activities: allActivities, focus: snapshot.focus),
+              focus: snapshot.focus)
+          }
           if let focus = snapshot.focus {
             NowSection(snapshot: snapshot, focus: focus)
           }

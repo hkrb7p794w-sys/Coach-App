@@ -5,6 +5,22 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
 
 
+## 2026-11-02 – Health: Morning Report (Paket 2, PR B)
+
+- **Regeln entscheiden:** Grundlage ist `RecoveryEvaluator` (HRV-Status, Readiness, Ruhepuls +5 bpm, Schlaf unter
+  5/6 h). Dazu kommen persönliche Abweichungen aus `PersonalNorm`: Ab zwei auffälligen Werten (Schlaf unter dem
+  Bedarf, HRV/Body Battery unter dem eigenen Bereich, Ruhepuls/Stress darüber, schwacher Schlaf-Score) gilt
+  mindestens „locker“, auch wenn keine Einzelregel greift. Ein einzelner Ausreißer stuft nicht herab.
+- **Bedarf statt Pauschalwert:** Schlafdauer gegen die eigene Zielschlafdauer (Schlaf-Coach, 7–9 h), auffällig ab
+  30 min darunter.
+- **Garmin-Bänder, wo es keine persönlichen gibt:** Schlaf-Score (80+ gut, unter 60 schwach), Stress (über 50 mittel),
+  Body Battery (unter 26 niedrig). Belastung: akute/chronische Last der Uhr, über 1,5 auffällig (Gabbett 2016,
+  <https://doi.org/10.1136/bjsports-2015-095788>), sonst die Form aus den eigenen Aktivitäten.
+- **Stress vom Vortag:** Der heutige Tagesschnitt ist am Morgen noch nicht aussagekräftig.
+- **Wenig Daten:** Unter zwei gemessenen Werten keine Empfehlung („nach Gefühl“); fehlende Werte werden aufgezählt,
+  nie geschätzt. Vor dem ersten Abruf des Tages gilt die letzte Nacht davor, deutlich markiert.
+- **Ort:** Karte ganz oben in „Heute“ bis 12 Uhr, vollständig im Reiter Training („Morning Report“).
+
 ## 2026-11-02 – Health: Body Battery und weitere Garmin-Werte (Paket 2, PR A)
 
 - **Fehler behoben:** `bodyBattery/reports/daily` liefert den Tag unter `date`, nicht unter `calendarDate`
