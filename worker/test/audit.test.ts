@@ -5,8 +5,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { authenticate, guestToken } from "../src/auth";
 import { resetGeminiState } from "../src/gemini";
-import { GroundingError, groundPoints } from "../src/grounding";
 import { resetGroqState } from "../src/groq";
+import { GroundingError, groundPoints } from "../src/grounding";
 import { handle } from "../src/index";
 import type { LeagueStore } from "../src/league";
 import { sanitizeMeal } from "../src/share";
