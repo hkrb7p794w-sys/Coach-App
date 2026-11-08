@@ -24,6 +24,7 @@ public enum ChatContext {
     public var weekAverage: NutrientValues?
     public var tomorrowSessions: [String] = []
     public var todayMetrics: DailyMetrics?
+    public var insights: [Insight] = []
     public var reasons: [String] = []
     public var todaySessions: [String] = []
     public var sleep: SleepCoach.Report?

@@ -17,14 +17,17 @@ public enum ChatRouter {
       "kilometer", "zone 2",
     ],
     .nutrition: [
-      "protein", "eiweiß", "eiweiss", "kalorien", "kcal", "essen", "mahlzeit", "ernähr", "kohlenhydr", "makro", "hunger",
+      "protein", "eiweiß", "eiweiss", "kalorien", "kcal", "essen", "mahlzeit", "ernähr", "kohlenhydr", "makro",
+      "hunger",
       "abnehm", "zunehm", "trinken", "frühstück", "abendessen",
     ],
     .recovery: [
       "schlaf", "müde", "erhol", "regener", "hrv", "ruhepuls", "schwer trainieren", "heute trainieren", "belastung",
       "body battery", "krank", "ruhetag", "soll ich heute", "sollte ich heute",
     ],
-    .longTerm: ["verlauf", "entwickel", "entwickl", "letzten wochen", "monat", "fortschritt", "langfrist", "trend", "seit"],
+    .longTerm: [
+      "verlauf", "gewicht", "abnehm", "zunehm", "körperfett", "entwickel", "entwickl", "letzten wochen", "monat", "fortschritt", "langfrist", "trend", "seit",
+    ],
     .app: ["in der app", "einstellung", "wo finde", "wie stelle ich", "widget", "funktion"],
   ]
 
@@ -74,7 +77,9 @@ extension ChatContext {
     var lines = ["Heute ist \(Weekday(day: today).long), \(short(today))."]
     guard !topics.isEmpty, topics != [.app] else { return lines }
     lines += Personalization.contextLines(facts.profile.effectiveGoals(today: today))
-    if facts.withholdsWeightTargets { lines.append("Keine Gewichts- oder Kalorienziele nennen und nicht zum Abnehmen raten.") }
+    if facts.withholdsWeightTargets {
+      lines.append("Keine Gewichts- oder Kalorienziele nennen und nicht zum Abnehmen raten.")
+    }
     if topics.contains(.strength) || topics.contains(.endurance) || topics.contains(.recovery) {
       lines += planLines(facts)
     }
@@ -83,6 +88,7 @@ extension ChatContext {
     if topics.contains(.nutrition) { lines += nutritionLines(facts) }
     if topics.contains(.recovery) { lines += recoveryLines(facts, today: today) }
     if topics.contains(.longTerm) { lines += longTermLines(facts, today: today) }
+    lines += recommendationLines(facts, topics: topics)
     return lines
   }
 
@@ -93,7 +99,9 @@ extension ChatContext {
       facts.tomorrowSessions.isEmpty
         ? "Morgen ist keine Einheit geplant." : "Morgen geplant: \(facts.tomorrowSessions.joined(separator: "; ")).",
     ]
-    if let recommendation = facts.recommendation { lines.append("Tagesampel heute (Regel der App): \(recommendation).") }
+    if let recommendation = facts.recommendation {
+      lines.append("Tagesampel heute (Regel der App): \(recommendation).")
+    }
     return lines
   }
 
@@ -156,7 +164,8 @@ extension ChatContext {
       let minutes = Int((activity.durationSeconds ?? 0) / 60)
       let distance = activity.distanceMeters.map { " , \(GermanFormat.decimal($0 / 1000)) km" } ?? ""
       lines.append(
-        "\(activity.name ?? "Aktivität") am \(activity.day.map(short) ?? "?"): \(minutes) Minuten\(distance) (gemessen).")
+        "\(activity.name ?? "Aktivität") am \(activity.day.map(short) ?? "?"): \(minutes) Minuten\(distance) (gemessen)."
+      )
     }
     if recent.isEmpty { lines.append("Keine Ausdaueraktivitäten in den letzten 4 Wochen vorhanden.") }
     return lines
@@ -170,7 +179,9 @@ extension ChatContext {
         "Heute bisher erfasst: \(grams(eaten[.kcal])) kcal, \(grams(eaten[.protein])) g Protein, "
           + "\(grams(eaten[.carbs])) g Kohlenhydrate, \(grams(eaten[.fat])) g Fett (erfasst, teils KI-Schätzung).")
       for meal in facts.todayMeals.prefix(8) {
-        lines.append("Mahlzeit heute: \(meal.title), \(grams(meal.nutrients[.kcal])) kcal, \(grams(meal.nutrients[.protein])) g Protein.")
+        lines.append(
+          "Mahlzeit heute: \(meal.title), \(grams(meal.nutrients[.kcal])) kcal, \(grams(meal.nutrients[.protein])) g Protein."
+        )
       }
     } else {
       lines.append("Heute ist noch keine Mahlzeit erfasst.")
@@ -184,7 +195,8 @@ extension ChatContext {
           + "\(max(goalProtein - grams(eaten?[.protein]), 0)) g Protein.")
     }
     if let average = facts.weekAverage {
-      lines.append("Schnitt der letzten 7 erfassten Tage: \(grams(average[.kcal])) kcal, \(grams(average[.protein])) g Protein.")
+      lines.append(
+        "Schnitt der letzten 7 erfassten Tage: \(grams(average[.kcal])) kcal, \(grams(average[.protein])) g Protein.")
     }
     return lines
   }
@@ -197,7 +209,8 @@ extension ChatContext {
       lines.append(
         full
           ? "Schlaf der letzten \(sleep.nights) Nächte: im Schnitt \(GermanFormat.decimal(sleep.averageHours)) Stunden (gemessen)."
-          : "Schlaf der letzten Nächte: \(sleep.averageHours < 7 ? "im Schnitt unter 7 Stunden" : "im Schnitt mindestens 7 Stunden").")
+          : "Schlaf der letzten Nächte: \(sleep.averageHours < 7 ? "im Schnitt unter 7 Stunden" : "im Schnitt mindestens 7 Stunden")."
+      )
       lines.append("Empfohlene Schlafenszeit heute: \(SleepCoach.clock(sleep.bedtimeMinutes)).")
     } else {
       lines.append("Zu wenige Schlafdaten für eine Einschätzung.")
@@ -208,7 +221,9 @@ extension ChatContext {
     }
     if let zone = facts.formZone { lines.append("Form (Fitness gegen Ermüdung): \(zone.label).") }
     let lastDays = facts.gymSessions.filter { $0.day >= today.adding(days: -3) }
-    for session in lastDays.suffix(3) { lines.append("Krafteinheit am \(short(session.day)): \(session.title) (erfasst).") }
+    for session in lastDays.suffix(3) {
+      lines.append("Krafteinheit am \(short(session.day)): \(session.title) (erfasst).")
+    }
     for activity in facts.activities.filter({ ($0.day ?? today) >= today.adding(days: -3) }).suffix(3) {
       lines.append(
         "\(activity.name ?? "Aktivität") am \(activity.day.map(short) ?? "?"): "
@@ -225,15 +240,37 @@ extension ChatContext {
     if let trend = facts.weightTrend, !facts.withholdsWeightTargets {
       if facts.privacy == .full {
         lines.append(
-          "Gewichtstrend: \(GermanFormat.number(trend.trendKilograms)) kg, \(GermanFormat.number(trend.weeklyPercent)) % pro Woche (berechnet).")
+          "Gewichtstrend: \(GermanFormat.number(trend.trendKilograms)) kg, \(GermanFormat.number(trend.weeklyPercent)) % pro Woche (berechnet)."
+        )
       } else {
-        lines.append("Gewichtstrend: \(abs(trend.weeklyPercent) < 0.1 ? "stabil" : trend.weeklyPercent < 0 ? "fallend" : "steigend").")
+        lines.append(
+          "Gewichtstrend: \(abs(trend.weeklyPercent) < 0.1 ? "stabil" : trend.weeklyPercent < 0 ? "fallend" : "steigend")."
+        )
       }
     }
     if facts.privacy == .full {
       for highlight in facts.weekHighlights.prefix(3) { lines.append("Wochenbericht: \(highlight)") }
     }
     return lines
+  }
+
+  /// Frühere Empfehlungen aus dem passenden Bereich und ob sie umgesetzt wurden.
+  private static func recommendationLines(_ facts: Facts, topics: Set<ChatTopic>) -> [String] {
+    var wanted = Set<InsightCategory>()
+    if topics.contains(.strength) { wanted.insert(.strength) }
+    if topics.contains(.endurance) { wanted.insert(.endurance) }
+    if topics.contains(.nutrition) { wanted.formUnion([.nutrition, .bodyComposition]) }
+    if topics.contains(.recovery) { wanted.formUnion([.recovery, .health]) }
+    if topics.contains(.longTerm) { wanted.formUnion(InsightCategory.allCases) }
+    return facts.insights.filter { wanted.contains($0.category) }.sorted { $0.created > $1.created }.prefix(5).map {
+      let state: String
+      switch $0.status {
+      case .done: state = "umgesetzt"
+      case .dismissed: state = "von der Person verworfen"
+      default: state = "offen"
+      }
+      return "Frühere Empfehlung (\(state)): \($0.title)."
+    }
   }
 
   /// Eingabe des Chats: Daten passend zur Frage, die letzten Nachrichten und ältere Fragen in Kurzform.

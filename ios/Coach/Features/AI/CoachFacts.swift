@@ -44,10 +44,13 @@ enum CoachFacts {
       }
     }
     facts.gymSessions = gym
+    facts.insights = settings.insights
     facts.activities = allActivities.filter { ($0.day ?? today) >= today.adding(days: -56) }
     facts.todayMetrics = metrics.last { $0.day == today }
-    facts.tomorrowSessions = settings.schedule(inWeekOf: today.adding(days: 1)).slots(on: Weekday(day: today.adding(days: 1)))
-      .map(\.title)
+    facts.tomorrowSessions = settings.schedule(inWeekOf: today.adding(days: 1)).slots(
+      on: Weekday(day: today.adding(days: 1))
+    )
+    .map(\.title)
     let weekDays = Dictionary(
       grouping: meals.filter { $0.dayKey >= today.adding(days: -7).iso && $0.dayKey < today.iso }, by: \.dayKey)
     if !weekDays.isEmpty {

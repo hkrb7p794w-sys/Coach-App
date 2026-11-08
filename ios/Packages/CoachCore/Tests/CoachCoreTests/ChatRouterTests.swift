@@ -22,10 +22,13 @@ struct ChatRouterTests {
   }
 
   private func facts(_ privacy: PrivacyMode = .reduced) -> ChatContext.Facts {
-    var facts = ChatContext.Facts(profile: UserProfile(mode: .personal, sports: [.strength], goal: .buildMuscle), privacy: privacy)
+    var facts = ChatContext.Facts(
+      profile: UserProfile(mode: .personal, sports: [.strength], goal: .buildMuscle), privacy: privacy)
     facts.gymSessions = [bench(-20, weight: 75, reps: 8), bench(-3, weight: 80, reps: 8)]
     facts.eaten = NutrientValues([.kcal: 1_200, .protein: 70, .carbs: 120, .fat: 40])
-    facts.todayMeals = [ChatContext.MealLine(title: "Haferbrei", nutrients: NutrientValues([.kcal: 400, .protein: 20]))]
+    facts.todayMeals = [
+      ChatContext.MealLine(title: "Haferbrei", nutrients: NutrientValues([.kcal: 400, .protein: 20]))
+    ]
     facts.recommendation = "Locker trainieren"
     facts.reasons = ["Ruhepuls 8 über Normal"]
     facts.todaySessions = ["Oberkörper"]
@@ -36,14 +39,17 @@ struct ChatRouterTests {
     return facts
   }
 
-  private func text(_ facts: ChatContext.Facts, question: String, history: [(role: String, text: String)] = []) -> String {
+  private func text(_ facts: ChatContext.Facts, question: String, history: [(role: String, text: String)] = [])
+    -> String
+  {
     let topics = ChatRouter.topics(question: question, history: history)
     return ChatContext.focusedLines(facts, topics: topics, question: question, today: today).joined(separator: "\n")
   }
 
   /// Test 1: Trainingsanalyse.
   @Test func benchHistoryIsCompared() {
-    let result = text(facts(), question: "Wie hat sich meine Leistung beim Bankdrücken in den letzten vier Wochen entwickelt?")
+    let result = text(
+      facts(), question: "Wie hat sich meine Leistung beim Bankdrücken in den letzten vier Wochen entwickelt?")
     #expect(result.contains("75 kg × 8"))
     #expect(result.contains("80 kg × 8"))
     #expect(result.contains("Differenz 5 kg"))
@@ -58,7 +64,8 @@ struct ChatRouterTests {
   @Test func remainingProteinIsCalculated() {
     var value = facts()
     value.targets = NutritionPlanner.compute(
-      activities: [], planItems: [], settings: NutritionSettings(), garminProfile: nil, day: today, hasGarminData: false)
+      activities: [], planItems: [], settings: NutritionSettings(), garminProfile: nil, day: today, hasGarminData: false
+    )
     let goal = Int((value.targets?.values[.protein] ?? 0).rounded())
     let result = text(value, question: "Wie viel Protein fehlt mir heute noch?")
     #expect(result.contains("70 g Protein"))
@@ -79,7 +86,9 @@ struct ChatRouterTests {
     let topics = ChatRouter.topics(question: "Und was bedeutet das für mein Training morgen?", history: history)
     #expect(topics.contains(.nutrition))
     #expect(topics.contains(.recovery))
-    #expect(text(facts(), question: "Und was bedeutet das für mein Training morgen?", history: history).contains("Morgen geplant: Beine"))
+    #expect(
+      text(facts(), question: "Und was bedeutet das für mein Training morgen?", history: history).contains(
+        "Morgen geplant: Beine"))
   }
 
   @Test func generalQuestionLoadsNoPersonalData() {
@@ -100,6 +109,47 @@ struct ChatRouterTests {
     #expect(!reduced.contains("Ruhepuls heute"))
     #expect(!reduced.contains("Ruhepuls 8"))
     #expect(text(facts(.full), question: question).contains("Ruhepuls heute: 58"))
+  }
+
+  private func insight(
+    _ topic: InsightTopic, _ subject: String, _ title: String, _ direction: InsightDirection = .check
+  ) -> Insight {
+    Insight(
+      topic: topic, subject: subject, title: title, text: "", direction: direction, origin: .ai, created: date(-1),
+      validUntil: date(5))
+  }
+
+  @Test func insightCategoriesFollowTopicThenContent() {
+    #expect(insight(.training, "bankdruecken", "Mehr Volumen").category == .strength)
+    #expect(insight(.performance, "laufen", "Tempo").category == .endurance)
+    #expect(insight(.recovery, "schlaf", "Früher ins Bett, für mehr Kraft").category == .recovery)
+    #expect(insight(.recovery, "ruhepuls", "Ruhepuls erhöht").category == .health)
+    #expect(insight(.nutrition, "gewicht", "Gewicht halten").category == .bodyComposition)
+    #expect(insight(.action, "motivation", "Dranbleiben").category == .general)
+  }
+
+  @Test func relatedOppositeInsightsContradict() {
+    let more = insight(.training, "kniebeuge volumen", "A", .more)
+    let less = insight(.training, "kniebeuge", "B", .less)
+    let other = insight(.training, "bankdruecken", "C", .less)
+    #expect(more.contradicts(less))
+    #expect(!more.contradicts(other))
+    let merged = InsightInbox.merge([more], with: [less], now: date(0))
+    #expect(merged.map(\.title) == ["B"])
+  }
+
+  @Test func closedInsightsReachAnalysisAndChat() {
+    var done = insight(.training, "bankdruecken", "Bankdrücken steigern")
+    done.status = .done
+    var open = insight(.nutrition, "protein", "Mehr Protein")
+    open.status = .read
+    let input = InsightAnalysis.input(topic: nil, facts: [], missing: [], ruleInsights: [], closed: [done, open])
+    #expect(input["bearbeitet"]?.arrayValue?.count == 1)
+    var value = facts()
+    value.insights = [done, open]
+    let result = text(value, question: "Wie läuft mein Bankdrücken?")
+    #expect(result.contains("Frühere Empfehlung (umgesetzt): Bankdrücken steigern."))
+    #expect(!result.contains("Mehr Protein"))
   }
 
   @Test func inputKeepsRecentHistoryAndSummarizesOlder() {

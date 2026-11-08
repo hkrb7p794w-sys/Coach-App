@@ -1,9 +1,17 @@
 /**
  * Chat mit dem Coach: Die App schickt die Frage, die letzten Nachrichten und eine Liste fester Fakten aus ihren
- * Regeln (Tagesampel, Plan, Ziele, Schlaf, Ernährung). Die KI antwortet nur aus diesen Fakten; Zahlen, die nicht
- * in der Anfrage stehen, führen zum Verwerfen der Antwort.
+ * Regeln (Tagesampel, Plan, Ziele, Schlaf, Ernährung). Die KI antwortet aus diesen Fakten; Zahlen, die weder in
+ * der Anfrage stehen noch daraus in derselben Einheit berechnet sind, führen zum Verwerfen der Antwort.
  */
-import { evidenceBlock, evidenceFrom, GROUNDING_SYSTEM, GroundingError, numbersIn } from "./grounding";
+import {
+  GroundingError,
+  countsIn,
+  evidenceBlock,
+  evidenceFrom,
+  isDerived,
+  measuresIn,
+  numbersIn,
+} from "./grounding";
 import { list, text } from "./tasks-util";
 
 export const CHAT_SYSTEM = [
@@ -52,29 +60,19 @@ export function chatPrompt(input: Record<string, unknown>): string {
   ].join("\n");
 }
 
-/** Ergebnisse einfacher Rechnungen aus bekannten Zahlen sind belegt („noch 60 g“); kleine Mengen ohnehin. */
-export function isDerived(value: number, known: Set<string>): boolean {
-  if (Number.isInteger(value) && Math.abs(value) <= 12) return true;
-  const numbers = [...known].map(Number).slice(0, 400);
-  for (const a of numbers) {
-    for (const b of numbers) {
-      if (Math.abs(Math.abs(a - b) - Math.abs(value)) < 0.051) return true;
-      if (Math.abs(a + b - value) < 0.051) return true;
-      if (b > 0 && Math.abs(Math.round((a / b) * 100) - value) < 0.5) return true;
-    }
-  }
-  return false;
-}
-
 /** Prüft die Antwort: nur bekannte Zahlen, nur mitgeschickte Quellen. */
 export function groundChat(output: unknown, requestText: string, input: Record<string, unknown>): unknown {
   const record = (typeof output === "object" && output !== null ? output : {}) as Record<string, unknown>;
   const antwort = text(record.antwort, 1500);
   if (!antwort) throw new GroundingError("Leere Chat-Antwort");
   const known = numbersIn(requestText);
-  const unknown = [...numbersIn(antwort)].filter(
-    (n) => !known.has(n) && !FREE_NUMBERS.has(n) && !isDerived(Number(n), known),
-  );
+  const facts = measuresIn(requestText);
+  // Belegt sind Werte aus der Anfrage, Rechnungen daraus in derselben Einheit und Zählgrößen.
+  const derived = measuresIn(antwort)
+    .filter((claim) => isDerived(claim, facts))
+    .map((claim) => String(claim.value));
+  const backed = new Set([...known, ...FREE_NUMBERS, ...derived, ...countsIn(antwort)]);
+  const unknown = [...numbersIn(antwort)].filter((n) => !backed.has(n));
   if (unknown.length > 0)
     throw new GroundingError(`Chat-Antwort mit unbelegten Zahlen: ${unknown.join(", ")}`);
   const allowed = new Set(evidenceFrom(input).map((item) => item.id));
