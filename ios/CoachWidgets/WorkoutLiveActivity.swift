@@ -47,20 +47,21 @@ struct WorkoutLiveActivity: Widget {
   }
 }
 
+/// Eine Live-Aktivität ist höchstens 160 Punkte hoch: Übung und Pause oben, Werte groß, Knöpfe unten.
 private struct LockScreenView: View {
   let state: WorkoutActivityAttributes.ContentState
   let title: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
+    VStack(alignment: .leading, spacing: 8) {
       HStack(alignment: .firstTextBaseline) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text(title).font(.caption).foregroundStyle(.secondary)
-          Text(state.exercise).font(.headline).lineLimit(1)
-          Text(state.detail).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+        VStack(alignment: .leading, spacing: 1) {
+          Text(state.exercise).font(.headline).lineLimit(1).minimumScaleFactor(0.8)
+          Text([state.detail, state.next].compactMap { $0 }.joined(separator: " · "))
+            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
-        Spacer()
-        RestTimer(end: state.restEndsAt).font(.system(size: 34, weight: .bold, design: .rounded))
+        Spacer(minLength: 8)
+        RestTimer(end: state.restEndsAt).font(.title.bold())
       }
       if !state.allDone, let weight = state.weight, let reps = state.reps {
         AdjustRow(weight: weight, reps: reps, weightStep: state.weightStep, repsStep: state.repsStep)
@@ -81,20 +82,19 @@ private struct AdjustRow: View {
     HStack(spacing: 6) {
       Button(intent: WeightDownIntent()) { Image(systemName: "minus") }
         .accessibilityLabel("Gewicht um \(weightStep ?? "einen Schritt") verringern")
-      Text(weight).font(.subheadline.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+      Text(weight).font(.headline).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity)
       Button(intent: WeightUpIntent()) { Image(systemName: "plus") }
         .accessibilityLabel("Gewicht um \(weightStep ?? "einen Schritt") erhöhen")
       Divider().frame(height: 22)
       Button(intent: RepsDownIntent()) { Image(systemName: "minus") }
         .accessibilityLabel("Wiederholungen um \(repsStep ?? "1") verringern")
-      Text(reps).font(.subheadline.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+      Text(reps).font(.headline).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
         .frame(maxWidth: .infinity)
       Button(intent: RepsUpIntent()) { Image(systemName: "plus") }
         .accessibilityLabel("Wiederholungen um \(repsStep ?? "1") erhöhen")
     }
     .buttonStyle(.bordered)
-    .controlSize(.small)
   }
 }
 

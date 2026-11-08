@@ -348,6 +348,10 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public var suggestsWarmUp: Bool = true
   /// Satz nach dem Eintippen von Werten abhaken.
   public var completeOnEdit: CompleteOnEdit = .off
+  /// Ton am Ende der Satzpause.
+  public var restSound: RestSound = .chime
+  /// Vibration am Ende der Satzpause.
+  public var restHaptic: Bool = true
 
   public init(
     routines: [Routine] = [], customExercises: [ExerciseInfo] = [], equipment: Set<Equipment> = Equipment.gym,
@@ -380,6 +384,8 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     autoStartsRest = (try? container.decodeIfPresent(Bool.self, forKey: .autoStartsRest)) ?? true
     suggestsWarmUp = (try? container.decodeIfPresent(Bool.self, forKey: .suggestsWarmUp)) ?? true
     completeOnEdit = (try? container.decodeIfPresent(CompleteOnEdit.self, forKey: .completeOnEdit)) ?? .off
+    restSound = (try? container.decodeIfPresent(RestSound.self, forKey: .restSound)) ?? .chime
+    restHaptic = (try? container.decodeIfPresent(Bool.self, forKey: .restHaptic)) ?? true
   }
 
   /// Pause einer Übung: eigene Einstellung, sonst Standard nach Art der Übung.
@@ -398,5 +404,31 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
   public mutating func addCustom(_ exercise: ExerciseInfo) {
     customExercises.removeAll { $0.id == exercise.id }
     customExercises.append(exercise)
+  }
+}
+
+/// Ton am Ende der Satzpause. Eigene Töne liegen als WAV in der App, weil Mitteilungen nur solche abspielen können.
+public enum RestSound: String, Codable, CaseIterable, Sendable, Identifiable {
+  case off, system, chime, bell, beep
+
+  public var id: String { rawValue }
+
+  public var label: String {
+    switch self {
+    case .off: "Aus"
+    case .system: "Mitteilungston"
+    case .chime: "Gong"
+    case .bell: "Glocke"
+    case .beep: "Piepen"
+    }
+  }
+
+  public var fileName: String? {
+    switch self {
+    case .off, .system: nil
+    case .chime: "rest-chime.wav"
+    case .bell: "rest-bell.wav"
+    case .beep: "rest-beep.wav"
+    }
   }
 }

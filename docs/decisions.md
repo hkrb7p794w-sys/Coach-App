@@ -13,6 +13,21 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   `providers.ts` zentral.
 - **Bereiche der Empfehlungen werden abgeleitet**, nicht gespeichert: Vorhandene Empfehlungen brauchen keine Migration.
 - **Regressionsbasis:** `.github/scripts/chat-eval.mjs` mit erfundenem Profil, Workflow „Worker-Smoke“, Modus `chat-*`.
+## 2026-11-08 – Gym: Abschluss, Aufwärmen, Pausenton (Paket 10)
+
+- **Weißer Bildschirm:** `finish` leerte die laufende Einheit und wartete dann auf Apple Health und Garmin (Sekunden). In
+  dieser Zeit hatte das Blatt keinen Inhalt; nach dem Schließen blieb in der Einheit ein leeres `Group`. Jetzt steht die
+  Zusammenfassung sofort fest, und sie erscheint in der Einheit selbst.
+- **Display beim Sperrbildschirm:** iOS bietet keine Schnittstelle, die Sperrbildschirm-Anzeige einer Live-Aktivität
+  wach zu halten. `isIdleTimerDisabled` wirkt nur für die App im Vordergrund
+  (<https://developer.apple.com/documentation/uikit/uiapplication/isidletimerdisabled>). Stattdessen größere Knöpfe; wer
+  länger bearbeitet, nutzt die App mit „Bildschirm anlassen“.
+- **Pausenton:** Im Vordergrund spielt die App (`ambient`, folgt dem Stummschalter). Im Hintergrund und gesperrt klingelt die
+  lokale Mitteilung, eigene Töne als WAV im App-Paket. Ohne Mitteilungsrecht oder im Fokus-Modus bleibt sie stumm;
+  „Time Sensitive“ braucht ein Entitlement, das eine kostenlose Apple-ID nicht bekommt.
+- **Garmin:** Echte Webhooks setzen das Garmin-Partnerprogramm und einen Server voraus (widerspricht „kein Server“). Bleibt:
+  Abruf bei App-Start und Vordergrund, Hintergrundaktualisierung nach Ermessen von iOS, Abgleich nach der Einheit.
+- **GymBook:** Pläne aus den Vorschlägen entfernt, Import vorhandener Verläufe unter Einstellungen › Krafttraining.
 
 ## 2026-11-08 – Rezeptideen: Fehlerkette, gemeinsam kochen, vorkochen (Paket 9)
 

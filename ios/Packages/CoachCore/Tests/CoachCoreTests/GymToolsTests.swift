@@ -23,9 +23,8 @@ struct GymToolsTests {
     #expect(WarmUp.text(Array(steps.prefix(2))) == "Aufwärmen: 20 kg × 10 · 50 kg × 5")
   }
 
-  @Test func noWarmUpForLightOrIsolation() {
+  @Test func noWarmUpForLightLifts() {
     #expect(WarmUp.steps(working: 30, equipment: [.barbell], compound: true).isEmpty)
-    #expect(WarmUp.steps(working: 100, equipment: [.barbell], compound: false).isEmpty)
     #expect(WarmUp.steps(working: 20, equipment: [.dumbbell], compound: true).map(\.weightKg) == [10, 15])
     #expect(WarmUp.steps(working: 0, equipment: [.bodyweight], compound: true).isEmpty)
   }

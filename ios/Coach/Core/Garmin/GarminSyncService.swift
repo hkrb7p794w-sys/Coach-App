@@ -119,6 +119,10 @@ final class GarminSyncService {
     if client.connect?.isLoggedIn ?? false {
       maps += await connectExtras(today: today, report: &report)
     }
+    // Nichts kam an (z. B. offline): Das ist kein erfolgreicher Abruf, sonst wartet die App zu Unrecht bis zum nächsten.
+    if maps.isEmpty, !report.errors.isEmpty {
+      throw GarminAPIError.network("Garmin ist gerade nicht erreichbar. Die App versucht es später erneut.")
+    }
     let merged = GarminMetricsParser.merge(maps).filter { range.start <= $0.key && $0.key <= range.end }
     report.daysUpdated = store(merged, at: now)
     report.activitiesUpdated = await syncActivities(since: range.start, report: &report)

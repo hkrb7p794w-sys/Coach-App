@@ -55,6 +55,11 @@ struct GymSettingsView: View {
         restPicker("Nach Aufwärmsätzen", $settings.gym.restWarmup)
         Toggle("Pause nach dem Satz sofort starten", isOn: $settings.gym.autoStartsRest)
         NavigationLink("Pausen und Notizen je Übung") { ExerciseSettingsList() }
+        Picker("Ton am Pausenende", selection: $settings.gym.restSound) {
+          ForEach(RestSound.allCases) { Text($0.label).tag($0) }
+        }
+        .onChange(of: settings.gym.restSound) { _, sound in RestSoundPlayer.play(sound) }
+        Toggle("Vibration am Pausenende", isOn: $settings.gym.restHaptic)
       } header: {
         Text("Satzpausen")
       } footer: {
@@ -74,12 +79,14 @@ struct GymSettingsView: View {
           "Wenn du Gewicht oder Wiederholungen über den Ziffernblock einträgst, hakt die App den Satz ab und startet "
             + "die Pause – ein Tipp weniger. Die ±-Knöpfe haken nie ab.")
       }
+      GymBookImportSection()
       Section {
         Toggle("Aufwärmsätze vorschlagen", isOn: $settings.gym.suggestsWarmUp)
       } footer: {
         Text(
-          "Vor dem ersten Satz einer Grundübung: leere Stange, dann etwa 50, 70 und 85 % des Arbeitsgewichts "
-            + "(Kurzhantel/Maschine 50 und 75 %). Optional – mit einem Tipp eingefügt, gezählt werden sie nicht.")
+          "Grundübungen: leere Stange, dann etwa 50, 70 und 85 % des Arbeitsgewichts, Kurzhantel und Maschine 50 und "
+            + "75 %. Schwere Isolationsübungen: ein Satz. Ist der Muskel schon gearbeitet, genügt ein Einstiegssatz. "
+            + "Aufwärmsätze zählen nicht zum Volumen.")
       }
       Section {
         NavigationLink("Ausstattung, Stange und Scheiben") { EquipmentSettingsView() }
