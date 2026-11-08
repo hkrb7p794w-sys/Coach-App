@@ -9,7 +9,7 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   Eine Woche liegt damit weit über dem Limit von 16.000: Gemini scheitert immer, der Worker fällt nach bis zu 118 s auf
   Workers AI zurück, das 2 von 7 Tagen lieferte. Groq ist nicht eingerichtet. Antwortete Workers AI nicht oder mit
   ungültigem JSON, gab der Worker sofort 502 zurück. Der 502 selbst trat im Messlauf nicht auf.
-- **Abhilfe:** Die App fragt die Woche in Teilen zu höchstens drei Tagen nebeneinander ab. Gemini 3 läuft bei großen
+- **Abhilfe:** Die App fragt die Woche in Teilen zu höchstens zwei Tagen nebeneinander ab (bei drei Tagen lief Workers AI am 08.11.2026 reproduzierbar über 75 s, bei zwei Tagen 25 s). Gemini 3 läuft bei großen
   JSON-Antworten mit `thinkingLevel: low`. Unbrauchbare oder abgeschnittene Antworten gelten als Ausfall des Anbieters
   (nächster Anbieter statt 502). Frist 105 s, je Versuch 75 s. Die App wiederholt einen vorübergehenden Fehler einmal.
 - **Fehlertexte:** Antworttexte der Anbieter bleiben im Worker-Protokoll; die App bekommt `code` und zeigt eine
