@@ -9,6 +9,17 @@ public struct GoalAssessment: Equatable, Sendable {
   public var evidenceIDs: [String]
   /// Das gewünschte Gewichtsziel wird nicht umgesetzt (Sicherheit).
   public var blocksWeightChange: Bool
+  /// Schwangerschaft/Stillzeit oder Essstörung: keine Gewichts- oder Kalorienziele, auch keine Vorschläge.
+  public var withholdsTargets = false
+}
+
+/// Wie weit die App das Körpergewicht beeinflussen darf. Gilt in jedem Pfad, nicht nur beim Speichern des Profils.
+public enum WeightGoalGuard: Sendable {
+  case free
+  /// Unter 18 Jahren oder BMI unter 18,5: kein Defizit.
+  case noDeficit
+  /// Schwangerschaft/Stillzeit oder Essstörung: keine Ziele und keine Vorschläge.
+  case noTargets
 }
 
 /// Zielregeln mit Schutzgeländern. Zahlen und Quellen stehen in `docs/decisions.md`.
@@ -28,6 +39,41 @@ public enum GoalRules {
   public static func bmi(_ body: BodyProfile) -> Double {
     let meters = body.heightCentimeters / 100
     return meters > 0 ? body.weightKilograms / (meters * meters) : 0
+  }
+
+  /// Ab diesem BMI gelten Bedarfe je kg nicht mehr für das Gesamtgewicht.
+  public static let obesityBMI = 30.0
+  /// BMI des Referenzgewichts bei Adipositas.
+  static let referenceBMI = 25.0
+
+  /// Gewicht für Protein und Kohlenhydrate je kg: Die Empfehlungen beziehen sich auf die fettfreie Masse (Helms et
+  /// al. 2014). Ab BMI 30 rechnet die App deshalb mit dem Gewicht bei BMI 25, als Näherung.
+  public static func referenceWeightKilograms(_ body: BodyProfile) -> Double {
+    guard bmi(body) >= obesityBMI else { return body.weightKilograms }
+    let meters = body.heightCentimeters / 100
+    return referenceBMI * meters * meters
+  }
+
+  /// Körperfett in %, wenn keines eingetragen ist. Ab BMI 30 nach Deurenberg et al. 1991; darunter pauschal, weil die
+  /// Formel bei Schlanken und Sportlichen zu hoch schätzt und die REDs-Untergrenze dann zu niedrig läge.
+  static func estimatedBodyFatPercent(_ body: BodyProfile) -> Double {
+    let flat = body.isFemale ? 25.0 : 15.0
+    let value = bmi(body)
+    guard value >= obesityBMI else { return flat }
+    return max(flat, min(1.2 * value + 0.23 * Double(body.age) - (body.isFemale ? 0 : 10.8) - 5.4, 60))
+  }
+
+  /// Schutzstufe für die aktuellen Körperwerte.
+  public static func weightGuard(settings: NutritionSettings, body: BodyProfile) -> WeightGoalGuard {
+    if settings.weightTargetsWithheld { return .noTargets }
+    let value = bmi(body)
+    if body.age < minimumAge || (value > 0 && value < minimumBMI) { return .noDeficit }
+    return .free
+  }
+
+  /// Schwangerschaft/Stillzeit oder Essstörung angegeben.
+  public static func withholdsTargets(_ profile: UserProfile) -> Bool {
+    profile.health.contains(.pregnantOrPostpartum) || profile.health.contains(.eatingDisorder)
   }
 
   /// Wochentempo, um das Zielgewicht in `weeks` Wochen zu erreichen, begrenzt auf den sicheren Bereich.
@@ -58,7 +104,13 @@ public enum GoalRules {
     func hold(_ reasons: [String], _ ids: [String] = []) -> GoalAssessment {
       GoalAssessment(
         nutritionGoal: .maintain, weeklyChangePercent: nil, notes: reasons, evidenceIDs: ids,
-        blocksWeightChange: true)
+        blocksWeightChange: true, withholdsTargets: withholdsTargets(profile))
+    }
+    func reachedTarget() -> GoalAssessment {
+      GoalAssessment(
+        nutritionGoal: .maintain, weeklyChangePercent: nil,
+        notes: notes + ["Du hast dein Zielgewicht erreicht. Die App hält jetzt dein Gewicht."], evidenceIDs: evidence,
+        blocksWeightChange: false)
     }
 
     let wantsChange = goal.losesWeight || goal.gainsWeight
@@ -101,6 +153,7 @@ public enum GoalRules {
     var assessment: GoalAssessment
     switch goal {
     case .loseWeight:
+      if let target = profile.targets.targetWeightKilograms, target >= body.weightKilograms { return reachedTarget() }
       var rate = defaultLossPercentPerWeek
       if let target = profile.targets.targetWeightKilograms, let weeks = profile.targets.weeksToTargetWeight {
         if bmi(
@@ -138,6 +191,7 @@ public enum GoalRules {
         nutritionGoal: .recomposition, weeklyChangePercent: -recompositionLossPercentPerWeek, notes: notes,
         evidenceIDs: evidence, blocksWeightChange: false)
     case .buildMuscle, .gainWeight:
+      if let target = profile.targets.targetWeightKilograms, target <= body.weightKilograms { return reachedTarget() }
       var rate = goal == .gainWeight ? maxGainPercentPerWeek : defaultGainPercentPerWeek
       if let target = profile.targets.targetWeightKilograms, let weeks = profile.targets.weeksToTargetWeight {
         let result = weeklyGainPercent(currentKilograms: body.weightKilograms, targetKilograms: target, weeks: weeks)
@@ -188,5 +242,53 @@ public enum GoalRules {
   public static func apply(_ assessment: GoalAssessment, to settings: inout NutritionSettings) {
     settings.goal = assessment.nutritionGoal
     settings.weeklyWeightChangePercent = assessment.weeklyChangePercent
+    settings.weightTargetsWithheld = assessment.withholdsTargets
+    if assessment.withholdsTargets {
+      settings.energyAdjustmentKilocalories = 0
+    } else if assessment.blocksWeightChange {
+      settings.energyAdjustmentKilocalories = max(settings.energyAdjustmentKilocalories, 0)
+    }
+  }
+
+  /// Übernimmt die neueste Wägung als aktuelles Körpergewicht. Eine Eingabe in den Einstellungen bleibt gültig, bis
+  /// eine neuere Wägung kommt. `true`, wenn sich etwas geändert hat.
+  public static func updateWeight(
+    _ settings: inout NutritionSettings, entries: [WeightEntry], today: CalendarDay
+  ) -> Bool {
+    let recent = WeightTrend.merged(entries).filter { $0.day <= today && $0.day >= today.adding(days: -30) }
+    guard let latest = recent.last else { return false }
+    if let applied = settings.lastAppliedWeighInDay, latest.day <= applied { return false }
+    settings.lastAppliedWeighInDay = latest.day
+    settings.weightKilograms = (latest.kilograms * 10).rounded() / 10
+    return true
+  }
+
+  /// Hat sich geändert, ob das Gewicht gehalten wird (Grenze oder Zielgewicht erreicht bzw. wieder verlassen)? Ein
+  /// laufendes Tempo bleibt sonst unangetastet: Neu berechnet würde es mit jedem Kilo langsamer.
+  public static func holdChanged(_ assessment: GoalAssessment, settings: NutritionSettings) -> Bool {
+    (assessment.weeklyChangePercent == nil) != (settings.weeklyWeightChangePercent == nil)
+  }
+
+  /// Profil für KI, Export und Anzeige: Ist das Gewichtsziel gesperrt oder erreicht, darf nirgends mehr „Abnehmen“
+  /// oder „Überschuss“ als Auftrag stehen.
+  public static func coachingProfile(_ profile: UserProfile, nutrition: NutritionSettings) -> UserProfile {
+    let changesWeight = profile.goal.losesWeight || profile.goal.gainsWeight
+    let held =
+      profile.mode == .personal && changesWeight && nutrition.goal == .maintain
+      && nutrition.weeklyWeightChangePercent == nil
+    guard nutrition.weightTargetsWithheld || held else { return profile }
+    var result = profile
+    result.goal = .maintain
+    if var goals = result.goals {
+      if goals.primary == .fatLoss {
+        goals.primary = .health
+      } else if goals.primary == .muscleGain {
+        goals.primary = .strength
+      }
+      let primary = goals.primary
+      goals.secondary.removeAll { $0 == .fatLoss || $0 == primary }
+      result.goals = goals
+    }
+    return result
   }
 }

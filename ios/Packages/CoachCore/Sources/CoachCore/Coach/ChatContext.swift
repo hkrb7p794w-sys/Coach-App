@@ -13,6 +13,8 @@ public enum ChatContext {
   public struct Facts: Sendable {
     public var profile: UserProfile
     public var privacy: PrivacyMode
+    /// Gewichts- und Kalorienziele sind gesperrt (`GoalRules`).
+    public var withholdsWeightTargets = false
     public var recommendation: String?
     public var reasons: [String] = []
     public var todaySessions: [String] = []
@@ -37,6 +39,9 @@ public enum ChatContext {
     lines.append("Sportarten: \(profile.sports.map(\.label).joined(separator: ", ")).")
     // Haupt-/Nebenziele und Prioritäten: Die KI richtet Analyse und Empfehlungen danach aus (Paket 6).
     lines += Personalization.contextLines(profile.effectiveGoals(today: CalendarDay(date: .now)))
+    if facts.withholdsWeightTargets {
+      lines.append("Keine Gewichts- oder Kalorienziele nennen und nicht zum Abnehmen raten.")
+    }
     if let event = profile.event {
       lines.append(
         "Wettkampf: \(event.name) (\(event.kind.label)) am \(GermanFormat.date(event.date))"

@@ -109,7 +109,7 @@ struct GymView: View {
       .task(id: refreshKey) {
         update()
         if !viewModel.hintSource.hasPrefix("KI") {
-          await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal, trigger: .automatic)
+          await viewModel.loadHints(ai: model.ai, goal: model.settings.coachingProfile.goal, trigger: .automatic)
         }
       }
       // Schnellaktion / Kurzbefehl „Training starten“.

@@ -654,7 +654,7 @@ struct GymHintsSection: View {
           Spacer()
           if model.ai.allows("gym_hints") {
             Button("Neu", systemImage: "sparkles") {
-              Task { await viewModel.loadHints(ai: model.ai, goal: model.settings.profile.goal) }
+              Task { await viewModel.loadHints(ai: model.ai, goal: model.settings.coachingProfile.goal) }
             }
             .labelStyle(.iconOnly)
             .disabled(viewModel.isLoadingHints)

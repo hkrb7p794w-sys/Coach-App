@@ -162,7 +162,7 @@ enum ExportInput {
     let settings = model.settings
     let today = CalendarDay(date: .now)
     return CoachExport.Input(
-      profile: settings.profile, schedule: settings.schedule(inWeekOf: today), routines: settings.gym.routines,
+      profile: settings.coachingProfile, schedule: settings.schedule(inWeekOf: today), routines: settings.gym.routines,
       custom: settings.gym.customExercises, equipment: settings.gym.equipment, metrics: days.compactMap(\.metrics),
       activities: activities.compactMap(\.activity), gym: gymSessions.compactMap(\.session),
       meals: meals.compactMap { record in

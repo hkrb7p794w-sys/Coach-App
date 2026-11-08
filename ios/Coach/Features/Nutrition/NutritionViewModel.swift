@@ -452,7 +452,7 @@ final class NutritionViewModel {
       } else {
         let weekday = Weekday(day: day)
         weekdayName = weekday.long
-        phaseName = settings.profile.goal.label
+        phaseName = settings.coachingProfile.goal.label
         plannedTexts = settings.schedule(inWeekOf: day).slots(on: weekday).map(\.title)
       }
       let training = activities.filter { $0.day == day }.map { activity -> String in

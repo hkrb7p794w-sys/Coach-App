@@ -5,6 +5,9 @@
 Bisher nur in der CI gebaut und mit Beispieldaten geprüft; mit echten Daten noch offen. Gefundene Fehler direkt
 hier notieren und als PR beheben.
 
+- [ ] **Schutzgrenzen (Phase 74):** Profil mit „Schwanger“ oder „Essstörung“: Gewichtsverlauf ohne Kalorienvorschläge, Chat und
+      Rezepte ohne „Abnehmen“. Wägung unter BMI 18,5 eintragen: Ziel auf „halten“. Zielgewicht erreichen: Hinweis und kein
+      Defizit mehr. Einstellungen zeigen „Ernährung: …“ passend.
 - [ ] **Garmin-Übertragung der Krafteinheiten:** Einheit in IronLudi beenden → erscheint sie in Garmin Connect als
       Krafttraining mit Übungen, Wiederholungen und Gewicht? Doppelt, wenn die Uhr mitläuft?
 - [ ] **Mahlzeit teilen:** Mahlzeit lange drücken › „Teilen …“ → Nachricht an die zweite Person; Link öffnet

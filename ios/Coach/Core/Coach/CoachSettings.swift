@@ -321,6 +321,25 @@ final class CoachSettings {
     return assessment
   }
 
+  /// Profil für KI, Export und Anzeige: gesperrte oder erreichte Gewichtsziele tauchen darin nicht mehr auf.
+  var coachingProfile: UserProfile { GoalRules.coachingProfile(profile, nutrition: nutrition) }
+
+  /// Hält die Schutzgrenzen aktuell: Gesundheitsangaben, neueste Wägung, Grenze oder Zielgewicht erreicht.
+  func refreshGoalGuards(
+    weights entries: [WeightEntry], garmin: GarminProfile?, day: CalendarDay = CalendarDay(date: .now)
+  ) {
+    var updated = nutrition
+    let withheld = GoalRules.withholdsTargets(profile)
+    updated.weightTargetsWithheld = withheld
+    if withheld { updated.energyAdjustmentKilocalories = 0 }
+    _ = GoalRules.updateWeight(&updated, entries: entries, today: day)
+    if profile.mode == .personal {
+      let assessment = GoalRules.assess(profile: profile, body: updated.profile(garmin: garmin, on: day))
+      if GoalRules.holdChanged(assessment, settings: updated) { GoalRules.apply(assessment, to: &updated) }
+    }
+    if updated != nutrition { nutrition = updated }
+  }
+
   /// Wochenplan der Woche, die `day` enthält, mit Ausnahmen.
   func schedule(inWeekOf day: CalendarDay) -> WeekSchedule {
     planAdjustments.schedule(profile.schedule, inWeekOf: day)

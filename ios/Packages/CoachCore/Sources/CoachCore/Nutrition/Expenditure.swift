@@ -51,12 +51,16 @@ public enum Expenditure {
   /// Vorschlag für die gesamte Anpassung der Tagesenergie: Unterschied zwischen gemessenem Verbrauch und dem
   /// Bedarf laut Formel (`formulaMaintenance`, ohne Ziel und Anpassung), auf 50 gerundet und auf ±500 begrenzt.
   /// `nil`, wenn das Ergebnis unplausibel ist oder sich kaum etwas ändern würde.
-  public static func adjustment(_ result: Result, formulaMaintenance: Double, current: Double) -> Double? {
-    guard result.plausible else { return nil }
+  /// `safety`: ohne Ziele kein Vorschlag, bei `.noDeficit` keine Senkung.
+  public static func adjustment(
+    _ result: Result, formulaMaintenance: Double, current: Double, safety: WeightGoalGuard = .free
+  ) -> Double? {
+    guard result.plausible, safety != .noTargets else { return nil }
     let difference = result.kilocalories - formulaMaintenance
     guard abs(difference) >= minimumDifference else { return current == 0 ? nil : 0 }
     let limit = WeightTrend.maxTotalKilocalories
     let proposal = (min(max(difference, -limit), limit) / 50).rounded() * 50
+    if safety == .noDeficit, proposal < 0 { return nil }
     return abs(proposal - current) >= 100 ? proposal : nil
   }
 }

@@ -93,7 +93,15 @@ public enum WeightTrend {
   }
 
   /// Vergleich des Verlaufs mit dem geplanten Tempo. `plannedPercent` negativ = abnehmen, `nil` = Gewicht halten.
-  public static func advice(result: Result, plannedPercent: Double?, currentAdjustment: Double) -> Advice {
+  /// `safety`: Schutzstufe aus `GoalRules.weightGuard`; ohne Ziele kein Vorschlag, bei `.noDeficit` nie weniger essen.
+  public static func advice(
+    result: Result, plannedPercent: Double?, currentAdjustment: Double, safety: WeightGoalGuard = .free
+  ) -> Advice {
+    if safety == .noTargets {
+      return Advice(
+        kind: .onTrack, message: "Die App macht dir hier keine Vorschläge zu Kalorien oder Gewicht.", kilocalories: 0,
+        evidenceIDs: ["nutrition.reds"])
+    }
     let planned = plannedPercent ?? 0
     let difference = result.weeklyPercent - planned
     let actual = GermanFormat.number(abs(result.weeklyPercent))
@@ -116,6 +124,13 @@ public enum WeightTrend {
         kilocalories: 0, evidenceIDs: evidence)
     }
     let kcal = step(-difference, weight: result.trendKilograms, current: currentAdjustment, minimum: 50)
+    if safety == .noDeficit, kcal < 0 {
+      return Advice(
+        kind: .onTrack,
+        message:
+          "Dein Gewicht ändert sich um etwa \(actual) % pro Woche \(direction). Die App schlägt dir kein Defizit vor.",
+        kilocalories: 0, evidenceIDs: ["nutrition.reds"])
+    }
     if kcal == 0 {
       return Advice(
         kind: .onTrack,

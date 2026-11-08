@@ -199,7 +199,7 @@ final class TodayViewModel {
     ai: AIClient, settings: CoachSettings, snapshot: Snapshot, advice: ScheduleAdvice, trigger: AITrigger
   ) async {
     let input = PersonalNote.input(
-      profile: settings.profile, advice: advice,
+      profile: settings.coachingProfile, advice: advice,
       recommendation: snapshot.metrics == nil ? nil : snapshot.recommendation,
       metrics: snapshot.metrics, week: snapshot.sessions, today: snapshot.plan.today, privacy: settings.privacy)
     do {

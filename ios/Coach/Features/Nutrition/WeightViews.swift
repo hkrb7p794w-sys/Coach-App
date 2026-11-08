@@ -19,6 +19,12 @@ struct WeightTrendView: View {
     WeightTrend.merged(model.allWeights)
   }
 
+  /// Schutzstufe für die aktuellen Körperwerte: bei `.noTargets` keine Vorschläge zu Kalorien oder Gewicht.
+  private var safety: WeightGoalGuard {
+    let nutrition = model.settings.nutrition
+    return GoalRules.weightGuard(settings: nutrition, body: nutrition.profile(garmin: model.sync.profile, on: today))
+  }
+
   private var result: WeightTrend.Result? {
     WeightTrend.trend(entries, today: today)
   }
@@ -87,7 +93,7 @@ struct WeightTrendView: View {
       if let forecast {
         forecastSection(forecast)
       }
-      if let expenditure {
+      if let expenditure, safety != .noTargets {
         expenditureSection(expenditure.result, formula: expenditure.formula)
       }
       if model.settings.nutrition.energyAdjustmentKilocalories != 0 {
@@ -150,6 +156,7 @@ struct WeightTrendView: View {
       Button("Eintragen", systemImage: "plus.circle.fill") {
         guard let value = parsedInput else { return }
         model.settings.logWeight(value, on: CalendarDay(date: day))
+        model.refreshGoalGuards()
         input = ""
         inputFocused = false
       }
@@ -179,14 +186,14 @@ struct WeightTrendView: View {
       .accessibilityLabel("Wägungen der letzten vier Wochen")
       LabeledContent("Trendgewicht heute", value: "\(GermanFormat.number(result.trendKilograms)) kg")
       LabeledContent("Änderung pro Woche", value: "\(signed(result.weeklyPercent)) %")
-      if let expenditure, expenditure.result.plausible {
+      if let expenditure, expenditure.result.plausible, safety != .noTargets {
         Text("Die Anpassung ergibt sich aus deinem gemessenen Verbrauch (siehe unten).")
           .font(.subheadline)
           .foregroundStyle(.secondary)
       } else if plan.known {
         let advice = WeightTrend.advice(
           result: result, plannedPercent: plan.percent,
-          currentAdjustment: model.settings.nutrition.energyAdjustmentKilocalories)
+          currentAdjustment: model.settings.nutrition.energyAdjustmentKilocalories, safety: safety)
         adviceRow(advice)
       } else {
         Text(
@@ -215,7 +222,9 @@ struct WeightTrendView: View {
         )
         .font(.subheadline)
         .foregroundStyle(.orange)
-      } else if let proposal = Expenditure.adjustment(result, formulaMaintenance: formula, current: current) {
+      } else if let proposal = Expenditure.adjustment(
+        result, formulaMaintenance: formula, current: current, safety: safety)
+      {
         Button {
           var nutrition = model.settings.nutrition
           nutrition.energyAdjustmentKilocalories = proposal

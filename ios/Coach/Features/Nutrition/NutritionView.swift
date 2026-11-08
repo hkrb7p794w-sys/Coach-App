@@ -879,7 +879,9 @@ private struct TargetsSection: View {
     } footer: {
       Text(
         "Grundumsatz \(Int(targets.basalMetabolicRate)) kcal, Training \(Int(targets.exerciseKilocalories)) kcal, "
-          + "Protein \(GermanFormat.decimal(targets.proteinPerKilogram)) g/kg."
+          + "Protein \(GermanFormat.decimal(targets.proteinPerKilogram)) g/kg"
+          + (targets.referenceWeightKilograms < targets.profile.weightKilograms
+            ? " (bezogen auf \(GermanFormat.number(targets.referenceWeightKilograms.rounded())) kg)." : ".")
           + (targets.energyAvailabilityFloorApplied ? " Energie auf Mindestverfügbarkeit angehoben." : ""))
     }
   }

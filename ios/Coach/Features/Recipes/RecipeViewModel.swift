@@ -96,7 +96,7 @@ final class RecipeViewModel {
     defer { isWorking = false }
     let nutrition = settings.nutrition
     let input = RecipePlanner.input(
-      days: targets, preferences: settings.recipes, diet: nutrition.diet, goal: settings.profile.goal.label,
+      days: targets, preferences: settings.recipes, diet: nutrition.diet, goal: settings.coachingProfile.goal.label,
       gaps: gaps, favorites: favorites)
     do {
       let response = try await ai.run(task: "weekly_recipes", input: input)
