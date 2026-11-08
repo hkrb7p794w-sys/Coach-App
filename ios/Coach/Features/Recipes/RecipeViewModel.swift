@@ -98,17 +98,13 @@ final class RecipeViewModel {
     let batches = RecipePlanner.batches(targets)
     var parts: [WeeklyRecipePlan] = []
     var failures: [String] = []
-    await withTaskGroup(of: BatchResult.self) { group in
-      for batch in batches {
-        group.addTask { @MainActor in
-          await self.requestBatch(batch, ai: ai, settings: settings, favorites: favorites, now: now)
-        }
-      }
-      for await result in group {
-        switch result {
-        case .plan(let plan): parts.append(plan)
-        case .failed(let message): failures.append(message)
-        }
+    let requests = batches.map { batch in
+      Task { await requestBatch(batch, ai: ai, settings: settings, favorites: favorites, now: now) }
+    }
+    for request in requests {
+      switch await request.value {
+      case .plan(let plan): parts.append(plan)
+      case .failed(let message): failures.append(message)
       }
     }
     guard var plan = WeeklyRecipePlan.merged(parts, created: now) else {
@@ -122,7 +118,7 @@ final class RecipeViewModel {
     errorMessage = nil
   }
 
-  private enum BatchResult {
+  private nonisolated enum BatchResult: Sendable {
     case plan(WeeklyRecipePlan)
     case failed(String)
   }
