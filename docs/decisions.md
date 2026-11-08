@@ -17,7 +17,7 @@ Das Audit (`docs/audit/`, Befund CORE1-14 und weitere) zeigte: `GoalRules` wirkt
 - **Adipositas:** Ab BMI 30 beziehen sich Protein und Kohlenhydrate auf das Gewicht bei BMI 25, weil sich die
   Empfehlungen auf die fettfreie Masse beziehen (Helms et al. 2014, doi:10.1186/1550-2783-11-20). BMI 25 als
   Referenz ist eine Näherung. Körperfett ohne Eintrag: ab BMI 30 nach Deurenberg et al. 1991
-  (doi:10.1079/BJN19910073, PMID 2043597), darunter weiter pauschal, weil die Formel bei Schlanken und Sportlichen zu
+  (PMID 2043597), darunter weiter pauschal, weil die Formel bei Schlanken und Sportlichen zu
   hoch schätzt und die Untergrenze dann zu niedrig läge.
 - **Wägungen zählen:** Die neueste Wägung (höchstens 30 Tage alt) wird zum aktuellen Gewicht, einmal je Wägung; eine
   Eingabe in den Einstellungen bleibt, bis eine neuere kommt. Das Profil wird nur neu angewandt, wenn sich ändert, ob
