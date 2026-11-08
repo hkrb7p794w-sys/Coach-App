@@ -3,6 +3,12 @@ name: Worker-Smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Was geprüft wird
+        type: choice
+        default: smoke
+        options: [smoke, chat-legacy, chat-focused]
   pull_request:
     paths: [".github/workflows/worker-smoke.yml", ".github/scripts/worker-smoke.mjs"]
 
@@ -28,7 +34,15 @@ jobs:
             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | jq -r .result.subdomain)
           echo "worker=https://coach-ai.$sub.workers.dev" >> "$GITHUB_OUTPUT"
       - name: Rezeptideen prüfen
+        if: inputs.mode == '' || inputs.mode == 'smoke'
         env:
           WORKER_URL: ${{ steps.url.outputs.worker }}
           COACH_APP_TOKEN: ${{ secrets.COACH_APP_TOKEN }}
         run: node .github/scripts/worker-smoke.mjs
+      - name: Chat-Qualität prüfen
+        if: startsWith(inputs.mode, 'chat-')
+        env:
+          WORKER_URL: ${{ steps.url.outputs.worker }}
+          COACH_APP_TOKEN: ${{ secrets.COACH_APP_TOKEN }}
+          CHAT_EVAL_MODE: ${{ inputs.mode == 'chat-legacy' && 'legacy' || 'focused' }}
+        run: node .github/scripts/chat-eval.mjs
