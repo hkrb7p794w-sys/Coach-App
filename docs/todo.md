@@ -5,6 +5,9 @@
 Bisher nur in der CI gebaut und mit Beispieldaten geprüft; mit echten Daten noch offen. Gefundene Fehler direkt
 hier notieren und als PR beheben.
 
+- [ ] **Paket 9:** Erfassen: Kamera, Foto, Barcode, Manuell, Nur kcal ohne Scrollen sichtbar, Vorschläge darunter. Rezeptideen: Woche
+      erstellt alle Tage. Kochen planen: Freigabe auf beiden iPhones, Link öffnen, „Für uns beide“, Teller und Gesamtmengen plausibel,
+      Zutat ändern rechnet neu, Freigabe zurückziehen löscht beim anderen Gerät beim nächsten Abruf.
 - [ ] **Schutzgrenzen (Phase 74):** Profil mit „Schwanger“ oder „Essstörung“: Gewichtsverlauf ohne Kalorienvorschläge, Chat und
       Rezepte ohne „Abnehmen“. Wägung unter BMI 18,5 eintragen: Ziel auf „halten“. Zielgewicht erreichen: Hinweis und kein
       Defizit mehr. Einstellungen zeigen „Ernährung: …“ passend.
