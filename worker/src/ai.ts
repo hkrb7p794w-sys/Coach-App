@@ -2,36 +2,65 @@ import { type Preference, providerOrder } from "./providers";
 import type { Deps, Env, GenerateRequest, GenerateResult } from "./types";
 
 export class AllProvidersFailed extends Error {
-  constructor(readonly attempts: string[]) {
+  constructor(
+    readonly attempts: string[],
+    /** `ai_invalid`: Mindestens ein Anbieter hat geantwortet, aber unbrauchbar; `ai_unavailable`: keiner erreichbar. */
+    readonly code: "ai_unavailable" | "ai_invalid" = "ai_unavailable",
+  ) {
     super(`Alle KI-Anbieter fehlgeschlagen: ${attempts.join(" | ")}`);
     this.name = "AllProvidersFailed";
   }
 }
 
-/** Anbieter der Reihe nach (siehe providers.ts), bis einer antwortet. */
+export interface AcceptedResult extends GenerateResult {
+  /** Ergebnis von `accept`; ohne `accept` der Text. */
+  output: unknown;
+}
+
+/**
+ * Anbieter der Reihe nach (siehe providers.ts), bis einer brauchbar antwortet. `accept` prüft die Antwort und wirft,
+ * wenn sie nicht zu gebrauchen ist; dann kommt der nächste Anbieter dran. Die Pausen und Wiederholungen liegen in
+ * den Anbietern, hier wird nur weitergereicht und auf die Frist geachtet.
+ */
 export async function generate(
   request: GenerateRequest,
   env: Env,
   deps: Deps,
   preference: Preference = "auto",
-): Promise<GenerateResult> {
+  accept: (text: string) => unknown = (text) => text,
+): Promise<AcceptedResult> {
   const attempts: string[] = [];
+  let invalid = false;
   const providers = providerOrder(env, preference, request.images.length > 0);
   for (const provider of providers) {
     if (!provider.enabled(env)) {
       attempts.push(`${provider.label}: nicht eingerichtet`);
       continue;
     }
+    if (request.deadline !== undefined && deps.now() >= request.deadline) {
+      attempts.push(`${provider.label}: Zeitlimit erreicht`);
+      continue;
+    }
+    let result: GenerateResult;
     try {
-      return await provider.run(request, env, deps);
+      result = await provider.run(request, env, deps);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       deps.log(`[ai] ${provider.label} fehlgeschlagen: ${message}`);
       attempts.push(`${provider.label}: ${message}`);
+      continue;
+    }
+    try {
+      return { ...result, output: accept(result.text) };
+    } catch (error) {
+      invalid = true;
+      const message = error instanceof Error ? error.message : String(error);
+      deps.log(`[ai] ${provider.label} (${result.model}): Antwort unbrauchbar: ${message}`);
+      attempts.push(`${provider.label}: Antwort unbrauchbar (${message})`);
     }
   }
   if (providers.length === 0) attempts.push("kein passender Anbieter für diese Einstellung");
-  throw new AllProvidersFailed(attempts);
+  throw new AllProvidersFailed(attempts, invalid ? "ai_invalid" : "ai_unavailable");
 }
 
 /** JSON aus einer Modellantwort, auch wenn sie in ```json … ``` eingepackt ist. */

@@ -51,13 +51,14 @@ describe("weekly_recipes", () => {
       {
         tage: [
           { datum: "2026-11-02", gerichte: [{ titel: "A" }] },
+          { datum: "2026-11-03", gerichte: [{ titel: "B" }] },
           { datum: "2030-01-01", gerichte: [] },
         ],
       },
       "",
       input,
     ) as { tage: { datum: string }[] };
-    expect(checked.tage.map((day) => day.datum)).toEqual(["2026-11-02"]);
+    expect(checked.tage.map((day) => day.datum)).toEqual(["2026-11-02", "2026-11-03"]);
     expect(() => checkRecipes({ tage: [] }, "", input)).toThrow("keine passenden Tage");
   });
 
@@ -68,7 +69,16 @@ describe("weekly_recipes", () => {
           candidates: [
             {
               content: {
-                parts: [{ text: JSON.stringify({ tage: [{ datum: "2026-11-02", gerichte: [] }] }) }],
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      tage: [
+                        { datum: "2026-11-02", gerichte: [] },
+                        { datum: "2026-11-03", gerichte: [] },
+                      ],
+                    }),
+                  },
+                ],
               },
             },
           ],

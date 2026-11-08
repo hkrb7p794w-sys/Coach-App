@@ -13,6 +13,8 @@ const DIET_TEXT: Record<string, string> = {
   vegan: "Vegan: keine tierischen Produkte (kein Fleisch, Fisch, Ei, Milchprodukte, Honig).",
 };
 
+const MAX_PARTIAL_DAYS = 3;
+
 const SHAPE = `Antwortformat (JSON):
 {"tage": [{"datum": "JJJJ-MM-TT", "gerichte": [{"mahlzeit": "fruehstueck|mittagessen|abendessen|snack",
 "titel": str, "minuten": number, "zubereitung": [str, ...],
@@ -52,7 +54,7 @@ export function weeklyRecipesPrompt(input: Record<string, unknown>): string {
     favorites.length ? `Isst gern bzw. oft (gern einbauen): ${favorites.join(", ")}.` : "",
     gaps.length ? `Lücken der letzten Tage (gezielt ausgleichen): ${gaps.join("; ")}.` : "",
     "",
-    "Tagesziele (fest von der App berechnet, nicht ändern):",
+    "Tagesziele (fest von der App berechnet, nicht ändern). Liefere für JEDEN dieser Tage Gerichte:",
     ...(days.length ? days.map(dayLine) : ["- keine Tage"]),
     "",
     evidenceBlock(evidenceFrom(input)),
@@ -92,6 +94,10 @@ export function checkRecipes(output: unknown, _request: string, input: Record<st
       return { datum: value.datum, gerichte };
     });
   if (tage.length === 0) throw new GroundingError("KI-Antwort enthielt keine passenden Tage");
+  // Teilanfragen (bis 3 Tage) müssen vollständig sein; der nächste Anbieter liefert sonst die fehlenden Tage.
+  if (wanted.size <= MAX_PARTIAL_DAYS && tage.length < wanted.size) {
+    throw new GroundingError(`KI-Antwort enthielt nur ${tage.length} von ${wanted.size} Tagen`);
+  }
   return { tage };
 }
 
@@ -150,4 +156,76 @@ export function checkMealNow(output: unknown): unknown {
   const gerichte = (Array.isArray(record.gerichte) ? record.gerichte : []).slice(0, 3);
   if (gerichte.length === 0) throw new GroundingError("KI-Antwort enthielt keine Gerichte");
   return { gerichte };
+}
+
+const COOK_SHAPE = `Antwortformat (JSON):
+{"rezepte": [{"titel": str, "minuten": number, "zubereitung": [str, ...],
+"zutaten": [{"name": str, "menge_g": number, "menge_text": str, "gruppe": str,
+"naehrwerte_100g": {"kcal": number, "protein_g": number, "carbs_g": number, "fat_g": number, "fiber_g": number}}],
+"vorkochen_geeignet": bool, "haltbarkeit_tage": number, "einfrierbar": bool, "lagerung": str, "aufwaermen": str,
+"kompromiss": str}]}`;
+
+function personLine(value: unknown): string {
+  const person = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
+  const n = (key: string) => (typeof person[key] === "number" ? Math.round(person[key] as number) : "–");
+  return (
+    `- ${text(person.bezeichnung, 12)}: ${n("teller")} Teller; Ziel je Teller ${n("kcal")} kcal, ` +
+    `${n("protein_g")} g Protein, ${n("kohlenhydrate_g")} g Kohlenhydrate, ${n("fett_g")} g Fett`
+  );
+}
+
+/** Rezeptideen für eine oder zwei Personen. Die App rechnet Tellergrößen und Gesamtmengen aus der Basisportion. */
+export function cookPlanPrompt(input: Record<string, unknown>): string {
+  const people = Array.isArray(input.personen) ? input.personen.slice(0, 2) : [];
+  const allergens = list(input.allergens, 12, 40);
+  const favorites = list(input.favorites, 10, 60);
+  const minutes = typeof input.maxMinutes === "number" ? Math.round(input.maxMinutes) : 30;
+  const meals = typeof input.mahlzeiten_je_person === "number" ? Math.round(input.mahlzeiten_je_person) : 1;
+  const prep = input.vorkochen === true;
+  return [
+    "Du bist Sporternährungs-Coach und Koch. Schlage genau drei unterschiedliche Rezepte vor.",
+    `Mahlzeit: ${MEAL_LABEL[text(input.mahlzeit, 20)] ?? "Hauptmahlzeit"}.`,
+    `Ernährungsweise (gilt für alle): ${DIET_TEXT[text(input.diet, 20)] ?? "Mischkost."}`,
+    `Allergene/Unverträglichkeiten (strikt meiden, auch in Spuren als Zutat): ${allergens.join(", ") || "keine"}.`,
+    `Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`,
+    `Zubereitung höchstens ${minutes} Minuten.`,
+    favorites.length ? `Isst gern: ${favorites.join(", ")}.` : "",
+    "",
+    "Personen (Ziele fest von der App berechnet, nicht ändern):",
+    ...(people.length ? people.map(personLine) : ["- keine Angaben"]),
+    "",
+    "Regeln:",
+    "- Beschreibe EINE Basisportion: menge_g ist die Menge für einen Teller in Gramm (roh, wie eingekauft; " +
+      "Flüssigkeiten in ml = g). Die App rechnet die Teller und Gesamtmengen selbst aus, vervielfache nichts.",
+    people.length > 1
+      ? "- Beide essen dasselbe Gericht, nur unterschiedlich viel. Wähle eine Zusammensetzung, die beide Ziele " +
+        'möglichst gut trifft, besonders das Protein je Kalorie. "kompromiss": ein bis zwei Sätze, welche Ziele ' +
+        "besser und welche schlechter getroffen werden und warum. Nenne dort keine Namen."
+      : '- "kompromiss": leerer Text.',
+    prep
+      ? `- Gegessen wird an ${meals} Tagen. Schlage nur Gerichte vor, die aufgewärmt gut bleiben (z. B. Eintopf, ` +
+        "Curry, Chili, Ofengemüse mit Hülsenfrüchten). Ungeeignet sind etwa Salate mit Dressing, Gerichte mit " +
+        "panierter Kruste, Spiegelei oder Gerichte, die sofort gegessen werden müssen. Verdoppeln allein reicht nicht."
+      : "- Das Gericht wird frisch gegessen.",
+    '- "vorkochen_geeignet": true nur, wenn das Gericht aufgewärmt wirklich gut bleibt und sicher ist.',
+    '- "haltbarkeit_tage": Tage im Kühlschrank nach dem Kochen (höchstens 3).',
+    '- "einfrierbar": true nur, wenn das Gericht nach dem Auftauen noch gut ist. "lagerung": kurz, wie aufbewahren. ' +
+      '"aufwaermen": kurz, wie aufwärmen; beides leer, wenn frisch gegessen.',
+    "- naehrwerte_100g: deine beste Schätzung je 100 g der Zutat so wie angegeben.",
+    "- gruppe: gemuese, obst, vollkorn, getreide, kartoffel, huelsenfruechte, nuesse, milch, fisch_fett, fisch, " +
+      "ei, fleisch, fett, suess, getraenk oder sonstiges.",
+    "- zubereitung: 2–6 kurze Schritte. titel: max. 40 Zeichen.",
+    `Antworte ausschließlich mit JSON. ${COOK_SHAPE}`,
+    "Schreibe durchgängig in korrektem Deutsch mit echten Umlauten (ä, ö, ü, ß).",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+/** Form prüfen: höchstens drei Rezepte. Inhalt, Mengen und Haltbarkeit prüft die App. */
+export function checkCookPlan(output: unknown): unknown {
+  const record = (typeof output === "object" && output !== null ? output : {}) as Record<string, unknown>;
+  const rezepte = (Array.isArray(record.rezepte) ? record.rezepte : []).slice(0, 3);
+  if (rezepte.length === 0) throw new GroundingError("KI-Antwort enthielt keine Rezepte");
+  return { rezepte };
 }

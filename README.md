@@ -90,6 +90,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 72 | Android Ernährung Teil 2: Rezepte/Meal-Prep, Was jetzt?, Wochenplan + Einkaufsliste, Tag auswerten, Gewicht + Prognose, Teilen, Erinnerungen, Offline-Warteschlange | fertig (PR 80) |
 | 73 | Ernährung: Wasser aus Getränken und Essen, Mahlzeiten-Widget (Sperrbildschirm/Homescreen, „+“ je Mahlzeit), Kamera-Knopf | fertig (PR 81) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
+| 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 
 Offene Prüfpunkte mit echten Daten: `docs/todo.md`. Später, erst auf Zuruf: (Apple Health ist seit PR 34 umgesetzt, die Watch-App ist gestrichen)
 technische Einstellungen für Mitnutzer ausblenden, Android-Version (bewertet in `docs/plattform-paket7.md`: erst bei Bedarf, dann

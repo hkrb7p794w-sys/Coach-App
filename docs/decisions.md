@@ -2,6 +2,30 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-08 – Rezeptideen: Fehlerkette, gemeinsam kochen, vorkochen (Paket 9)
+
+- **Ursache des 502, am echten Worker gemessen** (Workflow `worker-smoke.yml`, 08.11.2026): Für 2 Tage braucht Gemini
+  8.726 Ausgabe-Tokens einschließlich Denk-Tokens, die zum Limit zählen (<https://ai.google.dev/gemini-api/docs/thinking>).
+  Eine Woche liegt damit weit über dem Limit von 16.000: Gemini scheitert immer, der Worker fällt nach bis zu 118 s auf
+  Workers AI zurück, das 2 von 7 Tagen lieferte. Groq ist nicht eingerichtet. Antwortete Workers AI nicht oder mit
+  ungültigem JSON, gab der Worker sofort 502 zurück. Der 502 selbst trat im Messlauf nicht auf.
+- **Abhilfe:** Die App fragt die Woche in Teilen zu höchstens drei Tagen nebeneinander ab. Gemini 3 läuft bei großen
+  JSON-Antworten mit `thinkingLevel: low`. Unbrauchbare oder abgeschnittene Antworten gelten als Ausfall des Anbieters
+  (nächster Anbieter statt 502). Frist 105 s, je Versuch 75 s. Die App wiederholt einen vorübergehenden Fehler einmal.
+- **Fehlertexte:** Antworttexte der Anbieter bleiben im Worker-Protokoll; die App bekommt `code` und zeigt eine
+  verständliche Meldung mit Fehlercode.
+- **Zwei Personen ohne Konten:** Die App hat keine Benutzerkonten (`docs/qualitaet-paket8.md`). Jede Person bleibt auf
+  ihrem iPhone und gibt ausdrücklich frei: Name, Tagesziele im Wochenmittel, Ernährungsweise, Allergene, Abneigungen
+  (einzeln abwählbar) über `/v1/share/cook`, höchstens 90 Tage. Nur Besitzer:innen ändern oder ziehen zurück. Vor jedem
+  Plan holt die App die Freigabe neu; ist sie zurückgezogen, werden die lokale Kopie und Pläne damit gelöscht.
+  Schwangerschaft/Stillzeit oder Essstörung: keine Kalorienziele, auch nicht an andere. Namen gehen nicht an die KI.
+- **Rechnen tut die App:** Die KI beschreibt eine Basisportion, die App berechnet Teller (Energie laut `MealSplit`,
+  Faktor 0,5–1,8), Gesamtmengen und Nährwerte. Die strengste Ernährungsweise und alle Allergene gelten.
+- **Portionen und Tage sind verschieden:** Portionen werden auf die Personen verteilt, Tage gelten je Person.
+- **Vorkochen:** Gerichte müssen laut KI geeignet sein; die App sagt höchstens 3 Tage im Kühlschrank zu (BfR, „Vorkochen
+  für mehrere Tage“: 2–3 Tage, <https://www.bfr.bund.de/assets/01_Ver%C3%B6ffentlichungen/FAQ_deutsch/faq-vorkochen-fuer-mehrere-tage.pdf>),
+  danach einfrieren oder verwerfen.
+
 ## 2026-11-08 – Schutzgrenzen in jedem Pfad (Phase 74, Audit)
 
 Das Audit (`docs/audit/`, Befund CORE1-14 und weitere) zeigte: `GoalRules` wirkte nur beim Speichern des Profils.

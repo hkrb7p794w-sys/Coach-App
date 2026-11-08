@@ -163,6 +163,7 @@ struct AIUsageView: View {
     case "coach_chat": "Chat"
     case "meal_now": "Was jetzt?"
     case "weekly_recipes": "Rezeptideen"
+    case "cook_plan": "Gemeinsam kochen"
     case "ai_insights": "KI-Analyse"
     case "ping": "Verbindungstest"
     default: task
