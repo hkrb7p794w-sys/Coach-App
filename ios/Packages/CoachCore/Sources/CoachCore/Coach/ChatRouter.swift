@@ -26,7 +26,8 @@ public enum ChatRouter {
       "body battery", "krank", "ruhetag", "soll ich heute", "sollte ich heute",
     ],
     .longTerm: [
-      "verlauf", "gewicht", "abnehm", "zunehm", "körperfett", "entwickel", "entwickl", "letzten wochen", "monat", "fortschritt", "langfrist", "trend", "seit",
+      "verlauf", "gewicht", "abnehm", "zunehm", "körperfett", "entwickel", "entwickl", "letzten wochen", "monat",
+      "fortschritt", "langfrist", "trend", "seit",
     ],
     .app: ["in der app", "einstellung", "wo finde", "wie stelle ich", "widget", "funktion"],
   ]

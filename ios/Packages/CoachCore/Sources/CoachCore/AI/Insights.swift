@@ -85,7 +85,8 @@ public enum InsightCategory: String, CaseIterable, Sendable {
         "bankdr", "kniebeug", "kreuzheb", "schulterdr", "klimmz", "rudern", "kraft", "gym", "satz", "saetze", "sätze",
         "volumen", "progression", "deload", "muskel",
       ]
-    case .endurance: ["lauf", "rennrad", "radfahr", "rad-", "schwimm", "pace", "ausdauer", "tempo", "intervall", "zone"]
+    case .endurance:
+      ["lauf", "rennrad", "radfahr", "rad-", "schwimm", "pace", "ausdauer", "tempo", "intervall", "zone"]
     case .nutrition: ["protein", "kalorien", "kcal", "ernaehr", "ernähr", "mahlzeit", "kohlenhydr", "fett", "essen"]
     case .recovery: ["schlaf", "erhol", "regener", "hrv", "muedigkeit", "müdigkeit", "ruhetag"]
     case .health: ["schmerz", "krank", "verletz", "ruhepuls", "ueberlast", "überlast", "belastung", "beschwerd"]
