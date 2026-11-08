@@ -209,6 +209,8 @@ extension ReminderService: UNUserNotificationCenterDelegate {
   nonisolated func userNotificationCenter(
     _ center: UNUserNotificationCenter, willPresent notification: UNNotification
   ) async -> UNNotificationPresentationOptions {
-    [.banner, .list, .sound]
+    // Pausenende bei offener Einheit: Das Signal gibt die Einheit selbst, sonst käme es doppelt.
+    if await RestAlarm.isHandledByOpenWorkout(notification.request.identifier) { return [] }
+    return [.banner, .list, .sound]
   }
 }

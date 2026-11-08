@@ -96,8 +96,8 @@ async function cook(label, plates, partner, prep) {
 
 const health = await (await fetch(`${base}/v1/health`)).json();
 console.log(JSON.stringify({ version: health.version, anbieter: health.providerList?.map((p) => [p.id, p.enabled, p.model]) }));
-await run("wie die App (auto), drei Tage", 3, "auto");
-await run("ohne Gemini (privat), drei Tage", 3, "privat");
+await run("wie die App (auto), zwei Tage", 2, "auto");
+await run("ohne Gemini (privat), zwei Tage", 2, "privat");
 await cook("zwei Personen, zwei Portionen", 2, 2, false);
 await cook("zwei Personen, drei Tage vorkochen", 3, 3, true);
 await cook("eine Person, vier Tage vorkochen", 4, 0, true);

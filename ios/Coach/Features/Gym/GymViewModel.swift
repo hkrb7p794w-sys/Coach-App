@@ -245,14 +245,17 @@ final class GymViewModel {
     setActive(session)
   }
 
-  func insertWarmUp(into exerciseID: UUID) {
-    guard var session = active, let exercise = session.exercises.first(where: { $0.id == exerciseID }),
-      let info = gym.exercise(exercise.exerciseID)
-    else { return }
-    let working = exercise.sets.filter { $0.kind != .warmup }.map(\.weightKg).max() ?? 0
-    let steps = WarmUp.steps(
-      working: working, equipment: info.equipment, compound: info.compound, bar: gym.bar(for: info.id))
-    WorkoutEdits.insertWarmUp(steps, into: exerciseID, in: &session)
+  /// Aufwärmvorschlag für eine Übung; berücksichtigt Niveau und ob der Muskel heute schon gearbeitet hat.
+  func warmUpSteps(for exercise: LoggedExercise, level: ExperienceLevel) -> [WarmUp.Step] {
+    guard gym.suggestsWarmUp, let session = active, let info = gym.exercise(exercise.exerciseID) else { return [] }
+    return WarmUp.suggestion(
+      for: exercise, info: info, bar: gym.bar(for: info.id), level: level,
+      warmedUp: WarmUp.isWarmedUp(exercise, info: info, in: session))
+  }
+
+  func insertWarmUp(into exerciseID: UUID, level: ExperienceLevel) {
+    guard var session = active, let exercise = session.exercises.first(where: { $0.id == exerciseID }) else { return }
+    WorkoutEdits.insertWarmUp(warmUpSteps(for: exercise, level: level), into: exerciseID, in: &session)
     setActive(session)
   }
 
@@ -425,7 +428,7 @@ final class GymViewModel {
     }
     pendingRest = nil
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
-    RestAlarm.schedule(at: restEndsAt, body: nextText)
+    RestAlarm.schedule(at: restEndsAt, body: nextText, sound: gym.restSound)
   }
 
   /// „Weiter mit Schulterdrücken“ bzw. „Weiter mit Satz 3 · Bankdrücken“ – für Pausenende und Sperrbildschirm.
@@ -473,7 +476,7 @@ final class GymViewModel {
     guard let rest = pendingRest else { return }
     pendingRest = nil
     restEndsAt = now.addingTimeInterval(TimeInterval(rest))
-    RestAlarm.schedule(at: restEndsAt, body: nextText)
+    RestAlarm.schedule(at: restEndsAt, body: nextText, sound: gym.restSound)
   }
 
   /// Pause einer Übung für diese Einheit und – in den Einstellungen gemerkt – für das nächste Mal.
@@ -536,10 +539,10 @@ final class GymViewModel {
     }
     return .init(
       exercise: heading,
-      detail: "Satz \(position.set + 1) von \(exercise.sets.count)" + (following.map { " · \($0)" } ?? ""),
+      detail: "Satz \(position.set + 1) von \(exercise.sets.count)",
       restEndsAt: restEndsAt, doneSets: session.doneSetCount, allDone: false,
       weight: weight.unit.isEmpty ? weight.value : "\(weight.value) \(weight.unit)",
-      reps: reps, weightStep: GermanFormat.number(step), repsStep: isTime ? "5 s" : "1")
+      reps: reps, weightStep: GermanFormat.number(step), repsStep: isTime ? "5 s" : "1", next: following)
   }
 
   func undo() {
@@ -566,11 +569,14 @@ final class GymViewModel {
   /// Zählt hoch, wenn eine Pause im Vordergrund abläuft (Vibration).
   private(set) var restFinishedCount = 0
 
-  /// Pause im Vordergrund abgelaufen: Banner weg, kurze Vibration statt Mitteilung.
-  func restFinished() {
+  /// Pause bei geöffneter Einheit abgelaufen. Das Signal kommt nur pünktlich: War die App im Hintergrund, hat dort
+  /// schon die Mitteilung geklingelt, und beim Zurückkehren soll es nicht noch einmal tönen.
+  func restFinished(end: Date, now: Date = .now) {
     restEndsAt = nil
     RestAlarm.schedule(at: nil)
+    guard now.timeIntervalSince(end) < 2 else { return }
     restFinishedCount += 1
+    RestSoundPlayer.play(gym.restSound)
   }
 
   /// ±15 s während der Pause: gilt für die laufende Pause, die weiteren Sätze dieser Übung und – über den
@@ -592,7 +598,7 @@ final class GymViewModel {
     let adjusted = end.addingTimeInterval(seconds)
     restEndsAt = adjusted > now ? adjusted : nil
     restSeconds = max(0, restSeconds + Int(seconds))
-    RestAlarm.schedule(at: restEndsAt, body: nextText)
+    RestAlarm.schedule(at: restEndsAt, body: nextText, sound: gym.restSound)
   }
 
   func cancelActive() {
@@ -649,10 +655,19 @@ final class GymViewModel {
       message = "Speichern fehlgeschlagen: \(error.localizedDescription)"
       return nil
     }
+    let records = GymStats.newRecords(in: session, before: sessions)
+    // Erst die Zusammenfassung, dann die laufende Einheit leeren: Zwischen beidem gäbe es nichts anzuzeigen, und
+    // Apple Health und Garmin können Sekunden dauern.
+    finished = FinishedWorkout(
+      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records,
+      status: "Gespeichert. Apple Health und Garmin werden abgeglichen …",
+      exerciseIDs: session.exercises.map(\.exerciseID),
+      muscles: MuscleLoad.session(session, custom: gym.customExercises),
+      volumeChange: SessionComparison.volumeChangePercent(
+        session, previous: SessionComparison.previous(of: session, in: sessions)))
     setActive(nil)
     resetFlow()
     RestAlarm.schedule(at: nil)
-    let records = GymStats.newRecords(in: session, before: sessions)
     var status = await Self.saveToHealth(record, session: session, context: context, writer: writer)
     if syncsGarmin, let garmin, garmin.isLoggedIn,
       let garminStatus = await GarminStrengthService.reconcile(context: context, garmin: garmin, gym: gym, now: now)
@@ -661,13 +676,8 @@ final class GymViewModel {
     } else if syncsGarmin {
       status += "\nGarmin: wird übertragen, sobald du mit dem Garmin-Konto angemeldet bist (Einstellungen)."
     }
+    finished?.status = status
     message = records.isEmpty ? status : "🏆 " + records.joined(separator: "\n🏆 ") + "\n\n" + status
-    finished = FinishedWorkout(
-      title: session.title, summary: WorkoutFlow.summary(of: session, now: now), records: records, status: status,
-      exerciseIDs: session.exercises.map(\.exerciseID),
-      muscles: MuscleLoad.session(session, custom: gym.customExercises),
-      volumeChange: SessionComparison.volumeChangePercent(
-        session, previous: SessionComparison.previous(of: session, in: sessions)))
     return record
   }
 

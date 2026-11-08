@@ -19,6 +19,8 @@ nonisolated struct WorkoutActivityAttributes: ActivityAttributes {
     var reps: String? = nil
     var weightStep: String? = nil
     var repsStep: String? = nil
+    /// „Danach: Schulterdrücken“.
+    var next: String? = nil
   }
 
   var title: String
