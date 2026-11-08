@@ -159,4 +159,15 @@ struct Paket11Tests {
     let recent = try #require(input["recentPerformance"]?.arrayValue)
     #expect(recent.first?.stringValue?.contains("80 kg × 12") == true)
   }
+
+  @Test func alarmDecidesWakeTimeOnItsDays() {
+    var settings = SleepSettings()
+    let monday = CalendarDay(year: 2026, month: 11, day: 9)
+    settings.alarm = SleepAlarm(minutes: 300, onlyDay: monday)
+    #expect(settings.wakeMinutes(on: monday) == 300)
+    #expect(settings.wakeMinutes(on: monday.adding(days: 1)) == settings.wakeMinutes)
+    settings.alarm = SleepAlarm(minutes: 300, weekdaysOnly: true)
+    #expect(settings.wakeMinutes(on: monday.adding(days: 4)) == 300)
+    #expect(settings.wakeMinutes(on: monday.adding(days: 5)) == settings.wakeMinutes)
+  }
 }

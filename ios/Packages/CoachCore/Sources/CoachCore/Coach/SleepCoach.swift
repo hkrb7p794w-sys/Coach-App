@@ -1,5 +1,24 @@
 import Foundation
 
+/// Der in der App gestellte Wecker. Der Wecker der Uhr-App ist für Apps nicht lesbar.
+public struct SleepAlarm: Codable, Equatable, Hashable, Sendable {
+  public var minutes: Int
+  /// Bei einem einmaligen Wecker der Tag, an dem er klingelt.
+  public var onlyDay: CalendarDay?
+  public var weekdaysOnly: Bool
+
+  public init(minutes: Int, onlyDay: CalendarDay? = nil, weekdaysOnly: Bool = false) {
+    self.minutes = minutes
+    self.onlyDay = onlyDay
+    self.weekdaysOnly = weekdaysOnly
+  }
+
+  func rings(on day: CalendarDay) -> Bool {
+    if let onlyDay { return onlyDay == day }
+    return !weekdaysOnly || day.weekdayIndex < 5
+  }
+}
+
 /// Einstellungen des Schlaf-Coaches: gewünschte Schlafdauer, Weckzeit und Erinnerung vor dem Zubettgehen.
 public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
   /// Gewünschte Schlafdauer in Stunden (7–9, Empfehlung für Erwachsene).
@@ -14,6 +33,8 @@ public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
   public var freeWakeMinute = 0
   /// Für die Feiertage; ohne Angabe zählen nur Wochenenden als frei.
   public var state: GermanState?
+  /// Gestellter Wecker; er geht den eingestellten Aufstehzeiten vor.
+  public var alarm: SleepAlarm?
 
   public init() {}
 
@@ -27,6 +48,7 @@ public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
     freeWakeHour = min(max((try? container.decodeIfPresent(Int.self, forKey: .freeWakeHour)) ?? 8, 0), 23)
     freeWakeMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .freeWakeMinute)) ?? 0, 0), 59)
     state = try? container.decodeIfPresent(GermanState.self, forKey: .state)
+    alarm = try? container.decodeIfPresent(SleepAlarm.self, forKey: .alarm)
   }
 
   public var wakeMinutes: Int { wakeHour * 60 + wakeMinute }
@@ -43,7 +65,8 @@ public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
 
   /// Aufstehzeit an einem Tag, Minuten nach Mitternacht.
   public func wakeMinutes(on day: CalendarDay) -> Int {
-    usesFreeDayTime && isFree(day) ? freeWakeMinutes : wakeMinutes
+    if let alarm, alarm.rings(on: day) { return alarm.minutes }
+    return usesFreeDayTime && isFree(day) ? freeWakeMinutes : wakeMinutes
   }
 }
 

@@ -84,6 +84,52 @@ Prompts doppelt (App und Worker). Deshalb vorerst nicht umgesetzt; die Anbieter-
 - **App:** `AIClient` prüft jede Anfrage gegen die KI-Stufe (`AIPolicy`) und protokolliert Anbieter, Modell, Tokens,
   Dauer und Listenpreis ohne Inhalte (`AIUsageLog`, Einstellungen › KI › Anbieter und Nutzung).
 
+## Aktualisierung 08.11.2026 (Paket 11)
+
+**Preise Workers AI** laut [Cloudflare](https://developers.cloudflare.com/workers-ai/platform/pricing/), US-Dollar je
+Million Tokens (Eingabe/Ausgabe). Kostenlos sind 10.000 Neurons am Tag.
+
+| Modell | Eingabe | Ausgabe | Hinweis |
+|---|---|---|---|
+| Gemma 4 26B A4B | 0,10 | 0,30 | heute im Einsatz |
+| Qwen 3 30B A3B | 0,051 | 0,335 | günstigste Alternative mit guter Größe |
+| GLM 4.7 Flash | 0,06 | 0,40 | neu in der Liste |
+| Mistral Small 3.1 24B | 0,351 | 0,555 | |
+| gpt-oss-120b | 0,35 | 0,75 | |
+| Llama 4 Scout | 0,27 | 0,85 | |
+| Qwen 3.8 27B | 0,45 | 3,20 | |
+| DeepSeek V4.1 Flash | 0,30 | 1,20 | nur mit bezahltem Plan |
+| GLM 5.3 Flash | 0,15 | 0,50 | nur mit bezahltem Plan |
+| Kimi K2.5 | 0,60 | 3,00 | |
+
+**Neuere offene Modelle** laut Ranglisten von Oktober 2026: Kimi K3, GLM-5.2, DeepSeek V4, Qwen 3.6, Mistral Small 4.
+Die Spitzenwerte sind teils Herstellerangaben, und die Quellen widersprechen sich beim ersten Platz. Die großen Modelle
+(Kimi K3 mit 2,8 Billionen Parametern) kommen für Heim-Hardware nicht infrage.
+
+**Was nicht belegt ist:** Zu Trainings- und Ernährungsqualität, langen Gesprächen, JSON-Zuverlässigkeit und deutschen
+Antworten habe ich keine belastbaren Vergleiche gefunden. Auch die Gemini-Limits im kostenlosen Kontingent nennen
+Drittquellen widersprüchlich (von 20 bis 250 Anfragen am Tag), maßgeblich ist die Google-Konsole. Gemessen werden kann
+das nur am eigenen Fall: Die Chat-Auswertung (`.github/scripts/chat-eval.mjs`, Workflow „Worker-Smoke“) und der
+Rezept-Smoke laufen gegen jeden eingerichteten Anbieter.
+
+**Empfehlung je Aufgabe**
+
+| Aufgabe | Modell | Begründung |
+|---|---|---|
+| Berechnungen (Ziele, Ampel, Restwerte, Volumen) | keins, Regeln im Code | „Regeln entscheiden, KI formuliert“ |
+| Chat, Notizen, Analysen | Gemini Flash, Ausweichen auf Gemma 4 | live gemessen, siehe Bericht Paket 12 |
+| Rezeptideen, Kochplan | Gemini Flash mit wenig Denken, in Teilen zu 2 Tagen | gemessen in Paket 9 |
+| Foto-Erkennung | Gemini Flash | stärkste Bilderkennung im freien Kontingent |
+| Datenschutz „privat“ | Workers AI mit Gemma 4 | speichert nichts, kein Training |
+
+**Modulare Anbieter:** Die Architektur reicht aus. Ein neues Modell ist ein Eintrag in `providers.ts` oder eine
+Worker-Variable, jeder OpenAI-kompatible Dienst läuft über „eigener Server“. Ein Wechsel lohnt sich erst, wenn ein Modell
+in der Auswertung messbar besser abschneidet.
+
+Weitere Quellen (Drittquellen): [Morph, Oktober 2026](https://www.morphllm.com/open-source-llm),
+[Morph, Gemini-Preise](https://www.morphllm.com/gemini-api-pricing), [Apidog](https://apidog.com/blog/gemini-api-free-tier/),
+[Wavect](https://wavect.io/blog/open-weight-llm-comparison-2026.md).
+
 ## Empfehlung
 
 1. **Datenschutz zuerst** in den Einstellungen wählen, wenn Rohwerte (Ruhepuls, HRV, Schlaf) an die KI dürfen sollen:

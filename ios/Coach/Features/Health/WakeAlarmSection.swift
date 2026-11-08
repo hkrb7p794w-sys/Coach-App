@@ -7,6 +7,7 @@ struct WakeAlarmSection: View {
   let wake: WakePlan.Time
   /// Schlafbedarf heute Nacht in Minuten (für „jetzt ins Bett“).
   let tonightMinutes: Int
+  @Environment(AppModel.self) private var model
   @State private var alarms = WakeAlarmService()
   @State private var repeats = WakePlan.Repeat.once
   @State private var busy = false
@@ -74,6 +75,18 @@ struct WakeAlarmSection: View {
             + "ein neuer Wecker ersetzt den alten.")
     }
     .onAppear { alarms.refreshState() }
+    .onChange(of: alarms.stored, initial: true) { _, stored in syncSleepCoach(stored) }
+  }
+
+  /// Der gestellte Wecker bestimmt die empfohlene Schlafenszeit.
+  private func syncSleepCoach(_ stored: WakeAlarmService.Stored?) {
+    let alarm = stored.map { value in
+      SleepAlarm(
+        minutes: value.time.minutes,
+        onlyDay: value.repeats == .once ? WakePlan.nextDate(value.time, after: .now).map { CalendarDay(date: $0) } : nil,
+        weekdaysOnly: value.repeats == .weekdays)
+    }
+    if model.settings.sleep.alarm != alarm { model.settings.sleep.alarm = alarm }
   }
 
   private func set(_ time: WakePlan.Time, repeats override: WakePlan.Repeat? = nil) {
