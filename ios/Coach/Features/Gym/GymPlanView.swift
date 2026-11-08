@@ -74,7 +74,8 @@ struct GymPlanView: View {
     Section {
       Toggle("Übungen aus meinen Trainingsplänen bevorzugen", isOn: $request.keepFavorites)
     } footer: {
-      Text("Außerdem fließen deine letzten Gewichte, die Beobachtungen aus dem Verlauf und deine anderen Sportarten ein.")
+      Text(
+        "Außerdem fließen deine letzten Gewichte, die Beobachtungen aus dem Verlauf und deine anderen Sportarten ein.")
     }
     Section("Erfahrung") {
       Picker("Erfahrung im Krafttraining", selection: experience) {

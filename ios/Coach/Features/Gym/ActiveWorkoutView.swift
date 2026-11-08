@@ -1582,61 +1582,61 @@ private struct WorkoutResultView: View {
 
   var body: some View {
     ScrollView {
-    VStack(spacing: 16) {
-      Image(systemName: "checkmark.seal.fill").font(.system(size: 48)).foregroundStyle(.green)
-      Text(finished.title).font(.title2.bold())
-      SummaryGrid(summary: finished.summary)
-      if let change = finished.volumeChange {
-        Label(
-          "\(abs(change)) % \(change >= 0 ? "mehr" : "weniger") Volumen als beim letzten Mal",
-          systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
-        )
-        .font(.subheadline)
-      }
-      if !finished.records.isEmpty {
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Bestleistungen").font(.headline)
-          ForEach(finished.records, id: \.self) { record in
-            Label(record, systemImage: "trophy.fill").foregroundStyle(.primary)
-          }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-      }
-      if finished.muscles.values.contains(where: { $0 > 0 }) {
-        VStack(alignment: .leading, spacing: 8) {
-          Text("Beanspruchte Muskeln").font(.headline)
-          BodyMapView(values: finished.muscles, full: 6)
-          Text(
-            finished.muscles.filter { $0.value > 0 }.sorted { $0.value > $1.value }.prefix(5)
-              .map { "\($0.key.label) \(GermanFormat.decimal($0.value))" }.joined(separator: " · ")
-              + " Sätze. Hauptmuskel zählt voll, mitarbeitende halb – eine Schätzung."
+      VStack(spacing: 16) {
+        Image(systemName: "checkmark.seal.fill").font(.system(size: 48)).foregroundStyle(.green)
+        Text(finished.title).font(.title2.bold())
+        SummaryGrid(summary: finished.summary)
+        if let change = finished.volumeChange {
+          Label(
+            "\(abs(change)) % \(change >= 0 ? "mehr" : "weniger") Volumen als beim letzten Mal",
+            systemImage: change >= 0 ? "arrow.up.right" : "arrow.down.right"
           )
-          .font(.caption)
-          .foregroundStyle(.secondary)
+          .font(.subheadline)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-      }
-      NextTimeList(exerciseIDs: finished.exerciseIDs, viewModel: viewModel)
-      if !viewModel.hints.isEmpty {
-        VStack(alignment: .leading, spacing: 6) {
-          Text("Hinweise").font(.headline)
-          ForEach(viewModel.hints, id: \.self) { hint in
-            Text("• \(hint)").font(.subheadline)
+        if !finished.records.isEmpty {
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Bestleistungen").font(.headline)
+            ForEach(finished.records, id: \.self) { record in
+              Label(record, systemImage: "trophy.fill").foregroundStyle(.primary)
+            }
           }
-          Text(viewModel.hintSource).font(.caption).foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        if finished.muscles.values.contains(where: { $0 > 0 }) {
+          VStack(alignment: .leading, spacing: 8) {
+            Text("Beanspruchte Muskeln").font(.headline)
+            BodyMapView(values: finished.muscles, full: 6)
+            Text(
+              finished.muscles.filter { $0.value > 0 }.sorted { $0.value > $1.value }.prefix(5)
+                .map { "\($0.key.label) \(GermanFormat.decimal($0.value))" }.joined(separator: " · ")
+                + " Sätze. Hauptmuskel zählt voll, mitarbeitende halb – eine Schätzung."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        NextTimeList(exerciseIDs: finished.exerciseIDs, viewModel: viewModel)
+        if !viewModel.hints.isEmpty {
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Hinweise").font(.headline)
+            ForEach(viewModel.hints, id: \.self) { hint in
+              Text("• \(hint)").font(.subheadline)
+            }
+            Text(viewModel.hintSource).font(.caption).foregroundStyle(.secondary)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        Text(finished.status).font(.footnote).foregroundStyle(.secondary)
+        Button {
+          close()
+        } label: {
+          Text("Fertig").font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.roundedRectangle(radius: 14))
       }
-      Text(finished.status).font(.footnote).foregroundStyle(.secondary)
-      Button {
-        close()
-      } label: {
-        Text("Fertig").font(.headline).frame(maxWidth: .infinity, minHeight: 52)
-      }
-      .buttonStyle(.borderedProminent)
-      .buttonBorderShape(.roundedRectangle(radius: 14))
-    }
-    .padding()
+      .padding()
     }
   }
 }

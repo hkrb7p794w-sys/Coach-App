@@ -36,7 +36,7 @@ struct GymPaket10Tests {
   }
 
   @Test func earlierSameMuscleCountsAsWarmedUp() throws {
-    let info = try #require(ExerciseLibrary.info("bench_press"))
+    let info = try #require(ExerciseLibrary.info("bankdruecken"))
     let done = exercise(info.group, weight: 60, done: true)
     let next = exercise(info.group, weight: 40)
     let session = GymSession(workoutKey: nil, title: "A", start: .now, exercises: [done, next])

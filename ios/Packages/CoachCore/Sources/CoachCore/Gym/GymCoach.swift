@@ -120,7 +120,9 @@ public enum GymCoach {
   }
 
   /// Was vor dem Absenden auffällt: `blocking` verhindert den Plan, `hints` erklärt ungünstige Kombinationen.
-  public static func planIssues(_ request: PlanRequest, equipment: Set<Equipment>) -> (blocking: [String], hints: [String]) {
+  public static func planIssues(_ request: PlanRequest, equipment: Set<Equipment>) -> (
+    blocking: [String], hints: [String]
+  ) {
     var blocking: [String] = []
     var hints: [String] = []
     let usable = request.equipment ?? equipment
