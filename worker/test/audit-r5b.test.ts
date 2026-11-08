@@ -24,7 +24,10 @@ describe("KI-Text darf der Tagesampel nicht widersprechen", () => {
       },
     };
     const deps = fakeDeps([
-      () => geminiText('{"punkte": ["Heute hart trainieren: volle Intervalle.", "Deine Erholung ist gerade knapp."]}'),
+      () =>
+        geminiText(
+          '{"punkte": ["Heute hart trainieren: volle Intervalle.", "Deine Erholung ist gerade knapp."]}',
+        ),
     ]);
     const response = await handle(post({ task: "daily_note", input }), env, deps);
     if (response.status === 200) {
@@ -42,7 +45,11 @@ describe("KI-Text darf der Tagesampel nicht widersprechen", () => {
     };
     const task = findTask("coach_chat");
     expect(() =>
-      task?.ground?.({ antwort: "Ja, trainiere heute ruhig hart, volle Intervalle.", quellen: [] }, "4,5", input),
+      task?.ground?.(
+        { antwort: "Ja, trainiere heute ruhig hart, volle Intervalle.", quellen: [] },
+        "4,5",
+        input,
+      ),
     ).toThrow(GroundingError);
   });
 });
