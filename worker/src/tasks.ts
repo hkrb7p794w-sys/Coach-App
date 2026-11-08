@@ -209,6 +209,8 @@ export const TASKS: Record<string, TaskDefinition> = {
     json: true,
     allowImages: false,
     temperature: 0.3,
+    // Denk-Tokens zählen mit; 4.096 führten bei längeren Antworten zum Abschneiden.
+    maxOutputTokens: 8000,
     build: (input) => ({ system: CHAT_SYSTEM, prompt: chatPrompt(input) }),
     ground: groundChat,
   },

@@ -123,7 +123,8 @@ struct ChatView: View {
       return
     }
     isSending = true
-    let input = ChatContext.input(facts(), question: question, history: history)
+    let input = ChatContext.focusedInput(
+      facts(), question: question, history: history, today: CalendarDay(date: .now))
     Task {
       defer { isSending = false }
       do {
@@ -134,12 +135,8 @@ struct ChatView: View {
           messages.append(Message(fromCoach: true, text: "Dazu habe ich gerade keine belegte Antwort."))
         }
       } catch {
-        messages.append(
-          Message(
-            fromCoach: true,
-            text:
-              "Dazu konnte ich keine Antwort geben, die sich auf deine Daten stützt. Schau unter „Heute“, „Plan“ "
-              + "oder „Training“ nach."))
+        // Der Grund gehört in die Antwort: KI aus, offline oder überlastet sind etwas anderes als fehlende Daten.
+        messages.append(Message(fromCoach: true, text: error.localizedDescription))
       }
     }
   }
@@ -149,6 +146,6 @@ struct ChatView: View {
     CoachFacts.chat(
       model: model, snapshot: snapshot, metrics: days.compactMap(\.metrics),
       activities: activities.compactMap(\.activity), meals: meals,
-      gymDays: gymSessions.compactMap { $0.session?.day })
+      gymDays: gymSessions.compactMap { $0.session?.day }, gym: gymSessions.compactMap(\.session))
   }
 }

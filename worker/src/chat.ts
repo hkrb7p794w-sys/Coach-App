@@ -7,32 +7,42 @@ import { evidenceBlock, evidenceFrom, GROUNDING_SYSTEM, GroundingError, numbersI
 import { list, text } from "./tasks-util";
 
 export const CHAT_SYSTEM = [
-  GROUNDING_SYSTEM,
-  "Zusätzlich für den Chat:",
+  "Du bist ein persönlicher Trainings- und Ernährungscoach. Die Tagesampel und die Ziele entscheiden feste Regeln, " +
+    "du erklärst und wendest sie auf die konkrete Frage an.",
+  "Verbindlich:",
+  "- Beantworte zuerst genau die gestellte Frage, im ersten Satz. Nutze dafür die Fakten mit ihren Zahlen und Daten.",
+  "- Erfinde keine Werte. Du darfst Zahlen aus den Fakten addieren, subtrahieren und vergleichen.",
+  "- Unterscheide: „gemessen“ und „erfasst“ sind Daten, „berechnet“ ist abgeleitet, „KI-Schätzung“ ist unsicher. " +
+    "Fehlt etwas, sage genau, was fehlt, statt allgemein zu antworten.",
+  "- Bei einer Empfehlung: konkret, was heute oder morgen zu tun ist, und warum. Der Tagesampel nie widersprechen.",
+  "- Bezieht sich die Frage auf das Gespräch („das“, „dann“, „und morgen?“), knüpfe an die letzte Antwort an.",
   "- Beantworte nur Fragen zu Training, Erholung, Schlaf, Ernährung und zur App. Bei anderen Themen sag freundlich, " +
     "wobei du helfen kannst.",
-  "- Steht die Antwort nicht in den Fakten, sag das offen und nenne, wo in der App man nachsehen kann.",
+  "- Allgemeine Fachfragen darfst du aus deinem Wissen beantworten, ohne persönliche Zahlen.",
   "- Bei Schmerzen, Brustdruck, Schwindel, Ohnmacht, Verletzungen oder Essstörungen: keine Ferndiagnose, sondern zu " +
-    "ärztlicher Abklärung raten und Training bis dahin ruhen lassen.",
-  "- Höchstens etwa 120 Wörter, du-Form, ohne Markdown-Überschriften.",
+    "ärztlicher Abklärung raten und Training bis dahin ruhen lassen. Keine Medikamente.",
+  "- Länge passend zur Frage: einfache Fragen ein bis drei Sätze, Analysen höchstens etwa 180 Wörter. Du-Form, keine " +
+    "Überschriften, keine Wiederholung der Frage.",
 ].join("\n");
 
 const FREE_NUMBERS = new Set(["0", "1", "2", "3"]);
 
 export function chatPrompt(input: Record<string, unknown>): string {
-  const history = Array.isArray(input.history) ? input.history.slice(-6) : [];
+  const history = Array.isArray(input.history) ? input.history.slice(-10) : [];
+  const older = list(input.olderQuestions, 6, 100);
   const lines = history.flatMap((entry) => {
     const record = (typeof entry === "object" && entry !== null ? entry : {}) as Record<string, unknown>;
-    const said = text(record.text, 600);
+    const said = text(record.text, 800);
     if (!said) return [];
     return [`${record.role === "coach" ? "Coach" : "Person"}: ${said}`];
   });
   return [
-    "Fakten aus der App (von festen Regeln berechnet):",
-    ...list(input.facts, 40, 300).map((line) => `- ${line}`),
+    "Fakten aus der App (zur Frage ausgewählt):",
+    ...list(input.facts, 60, 300).map((line) => `- ${line}`),
     "",
     evidenceBlock(evidenceFrom(input)),
     "",
+    ...(older.length ? [`Frühere Fragen in diesem Gespräch: ${older.join(" | ")}`, ""] : []),
     ...(lines.length ? ["Bisheriger Verlauf:", ...lines, ""] : []),
     `Frage: ${text(input.question, 600) || "(leer)"}`,
     "",
@@ -42,13 +52,29 @@ export function chatPrompt(input: Record<string, unknown>): string {
   ].join("\n");
 }
 
+/** Ergebnisse einfacher Rechnungen aus bekannten Zahlen sind belegt („noch 60 g“); kleine Mengen ohnehin. */
+export function isDerived(value: number, known: Set<string>): boolean {
+  if (Number.isInteger(value) && Math.abs(value) <= 12) return true;
+  const numbers = [...known].map(Number).slice(0, 400);
+  for (const a of numbers) {
+    for (const b of numbers) {
+      if (Math.abs(Math.abs(a - b) - Math.abs(value)) < 0.051) return true;
+      if (Math.abs(a + b - value) < 0.051) return true;
+      if (b > 0 && Math.abs(Math.round((a / b) * 100) - value) < 0.5) return true;
+    }
+  }
+  return false;
+}
+
 /** Prüft die Antwort: nur bekannte Zahlen, nur mitgeschickte Quellen. */
 export function groundChat(output: unknown, requestText: string, input: Record<string, unknown>): unknown {
   const record = (typeof output === "object" && output !== null ? output : {}) as Record<string, unknown>;
   const antwort = text(record.antwort, 1500);
   if (!antwort) throw new GroundingError("Leere Chat-Antwort");
   const known = numbersIn(requestText);
-  const unknown = [...numbersIn(antwort)].filter((n) => !known.has(n) && !FREE_NUMBERS.has(n));
+  const unknown = [...numbersIn(antwort)].filter(
+    (n) => !known.has(n) && !FREE_NUMBERS.has(n) && !isDerived(Number(n), known),
+  );
   if (unknown.length > 0)
     throw new GroundingError(`Chat-Antwort mit unbelegten Zahlen: ${unknown.join(", ")}`);
   const allowed = new Set(evidenceFrom(input).map((item) => item.id));
