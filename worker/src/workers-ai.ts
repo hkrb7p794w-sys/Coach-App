@@ -35,7 +35,7 @@ function retryable(message: string): boolean {
 }
 
 function withTimeout<T>(work: Promise<T>, milliseconds: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   const limit = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("timeout")), milliseconds);
   });
