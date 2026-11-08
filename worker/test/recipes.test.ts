@@ -69,7 +69,16 @@ describe("weekly_recipes", () => {
           candidates: [
             {
               content: {
-                parts: [{ text: JSON.stringify({ tage: [{ datum: "2026-11-02", gerichte: [] }] }) }],
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      tage: [
+                        { datum: "2026-11-02", gerichte: [] },
+                        { datum: "2026-11-03", gerichte: [] },
+                      ],
+                    }),
+                  },
+                ],
               },
             },
           ],
