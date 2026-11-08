@@ -147,7 +147,8 @@ async function handleCookShare(
     return json(200, { code: shareCode, expiresAt });
   }
   if (!CODE.test(id)) return json(400, { error: "Ungültiger Code" });
-  if (!["GET", "PUT", "DELETE"].includes(request.method)) return json(405, { error: "Nur GET, PUT oder DELETE" });
+  if (!["GET", "PUT", "DELETE"].includes(request.method))
+    return json(405, { error: "Nur GET, PUT oder DELETE" });
   const stored = await store.get(`cook:${id}`);
   if (!stored) {
     return request.method === "DELETE"

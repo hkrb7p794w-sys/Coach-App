@@ -69,7 +69,9 @@ async function cook(label, plates, partner, prep) {
   const started = Date.now();
   const personen = [{ bezeichnung: "Person 1", teller: plates, kcal: 720, protein_g: 48, kohlenhydrate_g: 84, fett_g: 24 }];
   if (partner) personen.push({ bezeichnung: "Person 2", teller: partner, kcal: 540, protein_g: 30, kohlenhydrate_g: 60, fett_g: 18 });
-  const response = await fetch(`${base}/v1/ai/generate`, {
+  let response;
+  try {
+    response = await fetch(`${base}/v1/ai/generate`, {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
     body: JSON.stringify({
@@ -79,6 +81,10 @@ async function cook(label, plates, partner, prep) {
     }),
     signal: AbortSignal.timeout(150_000),
   });
+  } catch (error) {
+    console.log(JSON.stringify({ label, fehler: String(error), sekunden: Math.round((Date.now() - started) / 1000) }));
+    return;
+  }
   const body = await response.json().catch(() => ({}));
   const rezepte = body.output?.rezepte ?? [];
   console.log(JSON.stringify({

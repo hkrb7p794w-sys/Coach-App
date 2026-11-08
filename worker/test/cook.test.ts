@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { handle } from "../src/index";
-import { checkCookPlan, cookPlanPrompt } from "../src/recipes";
+import { checkCookPlan, checkRecipes, cookPlanPrompt } from "../src/recipes";
 import { handleShare, type ShareStore, sanitizeCookShare, sharePage } from "../src/share";
 import { env, fakeDeps, geminiText, jsonResponse } from "./helpers";
 
@@ -142,9 +142,20 @@ function memoryStore(): ShareStore & { data: Map<string, string> } {
 }
 
 const call = (method: string, path: string, body?: unknown) =>
-  new Request(`https://w.example${path}`, { method, body: body === undefined ? undefined : JSON.stringify(body) });
+  new Request(`https://w.example${path}`, {
+    method,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 const now = new Date("2026-11-08T12:00:00Z");
-const share = { name: "Lena", kcal: 1800, protein: 100, carbs: 200, fat: 60, diet: "vegetarisch", allergens: ["egg"] };
+const share = {
+  name: "Lena",
+  kcal: 1800,
+  protein: 100,
+  carbs: 200,
+  fat: 60,
+  diet: "vegetarisch",
+  allergens: ["egg"],
+};
 
 describe("Freigabe für gemeinsame Rezepte", () => {
   it("speichert nur erlaubte Felder", () => {
@@ -170,7 +181,13 @@ describe("Freigabe für gemeinsame Rezepte", () => {
 
   it("legt an, liefert ohne Besitzer und lässt nur den Besitzer ändern und zurückziehen", async () => {
     const store = memoryStore();
-    const created = await handleShare(call("POST", "/v1/share/cook", share), store, now, "guest:lena", () => "abcdefghij");
+    const created = await handleShare(
+      call("POST", "/v1/share/cook", share),
+      store,
+      now,
+      "guest:lena",
+      () => "abcdefghij",
+    );
     expect((created as Response).status).toBe(200);
 
     const read = await handleShare(call("GET", "/v1/share/cook/abcdefghij"), store, now, "owner");
@@ -221,5 +238,23 @@ describe("Freigabe für gemeinsame Rezepte", () => {
     expect(page).not.toContain("kcal");
     expect(await (sharePage("/k/einladen") as Response).text()).toContain("coach://open/cookShare");
     expect(sharePage("/k/zu-kurz")).toBeNull();
+  });
+});
+
+describe("unvollständige Antworten", () => {
+  const three = ["2026-11-09", "2026-11-10", "2026-11-11"].map((datum) => ({ datum }));
+
+  it("lehnt eine Teilanfrage ab, wenn Tage fehlen", () => {
+    expect(() =>
+      checkRecipes({ tage: [{ datum: "2026-11-09", gerichte: [{ titel: "A" }] }] }, "", { days: three }),
+    ).toThrow();
+  });
+
+  it("nimmt bei alten App-Versionen mit ganzer Woche auch Teilergebnisse an", () => {
+    const week = [...three, ...["2026-11-12", "2026-11-13"].map((datum) => ({ datum }))];
+    const checked = checkRecipes({ tage: [{ datum: "2026-11-09", gerichte: [] }] }, "", { days: week }) as {
+      tage: unknown[];
+    };
+    expect(checked.tage.length).toBe(1);
   });
 });

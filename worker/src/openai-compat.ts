@@ -4,7 +4,14 @@
  * Adresse, Key und Modell kommen aus den Worker-Variablen; ohne Adresse ist der Anbieter aus.
  */
 import { type ChatCompletion, chatUsage, messages } from "./groq";
-import { attemptSignal, type Deps, type Env, type GenerateRequest, type GenerateResult, ProviderError } from "./types";
+import {
+  attemptSignal,
+  type Deps,
+  type Env,
+  type GenerateRequest,
+  type GenerateResult,
+  ProviderError,
+} from "./types";
 
 export function compatBase(url: string | undefined): string | undefined {
   const trimmed = url?.trim().replace(/\/+$/, "");

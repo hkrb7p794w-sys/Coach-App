@@ -177,7 +177,8 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
       // Einzelheiten nur ins Protokoll: Antworttexte der Anbieter gehören nicht in die App.
       deps.log(`[worker] ${String(body.task)}: ${error.message}`);
       return json(502, {
-        error: error.code === "ai_invalid" ? "KI-Antwort war nicht brauchbar" : "KI-Anbieter nicht erreichbar",
+        error:
+          error.code === "ai_invalid" ? "KI-Antwort war nicht brauchbar" : "KI-Anbieter nicht erreichbar",
         code: error.code,
       });
     }

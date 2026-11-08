@@ -13,6 +13,8 @@ const DIET_TEXT: Record<string, string> = {
   vegan: "Vegan: keine tierischen Produkte (kein Fleisch, Fisch, Ei, Milchprodukte, Honig).",
 };
 
+const MAX_PARTIAL_DAYS = 3;
+
 const SHAPE = `Antwortformat (JSON):
 {"tage": [{"datum": "JJJJ-MM-TT", "gerichte": [{"mahlzeit": "fruehstueck|mittagessen|abendessen|snack",
 "titel": str, "minuten": number, "zubereitung": [str, ...],
@@ -52,7 +54,7 @@ export function weeklyRecipesPrompt(input: Record<string, unknown>): string {
     favorites.length ? `Isst gern bzw. oft (gern einbauen): ${favorites.join(", ")}.` : "",
     gaps.length ? `Lücken der letzten Tage (gezielt ausgleichen): ${gaps.join("; ")}.` : "",
     "",
-    "Tagesziele (fest von der App berechnet, nicht ändern):",
+    "Tagesziele (fest von der App berechnet, nicht ändern). Liefere für JEDEN dieser Tage Gerichte:",
     ...(days.length ? days.map(dayLine) : ["- keine Tage"]),
     "",
     evidenceBlock(evidenceFrom(input)),
@@ -92,6 +94,10 @@ export function checkRecipes(output: unknown, _request: string, input: Record<st
       return { datum: value.datum, gerichte };
     });
   if (tage.length === 0) throw new GroundingError("KI-Antwort enthielt keine passenden Tage");
+  // Teilanfragen (bis 3 Tage) müssen vollständig sein; der nächste Anbieter liefert sonst die fehlenden Tage.
+  if (wanted.size <= MAX_PARTIAL_DAYS && tage.length < wanted.size) {
+    throw new GroundingError(`KI-Antwort enthielt nur ${tage.length} von ${wanted.size} Tagen`);
+  }
   return { tage };
 }
 

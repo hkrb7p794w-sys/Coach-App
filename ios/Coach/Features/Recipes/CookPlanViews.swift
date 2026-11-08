@@ -151,7 +151,8 @@ struct CookPlanView: View {
           Label(error, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.red)
         }
       } footer: {
-        Text("Gericht und Nährwerte schlägt die KI vor; Tellergrößen, Mengen und Haltbarkeit rechnet und prüft die App.")
+        Text(
+          "Gericht und Nährwerte schlägt die KI vor; Tellergrößen, Mengen und Haltbarkeit rechnet und prüft die App.")
       }
       if !viewModel.cookNotes.isEmpty {
         Section("Prüfung") {
@@ -166,8 +167,10 @@ struct CookPlanView: View {
             } label: {
               VStack(alignment: .leading, spacing: 2) {
                 Text(plan.title).font(.headline)
-                Text("\(plan.amount.label) · \(plan.people.map(\.name).joined(separator: " und ")) · \(plan.minutes) min")
-                  .font(.caption).foregroundStyle(.secondary)
+                Text(
+                  "\(plan.amount.label) · \(plan.people.map(\.name).joined(separator: " und ")) · \(plan.minutes) min"
+                )
+                .font(.caption).foregroundStyle(.secondary)
               }
             }
           }
@@ -256,7 +259,8 @@ struct CookPlanDetailView: View {
         Section {
           Button("Meine Portion eintragen …", systemImage: "plus") {
             nutrition.draft = NutritionViewModel.Draft(
-              title: plan.title, category: plan.meal, hint: "Aus Rezeptidee (Nährwerte KI-geschätzt)", items: mine.items)
+              title: plan.title, category: plan.meal, hint: "Aus Rezeptidee (Nährwerte KI-geschätzt)", items: mine.items
+            )
           }
         }
       }
@@ -309,8 +313,10 @@ struct CookPlanDetailView: View {
           LabeledContent("Tag \(index + 1)", value: place.label)
         }
       } else {
-        Label("Nach deiner Änderung reicht die Haltbarkeit nicht für alle Tage.", systemImage: "exclamationmark.triangle")
-          .foregroundStyle(.orange)
+        Label(
+          "Nach deiner Änderung reicht die Haltbarkeit nicht für alle Tage.", systemImage: "exclamationmark.triangle"
+        )
+        .foregroundStyle(.orange)
       }
       if !plan.storageHint.isEmpty { Text(plan.storageHint).font(.footnote) }
       if !plan.reheatHint.isEmpty { Text("Aufwärmen: \(plan.reheatHint)").font(.footnote) }
@@ -371,7 +377,8 @@ struct CookPartnersView: View {
       Section {
         if let link = CookShareService.inviteLink(ai: model.ai) {
           ShareLink(
-            item: "Magst du Rezepte mit mir zusammen planen? Du entscheidest selbst, was du freigibst: \(link.absoluteString)"
+            item:
+              "Magst du Rezepte mit mir zusammen planen? Du entscheidest selbst, was du freigibst: \(link.absoluteString)"
           ) {
             Label("Person einladen", systemImage: "person.badge.plus")
           }
@@ -431,7 +438,8 @@ struct CookPartnersView: View {
     } header: {
       Text("Verbundene Personen")
     } footer: {
-      Text("Verbunden sind nur die Angaben, die die andere Person freigegeben hat. Sie kann das jederzeit zurückziehen.")
+      Text(
+        "Verbunden sind nur die Angaben, die die andere Person freigegeben hat. Sie kann das jederzeit zurückziehen.")
     }
   }
 
@@ -443,7 +451,9 @@ struct CookPartnersView: View {
       Toggle("Allergene und Unverträglichkeiten", isOn: $fields.allergens)
       Toggle("Was ich nicht mag", isOn: $fields.dislikes)
       Text("Wird freigegeben: \(summary(draft))").font(.footnote).foregroundStyle(.secondary)
-      Button(model.settings.cookRelease == nil ? "Freigeben" : "Freigabe aktualisieren", systemImage: "square.and.arrow.up") {
+      Button(
+        model.settings.cookRelease == nil ? "Freigeben" : "Freigabe aktualisieren", systemImage: "square.and.arrow.up"
+      ) {
         Task { await publish() }
       }
       .disabled(isBusy || name.trimmingCharacters(in: .whitespaces).isEmpty)

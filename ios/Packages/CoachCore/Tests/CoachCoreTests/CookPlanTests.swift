@@ -32,7 +32,8 @@ private let me = CookPerson(
 private let partner = CookPerson(
   id: "abcdefghij",
   share: CookShare(
-    name: "Lena", kcal: 1_800, protein: 100, carbs: 200, fat: 60, diet: .vegetarian, allergens: [.nuts], dislikes: "Pilze"
+    name: "Lena", kcal: 1_800, protein: 100, carbs: 200, fat: 60, diet: .vegetarian, allergens: [.nuts],
+    dislikes: "Pilze"
   ))
 private let created = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -108,7 +109,8 @@ struct CookPlanTests {
     #expect(CookPlanner.mergedDiet([me, partner]) == .vegetarian)
     #expect(CookPlanner.mergedAllergens([me, partner]) == [.nuts])
     let result = CookPlanner.plans(
-      output: output(recipeJSON(ingredient: "Hähnchenbrust")), people: [me, partner], meal: .dinner, amount: .portions(2),
+      output: output(recipeJSON(ingredient: "Hähnchenbrust")), people: [me, partner], meal: .dinner,
+      amount: .portions(2),
       source: "KI", created: created)
     #expect(result.plans.isEmpty)
     #expect(result.notes.first?.contains("Fleisch") == true)
@@ -157,7 +159,8 @@ struct CookPlanTests {
   /// Sagt die KI 7 Tage, gelten trotzdem höchstens 3.
   @Test func fridgeClaimIsCapped() throws {
     let result = CookPlanner.plans(
-      output: output(recipeJSON(fridge: 7, freezable: false)), people: [me], meal: .dinner, amount: .days(5), source: "KI",
+      output: output(recipeJSON(fridge: 7, freezable: false)), people: [me], meal: .dinner, amount: .days(5),
+      source: "KI",
       created: created)
     #expect(result.plans.isEmpty)
     #expect(result.notes.first?.contains("hält nicht") == true)
@@ -186,7 +189,8 @@ struct CookPlanTests {
   private func week(_ kcal: Double) -> [RecipeDayTarget] {
     [kcal - 200, kcal + 200].enumerated().map { offset, value in
       RecipeDayTarget(
-        day: CalendarDay(year: 2026, month: 11, day: 9 + offset), sessions: [], dayType: .restDay, kcal: value, protein: 120,
+        day: CalendarDay(year: 2026, month: 11, day: 9 + offset), sessions: [], dayType: .restDay, kcal: value,
+        protein: 120,
         carbs: 250, fat: 70)
     }
   }
@@ -208,7 +212,8 @@ struct CookPlanTests {
 
   @Test func shareAveragesWeekTargets() {
     let share = CookPlanner.share(
-      name: "A", week: week(2_000), diet: .omnivore, preferences: RecipePreferences(), fields: CookShareFields(), safety: .free)
+      name: "A", week: week(2_000), diet: .omnivore, preferences: RecipePreferences(), fields: CookShareFields(),
+      safety: .free)
     #expect(share.kcal == 2_000)
     #expect(share.protein == 120)
   }
@@ -246,7 +251,8 @@ struct CookPlanTests {
   private func days(_ count: Int) -> [RecipeDayTarget] {
     (0..<count).map {
       RecipeDayTarget(
-        day: CalendarDay(year: 2026, month: 11, day: 9 + $0), sessions: [], dayType: .restDay, kcal: 2_000, protein: 120,
+        day: CalendarDay(year: 2026, month: 11, day: 9 + $0), sessions: [], dayType: .restDay, kcal: 2_000,
+        protein: 120,
         carbs: 250, fat: 70)
     }
   }
@@ -282,6 +288,6 @@ struct CookPlanTests {
   }
 
   @Test func cookPlanCountsAsPlanningTask() {
-    #expect(AIPolicy.allows(.full, task: "cook_plan"))
+    #expect(AIPolicy.allows(.full, task: "cook_plan", trigger: .user))
   }
 }

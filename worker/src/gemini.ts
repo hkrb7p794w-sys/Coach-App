@@ -94,7 +94,9 @@ function requestBody(request: GenerateRequest, model: string): unknown {
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
       ...(request.json ? { responseMimeType: "application/json" } : {}),
       // Nur Gemini 3 kennt die Stufe; ältere Ausweichmodelle würden die Anfrage ablehnen.
-      ...(request.lowThinking && model.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
+      ...(request.lowThinking && model.startsWith("gemini-3")
+        ? { thinkingConfig: { thinkingLevel: "low" } }
+        : {}),
     },
   };
 }
