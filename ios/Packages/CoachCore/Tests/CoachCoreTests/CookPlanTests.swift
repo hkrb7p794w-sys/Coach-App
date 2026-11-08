@@ -258,8 +258,8 @@ struct CookPlanTests {
   }
 
   @Test func weekIsSplitIntoSmallRequests() {
-    #expect(RecipePlanner.batches(days(7)).map(\.count) == [3, 2, 2])
-    #expect(RecipePlanner.batches(days(3)).map(\.count) == [3])
+    #expect(RecipePlanner.batches(days(7)).map(\.count) == [2, 2, 2, 1])
+    #expect(RecipePlanner.batches(days(2)).map(\.count) == [2])
     #expect(RecipePlanner.batches([]).isEmpty)
     #expect(RecipePlanner.batches(days(7)).flatMap { $0 } == days(7))
   }

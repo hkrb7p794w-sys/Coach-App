@@ -16,6 +16,7 @@ import {
 /** Gemma 4 26B A4B: Apache 2.0, Bild-Eingabe, 256k Kontext, günstig (9.091/27.273 Neurons je Mio. Tokens). */
 export const DEFAULT_WORKERS_AI_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const RETRY_DELAYS_MS = [0, 1500];
+const MAX_TOKENS = 9_000;
 
 /** Antwort ist entweder im Chat-Completions-Format oder (ältere Modelle) `{response, usage}`. */
 type WorkersAiOutput = ChatCompletion & { response?: unknown };
@@ -51,7 +52,8 @@ export async function generateWithWorkersAi(
   const model = env.WORKERS_AI_MODEL?.trim() || DEFAULT_WORKERS_AI_MODEL;
   const input = {
     messages: messages(request),
-    max_tokens: request.maxOutputTokens ?? 4096,
+    // Bei rund 140 Tokens je Sekunde: Eine ausufernde Antwort endet so vor dem Zeitlimit und löst einen Fehler aus.
+    max_tokens: Math.min(request.maxOutputTokens ?? 4096, MAX_TOKENS),
     temperature: request.temperature ?? 0.4,
     ...(request.json ? { response_format: { type: "json_object" } } : {}),
     // Denkmodus aus: kürzere Antworten, weniger Neurons, das JSON kommt direkt.

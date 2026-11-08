@@ -499,7 +499,7 @@ public enum CookPlanner {
 }
 
 extension RecipePlanner {
-  /// Eine Woche in Abfragen zu höchstens drei Tagen: Eine Antwort über sieben Tage sprengt das Antwortlimit der KI.
+  /// Eine Woche in Abfragen zu höchstens zwei Tagen: Eine Antwort über sieben Tage sprengt das Antwortlimit der KI.
   public static func batches(_ targets: [RecipeDayTarget]) -> [[RecipeDayTarget]] {
     guard targets.count > maxDaysPerRequest else { return targets.isEmpty ? [] : [targets] }
     let parts = Int((Double(targets.count) / Double(maxDaysPerRequest)).rounded(.up))
@@ -513,7 +513,7 @@ extension RecipePlanner {
     return result
   }
 
-  static let maxDaysPerRequest = 3
+  static let maxDaysPerRequest = 2
 }
 
 extension WeeklyRecipePlan {
