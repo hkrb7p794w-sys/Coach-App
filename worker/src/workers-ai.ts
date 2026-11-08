@@ -4,7 +4,14 @@
  * nicht gespeichert und nicht zum Training genutzt (developers.cloudflare.com/workers-ai/platform/data-usage).
  */
 import { type ChatCompletion, chatUsage, messages } from "./groq";
-import { type Deps, type Env, type GenerateRequest, type GenerateResult, ProviderError } from "./types";
+import {
+  attemptMilliseconds,
+  type Deps,
+  type Env,
+  type GenerateRequest,
+  type GenerateResult,
+  ProviderError,
+} from "./types";
 
 /** Gemma 4 26B A4B: Apache 2.0, Bild-Eingabe, 256k Kontext, günstig (9.091/27.273 Neurons je Mio. Tokens). */
 export const DEFAULT_WORKERS_AI_MODEL = "@cf/google/gemma-4-26b-a4b-it";
@@ -27,6 +34,14 @@ function retryable(message: string): boolean {
   return /3040|capacity|429|5\d\d|timeout|busy|neurons|daily/i.test(message);
 }
 
+function withTimeout<T>(work: Promise<T>, milliseconds: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), milliseconds);
+  });
+  return Promise.race([work, limit]).finally(() => clearTimeout(timer));
+}
+
 export async function generateWithWorkersAi(
   request: GenerateRequest,
   env: Env,
@@ -45,9 +60,15 @@ export async function generateWithWorkersAi(
   let lastError: ProviderError | undefined;
   for (const delay of RETRY_DELAYS_MS) {
     if (delay) await deps.sleep(delay);
+    if (request.deadline !== undefined && deps.now() >= request.deadline) {
+      throw lastError ?? new ProviderError(`Workers AI (${model}): Zeitlimit erreicht`, true);
+    }
     let output: WorkersAiOutput;
     try {
-      output = (await env.AI.run(model, input, { rejectIfBusy: true })) as WorkersAiOutput;
+      output = (await withTimeout(
+        env.AI.run(model, input, { rejectIfBusy: true }),
+        attemptMilliseconds(request, deps),
+      )) as WorkersAiOutput;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       lastError = new ProviderError(`Workers AI (${model}): ${message}`, retryable(message));
@@ -56,6 +77,9 @@ export async function generateWithWorkersAi(
     }
     const text = extract(output);
     if (!text) throw new ProviderError(`Workers AI (${model}) hat leeren Text geliefert`, true);
+    if (request.json && output.choices?.[0]?.finish_reason === "length") {
+      throw new ProviderError(`Workers AI (${model}): Antwort abgeschnitten`, false);
+    }
     return { text, model, provider: "workers_ai", usage: chatUsage(output) };
   }
   throw lastError ?? new ProviderError("Workers AI ohne Ergebnis", true);

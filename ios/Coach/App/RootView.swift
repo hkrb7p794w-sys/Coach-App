@@ -5,6 +5,7 @@ struct RootView: View {
   @Environment(AppModel.self) private var model
   @State private var invite: LeagueInvite?
   @State private var sharedMeal: SharedMealLink?
+  @State private var cookLink: CookLink?
   @State private var router = AppRouter.shared
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
@@ -64,7 +65,9 @@ struct RootView: View {
     // Geteilte Mahlzeit coach://meal/<code>.
     // Ziel in der App coach://open/<route> (Widgets, Kurzbefehle).
     .onOpenURL { url in
-      if let route = AppRoute(url: url) {
+      if let link = CookLink(url: url) {
+        cookLink = link
+      } else if let route = AppRoute(url: url) {
         router.open(route, mealCategory: AppRoute.mealCategory(from: url))
       } else if let link = SharedMealLink(url: url) {
         sharedMeal = link
@@ -73,6 +76,14 @@ struct RootView: View {
       }
     }
     .sheet(item: $sharedMeal) { link in ReceivedMealSheet(code: link.code) }
+    .sheet(item: $cookLink) { link in
+      NavigationStack {
+        switch link {
+        case .partner(let code): CookPartnersView(initialCode: code)
+        case .release: CookPartnersView(initialCode: nil)
+        }
+      }
+    }
     .sheet(isPresented: Binding(get: { invite != nil }, set: { if !$0 { invite = nil } })) {
       if let invite { JoinLeagueSheet(invite: invite) }
     }

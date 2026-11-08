@@ -4,7 +4,7 @@
  * Adresse, Key und Modell kommen aus den Worker-Variablen; ohne Adresse ist der Anbieter aus.
  */
 import { type ChatCompletion, chatUsage, messages } from "./groq";
-import { type Deps, type Env, type GenerateRequest, type GenerateResult, ProviderError } from "./types";
+import { attemptSignal, type Deps, type Env, type GenerateRequest, type GenerateResult, ProviderError } from "./types";
 
 export function compatBase(url: string | undefined): string | undefined {
   const trimmed = url?.trim().replace(/\/+$/, "");
@@ -35,6 +35,7 @@ export async function generateWithOpenAiCompat(
         temperature: request.temperature ?? 0.4,
         ...(request.json ? { response_format: { type: "json_object" } } : {}),
       }),
+      signal: attemptSignal(request, deps),
     });
   } catch (error) {
     throw new ProviderError(`Eigener Server nicht erreichbar: ${String(error)}`, true);
@@ -49,5 +50,8 @@ export async function generateWithOpenAiCompat(
   const body = JSON.parse(raw) as ChatCompletion;
   const text = body.choices?.[0]?.message?.content?.trim();
   if (!text) throw new ProviderError(`Eigener Server (${model}) hat leeren Text geliefert`, true);
+  if (request.json && body.choices?.[0]?.finish_reason === "length") {
+    throw new ProviderError(`Eigener Server (${model}): Antwort abgeschnitten`, false);
+  }
   return { text, model, provider: "openai_compat", usage: chatUsage(body) };
 }

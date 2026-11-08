@@ -4,6 +4,7 @@
  * Modellliste (gleiches Selbstheilungsprinzip wie bei Gemini).
  */
 import {
+  attemptSignal,
   type Deps,
   type Env,
   type GenerateRequest,
@@ -35,7 +36,7 @@ export function pickModel(available: string[], preference: RegExp[], current: st
 
 /** Antwort einer OpenAI-kompatiblen Chat-Completions-API (Groq, Workers AI, eigener Server). */
 export interface ChatCompletion {
-  choices?: { message?: { content?: string | null } }[];
+  choices?: { message?: { content?: string | null }; finish_reason?: string | null }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
@@ -97,6 +98,7 @@ async function call(
       temperature: request.temperature ?? 0.4,
       ...(request.json ? { response_format: { type: "json_object" } } : {}),
     }),
+    signal: attemptSignal(request, deps),
   });
   return { status: response.status, body: await response.text() };
 }
@@ -117,6 +119,9 @@ export async function generateWithGroq(
   let lastError: ProviderError | undefined;
   for (const delay of RETRY_DELAYS_MS) {
     if (delay) await deps.sleep(delay);
+    if (request.deadline !== undefined && deps.now() >= request.deadline) {
+      throw lastError ?? new ProviderError(`Groq (${model}): Zeitlimit erreicht`, true);
+    }
     let result: { status: number; body: string };
     try {
       result = await call(model, request, env, deps);
@@ -148,6 +153,9 @@ export async function generateWithGroq(
     const body = JSON.parse(result.body) as ChatCompletion;
     const text = body.choices?.[0]?.message?.content?.trim();
     if (!text) throw new ProviderError(`Groq (${model}) hat leeren Text geliefert`, true);
+    if (request.json && body.choices?.[0]?.finish_reason === "length") {
+      throw new ProviderError(`Groq (${model}): Antwort abgeschnitten`, false);
+    }
     return { text, model, provider: "groq", usage: chatUsage(body) };
   }
   throw lastError ?? new ProviderError("Groq ohne Ergebnis", true);

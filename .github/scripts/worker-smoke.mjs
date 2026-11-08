@@ -65,8 +65,33 @@ async function run(label, count, provider) {
   }
 }
 
+async function cook(label, plates, partner, prep) {
+  const started = Date.now();
+  const personen = [{ bezeichnung: "Person 1", teller: plates, kcal: 720, protein_g: 48, kohlenhydrate_g: 84, fett_g: 24 }];
+  if (partner) personen.push({ bezeichnung: "Person 2", teller: partner, kcal: 540, protein_g: 30, kohlenhydrate_g: 60, fett_g: 18 });
+  const response = await fetch(`${base}/v1/ai/generate`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      task: "cook_plan",
+      provider: "auto",
+      input: { personen, mahlzeit: "abendessen", mahlzeiten_je_person: plates, vorkochen: prep, diet: "vegetarisch", allergens: ["Erdnüsse"], dislikes: "Pilze", maxMinutes: 40, favorites: [] },
+    }),
+    signal: AbortSignal.timeout(150_000),
+  });
+  const body = await response.json().catch(() => ({}));
+  const rezepte = body.output?.rezepte ?? [];
+  console.log(JSON.stringify({
+    label, status: response.status, sekunden: Math.round((Date.now() - started) / 1000), provider: body.provider, model: body.model,
+    tokens: body.usage?.outputTokens, code: body.code, error: body.error,
+    rezepte: rezepte.map((r) => ({ titel: r.titel, zutaten: r.zutaten?.length, vorkochen: r.vorkochen_geeignet, haltbar: r.haltbarkeit_tage, einfrierbar: r.einfrierbar, kompromiss: (r.kompromiss ?? "").slice(0, 160) })),
+  }));
+}
+
 const health = await (await fetch(`${base}/v1/health`)).json();
 console.log(JSON.stringify({ version: health.version, anbieter: health.providerList?.map((p) => [p.id, p.enabled, p.model]) }));
-await run("wie die App (auto), Woche", 7, "auto");
-await run("ohne Gemini (privat), Woche", 7, "privat");
-await run("auto, zwei Tage", 2, "auto");
+await run("wie die App (auto), drei Tage", 3, "auto");
+await run("ohne Gemini (privat), drei Tage", 3, "privat");
+await cook("zwei Personen, zwei Portionen", 2, 2, false);
+await cook("zwei Personen, drei Tage vorkochen", 3, 3, true);
+await cook("eine Person, vier Tage vorkochen", 4, 0, true);

@@ -21,6 +21,15 @@ struct RecipesView: View {
     let plan = viewModel.plan
     List {
       Section {
+        NavigationLink {
+          CookPlanView(viewModel: viewModel, favorites: foods.prefix(10).map(\.name))
+        } label: {
+          Label("Kochen planen: für wen, wie viel", systemImage: "person.2")
+        }
+      } footer: {
+        Text("Für dich, eine verbundene Person oder euch beide; auch zum Vorkochen für mehrere Tage.")
+      }
+      Section {
         if let first = viewModel.targets.first, let last = viewModel.targets.last {
           Text("Woche \(Formatters.shortDate(first.day)) – \(Formatters.shortDate(last.day))").font(.headline)
         }

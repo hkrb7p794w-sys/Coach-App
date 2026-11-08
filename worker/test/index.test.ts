@@ -75,7 +75,7 @@ describe("worker", () => {
     const deps = fakeDeps([() => textResponse(400, "a"), () => textResponse(401, "b")]);
     const response = await handle(post({ task: "ping" }), env, deps);
     expect(response.status).toBe(502);
-    expect(((await response.json()) as { error: string }).error).toContain("Groq");
+    expect(((await response.json()) as { code: string }).code).toBe("ai_unavailable");
   });
 
   it("vergleicht Tokens vollständig", () => {

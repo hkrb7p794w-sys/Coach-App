@@ -26,8 +26,8 @@ struct CaptureSheet: View {
 
   var body: some View {
     NavigationStack {
+      // Erst die Wege zum Erfassen, ohne Scrollen erreichbar; Vorschläge und Rezepte kommen danach.
       Form {
-        CaptureShortcutsSection(shortcuts: shortcuts) { dismiss() }
         Section {
           HStack(spacing: 12) {
             if CameraPicker.isAvailable {
@@ -50,6 +50,12 @@ struct CaptureSheet: View {
               Label("Foto", systemImage: "photo").frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.bordered)
+          }
+          .listRowBackground(Color.clear)
+          HStack(spacing: 8) {
+            captureWay("Barcode", symbol: "barcode.viewfinder") { choose(.barcode) }
+            captureWay("Manuell", symbol: "square.and.pencil") { choose(.manual) }
+            captureWay("Nur kcal", symbol: "bolt") { choose(.quick) }
           }
           .listRowBackground(Color.clear)
           if let photo, let image = UIImage(data: photo) {
@@ -104,11 +110,7 @@ struct CaptureSheet: View {
               : "Mengen nennen, wenn bekannt – auch mehrere Mahlzeiten auf einmal. Tippen auf „Sprechen“ diktiert, "
                 + "praktisch beim Kochen.")
         }
-        Section {
-          Button("Barcode scannen", systemImage: "barcode.viewfinder") { choose(.barcode) }
-          Button("Nur Kalorien (Schätzung)", systemImage: "bolt") { choose(.quick) }
-          Button("Manuell eingeben", systemImage: "square.and.pencil") { choose(.manual) }
-        }
+        CaptureShortcutsSection(shortcuts: shortcuts) { dismiss() }
       }
       .navigationTitle("Erfassen")
       .navigationBarTitleDisplayMode(.inline)
@@ -140,6 +142,18 @@ struct CaptureSheet: View {
         }
       }
     }
+  }
+
+  private func captureWay(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      VStack(spacing: 4) {
+        Image(systemName: symbol)
+        Text(title).font(.footnote).lineLimit(1).minimumScaleFactor(0.8)
+      }
+      .frame(maxWidth: .infinity, minHeight: 52)
+    }
+    .buttonStyle(.bordered)
+    .accessibilityElement(children: .combine)
   }
 
   /// Erst schließen, dann den nächsten Bildschirm öffnen (zwei Sheets gleichzeitig zeigt iOS nicht).

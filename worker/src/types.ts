@@ -44,6 +44,10 @@ export interface GenerateRequest {
   temperature?: number;
   /** Längere Antworten (z. B. Wochenrezepte); Standard 4096. */
   maxOutputTokens?: number;
+  /** Wenig Denk-Tokens: Sie zählen zum Antwortlimit und sind bei großen JSON-Antworten sonst das Problem. */
+  lowThinking?: boolean;
+  /** Zeitpunkt (ms), bis zu dem die Antwort da sein muss; die App wartet nicht länger. */
+  deadline?: number;
 }
 
 export type ProviderId = "gemini" | "groq" | "workers_ai" | "openai_compat";
@@ -86,4 +90,16 @@ export class ProviderError extends Error {
     super(message);
     this.name = "ProviderError";
   }
+}
+
+const ATTEMPT_MS = 75_000;
+
+/** Zeit für einen einzelnen Versuch: begrenzt, und nie länger als die App noch wartet. */
+export function attemptMilliseconds(request: GenerateRequest, deps: Deps): number {
+  if (request.deadline === undefined) return ATTEMPT_MS;
+  return Math.min(ATTEMPT_MS, Math.max(request.deadline - deps.now(), 1_000));
+}
+
+export function attemptSignal(request: GenerateRequest, deps: Deps): AbortSignal {
+  return AbortSignal.timeout(attemptMilliseconds(request, deps));
 }

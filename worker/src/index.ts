@@ -13,7 +13,6 @@
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { handleAndroid } from "./android";
 import { authenticate, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
-import { GroundingError } from "./grounding";
 import { handleLeague, type LeagueStore } from "./league";
 import { listPriceUsd, parsePreference, providerInfo } from "./providers";
 import { handleShare, type ShareStore, sharePage } from "./share";
@@ -24,6 +23,8 @@ import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 export const VERSION = "0.4.0";
 export const MAX_BODY_BYTES = 8 * 1024 * 1024;
 export const MAX_IMAGES = 4;
+/** Die App wartet 120 s; vorher soll eine verständliche Antwort kommen statt eines Abbruchs. */
+export const AI_DEADLINE_MS = 105_000;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/heic", "image/webp"]);
 
 function json(status: number, body: unknown): Response {
@@ -134,6 +135,13 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     return json(400, { error: "Diese Aufgabe nimmt keine Bilder an" });
 
   const { system, prompt } = task.build(input as Record<string, unknown>, images.length);
+  // Unbrauchbare Antworten (kein JSON, nichts belegt) gelten als Ausfall des Anbieters: Der nächste kommt dran.
+  const accept = (text: string): unknown => {
+    const output: unknown = task.json ? parseJsonOutput(text) : text;
+    return task.ground
+      ? task.ground(output, `${system ?? ""}\n${prompt}`, input as Record<string, unknown>)
+      : output;
+  };
   try {
     const result = await generate(
       {
@@ -143,32 +151,16 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
         images,
         temperature: task.temperature,
         maxOutputTokens: task.maxOutputTokens,
+        lowThinking: task.lowThinking,
+        deadline: deps.now() + AI_DEADLINE_MS,
       },
       env,
       deps,
       parsePreference(body.provider),
+      accept,
     );
-    let output: unknown = result.text;
-    if (task.json) {
-      try {
-        output = parseJsonOutput(result.text);
-      } catch {
-        return json(502, { error: "KI-Antwort ist kein gültiges JSON", model: result.model });
-      }
-    }
-    if (task.ground) {
-      try {
-        output = task.ground(output, `${system ?? ""}\n${prompt}`, input as Record<string, unknown>);
-      } catch (error) {
-        if (error instanceof GroundingError) {
-          deps.log(`[worker] ${error.message} (${result.model})`);
-          return json(502, { error: error.message, model: result.model });
-        }
-        throw error;
-      }
-    }
     return json(200, {
-      output,
+      output: result.output,
       model: result.model,
       provider: result.provider,
       ...(result.usage
@@ -181,7 +173,14 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
         : {}),
     });
   } catch (error) {
-    if (error instanceof AllProvidersFailed) return json(502, { error: error.message });
+    if (error instanceof AllProvidersFailed) {
+      // Einzelheiten nur ins Protokoll: Antworttexte der Anbieter gehören nicht in die App.
+      deps.log(`[worker] ${String(body.task)}: ${error.message}`);
+      return json(502, {
+        error: error.code === "ai_invalid" ? "KI-Antwort war nicht brauchbar" : "KI-Anbieter nicht erreichbar",
+        code: error.code,
+      });
+    }
     deps.log(`[worker] Unerwarteter Fehler: ${String(error)}`);
     return json(500, { error: "Interner Fehler" });
   }

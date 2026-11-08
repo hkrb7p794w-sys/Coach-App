@@ -94,25 +94,174 @@ final class RecipeViewModel {
     guard !isWorking, !targets.isEmpty else { return }
     isWorking = true
     defer { isWorking = false }
+    // Nebeneinander in Teilen: Eine Antwort über sieben Tage überschreitet das Antwortlimit der KI.
+    let batches = RecipePlanner.batches(targets)
+    var parts: [WeeklyRecipePlan] = []
+    var failures: [String] = []
+    await withTaskGroup(of: BatchResult.self) { group in
+      for batch in batches {
+        group.addTask { @MainActor in
+          await self.requestBatch(batch, ai: ai, settings: settings, favorites: favorites, now: now)
+        }
+      }
+      for await result in group {
+        switch result {
+        case .plan(let plan): parts.append(plan)
+        case .failed(let message): failures.append(message)
+        }
+      }
+    }
+    guard var plan = WeeklyRecipePlan.merged(parts, created: now) else {
+      errorMessage = failures.first ?? "Die KI hat keine brauchbaren Rezepte geliefert. Bitte erneut versuchen."
+      return
+    }
+    if !failures.isEmpty {
+      plan.notes.append("Nicht alle Tage konnten erstellt werden. „Neu erstellen“ versucht es noch einmal.")
+    }
+    store(plan)
+    errorMessage = nil
+  }
+
+  private enum BatchResult {
+    case plan(WeeklyRecipePlan)
+    case failed(String)
+  }
+
+  /// Ein Teil der Woche. Bei einem vorübergehenden Ausfall genau ein zweiter Versuch, damit keine Kosten auflaufen.
+  private func requestBatch(
+    _ days: [RecipeDayTarget], ai: AIClient, settings: CoachSettings, favorites: [String], now: Date
+  ) async -> BatchResult {
     let nutrition = settings.nutrition
     let input = RecipePlanner.input(
-      days: targets, preferences: settings.recipes, diet: nutrition.diet, goal: settings.coachingProfile.goal.label,
+      days: days, preferences: settings.recipes, diet: nutrition.diet, goal: settings.coachingProfile.goal.label,
       gaps: gaps, favorites: favorites)
+    for attempt in 0..<2 {
+      do {
+        let response = try await ai.run(task: "weekly_recipes", input: input)
+        guard
+          let plan = RecipePlanner.plan(
+            output: response.output, targets: days, diet: nutrition.diet, allergens: settings.recipes.allergens,
+            source: "KI · \(response.model)", created: now)
+        else { return .failed("Die KI hat keine brauchbaren Rezepte geliefert. Bitte erneut versuchen.") }
+        return .plan(plan)
+      } catch AIClientError.http(let status, _) where attempt == 0 && AIErrorText.isTemporary(status: status) {
+        try? await Task.sleep(for: .seconds(2))
+      } catch {
+        return .failed(error.localizedDescription)
+      }
+    }
+    return .failed(AIErrorText.message(status: 502, code: nil, detail: ""))
+  }
+
+  // MARK: - Gemeinsam kochen und vorkochen
+
+  /// Kochpläne dieses Geräts, neueste zuerst.
+  private(set) var cookPlans: [CookPlan] = []
+  private(set) var cookNotes: [String] = []
+  private(set) var isCooking = false
+  var cookError: String?
+
+  /// Eigene Angaben für den Plan: dieselben Tagesziele wie in der Wochenübersicht.
+  func myself(settings: CoachSettings, garminProfile: GarminProfile?, today: CalendarDay = CalendarDay(date: .now))
+    -> CookPerson
+  {
+    let body = settings.nutrition.profile(garmin: garminProfile, on: today)
+    let share = CookPlanner.share(
+      name: "Ich", week: targets, diet: settings.nutrition.diet, preferences: settings.recipes,
+      fields: CookShareFields(), safety: GoalRules.weightGuard(settings: settings.nutrition, body: body))
+    return CookPerson(id: CookPerson.meID, share: share)
+  }
+
+  /// Vorschläge erstellen. Freigaben werden vorher neu geholt: Was zurückgezogen ist, wird nicht mehr verwendet.
+  func createCookPlans(
+    audience: CookAudience, partner: CookPartner?, meal: MealCategory, amount: CookAmount, ai: AIClient,
+    settings: CoachSettings, garminProfile: GarminProfile?, favorites: [String], now: Date = .now
+  ) async {
+    guard ai.isConfigured else {
+      cookError = "Für Rezeptideen muss der KI-Worker eingerichtet sein (Einstellungen › KI-Worker)."
+      return
+    }
+    guard !isCooking else { return }
+    isCooking = true
+    defer { isCooking = false }
+    cookError = nil
     do {
-      let response = try await ai.run(task: "weekly_recipes", input: input)
-      guard
-        let plan = RecipePlanner.plan(
-          output: response.output, targets: targets, diet: nutrition.diet, allergens: settings.recipes.allergens,
-          source: "KI · \(response.model)", created: now)
-      else {
-        errorMessage = "Die KI hat keine brauchbaren Rezepte geliefert. Bitte erneut versuchen."
+      var people: [CookPerson] = []
+      if audience != .partner { people.append(myself(settings: settings, garminProfile: garminProfile)) }
+      if audience != .me {
+        guard let partner else {
+          cookError = "Verbinde zuerst eine Person unter „Gemeinsam kochen“."
+          return
+        }
+        let fresh = try await CookShareService.fetch(partner.code, ai: ai)
+        if let index = settings.cookPartners.firstIndex(where: { $0.code == partner.code }) {
+          settings.cookPartners[index].share = fresh
+        }
+        people.append(CookPerson(id: partner.code, share: fresh))
+      }
+      let input = CookPlanner.input(
+        people: people, meal: meal, amount: amount, preferences: settings.recipes, favorites: favorites)
+      let response = try await runCookPlan(ai: ai, input: input)
+      let result = CookPlanner.plans(
+        output: response.output, people: people, meal: meal, amount: amount, source: "KI · \(response.model)",
+        created: now)
+      cookNotes = result.notes
+      guard !result.plans.isEmpty else {
+        cookError = "Kein vorgeschlagenes Rezept passte zu euren Angaben. Bitte erneut versuchen."
         return
       }
-      store(plan)
-      errorMessage = nil
+      cookPlans = result.plans + cookPlans.prefix(12)
+      storeCookPlans()
+    } catch AIClientError.http(404, _) {
+      if let partner { forget(partner, settings: settings) }
+      cookError = "Die Freigabe wurde zurückgezogen oder ist abgelaufen. Die gespeicherten Angaben wurden gelöscht."
     } catch {
-      errorMessage = error.localizedDescription
+      cookError = error.localizedDescription
     }
+  }
+
+  private func runCookPlan(ai: AIClient, input: [String: JSONValue]) async throws -> AIResponse {
+    do {
+      return try await ai.run(task: "cook_plan", input: input)
+    } catch AIClientError.http(let status, _) where AIErrorText.isTemporary(status: status) {
+      try? await Task.sleep(for: .seconds(2))
+      return try await ai.run(task: "cook_plan", input: input)
+    }
+  }
+
+  func update(_ plan: CookPlan) {
+    guard let index = cookPlans.firstIndex(where: { $0.id == plan.id }) else { return }
+    cookPlans[index] = plan
+    storeCookPlans()
+  }
+
+  func delete(_ plan: CookPlan) {
+    cookPlans.removeAll { $0.id == plan.id }
+    storeCookPlans()
+  }
+
+  /// Verbindung lösen: Auch Pläne mit den Angaben dieser Person werden gelöscht.
+  func forget(_ partner: CookPartner, settings: CoachSettings) {
+    settings.cookPartners.removeAll { $0.code == partner.code }
+    cookPlans.removeAll { plan in plan.people.contains { $0.id == partner.code } }
+    storeCookPlans()
+  }
+
+  func loadCookPlans() {
+    guard cookPlans.isEmpty, let url = Self.cookPlansURL, let data = try? Data(contentsOf: url) else { return }
+    cookPlans = (try? JSONDecoder().decode([CookPlan].self, from: data)) ?? []
+  }
+
+  private func storeCookPlans() {
+    guard let url = Self.cookPlansURL, let data = try? JSONEncoder().encode(cookPlans) else { return }
+    try? data.write(to: url, options: .atomic)
+  }
+
+  static var cookPlansURL: URL? {
+    try? FileManager.default.url(
+      for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+    )
+    .appending(path: "cook-plans.json")
   }
 
   /// Rezept als Mahlzeit von heute eintragen (für eine Person).

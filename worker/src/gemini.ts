@@ -6,6 +6,7 @@
  * Pausen kürzer als im Add-on, weil die App auf die Antwort wartet.
  */
 import {
+  attemptSignal,
   type Deps,
   type Env,
   type GenerateRequest,
@@ -79,7 +80,7 @@ async function pickFallback(current: string, env: Env, deps: Deps): Promise<stri
   return state.fallbackModel;
 }
 
-function requestBody(request: GenerateRequest): unknown {
+function requestBody(request: GenerateRequest, model: string): unknown {
   const parts: unknown[] = [{ text: request.prompt }];
   for (const image of request.images) {
     parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
@@ -92,6 +93,8 @@ function requestBody(request: GenerateRequest): unknown {
       maxOutputTokens: request.maxOutputTokens ?? 4096,
       ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
       ...(request.json ? { responseMimeType: "application/json" } : {}),
+      // Nur Gemini 3 kennt die Stufe; ältere Ausweichmodelle würden die Anfrage ablehnen.
+      ...(request.lowThinking && model.startsWith("gemini-3") ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
     },
   };
 }
@@ -146,12 +149,16 @@ async function tryModel(
   let lastError: ProviderError | undefined;
   for (const [attempt, delay] of RETRY_DELAYS_MS.entries()) {
     if (delay) await deps.sleep(delay);
+    if (request.deadline !== undefined && deps.now() >= request.deadline) {
+      throw lastError ?? new ProviderError(`Gemini (${model}): Zeitlimit erreicht`, true);
+    }
     let response: Response;
     try {
       response = await deps.fetch(`${BASE}/models/${model}:generateContent`, {
         method: "POST",
         headers: { "x-goog-api-key": env.GEMINI_API_KEY ?? "", "content-type": "application/json" },
-        body: JSON.stringify(requestBody(request)),
+        body: JSON.stringify(requestBody(request, model)),
+        signal: attemptSignal(request, deps),
       });
     } catch (error) {
       lastError = new ProviderError(`Netzwerkfehler (${model}): ${String(error)}`, true);

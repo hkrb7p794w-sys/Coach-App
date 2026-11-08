@@ -26,7 +26,14 @@ import {
 } from "./nutrition";
 import { personalNotePrompt } from "./personal";
 import { athleteProfile } from "./profile";
-import { checkMealNow, checkRecipes, mealNowPrompt, weeklyRecipesPrompt } from "./recipes";
+import {
+  checkCookPlan,
+  checkMealNow,
+  checkRecipes,
+  cookPlanPrompt,
+  mealNowPrompt,
+  weeklyRecipesPrompt,
+} from "./recipes";
 import { list, text } from "./tasks-util";
 
 export { list, text } from "./tasks-util";
@@ -38,6 +45,8 @@ export interface TaskDefinition {
   temperature?: number;
   /** Mehr Platz für lange Antworten (Standard 4096 Tokens). */
   maxOutputTokens?: number;
+  /** Große JSON-Antworten: wenig Denk-Tokens, damit das Antwortlimit für den Inhalt reicht. */
+  lowThinking?: boolean;
   build(input: Record<string, unknown>, images: number): { system?: string; prompt: string };
   /** Prüft die Antwort gegen die Anfrage (siehe grounding.ts); wirft GroundingError, wenn nichts belegt ist. */
   ground?(output: unknown, requestText: string, input: Record<string, unknown>): unknown;
@@ -218,6 +227,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: false,
     temperature: 0.6,
     maxOutputTokens: 6000,
+    lowThinking: true,
     build: (input) => ({ prompt: mealNowPrompt(input) }),
     ground: checkMealNow,
   },
@@ -227,8 +237,19 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: false,
     temperature: 0.6,
     maxOutputTokens: 16000,
+    lowThinking: true,
     build: (input) => ({ prompt: weeklyRecipesPrompt(input) }),
     ground: checkRecipes,
+  },
+  /** Kochen für eine oder zwei Personen, auch zum Vorkochen. Teller und Mengen rechnet die App. */
+  cook_plan: {
+    json: true,
+    allowImages: false,
+    temperature: 0.6,
+    maxOutputTokens: 8000,
+    lowThinking: true,
+    build: (input) => ({ prompt: cookPlanPrompt(input) }),
+    ground: checkCookPlan,
   },
 };
 

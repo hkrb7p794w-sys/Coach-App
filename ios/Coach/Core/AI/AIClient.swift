@@ -17,6 +17,7 @@ nonisolated struct AIResponse: Decodable, Equatable {
 
 private nonisolated struct AIErrorBody: Decodable {
   let error: String
+  let code: String?
 }
 
 enum AIClientError: Error, LocalizedError, Equatable {
@@ -33,7 +34,7 @@ enum AIClientError: Error, LocalizedError, Equatable {
     case .notConfigured: "KI-Worker ist nicht eingerichtet (Adresse und App-Token in den Einstellungen)."
     case .invalidURL: "Die Worker-Adresse muss mit https:// beginnen."
     case .unauthorized: "Der Worker hat das App-Token abgelehnt."
-    case .http(let status, let message): "KI-Worker HTTP \(status): \(message)"
+    case .http(_, let message): message
     case .network(let detail): "Netzwerkfehler: \(detail)"
     case .disabled(let message): message
     }
@@ -217,7 +218,9 @@ final class AIClient {
     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
     guard (200..<300).contains(status) else {
       if status == 401 { throw AIClientError.unauthorized }
-      let message = (try? JSONDecoder().decode(AIErrorBody.self, from: data))?.error ?? "unbekannter Fehler"
+      let failure = try? JSONDecoder().decode(AIErrorBody.self, from: data)
+      let message = AIErrorText.message(
+        status: status, code: failure?.code, detail: failure?.error ?? "Unbekannter Fehler (Fehlercode \(status)).")
       throw AIClientError.http(status, message)
     }
     return data

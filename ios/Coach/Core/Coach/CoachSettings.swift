@@ -32,6 +32,8 @@ final class CoachSettings {
   static let userSourcesKey = "coach.userSources"
   static let ownRecipesKey = "coach.ownRecipes"
   static let pantryKey = "coach.pantry"
+  static let cookPartnersKey = "coach.cookPartners"
+  static let cookReleaseKey = "coach.cookRelease"
   static let illnessKey = "coach.illnessDay"
   static let handledMissedKey = "coach.handledMissed"
   static let effortsKey = "coach.efforts"
@@ -163,6 +165,22 @@ final class CoachSettings {
     didSet { save(pantry, forKey: Self.pantryKey) }
   }
 
+  /// Personen, die für gemeinsame Rezepte etwas freigegeben haben (nur deren freigegebene Angaben).
+  var cookPartners: [CookPartner] {
+    didSet { save(cookPartners, forKey: Self.cookPartnersKey) }
+  }
+
+  /// Eigene Freigabe; `nil` = nichts freigegeben.
+  var cookRelease: CookRelease? {
+    didSet {
+      if let cookRelease {
+        save(cookRelease, forKey: Self.cookReleaseKey)
+      } else {
+        defaults.removeObject(forKey: Self.cookReleaseKey)
+      }
+    }
+  }
+
   /// Zuletzt „war krank“ gemeldet: die nächsten Tage höchstens locker (`MissedSessions`).
   var illnessDay: CalendarDay? {
     didSet { save(illnessDay, forKey: Self.illnessKey) }
@@ -273,6 +291,9 @@ final class CoachSettings {
       defaults.data(forKey: Self.ownRecipesKey).flatMap { try? JSONDecoder().decode([OwnRecipe].self, from: $0) }
       ?? []
     pantry = defaults.data(forKey: Self.pantryKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+    cookPartners =
+      defaults.data(forKey: Self.cookPartnersKey).flatMap { try? JSONDecoder().decode([CookPartner].self, from: $0) } ?? []
+    cookRelease = defaults.data(forKey: Self.cookReleaseKey).flatMap { try? JSONDecoder().decode(CookRelease.self, from: $0) }
     illnessDay = defaults.data(forKey: Self.illnessKey).flatMap {
       try? JSONDecoder().decode(CalendarDay.self, from: $0)
     }
