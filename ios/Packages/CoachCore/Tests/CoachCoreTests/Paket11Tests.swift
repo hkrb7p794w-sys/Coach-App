@@ -148,9 +148,11 @@ struct Paket11Tests {
     var set = LoggedSet(reps: 12, weightKg: 80)
     set.done = true
     let exercise = LoggedExercise(exerciseID: "bankdruecken", name: "Bankdrücken", group: .chest, sets: [set])
-    let session = GymSession(workoutKey: nil, title: "Plan B", start: Date(timeIntervalSince1970: 1_790_000_000), exercises: [exercise])
+    let session = GymSession(
+      workoutKey: nil, title: "Plan B", start: Date(timeIntervalSince1970: 1_790_000_000), exercises: [exercise])
     let input = GymCoach.planInput(
-      request: GymCoach.PlanRequest(), profile: UserProfile(), equipment: Equipment.gym, routines: [], sessions: [session],
+      request: GymCoach.PlanRequest(), profile: UserProfile(), equipment: Equipment.gym, routines: [],
+      sessions: [session],
       custom: [], today: CalendarDay(year: 2026, month: 11, day: 9), notes: ["bankdruecken": "Schulter links zwickt"])
     let notes = try #require(input["exerciseNotes"]?.arrayValue)
     #expect(notes.first?.stringValue?.contains("Schulter") == true)
