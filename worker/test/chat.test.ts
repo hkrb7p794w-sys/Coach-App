@@ -57,8 +57,12 @@ describe("coach_chat", () => {
     const ok = "Dir fehlen noch 80 g Protein von 2.400 kcal Tagesziel.";
     expect(task?.ground?.({ antwort: ok, quellen: [] }, prompt, facts)).toMatchObject({ antwort: ok });
     // 2330 wäre kcal minus Gramm: verschiedene Einheiten dürfen nicht verrechnet werden.
-    expect(() => task?.ground?.({ antwort: "Noch 2330 kcal.", quellen: [] }, prompt, facts)).toThrow(GroundingError);
-    expect(() => task?.ground?.({ antwort: "Noch 77 g Protein.", quellen: [] }, prompt, facts)).toThrow(GroundingError);
+    expect(() => task?.ground?.({ antwort: "Noch 2330 kcal.", quellen: [] }, prompt, facts)).toThrow(
+      GroundingError,
+    );
+    expect(() => task?.ground?.({ antwort: "Noch 77 g Protein.", quellen: [] }, prompt, facts)).toThrow(
+      GroundingError,
+    );
   });
 
   it("erlaubt Satz- und Wiederholungszahlen, aber keine freien Lastwerte", () => {
@@ -66,5 +70,8 @@ describe("coach_chat", () => {
     const prompt = chatPrompt(input);
     const ok = "Mach morgen 4 Sätze mit 8–12 Wiederholungen.";
     expect(task?.ground?.({ antwort: ok, quellen: [] }, prompt, input)).toMatchObject({ antwort: ok });
-    expect(() => task?.ground?.({ antwort: "Nimm 8 kg mehr.", quellen: [] }, prompt, input)).toThrow(GroundingError);
-  });});
+    expect(() => task?.ground?.({ antwort: "Nimm 8 kg mehr.", quellen: [] }, prompt, input)).toThrow(
+      GroundingError,
+    );
+  });
+});

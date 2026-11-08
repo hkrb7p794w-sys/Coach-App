@@ -76,7 +76,8 @@ export interface Measure {
 }
 
 const UNITS: Record<string, string> = { minuten: "min", stunden: "h", std: "h", prozent: "%" };
-const MEASURE = /(\d+(?:[.,]\d+)?)\s*(kg|kcal|km|minuten|min|stunden|std|prozent|%|bpm|ms|g|h)(?![a-zäöüß])/gi;
+const MEASURE =
+  /(\d+(?:[.,]\d+)?)\s*(kg|kcal|km|minuten|min|stunden|std|prozent|%|bpm|ms|g|h)(?![a-zäöüß])/gi;
 
 /** Zahlen mit Einheit: Nur gleiche Einheiten dürfen miteinander verrechnet werden. */
 export function measuresIn(value: string): Measure[] {
@@ -102,7 +103,9 @@ export function isDerived(claim: Measure, known: Measure[]): boolean {
   }
   const same = known.filter((item) => item.unit === claim.unit);
   return same.some((a) =>
-    same.some((b) => close(Math.abs(a.value - b.value), claim.value) || close(a.value + b.value, claim.value)),
+    same.some(
+      (b) => close(Math.abs(a.value - b.value), claim.value) || close(a.value + b.value, claim.value),
+    ),
   );
 }
 
