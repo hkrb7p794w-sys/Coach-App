@@ -1,3 +1,5 @@
+import AVFoundation
+import AudioToolbox
 import CoachCore
 import SwiftUI
 import UserNotifications
@@ -5,18 +7,43 @@ import UserNotifications
 /// Mitteilung zum Pausenende, falls die App im Hintergrund ist (wie Strong oder Hevy).
 enum RestAlarm {
   static let identifier = "coach.rest"
+  /// Die Einheit ist auf dem Bildschirm und gibt das Signal selbst.
+  static var workoutIsOpen = false
+
+  static func isHandledByOpenWorkout(_ id: String) -> Bool { id == identifier && workoutIsOpen }
 
   /// `body` nennt die nächste Übung („Weiter mit Schulterdrücken“).
-  static func schedule(at end: Date?, body: String? = nil) {
+  static func schedule(at end: Date?, body: String? = nil, sound: RestSound = .system) {
     let center = UNUserNotificationCenter.current()
     center.removePendingNotificationRequests(withIdentifiers: [identifier])
     guard let end, end.timeIntervalSinceNow > 1 else { return }
     let content = UNMutableNotificationContent()
     content.title = "Pause vorbei"
     content.body = body.map { "\($0)." } ?? "Weiter mit dem nächsten Satz."
-    content.sound = .default
+    switch sound {
+    case .off: content.sound = nil
+    case .system: content.sound = .default
+    default: content.sound = sound.fileName.map { UNNotificationSound(named: UNNotificationSoundName($0)) } ?? .default
+    }
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: end.timeIntervalSinceNow, repeats: false)
     center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+  }
+}
+
+/// Ton bei geöffneter App. `ambient` folgt Stummschalter und Lautstärke und unterbricht keine laufende Musik.
+enum RestSoundPlayer {
+  private static var player: AVAudioPlayer?
+
+  static func play(_ sound: RestSound) {
+    guard sound != .off else { return }
+    guard let name = sound.fileName, let url = Bundle.main.url(forResource: name, withExtension: nil) else {
+      AudioServicesPlaySystemSound(1007)
+      return
+    }
+    try? AVAudioSession.sharedInstance().setCategory(.ambient)
+    try? AVAudioSession.sharedInstance().setActive(true)
+    player = try? AVAudioPlayer(contentsOf: url)
+    player?.play()
   }
 }
 
@@ -49,7 +76,10 @@ struct ActiveWorkoutView: View {
       Group {
         if let session = viewModel.active {
           content(session)
-        } else if viewModel.finished == nil {
+        } else if let finished = viewModel.finished {
+          WorkoutResultView(finished: finished, viewModel: viewModel) { dismiss() }
+            .onDisappear { viewModel.dismissFinished() }
+        } else {
           ContentUnavailableView("Keine laufende Einheit", systemImage: "dumbbell")
         }
       }
@@ -58,17 +88,18 @@ struct ActiveWorkoutView: View {
         ToolbarItem(placement: .cancellationAction) {
           Button("Ausblenden", systemImage: "chevron.down") { dismiss() }
         }
-        ToolbarItem(placement: .principal) {
-          Picker("Ansicht", selection: $showsList) {
-            Text("Fokus").tag(false)
-            Text("Liste").tag(true)
+        if viewModel.active != nil {
+          ToolbarItem(placement: .principal) {
+            Picker("Ansicht", selection: $showsList) {
+              Text("Fokus").tag(false)
+              Text("Liste").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 170)
           }
-          .pickerStyle(.segmented)
-          .frame(width: 170)
-        }
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Beenden") { showFinish = true }
-            .disabled(viewModel.active == nil)
+          ToolbarItem(placement: .confirmationAction) {
+            Button("Beenden") { showFinish = true }
+          }
         }
       }
       .overlay(alignment: .top) { UndoToast(viewModel: viewModel) }
@@ -89,15 +120,7 @@ struct ActiveWorkoutView: View {
       .sheet(item: $editing) { target in
         SetValuePad(target: target, viewModel: viewModel)
       }
-      .sheet(
-        isPresented: $showFinish,
-        onDismiss: {
-          if viewModel.finished != nil {
-            viewModel.dismissFinished()
-            dismiss()
-          }
-        }
-      ) {
+      .sheet(isPresented: $showFinish) {
         FinishWorkoutSheet(viewModel: viewModel) {
           showFinish = false
         }
@@ -123,7 +146,7 @@ struct ActiveWorkoutView: View {
         }
         try? await Task.sleep(for: .seconds(max(0, end.timeIntervalSinceNow)))
         guard !Task.isCancelled, viewModel.restEndsAt == end else { return }
-        viewModel.restFinished()
+        viewModel.restFinished(end: end)
       }
       .sensoryFeedback(.impact(weight: .light), trigger: restWarnings)
       // Letzter Satz des Plans: fragen, ob beendet oder weiter trainiert wird.
@@ -152,7 +175,11 @@ struct ActiveWorkoutView: View {
             close: { showsPlanComplete = false })
         }
       }
-      .sensoryFeedback(.warning, trigger: viewModel.restFinishedCount)
+      .sensoryFeedback(trigger: viewModel.restFinishedCount) { _, _ in
+        model.settings.gym.restHaptic ? .warning : nil
+      }
+      .onAppear { RestAlarm.workoutIsOpen = true }
+      .onDisappear { RestAlarm.workoutIsOpen = false }
     }
   }
 
@@ -533,13 +560,15 @@ private struct ExerciseNotes: View {
       let shown = set.flatMap { exercise.sets[safe: $0]?.weightKg } ?? working
       if let info {
         let bar = gym.bar(for: info.id)
-        let warmUp = gym.suggestsWarmUp ? WarmUp.suggestion(for: exercise, info: info, bar: bar) : []
+        let level = model.settings.profile.level(for: .strength)
+        let warmUp = viewModel.warmUpSteps(for: exercise, level: level)
         if !warmUp.isEmpty {
-          Text("Optional · " + WarmUp.text(warmUp))
+          Label(WarmUp.text(warmUp), systemImage: "flame").foregroundStyle(.primary)
           if offersWarmUp {
-            Button("Aufwärmsätze einfügen", systemImage: "flame") { viewModel.insertWarmUp(into: exercise.id) }
-              .buttonStyle(.bordered)
-              .controlSize(.small)
+            Button("Aufwärmsätze einfügen", systemImage: "plus") {
+              viewModel.insertWarmUp(into: exercise.id, level: level)
+            }
+            .buttonStyle(.bordered)
           }
         }
         if info.equipment.first == .barbell,
@@ -1464,19 +1493,23 @@ private struct FinishWorkoutSheet: View {
     NavigationStack {
       ScrollView {
         VStack(spacing: 20) {
-          if let finished = viewModel.finished {
-            result(finished)
-          } else if let session = viewModel.active {
+          if let session = viewModel.active {
             review(session)
+          } else {
+            ProgressView("Speichern …").frame(maxWidth: .infinity, minHeight: 200)
           }
         }
         .padding()
       }
-      .navigationTitle(viewModel.finished == nil ? "Einheit beenden" : "Gespeichert")
+      .navigationTitle("Einheit beenden")
       .navigationBarTitleDisplayMode(.inline)
     }
     .presentationDetents([.large])
     .interactiveDismissDisabled(viewModel.isSaving)
+    // Gespeichert: Die Zusammenfassung erscheint in der Einheit selbst, das Blatt geht zu.
+    .onChange(of: viewModel.finished != nil, initial: true) { _, saved in
+      if saved { close() }
+    }
   }
 
   private func review(_ session: GymSession) -> some View {
@@ -1519,7 +1552,36 @@ private struct FinishWorkoutSheet: View {
     .disabled(viewModel.isSaving)
   }
 
-  private func result(_ finished: FinishedWorkout) -> some View {
+  @ViewBuilder
+  private func bigButton(_ title: String, prominent: Bool, action: @escaping () async -> Void) -> some View {
+    let button = Button {
+      Task { await action() }
+    } label: {
+      Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+    }
+    .buttonBorderShape(.roundedRectangle(radius: 14))
+    if prominent {
+      button.buttonStyle(.borderedProminent)
+    } else {
+      button.buttonStyle(.bordered)
+    }
+  }
+
+  private func save(completing: Bool) async {
+    await viewModel.finish(
+      context: context, writer: HealthWorkoutWriter(), garmin: model.garmin.connect, completingOpenSets: completing)
+    await model.refreshReminders()
+  }
+}
+
+/// Abschluss nach dem Speichern. Steht in der Einheit selbst, damit nie ein leerer Bildschirm bleibt.
+private struct WorkoutResultView: View {
+  let finished: FinishedWorkout
+  let viewModel: GymViewModel
+  let close: () -> Void
+
+  var body: some View {
+    ScrollView {
     VStack(spacing: 16) {
       Image(systemName: "checkmark.seal.fill").font(.system(size: 48)).foregroundStyle(.green)
       Text(finished.title).font(.title2.bold())
@@ -1566,29 +1628,16 @@ private struct FinishWorkoutSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
       }
       Text(finished.status).font(.footnote).foregroundStyle(.secondary)
-      bigButton("Fertig", prominent: true) { close() }
+      Button {
+        close()
+      } label: {
+        Text("Fertig").font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+      }
+      .buttonStyle(.borderedProminent)
+      .buttonBorderShape(.roundedRectangle(radius: 14))
     }
-  }
-
-  @ViewBuilder
-  private func bigButton(_ title: String, prominent: Bool, action: @escaping () async -> Void) -> some View {
-    let button = Button {
-      Task { await action() }
-    } label: {
-      Text(title).font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+    .padding()
     }
-    .buttonBorderShape(.roundedRectangle(radius: 14))
-    if prominent {
-      button.buttonStyle(.borderedProminent)
-    } else {
-      button.buttonStyle(.bordered)
-    }
-  }
-
-  private func save(completing: Bool) async {
-    await viewModel.finish(
-      context: context, writer: HealthWorkoutWriter(), garmin: model.garmin.connect, completingOpenSets: completing)
-    await model.refreshReminders()
   }
 }
 

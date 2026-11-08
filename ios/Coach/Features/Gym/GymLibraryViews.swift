@@ -359,8 +359,6 @@ struct RoutinesView: View {
   @Environment(AppModel.self) private var model
   @State private var editing: Routine?
   @State private var showsPlanner = false
-  @State private var importingGymBook = false
-  @State private var gymBookResult: String?
   @Environment(\.modelContext) private var context
 
   var body: some View {
@@ -407,33 +405,6 @@ struct RoutinesView: View {
         Text("Antippen startet, Stift bearbeitet. Reihenfolge per „Bearbeiten“ oben rechts ziehen.")
       }
       Section {
-        let gymBook = RoutineTemplates.gymBook
-        ForEach(gymBook) { routine in
-          VStack(alignment: .leading, spacing: 4) {
-            Text(routine.name).font(.headline)
-            Text(routine.items.map(\.name).joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
-          }
-        }
-        Button("Alle GymBook-Pläne übernehmen", systemImage: "square.and.arrow.down") {
-          let existing = Set(model.settings.gym.routines.map(\.name))
-          model.settings.gym.routines += gymBook.filter { !existing.contains($0.name) }
-        }
-        .disabled(gymBook.allSatisfy { routine in settings.gym.routines.contains { $0.name == routine.name } })
-        Button("Verlauf aus GymBook-Backup importieren", systemImage: "clock.arrow.circlepath") {
-          importingGymBook = true
-        }
-        if let gymBookResult {
-          Text(gymBookResult).font(.footnote).foregroundStyle(.secondary)
-        }
-      } header: {
-        Text("Aus GymBook")
-      } footer: {
-        Text(
-          "Deine vier Pläne aus GymBook mit den zuletzt genutzten Gewichten als Startwert. Für den Verlauf die "
-            + "Backup-Datei aus GymBook (….database) in „Dateien“ sichern und hier auswählen. Mehrfaches Importieren "
-            + "legt nichts doppelt an.")
-      }
-      Section {
         ForEach(suggestions) { routine in
           VStack(alignment: .leading, spacing: 4) {
             Text(routine.name).font(.headline)
@@ -463,18 +434,6 @@ struct RoutinesView: View {
     .navigationTitle("Trainingspläne")
     .toolbar { EditButton() }
     .sheet(isPresented: $showsPlanner) { GymPlanView(viewModel: viewModel) }
-    .fileImporter(isPresented: $importingGymBook, allowedContentTypes: [.item]) { result in
-      switch result {
-      case .success(let url):
-        do {
-          gymBookResult = try GymBookReader.importBackup(at: url, context: context, settings: model.settings)
-        } catch {
-          gymBookResult = error.localizedDescription
-        }
-      case .failure(let error):
-        gymBookResult = error.localizedDescription
-      }
-    }
     .sheet(item: $editing) { routine in
       RoutineEditor(routine: routine) { saved in
         if let index = model.settings.gym.routines.firstIndex(where: { $0.id == saved.id }) {
@@ -662,6 +621,39 @@ struct GymHintsSection: View {
         }
       } footer: {
         Text("Quelle: \(viewModel.hintSource). Die Gewichte bestimmen die Regeln; die KI formuliert nur.")
+      }
+    }
+  }
+}
+
+/// Trainingsverlauf aus einer GymBook-Sicherung übernehmen. Bereits Übernommenes bleibt unverändert.
+struct GymBookImportSection: View {
+  @Environment(AppModel.self) private var model
+  @Environment(\.modelContext) private var context
+  @State private var importing = false
+  @State private var result: String?
+
+  var body: some View {
+    Section {
+      Button("Verlauf aus Backup importieren", systemImage: "clock.arrow.circlepath") { importing = true }
+      if let result {
+        Text(result).font(.footnote).foregroundStyle(.secondary)
+      }
+    } header: {
+      Text("Daten übernehmen")
+    } footer: {
+      Text("Backup-Datei von GymBook (….database) auswählen. Mehrfaches Importieren legt nichts doppelt an.")
+    }
+    .fileImporter(isPresented: $importing, allowedContentTypes: [.item]) { outcome in
+      switch outcome {
+      case .success(let url):
+        do {
+          result = try GymBookReader.importBackup(at: url, context: context, settings: model.settings)
+        } catch {
+          result = error.localizedDescription
+        }
+      case .failure(let error):
+        result = error.localizedDescription
       }
     }
   }

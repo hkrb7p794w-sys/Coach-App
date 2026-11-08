@@ -13,6 +13,7 @@ struct GymPlanView: View {
   @State private var isLoading = false
   @State private var error: String?
   @State private var replaceExisting = false
+  @State private var prepared = false
 
   var body: some View {
     NavigationStack {
@@ -29,7 +30,12 @@ struct GymPlanView: View {
         ToolbarItem(placement: .cancellationAction) { Button("Abbrechen") { dismiss() } }
       }
       .onAppear {
+        // Nur beim ersten Öffnen vorbelegen, sonst würden eigene Eingaben überschrieben.
+        guard !prepared else { return }
+        prepared = true
         request.daysPerWeek = max(model.settings.profile.schedule.count(of: .strength), 2)
+        request.experience = model.settings.profile.level(for: .strength)
+        request.equipment = model.settings.gym.equipment
       }
     }
   }
@@ -67,12 +73,27 @@ struct GymPlanView: View {
     }
     Section {
       Toggle("Übungen aus meinen Trainingsplänen bevorzugen", isOn: $request.keepFavorites)
-      LabeledContent("Ausstattung", value: equipmentText)
-      LabeledContent("Erfahrung", value: model.settings.profile.level(for: .strength).label)
     } footer: {
-      Text(
-        "Außerdem fließen deine letzten Gewichte, die Beobachtungen aus dem Verlauf und deine anderen Sportarten "
-          + "ein. Ausstattung und Erfahrung änderst du in den Einstellungen bzw. im Profil.")
+      Text("Außerdem fließen deine letzten Gewichte, die Beobachtungen aus dem Verlauf und deine anderen Sportarten ein.")
+    }
+    Section("Erfahrung") {
+      Picker("Erfahrung im Krafttraining", selection: experience) {
+        ForEach(ExperienceLevel.allCases) { Text($0.label).tag($0) }
+      }
+    }
+    Section {
+      ForEach(Equipment.allCases, id: \.self) { item in
+        Toggle(item.label, isOn: equipmentBinding(item))
+      }
+    } header: {
+      Text("Ausstattung für diesen Plan")
+    } footer: {
+      Text("Gilt nur für diesen Plan. Deine Standard-Ausstattung bleibt in den Einstellungen unverändert.")
+    }
+    Section("Zusammenfassung") {
+      Text(summary).font(.footnote)
+      ForEach(issues.blocking, id: \.self) { Label($0, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
+      ForEach(issues.hints, id: \.self) { Label($0, systemImage: "info.circle").font(.footnote) }
     }
     Section {
       Button {
@@ -87,7 +108,7 @@ struct GymPlanView: View {
           Label("Plan erstellen", systemImage: "sparkles")
         }
       }
-      .disabled(isLoading)
+      .disabled(isLoading || !issues.blocking.isEmpty)
       if let error { Text(error).foregroundStyle(.red).font(.footnote) }
     } footer: {
       if !model.ai.isConfigured {
@@ -96,10 +117,35 @@ struct GymPlanView: View {
     }
   }
 
-  private var equipmentText: String {
-    let equipment = model.settings.gym.equipment
-    return equipment == Equipment.gym
-      ? "Fitnessstudio" : Equipment.allCases.filter { equipment.contains($0) }.map(\.label).joined(separator: ", ")
+  private var usableEquipment: Set<Equipment> { request.equipment ?? model.settings.gym.equipment }
+
+  private var issues: (blocking: [String], hints: [String]) {
+    GymCoach.planIssues(request, equipment: model.settings.gym.equipment)
+  }
+
+  private var experience: Binding<ExperienceLevel> {
+    Binding(
+      get: { request.experience ?? model.settings.profile.level(for: .strength) },
+      set: { request.experience = $0 })
+  }
+
+  private func equipmentBinding(_ item: Equipment) -> Binding<Bool> {
+    Binding(
+      get: { usableEquipment.contains(item) },
+      set: { isOn in
+        var value = usableEquipment
+        if isOn { value.insert(item) } else { value.remove(item) }
+        request.equipment = value
+      })
+  }
+
+  /// Genau das, was an die KI geht.
+  private var summary: String {
+    let focus = request.focus.isEmpty ? "ohne Schwerpunkt" : request.focus.map(\.rawValue).joined(separator: ", ")
+    let equipment = Equipment.allCases.filter { usableEquipment.contains($0) }.map(\.label).joined(separator: ", ")
+    return "\(request.goal.label), \(request.daysPerWeek) Tage pro Woche, \(request.minutesPerSession) Minuten. "
+      + "Schwerpunkt: \(focus). Erfahrung: \(experience.wrappedValue.label). Ausstattung: \(equipment)."
+      + (request.limitations.isEmpty ? "" : " Einschränkungen: \(request.limitations).")
   }
 
   // MARK: - Vorschau
@@ -168,7 +214,7 @@ struct GymPlanView: View {
         today: CalendarDay(date: .now))
       let response = try await model.ai.run(task: "gym_plan", input: input)
       let checked = GymCoach.validatePlan(
-        response.output, request: request, equipment: settings.gym.equipment,
+        response.output, request: request, equipment: usableEquipment,
         custom: settings.gym.customExercises, lastWeights: lastWeights)
       if checked.routines.isEmpty {
         result = fallback(lastWeights: lastWeights)
@@ -186,7 +232,7 @@ struct GymPlanView: View {
   /// Regel-Vorschlag mit den letzten Gewichten als Startwert.
   private func fallback(lastWeights: [String: Double]) -> GymCoach.PlanResult {
     let suggestions = RoutineTemplates.suggest(
-      profile: model.settings.profile, equipment: model.settings.gym.equipment)
+      profile: model.settings.profile, equipment: usableEquipment)
     let routines = suggestions.map { routine in
       var routine = routine
       for index in routine.items.indices {

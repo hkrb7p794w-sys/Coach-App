@@ -98,6 +98,10 @@ public enum GymCoach {
     public var limitations = ""
     /// Übungen aus den eigenen Routinen bevorzugen.
     public var keepFavorites = true
+    /// Für diesen Plan; `nil` = Angabe aus dem Profil.
+    public var experience: ExperienceLevel?
+    /// Für diesen Plan; `nil` = Ausstattung aus den Einstellungen.
+    public var equipment: Set<Equipment>?
 
     public init() {}
   }
@@ -115,12 +119,31 @@ public enum GymCoach {
     }
   }
 
+  /// Was vor dem Absenden auffällt: `blocking` verhindert den Plan, `hints` erklärt ungünstige Kombinationen.
+  public static func planIssues(_ request: PlanRequest, equipment: Set<Equipment>) -> (blocking: [String], hints: [String]) {
+    var blocking: [String] = []
+    var hints: [String] = []
+    let usable = request.equipment ?? equipment
+    if usable.isEmpty { blocking.append("Wähle mindestens eine Ausstattung, sonst gibt es keine passenden Übungen.") }
+    if request.daysPerWeek >= 5, request.minutesPerSession <= 30 {
+      hints.append("Sehr viele kurze Einheiten: Drei längere Einheiten sind meist leichter unterzubringen.")
+    }
+    if request.goal == .strength, request.minutesPerSession <= 30 {
+      hints.append("Für Kraft sind lange Pausen nötig. In 30 Minuten passen nur wenige Übungen.")
+    }
+    if request.focus.count > request.daysPerWeek * 2 {
+      hints.append("Viele Schwerpunkte bei wenigen Tagen: Die KI kann nicht alle gleich gewichten.")
+    }
+    return (blocking, hints)
+  }
+
   /// Eingabe für die Worker-Aufgabe `gym_plan`.
   public static func planInput(
     request: PlanRequest, profile: UserProfile, equipment: Set<Equipment>, routines: [Routine],
     sessions: [GymSession], custom: [ExerciseInfo], today: CalendarDay
   ) -> [String: JSONValue] {
-    let available = (ExerciseLibrary.all + custom).filter { $0.isAvailable(with: equipment) }
+    let usable = request.equipment ?? equipment
+    let available = (ExerciseLibrary.all + custom).filter { $0.isAvailable(with: usable) }
     let library = available.map { exercise in
       let tracking = exercise.tracking == .time ? "Sekunden" : "Wiederholungen"
       let kind = exercise.compound ? "Grundübung" : "Isolation"
@@ -137,7 +160,7 @@ public enum GymCoach {
       "minutes": .number(Double(min(max(request.minutesPerSession, 20), 120))),
       "focus": .array(request.focus.map { .string($0.rawValue) }),
       "limitations": .string(String(request.limitations.prefix(300))),
-      "experience": .string(profile.level(for: .strength).label),
+      "experience": .string((request.experience ?? profile.level(for: .strength)).label),
       "otherSports": .array(otherSports.map { .string($0) }),
       "library": .array(library.map { .string($0) }),
       "favorites": .array((request.keepFavorites ? favorites : []).map { .string($0) }),
