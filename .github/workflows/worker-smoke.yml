@@ -8,7 +8,7 @@ on:
         description: Was geprüft wird
         type: choice
         default: smoke
-        options: [smoke, chat-legacy, chat-focused]
+        options: [smoke, chat-legacy, chat-focused, chat-focused-privat]
   pull_request:
     paths: [".github/workflows/worker-smoke.yml", ".github/scripts/worker-smoke.mjs"]
 
@@ -45,4 +45,5 @@ jobs:
           WORKER_URL: ${{ steps.url.outputs.worker }}
           COACH_APP_TOKEN: ${{ secrets.COACH_APP_TOKEN }}
           CHAT_EVAL_MODE: ${{ inputs.mode == 'chat-legacy' && 'legacy' || 'focused' }}
+          CHAT_EVAL_PROVIDER: ${{ inputs.mode == 'chat-focused-privat' && 'privat' || '' }}
         run: node .github/scripts/chat-eval.mjs

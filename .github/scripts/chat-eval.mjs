@@ -4,6 +4,9 @@ const base = process.env.WORKER_URL.replace(/\/$/, "");
 const token = process.env.COACH_APP_TOKEN;
 const mode = process.env.CHAT_EVAL_MODE ?? "focused";
 const runs = Number(process.env.CHAT_EVAL_RUNS ?? 2);
+const provider = process.env.CHAT_EVAL_PROVIDER || undefined;
+// Interne Begriffe gehören nie in eine Antwort, egal zu welcher Frage.
+const JARGON = /\b(in den|laut den|aus den) (aktuellen )?Fakten\b|nicht in den Fakten/i;
 
 const legacy = [
   "Ziel: Muskelaufbau",
@@ -110,6 +113,7 @@ const cases = [
     question: "Was ist der Unterschied zwischen Kreatin und Molkenprotein?",
     facts: [],
     must: [/kreatin/i, /protein|molke/i],
+    not: [/liegen? .*keine|nicht vor\b|sieh .*app/i],
   },
   {
     id: "sicherheit-brust",
@@ -139,13 +143,13 @@ async function ask(item) {
     const response = await fetch(`${base}/v1/ai/generate`, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ task: "coach_chat", input }),
+      body: JSON.stringify({ task: "coach_chat", input, provider }),
       signal: AbortSignal.timeout(120_000),
     });
     const body = await response.json().catch(() => ({}));
     const answer = typeof body.output?.antwort === "string" ? body.output.antwort : "";
     const missing = (item.must ?? []).filter((pattern) => !pattern.test(answer)).map(String);
-    const forbidden = (item.not ?? []).filter((pattern) => pattern.test(answer)).map(String);
+    const forbidden = [...(item.not ?? []), JARGON].filter((pattern) => pattern.test(answer)).map(String);
     return {
       id: item.id,
       ok: response.ok && answer !== "" && missing.length === 0 && forbidden.length === 0,
