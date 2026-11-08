@@ -388,9 +388,17 @@ public struct GymSettings: Codable, Equatable, Hashable, Sendable {
     restHaptic = (try? container.decodeIfPresent(Bool.self, forKey: .restHaptic)) ?? true
   }
 
-  /// Pause einer Übung: eigene Einstellung, sonst Standard nach Art der Übung.
-  public func rest(for exerciseID: String, compound: Bool) -> Int {
-    restOverrides[exerciseID] ?? (compound ? restCompound : restIsolation)
+  /// Vorlagenwerte der Pläne. Sie sagen nichts über einen Wunsch aus und dürfen die Einstellungen nicht überdecken.
+  static let templateRestCompound = 120
+  static let templateRestIsolation = 90
+
+  /// Pause einer Übung. Vorrang: eigene Pause der Übung, dann eine bewusst andere Pause im Plan, dann der Standard aus
+  /// den Einstellungen. Aufwärmsätze haben ihre eigene Pause (`restWarmup`).
+  public func rest(for exerciseID: String, compound: Bool, planned: Int? = nil) -> Int {
+    if let own = restOverrides[exerciseID] { return own }
+    let template = compound ? Self.templateRestCompound : Self.templateRestIsolation
+    if let planned, planned != template { return planned }
+    return compound ? restCompound : restIsolation
   }
 
   /// Stange für eine Übung.

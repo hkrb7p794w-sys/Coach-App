@@ -4,7 +4,7 @@ import SwiftUI
 /// „Grundlage“ unter einer Empfehlung: die Regeln mit Einstufung und Studien (Link auf DOI bzw. PubMed).
 struct EvidenceDisclosure: View {
   let ruleIDs: [String]
-  var title = "Wissenschaftliche Grundlage"
+  var title = "Quellen"
   @Environment(AppModel.self) private var model
 
   var body: some View {
@@ -12,7 +12,7 @@ struct EvidenceDisclosure: View {
     let unique = ruleIDs.filter { seen.insert($0).inserted }
     let rules = Evidence.rules(unique)
     let own = model.settings.userSources.filter { unique.contains($0.evidenceID) }
-    if !rules.isEmpty || !own.isEmpty {
+    if model.settings.showsEvidence, !rules.isEmpty || !own.isEmpty {
       DisclosureGroup {
         ForEach(rules) { rule in
           EvidenceRuleRow(rule: rule)
@@ -105,6 +105,6 @@ struct EvidenceLibraryView: View {
         .font(.footnote)
       }
     }
-    .navigationTitle("Wissenschaftliche Grundlagen")
+    .navigationTitle("Quellen und Regeln")
   }
 }
