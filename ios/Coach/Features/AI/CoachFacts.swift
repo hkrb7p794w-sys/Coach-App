@@ -10,7 +10,8 @@ enum CoachFacts {
   ) -> ChatContext.Facts {
     let settings = model.settings
     let today = CalendarDay(date: now)
-    var facts = ChatContext.Facts(profile: settings.profile, privacy: settings.privacy)
+    var facts = ChatContext.Facts(profile: settings.coachingProfile, privacy: settings.privacy)
+    facts.withholdsWeightTargets = settings.nutrition.weightTargetsWithheld
     if let snapshot {
       facts.recommendation = snapshot.recommendation.label
       facts.reasons = snapshot.recommendation.reasons

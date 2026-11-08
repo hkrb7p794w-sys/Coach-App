@@ -2,8 +2,34 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-08 – Schutzgrenzen in jedem Pfad (Phase 74, Audit)
 
+Das Audit (`docs/audit/`, Befund CORE1-14 und weitere) zeigte: `GoalRules` wirkte nur beim Speichern des Profils.
 
+- **Eine Stelle entscheidet:** `NutritionPlanner.compute` prüft mit `GoalRules.weightGuard` bei jeder Berechnung. Das
+  gilt auch für neue Wägungen, übernommene Anpassungen, den Saisonmodus und Altdaten. Stufen: `free`, `noDeficit`
+  (unter 18 oder BMI unter 18,5), `noTargets` (Schwangerschaft/Stillzeit oder Essstörung).
+- **Vorschläge:** `WeightTrend.advice` und `Expenditure.adjustment` kennen die Stufe. Bei `noTargets` gibt es keine
+  Vorschläge, der gemessene Verbrauch ist ausgeblendet, bei `noDeficit` nie „weniger essen“.
+- **REDs-Untergrenze** (30 kcal/kg fettfreie Masse, Mountjoy et al. 2023, doi:10.1136/bjsports-2023-106994) gilt jetzt
+  nach dem Addieren der Anpassung, an allen Tagen, aber nie über dem Bedarf. Das Defizit bleibt auch mit Anpassung bei
+  höchstens 25 %.
+- **Adipositas:** Ab BMI 30 beziehen sich Protein und Kohlenhydrate auf das Gewicht bei BMI 25, weil sich die
+  Empfehlungen auf die fettfreie Masse beziehen (Helms et al. 2014, doi:10.1186/1550-2783-11-20). BMI 25 als
+  Referenz ist eine Näherung. Körperfett ohne Eintrag: ab BMI 30 nach Deurenberg et al. 1991
+  (PMID 2043597), darunter weiter pauschal, weil die Formel bei Schlanken und Sportlichen zu
+  hoch schätzt und die Untergrenze dann zu niedrig läge.
+- **Wägungen zählen:** Die neueste Wägung (höchstens 30 Tage alt) wird zum aktuellen Gewicht, einmal je Wägung; eine
+  Eingabe in den Einstellungen bleibt, bis eine neuere kommt. Das Profil wird nur neu angewandt, wenn sich ändert, ob
+  das Gewicht gehalten wird. Sonst würde ein festes Zieldatum das Tempo mit jedem Kilo verlangsamen.
+- **Zielgewicht erreicht:** Die App hält das Gewicht statt weiter mit dem Standardtempo zu rechnen.
+- **KI und Anzeige:** `GoalRules.coachingProfile` ersetzt gesperrte oder erreichte Gewichtsziele für KI, Export und
+  Einstellungen. Bei `noTargets` steht im Chat-Kontext zusätzlich, dass keine Gewichts- oder Kalorienziele genannt werden.
+- **Mikronährstoffe:** Calcium 1.200 mg unter 19 Jahren (DGE, <https://www.dge.de/wissenschaft/referenzwerte/calcium/>).
+  Eisen bleibt für Frauen ab 51 bei 16 mg: Die DGE nennt 16 mg vor und 14 mg nach der Menopause
+  (<https://www.dge.de/wissenschaft/referenzwerte/eisen/>), den Status kennt die App nicht. Die im Audit genannten 10 mg
+  sind überholt. Schwangerschaft und Stillzeit (SCI-08) bleiben offen, eine Einstufung nach Trimester fehlt noch.
+- **Android** ist nicht angepasst (zurückgestellt), die Kotlin-Regeln weichen hier ab.
 
 ## 2026-11-02 – Wasser aus Mahlzeiten, Mahlzeiten-Widget, Kamera-Knopf
 

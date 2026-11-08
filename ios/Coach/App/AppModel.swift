@@ -116,6 +116,11 @@ final class AppModel {
     settings.weights + sync.weights + health.weights
   }
 
+  /// Schutzgrenzen mit den neuesten Wägungen und Gesundheitsangaben abgleichen.
+  func refreshGoalGuards() {
+    settings.refreshGoalGuards(weights: allWeights, garmin: sync.profile)
+  }
+
   /// Verbundene Quellen (für Vorrang und Doppelte).
   var connectedSources: Set<DataProvider> {
     var result = Set<DataProvider>()
@@ -135,6 +140,7 @@ final class AppModel {
   /// Nach Fehlschlägen wartet der automatische Abruf länger (1 min … 6 h); manuell geht es immer.
   func syncIfDue() async {
     guard !isDemo else { return }
+    refreshGoalGuards()
     // Nur geöffnete, nie begonnene Einheit von früher verwerfen (keine Live-Aktivität, zählt nicht).
     GymViewModel.shared.discardAbandoned()
     let states = sources.syncStates
@@ -165,6 +171,7 @@ final class AppModel {
       }
     }
     await health.importNow(garminConnected: garmin.isConfigured)
+    refreshGoalGuards()
     if health.isEnabled {
       if let problem = health.lastProblem {
         sources.recordFailure(.appleHealth, error: problem)

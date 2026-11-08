@@ -86,7 +86,7 @@ private struct SettingsForm: View {
         Button("Zu persönlichem Profil wechseln") { profileEditor = .switchToPersonal }
       } else {
         let profile = model.settings.profile
-        Label("Ernährung: \(profile.goal.label)", systemImage: profile.goal.symbol)
+        Label("Ernährung: \(model.settings.coachingProfile.goal.label)", systemImage: profile.goal.symbol)
         Label(profile.sports.map(\.shortLabel).joined(separator: ", "), systemImage: "figure.mixed.cardio")
         Button("Sportarten, Ziel, Körperdaten ändern") { profileEditor = .edit }
       }

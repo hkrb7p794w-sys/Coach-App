@@ -154,6 +154,10 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
   public var weeklyWeightChangePercent: Double?
   /// Vom Nutzer übernommene Anpassung aus dem Gewichtsverlauf (kcal pro Tag, ±500).
   public var energyAdjustmentKilocalories: Double = 0
+  /// Schwangerschaft/Stillzeit oder Essstörung: keine Gewichts- oder Kalorienziele (`GoalRules`).
+  public var weightTargetsWithheld = false
+  /// Tag der zuletzt als Körpergewicht übernommenen Wägung.
+  public var lastAppliedWeighInDay: CalendarDay?
 
   public init() {}
 
@@ -170,6 +174,8 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
     weeklyWeightChangePercent = try? container.decodeIfPresent(Double.self, forKey: .weeklyWeightChangePercent)
     energyAdjustmentKilocalories = min(
       max((try? container.decodeIfPresent(Double.self, forKey: .energyAdjustmentKilocalories)) ?? 0, -500), 500)
+    weightTargetsWithheld = (try? container.decodeIfPresent(Bool.self, forKey: .weightTargetsWithheld)) ?? false
+    lastAppliedWeighInDay = try? container.decodeIfPresent(CalendarDay.self, forKey: .lastAppliedWeighInDay)
   }
 
   /// Einstellungen haben Vorrang, dann Garmin-Profil, dann Standardwerte.
@@ -206,6 +212,8 @@ public struct NutritionTargets: Equatable, Sendable {
   public let basalMetabolicRate: Double
   public let exerciseKilocalories: Double
   public let proteinPerKilogram: Double
+  /// Gewicht, auf das sich Protein und Kohlenhydrate beziehen (ab BMI 30 weniger als das Körpergewicht).
+  public let referenceWeightKilograms: Double
   /// true, wenn die Energie auf 30 kcal/kg fettfreie Masse angehoben wurde (REDs-Schwelle).
   public let energyAvailabilityFloorApplied: Bool
 }
@@ -226,9 +234,9 @@ public enum NutritionPlanner {
   ]
   static let strengthKeys = ["strength", "fitness_equipment", "hiit", "yoga", "pilates", "training"]
 
-  static func micro(isFemale: Bool) -> [Nutrient: Double] {
+  static func micro(isFemale: Bool, age: Int) -> [Nutrient: Double] {
     [
-      .sodium: 1500, .potassium: 4000, .magnesium: isFemale ? 300 : 350, .calcium: 1000,
+      .sodium: 1500, .potassium: 4000, .magnesium: isFemale ? 300 : 350, .calcium: age < 19 ? 1200 : 1000,
       .iron: isFemale ? 16 : 11, .zinc: isFemale ? 8 : 14, .vitaminD: 20, .vitaminB12: 4,
       .vitaminC: isFemale ? 95 : 110, .fiber: 30, .iodine: 150, .omega3: 250,
     ]
@@ -294,6 +302,24 @@ public enum NutritionPlanner {
   ) -> NutritionTargets {
     let profile = settings.profile(garmin: garminProfile, on: day)
     let weight = profile.weightKilograms
+    // Schutzgrenzen gelten hier, damit kein Pfad sie umgeht (Wägung, Anpassung, Saisonmodus, Altdaten).
+    var goal = settings.goal
+    var weeklyChange = settings.weeklyWeightChangePercent
+    var adjustment = settings.energyAdjustmentKilocalories
+    switch GoalRules.weightGuard(settings: settings, body: profile) {
+    case .free:
+      break
+    case .noTargets:
+      goal = .maintain
+      weeklyChange = nil
+      adjustment = 0
+    case .noDeficit:
+      if profile.age < GoalRules.minimumAge || goal.adjustPercent < 0 || (weeklyChange ?? 0) < 0 {
+        goal = .maintain
+        weeklyChange = nil
+      }
+      adjustment = max(adjustment, 0)
+    }
     let classification = classify(activities)
     var dayType = classification.type
     var source: NutritionTargets.Source = hasGarminData ? .garmin : .none
@@ -314,45 +340,57 @@ public enum NutritionPlanner {
       exerciseKcal = (dayType.plannedMET - 1) * weight * dayType.plannedMinutes / 60
     }
     let dayEnergy = baseKcal + exerciseKcal
-    var adjustPercent = settings.goal.adjustPercent
-    if let weekly = settings.weeklyWeightChangePercent, dayEnergy > 0 {
+    var adjustPercent = goal.adjustPercent
+    if let weekly = weeklyChange, dayEnergy > 0 {
       // 7.700 kcal je kg Körpergewicht; Grenzen: höchstens 25 % Defizit bzw. 15 % Überschuss.
       let dailyKilocalories = weekly / 100 * weight * 7_700 / 7
       adjustPercent = max(-25, min(15, dailyKilocalories / dayEnergy * 100))
     }
     let goalPercent = adjustPercent * dayType.goalScale
-    var energy = dayEnergy * (1 + goalPercent / 100) + settings.energyAdjustmentKilocalories
+    var energy = dayEnergy * (1 + goalPercent / 100) + adjustment
+    // Höchstens ein Viertel Defizit, auch zusammen mit der Anpassung aus dem Gewichtsverlauf.
+    energy = max(energy, 0.75 * dayEnergy)
 
-    // Energieverfügbarkeit bei Defizit nicht unter 30 kcal/kg fettfreie Masse (IOC-Konsensus REDs 2023).
-    let bodyFat = settings.bodyFatPercent ?? (profile.isFemale ? 25 : 15)
+    // Energieverfügbarkeit nie unter 30 kcal/kg fettfreie Masse (IOC-Konsensus REDs 2023), aber nie über dem Bedarf.
+    let bodyFat = settings.bodyFatPercent ?? GoalRules.estimatedBodyFatPercent(profile)
     let fatFreeMass = weight * (1 - bodyFat / 100)
+    let energyFloor = min(30 * fatFreeMass + exerciseKcal, dayEnergy)
     var floorApplied = false
-    if goalPercent < 0, energy < 30 * fatFreeMass + exerciseKcal {
-      energy = 30 * fatFreeMass + exerciseKcal
+    if energy < energyFloor {
+      energy = energyFloor
       floorApplied = true
     }
 
-    let proteinPerKilogram = settings.goal.proteinPerKilogram
-    let protein = proteinPerKilogram * weight
+    let proteinPerKilogram = goal.proteinPerKilogram
+    let referenceWeight = GoalRules.referenceWeightKilograms(profile)
+    var protein = proteinPerKilogram * referenceWeight
     // Die Energie entscheidet: Kohlenhydrate nach Tagestyp, aber nur so viele, dass Fett mindestens 20 % behält
     // (ACSM 2016); höchstens bis zur Untergrenze der Spanne gekürzt.
     let fatMinimum = 0.20 * energy / 9
     let fatMaximum = 0.35 * energy / 9
     let carbRoom = (energy - 4 * protein - 9 * fatMinimum) / 4
     var carbs = min(
-      dayType.carbsPerKilogram * weight, max(carbRoom, dayType.minimumCarbsPerKilogram * weight))
+      dayType.carbsPerKilogram * referenceWeight, max(carbRoom, dayType.minimumCarbsPerKilogram * referenceWeight))
     let rest = energy - 4 * protein - 4 * carbs
     var fat = min(max(rest / 9, fatMinimum), fatMaximum)
     if rest / 9 > fatMaximum { carbs += (rest - fat * 9) / 4 }
     // Auch wenn die Untergrenze der Kohlenhydrate die Energie übersteigt, bleibt Fett bei mindestens 20 %.
     fat = max(fat, (protein + carbs) / 9)
-    let total = 4 * protein + 4 * carbs + 9 * fat
+    var total = 4 * protein + 4 * carbs + 9 * fat
+    // Bei einem Defizit dürfen die Mindestmengen das Ziel nicht über den Bedarf heben: Kohlenhydrate zuerst kürzen,
+    // Protein nur, wenn das nicht reicht. Bei Fett = (P + K) / 9 ist die Summe 5 × (P + K).
+    if energy < dayEnergy, total > dayEnergy {
+      protein = min(protein, dayEnergy / 5)
+      carbs = max(0, dayEnergy / 5 - protein)
+      fat = (protein + carbs) / 9
+      total = 4 * protein + 4 * carbs + 9 * fat
+    }
 
     let water =
       35 * weight + 10 * classification.enduranceMinutes
       + 5 * max(0, classification.trainingMinutes - classification.enduranceMinutes)
 
-    var values = NutrientValues(micro(isFemale: profile.isFemale))
+    var values = NutrientValues(micro(isFemale: profile.isFemale, age: profile.age))
     values[.kcal] = total.rounded()
     values[.protein] = protein.rounded()
     values[.carbs] = carbs.rounded()
@@ -370,6 +408,7 @@ public enum NutritionPlanner {
       basalMetabolicRate: bmr.rounded(),
       exerciseKilocalories: exerciseKcal.rounded(),
       proteinPerKilogram: proteinPerKilogram,
+      referenceWeightKilograms: referenceWeight,
       energyAvailabilityFloorApplied: floorApplied
     )
   }
