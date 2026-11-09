@@ -175,4 +175,26 @@ struct MobilityTests {
     facts.mobilityLine = settings.contextLine(today: today)
     #expect(ChatContext.lines(facts).contains { $0.hasPrefix("Mobility: 1 Einheiten") })
   }
+
+  @Test func complaintsPrioritiseAreasAndFlagExercises() {
+    let scores = MobilityPlanner.scores(recentSets: [:], enduranceMinutes: [:], results: [], complaints: [.knee])
+    #expect(Set(scores.prefix(3).map(\.area)) == [.hipFlexors, .ankles, .hamstrings])
+    #expect(scores[0].reasons.first == "Beschwerden: Knie – nur schmerzfrei bewegen")
+    // Kniebeuge belastet das Knie (Oberschenkel vorn als Hauptmuskel), Bankdrücken nicht.
+    #expect(ComplaintArea.loaded(byExercise: "kniebeuge", group: .legs, complaints: [.knee, .shoulder]) == [.knee])
+    #expect(ComplaintArea.loaded(byExercise: "bankdruecken", group: .chest, complaints: [.knee]).isEmpty)
+    #expect(ComplaintArea.loaded(byExercise: "bankdruecken", group: .chest, complaints: [.shoulder]) == [.shoulder])
+    #expect(ComplaintArea.hint(for: []) == nil)
+    #expect(ComplaintArea.hint(for: [.knee])?.hasPrefix("Belastet: Knie.") == true)
+  }
+
+  @Test func complaintsReachTheCoachWithoutDiagnosis() {
+    var settings = MobilitySettings()
+    settings.complaints = [.lowerBack]
+    let line = settings.contextLine(today: today)
+    #expect(line?.contains("Angegebene Beschwerden: Unterer Rücken") == true)
+    #expect(line?.contains("keine Diagnose") == true)
+    let decoded = try? JSONDecoder().decode(MobilitySettings.self, from: JSONEncoder().encode(settings))
+    #expect(decoded?.complaints == [.lowerBack])
+  }
 }

@@ -907,7 +907,16 @@ private struct ExerciseCard: View {
         ExerciseMenu(exercise: exercise, session: session, viewModel: viewModel, showsFocus: true)
       }
     } footer: {
-      ExerciseNotes(exercise: exercise, viewModel: viewModel, centered: false)
+      VStack(alignment: .leading, spacing: 6) {
+        if let hint = ComplaintArea.hint(
+          for: ComplaintArea.loaded(
+            byExercise: exercise.exerciseID, group: exercise.group, custom: model.settings.gym.customExercises,
+            complaints: model.settings.mobility.complaints))
+        {
+          Label(hint, systemImage: "exclamationmark.bubble").font(.caption).foregroundStyle(.orange)
+        }
+        ExerciseNotes(exercise: exercise, viewModel: viewModel, centered: false)
+      }
     }
   }
 
