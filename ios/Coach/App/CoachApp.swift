@@ -37,6 +37,8 @@ struct CoachApp: App {
         }
       case .background:
         if !appModel.isDemo { appModel.scheduleBackgroundRefresh() }
+        // Höchstens einmal am Tag in den gewählten Ordner sichern (`BackupService`).
+        if !appModel.isDemo { BackupService.backupToFolder(context: appModel.container.mainContext) }
         WidgetPublisher.publish(model: appModel)
         let profile = appModel.settings.profile
         AppRouter.updateQuickActions(

@@ -149,8 +149,9 @@ Konkrete Designregeln für alle neuen Bildschirme (umgesetzt in der Mobility-Ans
 
 ## 6. Offen und Einschränkungen
 
-- **Datensicherung (P1)** folgt als eigene PR. Bis dahin gilt: IronLudi nicht löschen, sondern über SideStore
-  darüberinstallieren.
+- **Datensicherung (P1)** umgesetzt in PR 97: `AppBackup` (CoachCore, getestet) und `BackupService`, automatisch
+  einmal am Tag in einen gewählten Ordner, Einspielen beim ersten Start. Zugangsdaten aus dem Schlüsselbund sind
+  bewusst nicht enthalten.
 - Kamera-Test (P3): Apple Vision kann Körperpunkte auf dem Gerät erkennen; Genauigkeit für Gelenkwinkel ohne eigene
   Messreihe nicht belegt.
 - Garmin-Workouts auf die Uhr (P2) nur über die inoffizielle Schnittstelle; die offizielle Training-API verlangt eine

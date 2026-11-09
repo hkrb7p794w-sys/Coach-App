@@ -78,6 +78,7 @@ private struct SettingsForm: View {
           area("KI und Automatisierung", symbol: "sparkles") {
             AISettingsSection()
             Section("Eigene Daten und Quellen") {
+              NavigationLink("Datensicherung") { BackupView() }
               NavigationLink("Eigene Quellen") { UserSourcesView() }
               NavigationLink("Daten für KI exportieren") { CoachExportView() }
               NavigationLink("KI-Antwort importieren") { CoachImportView() }
