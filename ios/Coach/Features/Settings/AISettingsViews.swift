@@ -96,7 +96,8 @@ struct AIUsageView: View {
       } footer: {
         Text(
           "Listenpreis = was die Anfragen bei bezahlter Nutzung kosten würden. In den kostenlosen Kontingenten "
-            + "(Gemini, Groq, Workers AI bis 10.000 Neurons am Tag) und auf dem eigenen Server zahlst du nichts je "
+            + "(Gemini, Cerebras, Groq, Mistral, Workers AI bis 10.000 Neurons am Tag) und auf dem eigenen Server "
+            + "zahlst du nichts je "
             + "Anfrage. Protokolliert werden nur Aufgabe, Anbieter, Modell, Tokens und Dauer – keine Inhalte."
         )
       }

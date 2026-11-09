@@ -90,7 +90,9 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
   case privat
   case workersAI = "workers_ai"
   case gemini
+  case cerebras
   case groq
+  case mistral
   case ownServer = "openai_compat"
 
   public var label: String {
@@ -99,20 +101,30 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
     case .privat: "Datenschutz zuerst"
     case .workersAI: "Cloudflare Workers AI"
     case .gemini: "Google Gemini"
+    case .cerebras: "Cerebras"
     case .groq: "Groq"
+    case .mistral: "Mistral"
     case .ownServer: "Eigener Server"
     }
   }
 
   public var detail: String {
     switch self {
-    case .auto: "Gemini zuerst, bei Ausfall Workers AI und Groq."
+    case .auto:
+      "Je Aufgabe der passende Anbieter: Fotos an Gemini, Pläne und Rezepte an Cerebras, Gespräche an Gemini. "
+        + "Ist ein Kontingent aufgebraucht, übernimmt der nächste."
     case .privat:
-      "Nur Anbieter ohne Training mit deinen Eingaben: eigener Server, Workers AI, Groq. Nie das kostenlose Gemini."
+      "Nur Anbieter ohne Training mit deinen Eingaben: eigener Server, Cerebras, Groq, Workers AI. "
+        + "Nie das kostenlose Gemini oder Mistral."
     case .workersAI:
       "Offene Modelle (Gemma 4) bei Cloudflare. 10.000 Neurons pro Tag frei (rund 150 Anfragen), keine Speicherung."
     case .gemini: "Stark bei Fotos und langen Texten. Im kostenlosen Kontingent darf Google Eingaben auswerten."
+    case .cerebras:
+      "Sehr schnell, GPT-OSS 120B, großes kostenloses Tageskontingent. Ohne Fotos. Laut Anbieter kein Training."
     case .groq: "Sehr schnell, Llama und GPT-OSS. Kostenloses Kontingent mit Tageslimits."
+    case .mistral:
+      "Europäischer Anbieter, sehr gutes Deutsch, auch Fotos. "
+        + "In der kostenlosen Stufe darf Mistral Eingaben auswerten."
     case .ownServer: "Eigenes Modell (z. B. Ollama auf dem PC) – nur, wenn im Worker eingerichtet. Ohne Fotos."
     }
   }

@@ -25,12 +25,28 @@ Feldliste einer Antwort lässt sich über „Teilen“ weitergeben (sie enthält
 1. <https://aistudio.google.com> › **Get API key** › **Create API key**. Den Key aus dem alten Home-Assistant-
    Add-on kannst du weiterverwenden.
 
-**Groq** (Ausweichstufe, kostenloses Kontingent):
+**Groq** (schnell, kurze Hinweise und Ausweichstufe, kostenloses Kontingent):
 
 1. <https://console.groq.com/keys> › anmelden › **Create API Key** › Namen „coach“ › Key kopieren.
 
+**Cerebras** (optional; gpt-oss-120b für Pläne und Rezepte – verlangt bei der Anmeldung eine Kreditkarte, Stand
+09.11.2026; ohne Key übernimmt Gemini die Pläne):
+
+1. <https://cloud.cerebras.ai> › anmelden (Google-Konto oder E-Mail) › links **API Keys** › **Generate API Key** ›
+   Key kopieren.
+
+**Mistral** (zweites Bildmodell, sehr gutes Deutsch, kostenlose Stufe „Experiment“):
+
+1. <https://console.mistral.ai> › anmelden › **Choose a plan** › **Experiment** (kostenlos; verlangt eine
+   Telefonnummer zur Bestätigung, keine Kreditkarte).
+2. **API Keys** › **Create new key** › Namen „coach“ › Key kopieren (wird nur einmal angezeigt).
+
+Alle KI-Keys sind optional: Der Worker nutzt, was eingerichtet ist, und überspringt den Rest. Welche Aufgabe welcher
+Anbieter zuerst bekommt, steht in `docs/ki-modelle.md` (Abschnitt „Reihenfolge je Aufgabe“).
+
 Hinweis Datenschutz: Im kostenlosen Gemini-Kontingent darf Google Eingaben zur Produktverbesserung nutzen. Die
-App schickt deshalb standardmäßig nur Einordnungen („HRV ausgeglichen“), keine Rohwerte.
+App schickt deshalb standardmäßig nur Einordnungen („HRV ausgeglichen“), keine Rohwerte. Dasselbe gilt für die
+kostenlose Mistral-Stufe; „Datenschutz zuerst“ in der App schließt beide aus.
 
 ## 3. Cloudflare-Konto und API-Token
 
@@ -64,7 +80,9 @@ Im Repo **Settings › Secrets and variables › Actions › New repository secr
 | `CLOUDFLARE_API_TOKEN` | Token aus Schritt 3.4 |
 | `CLOUDFLARE_ACCOUNT_ID` | Account ID aus Schritt 3.3 |
 | `GEMINI_API_KEY` | Gemini-Key aus Schritt 2 |
-| `GROQ_API_KEY` | Groq-Key aus Schritt 2 |
+| `GROQ_API_KEY` | Groq-Key aus Schritt 2 (optional) |
+| `CEREBRAS_API_KEY` | Cerebras-Key aus Schritt 2 (optional) |
+| `MISTRAL_API_KEY` | Mistral-Key aus Schritt 2 (optional) |
 | `COACH_APP_TOKEN` | App-Token aus Schritt 4 |
 
 ## 6. Worker bereitstellen

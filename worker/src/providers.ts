@@ -5,7 +5,14 @@
  */
 import { generateWithGemini } from "./gemini";
 import { generateWithGroq } from "./groq";
-import { compatBase, generateWithOpenAiCompat } from "./openai-compat";
+import {
+  compatBase,
+  DEFAULT_CEREBRAS_MODEL,
+  DEFAULT_MISTRAL_MODEL,
+  generateWithCerebras,
+  generateWithMistral,
+  generateWithOpenAiCompat,
+} from "./openai-compat";
 import type { Deps, Env, GenerateRequest, GenerateResult, ProviderId, Usage } from "./types";
 import { DEFAULT_WORKERS_AI_MODEL, generateWithWorkersAi } from "./workers-ai";
 
@@ -48,14 +55,15 @@ export const PROVIDERS: ProviderDefinition[] = [
     run: generateWithGemini,
   },
   {
-    id: "workers_ai",
-    label: "Cloudflare Workers AI",
-    enabled: (env) => Boolean(env.AI),
-    model: (env) => env.WORKERS_AI_MODEL?.trim() || DEFAULT_WORKERS_AI_MODEL,
+    id: "cerebras",
+    label: "Cerebras",
+    enabled: (env) => Boolean(env.CEREBRAS_API_KEY),
+    model: (env) => env.CEREBRAS_MODEL?.trim() || DEFAULT_CEREBRAS_MODEL,
+    // Laut Cerebras keine Nutzung von API-Eingaben zum Training.
     usesInputsForTraining: false,
-    vision: true,
-    pricePerMillion: (model) => WORKERS_AI_PRICES[model] ?? [0.3, 1],
-    run: generateWithWorkersAi,
+    vision: false,
+    pricePerMillion: () => [0.35, 0.75],
+    run: generateWithCerebras,
   },
   {
     id: "groq",
@@ -66,6 +74,27 @@ export const PROVIDERS: ProviderDefinition[] = [
     vision: true,
     pricePerMillion: () => [0.59, 0.79],
     run: generateWithGroq,
+  },
+  {
+    id: "workers_ai",
+    label: "Cloudflare Workers AI",
+    enabled: (env) => Boolean(env.AI),
+    model: (env) => env.WORKERS_AI_MODEL?.trim() || DEFAULT_WORKERS_AI_MODEL,
+    usesInputsForTraining: false,
+    vision: true,
+    pricePerMillion: (model) => WORKERS_AI_PRICES[model] ?? [0.3, 1],
+    run: generateWithWorkersAi,
+  },
+  {
+    id: "mistral",
+    label: "Mistral",
+    enabled: (env) => Boolean(env.MISTRAL_API_KEY),
+    model: (env) => env.MISTRAL_MODEL?.trim() || DEFAULT_MISTRAL_MODEL,
+    // Kostenlose Stufe „Experiment“: Mistral darf Eingaben zum Training nutzen (wie das kostenlose Gemini).
+    usesInputsForTraining: true,
+    vision: true,
+    pricePerMillion: () => [0.4, 2],
+    run: generateWithMistral,
   },
   {
     id: "openai_compat",
@@ -82,6 +111,55 @@ export const PROVIDERS: ProviderDefinition[] = [
 
 export type Preference = "auto" | "privat" | ProviderId;
 
+/**
+ * Standardreihenfolge je Aufgabe (danach alle übrigen Anbieter wie bei `auto`). Ziel: Jede Aufgabe beim Anbieter, der
+ * sie am besten kann, und das knappe Gemini-Kontingent für Fotos und Gespräche aufheben.
+ * - Fotos und Mahlzeiten: Gemini erkennt Bilder am besten, Mistral als zweites Bildmodell.
+ * - Pläne und Rezepte (lange JSON-Antworten): Cerebras (gpt-oss-120b) mit großem Kontingent zuerst.
+ * - Gespräche und Auswertungen: Gemini, dann Cerebras.
+ * - Kurze Hinweise: Groq (schnell), damit Gemini frei bleibt.
+ * Ändern ohne Code: Worker-Variable AI_TASK_ORDER.
+ */
+export const TASK_ROUTES: Record<string, ProviderId[]> = {
+  meal_analyze: ["gemini", "mistral", "groq", "workers_ai", "cerebras"],
+  meal_amend: ["gemini", "mistral", "groq", "workers_ai", "cerebras"],
+  nutrition_label: ["gemini", "mistral", "groq", "workers_ai"],
+  weekly_recipes: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
+  cook_plan: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
+  gym_plan: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
+  meal_now: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
+  coach_chat: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
+  ai_insights: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
+  daily_note: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
+  personal_note: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
+  nutrition_review: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
+  gym_hints: ["groq", "cerebras", "gemini", "workers_ai", "mistral"],
+};
+
+function idList(value: unknown): string[] {
+  return typeof value === "string"
+    ? value
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+    : [];
+}
+
+/** Reihenfolge für eine Aufgabe: AI_TASK_ORDER (JSON) vor TASK_ROUTES; ungültiges JSON wird ignoriert. */
+export function taskRoute(env: Env, task: string | undefined): string[] {
+  if (!task) return [];
+  if (env.AI_TASK_ORDER?.trim()) {
+    try {
+      const custom = JSON.parse(env.AI_TASK_ORDER) as Record<string, unknown>;
+      const route = idList(custom?.[task]);
+      if (route.length) return route;
+    } catch {
+      // Ungültige Variable: Standard verwenden statt die Anfrage scheitern zu lassen.
+    }
+  }
+  return TASK_ROUTES[task] ?? [];
+}
+
 export function parsePreference(value: unknown): Preference {
   if (value === "privat" || value === "auto") return value;
   return PROVIDERS.some((provider) => provider.id === value) ? (value as ProviderId) : "auto";
@@ -89,20 +167,21 @@ export function parsePreference(value: unknown): Preference {
 
 /**
  * Reihenfolge der Versuche:
- * - `auto`: AI_PROVIDER_ORDER bzw. Standard (Gemini, Workers AI, Groq, eigener Server).
+ * - `auto`: Reihenfolge der Aufgabe (TASK_ROUTES/AI_TASK_ORDER), danach AI_PROVIDER_ORDER bzw. Standard
+ *   (Gemini, Cerebras, Groq, Workers AI, Mistral, eigener Server).
  * - `privat`: nur Anbieter, die Eingaben nicht zum Training nutzen (eigener Server zuerst).
  * - ein Anbieter: dieser zuerst, danach die übrigen wie bei `auto` (bzw. `privat`, wenn er privat ist).
  * Bilder nur an Anbieter mit Bild-Eingabe.
  */
-export function providerOrder(env: Env, preference: Preference, hasImages = false): ProviderDefinition[] {
-  const configured = (env.AI_PROVIDER_ORDER ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
+export function providerOrder(
+  env: Env,
+  preference: Preference,
+  hasImages = false,
+  task?: string,
+): ProviderDefinition[] {
+  const configured = [...taskRoute(env, task), ...idList(env.AI_PROVIDER_ORDER)];
   const byId = new Map(PROVIDERS.map((provider) => [provider.id, provider]));
-  const base = configured.length
-    ? [...configured.flatMap((id) => byId.get(id as ProviderId) ?? []), ...PROVIDERS]
-    : PROVIDERS;
+  const base = [...configured.flatMap((id) => byId.get(id as ProviderId) ?? []), ...PROVIDERS];
   let ordered = [...new Set(base)];
   const privateOnly =
     preference === "privat" ||

@@ -63,7 +63,12 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     return json(200, {
       status: "ok",
       version: VERSION,
-      providers: { gemini: Boolean(env.GEMINI_API_KEY), groq: Boolean(env.GROQ_API_KEY) },
+      providers: {
+        gemini: Boolean(env.GEMINI_API_KEY),
+        cerebras: Boolean(env.CEREBRAS_API_KEY),
+        groq: Boolean(env.GROQ_API_KEY),
+        mistral: Boolean(env.MISTRAL_API_KEY),
+      },
       providerList: providerInfo(env),
       configured: Boolean(env.COACH_APP_TOKEN),
     });
@@ -152,6 +157,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
         maxOutputTokens: task.maxOutputTokens,
         lowThinking: task.lowThinking,
         deadline: deps.now() + AI_DEADLINE_MS,
+        task: String(body.task),
       },
       env,
       deps,

@@ -25,23 +25,71 @@ const ids = (list: { id: string }[]) => list.map((provider) => provider.id);
 
 describe("providerOrder", () => {
   it("standard, eigene Reihenfolge, Vorliebe", () => {
-    expect(ids(providerOrder(env, "auto"))).toEqual(["gemini", "workers_ai", "groq", "openai_compat"]);
+    expect(ids(providerOrder(env, "auto"))).toEqual([
+      "gemini",
+      "cerebras",
+      "groq",
+      "workers_ai",
+      "mistral",
+      "openai_compat",
+    ]);
     expect(ids(providerOrder({ ...env, AI_PROVIDER_ORDER: "groq, workers_ai" }, "auto"))).toEqual([
       "groq",
       "workers_ai",
       "gemini",
+      "cerebras",
+      "mistral",
       "openai_compat",
     ]);
     expect(ids(providerOrder(env, "gemini"))[0]).toBe("gemini");
   });
 
   it("privat schickt nichts an Anbieter, die mit Eingaben trainieren", () => {
-    expect(ids(providerOrder(env, "privat"))).toEqual(["openai_compat", "workers_ai", "groq"]);
-    expect(ids(providerOrder(env, "workers_ai"))).toEqual(["workers_ai", "groq", "openai_compat"]);
+    expect(ids(providerOrder(env, "privat"))).toEqual(["openai_compat", "cerebras", "groq", "workers_ai"]);
+    expect(ids(providerOrder(env, "workers_ai"))).toEqual([
+      "workers_ai",
+      "cerebras",
+      "groq",
+      "openai_compat",
+    ]);
+    // Auch mit Aufgaben-Reihenfolge nie Gemini oder das kostenlose Mistral.
+    expect(ids(providerOrder(env, "privat", true, "meal_analyze"))).toEqual(["groq", "workers_ai"]);
   });
 
   it("Bilder nur an Anbieter mit Bild-Eingabe", () => {
     expect(ids(providerOrder(env, "privat", true))).not.toContain("openai_compat");
+  });
+
+  it("Reihenfolge je Aufgabe: Fotos zu Gemini/Mistral, Pläne zu Cerebras, kurze Hinweise zu Groq", () => {
+    expect(ids(providerOrder(env, "auto", true, "meal_analyze"))).toEqual([
+      "gemini",
+      "mistral",
+      "groq",
+      "workers_ai",
+    ]);
+    expect(ids(providerOrder(env, "auto", false, "weekly_recipes")).slice(0, 3)).toEqual([
+      "cerebras",
+      "gemini",
+      "groq",
+    ]);
+    expect(ids(providerOrder(env, "auto", false, "coach_chat")).slice(0, 2)).toEqual(["gemini", "cerebras"]);
+    expect(ids(providerOrder(env, "auto", false, "gym_hints"))[0]).toBe("groq");
+    // Unbekannte Aufgabe: Standard.
+    expect(ids(providerOrder(env, "auto", false, "ping"))[0]).toBe("gemini");
+    // Ausdrückliche Wahl in der App gewinnt.
+    expect(ids(providerOrder(env, "mistral", false, "weekly_recipes"))[0]).toBe("mistral");
+  });
+
+  it("AI_TASK_ORDER ersetzt die Standardzuordnung, ungültiges JSON wird ignoriert", () => {
+    const custom = { ...env, AI_TASK_ORDER: '{"weekly_recipes": "gemini, workers_ai"}' };
+    expect(ids(providerOrder(custom, "auto", false, "weekly_recipes")).slice(0, 3)).toEqual([
+      "gemini",
+      "workers_ai",
+      "cerebras",
+    ]);
+    expect(ids(providerOrder(custom, "auto", false, "gym_hints"))[0]).toBe("groq");
+    const broken = { ...env, AI_TASK_ORDER: "{kaputt" };
+    expect(ids(providerOrder(broken, "auto", false, "weekly_recipes"))[0]).toBe("cerebras");
   });
 
   it("unbekannte Vorliebe = auto", () => {
@@ -84,6 +132,64 @@ describe("Workers AI", () => {
     const deps = fakeDeps([() => geminiText('{"ok": true}')]);
     const result = await generate(request, env, deps, "auto");
     expect(result.provider).toBe("gemini");
+  });
+});
+
+describe("Cerebras und Mistral", () => {
+  const keys: Env = { ...env, CEREBRAS_API_KEY: "c", MISTRAL_API_KEY: "m" };
+  const ok = () =>
+    jsonResponse(200, { choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 7 } });
+
+  it("Cerebras: gpt-oss mit wenig Denken bei großen JSON-Antworten", async () => {
+    const deps = fakeDeps([ok]);
+    const result = await generate(
+      { ...request, lowThinking: true, maxOutputTokens: 9000, task: "weekly_recipes" },
+      keys,
+      deps,
+    );
+    expect(result.provider).toBe("cerebras");
+    expect(deps.calls[0]?.url).toBe("https://api.cerebras.ai/v1/chat/completions");
+    expect(deps.calls[0]?.body).toMatchObject({
+      model: "gpt-oss-120b",
+      max_completion_tokens: 9000,
+      reasoning_effort: "low",
+      response_format: { type: "json_object" },
+    });
+    expect(new Headers(deps.calls[0]?.init?.headers).get("authorization")).toBe("Bearer c");
+  });
+
+  it("Mistral: Bild als Zeichenkette, eigenes Bildmodell möglich", async () => {
+    const deps = fakeDeps([ok]);
+    const result = await generate(
+      { ...request, images: [{ mimeType: "image/jpeg", data: "QUJD" }], task: "meal_analyze" },
+      { ...keys, GEMINI_API_KEY: undefined, MISTRAL_VISION_MODEL: "pixtral-large-latest" },
+      deps,
+    );
+    expect(result.provider).toBe("mistral");
+    expect(deps.calls[0]?.url).toBe("https://api.mistral.ai/v1/chat/completions");
+    const body = deps.calls[0]?.body as { model: string; messages: { content: unknown }[] };
+    expect(body.model).toBe("pixtral-large-latest");
+    expect(body.messages.at(-1)?.content).toEqual([
+      { type: "text", text: "Hallo" },
+      { type: "image_url", image_url: "data:image/jpeg;base64,QUJD" },
+    ]);
+  });
+
+  it("Kontingent erschöpft (429): weiter zum nächsten Anbieter", async () => {
+    const deps = fakeDeps([() => jsonResponse(429, { error: "rate" }), () => groqText("{}")]);
+    const result = await generate(
+      { ...request, task: "weekly_recipes" },
+      { ...keys, GEMINI_API_KEY: undefined },
+      deps,
+    );
+    expect(result.provider).toBe("groq");
+    expect(deps.calls.map((call) => new URL(call.url).host)).toEqual(["api.cerebras.ai", "api.groq.com"]);
+  });
+
+  it("ohne Key übersprungen und als nicht eingerichtet gemeldet", () => {
+    const info = providerInfo(env) as { id: string; enabled: boolean; vision: boolean }[];
+    expect(info.find((p) => p.id === "cerebras")).toMatchObject({ enabled: false, vision: false });
+    expect(info.find((p) => p.id === "mistral")).toMatchObject({ enabled: false, vision: true });
   });
 });
 
