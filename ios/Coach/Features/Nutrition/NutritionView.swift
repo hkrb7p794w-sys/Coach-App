@@ -206,7 +206,10 @@ struct NutritionView: View {
       activities: activities.compactMap(\.activity),
       settings: model.settings,
       profile: model.sync.profile,
-      hasGarminData: !days.isEmpty
+      hasGarminData: !days.isEmpty,
+      recovery: RecoveryEvaluator.today(
+        days: days.compactMap(\.metrics), activities: activities.compactMap(\.activity), today: CalendarDay(date: .now)
+      ).level
     )
   }
 

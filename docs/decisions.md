@@ -2,6 +2,22 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-09 – Phase 78: Soll/Ist und Trainingstage
+
+- **Geplanter Tag:** Der Tagestyp der Ernährung kommt im eigenen Plan aus Sportart und Intensität, nicht mehr aus Text:
+  lang ist hart, intensiv ist moderat, locker ist leicht. Die Energie nutzt die geplanten Minuten aus dem Laufplan.
+- **Ampel wirkt auf die Ernährung:** Bei „Pause“ oder Krankheit zählt die geplante Einheit nicht, bei „locker“ höchstens
+  ein leichter Tag. Aufgezeichnetes Training zählt immer.
+- **Eine Einheit einmal:** App-Einheit und Uhr-Aufzeichnung desselben Tages haken nur eine Krafteinheit ab.
+- **Wochenfortschritt** zählt nur Einheiten aus dem Plan; „Außerplanmäßig“ nur Aktivitäten dieser Woche.
+- **Kürzen beim Planvorschlag:** Kernsportarten eines Wettkampfs werden verringert statt gestrichen.
+- **Erfahrung je Sportart** bei Intensitäten und Einsteiger-Hinweis.
+- **Einzelläufe:** Warnung und Deckel bei 110 % des längsten Laufs der letzten 30 Tage (Frandsen et al. 2025,
+  doi:10.1136/bjsports-2024-109380). Die Wochenwarnung bleibt, weil sie vor schnellem Umfangsanstieg schützt.
+- **Rangliste:** Spaziergänge zählen nur, wenn an dem Tag so etwas geplant war.
+- **Nährstofflücken:** Bleiben gegen ein festes Ziel. Geprüft werden Protein und Mikronährstoffe, die nicht vom Tagestyp
+  abhängen.
+
 ## 2026-11-09 – Phase 77: Tag und Ampel
 
 - **Eine Ampel:** `RecoveryEvaluator.today` ist die einzige Quelle für Heute, Gym, Ernährung und Morning Report. Sie

@@ -84,7 +84,8 @@ public enum ScheduleCheck {
         "Mehr als ein Drittel deiner Ausdauereinheiten ist intensiv. Die meisten (rund 80 %) sollten locker sein.",
         ["intensity.distribution"])
     }
-    if level == .beginner, hardEndurance >= 2 {
+    // Je Sportart: Erfahrung im Gym ändert nichts an der Belastbarkeit beim Laufen.
+    if endurance.filter({ $0.intensity == .hard && profile.level(for: $0.sport) == .beginner }).count >= 2 {
       add(
         "beginner-hard", .tip,
         "Zum Einstieg genügt höchstens eine intensive Einheit pro Woche. Baue zuerst eine lockere Grundlage auf.")

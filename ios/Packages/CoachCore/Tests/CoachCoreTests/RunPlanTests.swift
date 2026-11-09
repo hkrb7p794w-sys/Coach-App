@@ -29,7 +29,8 @@ struct RunPlanTests {
       var activity = GarminActivity(id: Int64(back))
       activity.typeKey = "running"
       activity.startLocal = "\(monday.adding(days: -back).iso) 07:00:00"
-      activity.durationSeconds = minutesPerWeek / 3 * 60
+      // Wie in echten Wochen: ein längerer Lauf und zwei kürzere. Sonst deckelt die Einzellauf-Grenze jeden Aufbau.
+      activity.durationSeconds = minutesPerWeek / 3 * (back % 7 == 1 ? 1.4 : 0.8) * 60
       return activity
     }
   }

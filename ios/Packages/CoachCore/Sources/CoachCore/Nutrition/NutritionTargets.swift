@@ -282,6 +282,7 @@ public enum NutritionPlanner {
   /// Kohlenhydrate gehören vor die Einheit (Impey et al. 2018).
   public static func plannedDayType(_ items: [TemplateItem]) -> DayType? {
     items.compactMap { item -> DayType? in
+      if let type = item.plannedType { return type }
       let text = item.text.lowercased()
       if ["lange", "longrun", "koppel", "renn"].contains(where: { text.contains($0) }) { return .hard }
       switch item.kind {
@@ -298,7 +299,8 @@ public enum NutritionPlanner {
     settings: NutritionSettings,
     garminProfile: GarminProfile?,
     day: CalendarDay,
-    hasGarminData: Bool
+    hasGarminData: Bool,
+    recovery: RecoveryLevel? = nil
   ) -> NutritionTargets {
     let profile = settings.profile(garmin: garminProfile, on: day)
     let weight = profile.weightKilograms
@@ -323,7 +325,11 @@ public enum NutritionPlanner {
     let classification = classify(activities)
     var dayType = classification.type
     var source: NutritionTargets.Source = hasGarminData ? .garmin : .none
-    if activities.isEmpty, let planned = plannedDayType(planItems), planned > dayType {
+    // Sagt die Ampel „Pause“, wird die geplante Einheit nicht mitgegessen; bei „locker“ höchstens ein leichter Tag.
+    var plannedType = plannedDayType(planItems)
+    if recovery == .pause { plannedType = nil }
+    if recovery == .locker { plannedType = plannedType.map { min($0, .light) } }
+    if activities.isEmpty, let planned = plannedType, planned > dayType {
       dayType = planned
       source = .planned
     }
@@ -337,7 +343,15 @@ public enum NutritionPlanner {
     }
     if source == .planned {
       // Netto-Verbrauch der geplanten Einheit: (MET − 1) × kg × Stunden.
-      exerciseKcal = (dayType.plannedMET - 1) * weight * dayType.plannedMinutes / 60
+      let timed = recovery == .locker ? [] : planItems.filter { $0.minutes != nil }
+      if timed.isEmpty {
+        exerciseKcal = (dayType.plannedMET - 1) * weight * dayType.plannedMinutes / 60
+      } else {
+        exerciseKcal = timed.reduce(0) { sum, item in
+          let met = item.kind == .strength ? DayType.light.plannedMET : DayType.moderate.plannedMET
+          return sum + (met - 1) * weight * Double(item.minutes ?? 0) / 60
+        }
+      }
     }
     let dayEnergy = baseKcal + exerciseKcal
     var adjustPercent = goal.adjustPercent

@@ -81,7 +81,7 @@ enum WidgetPublisher {
     // Ernährung: Ziele wie im Reiter, Summen ohne Schätzung.
     let targets = NutritionViewModel.targets(
       for: today, activities: activities, settings: settings, profile: model.sync.profile,
-      hasGarminData: !days.isEmpty)
+      hasGarminData: !days.isEmpty, recovery: focus?.level ?? report.level)
     let food = meals.filter { !$0.isWater }
     let totals = NutritionSummary.totals(food.flatMap(\.items))
     // Flüssigkeit aus Getränken und Lebensmitteln wie in der Übersicht der App.
@@ -101,7 +101,9 @@ enum WidgetPublisher {
     var gymPart: WidgetSnapshot.Gym?
     if settings.profile.trains(.strength) {
       let monday = today.adding(days: -today.weekdayIndex)
-      let weekDone = Set(gymDays.filter { $0 >= monday && $0 <= today }).count
+      // Wie im Plan: App-Einheiten und Krafttraining von der Uhr, je Tag einmal.
+      let watchDays = activities.filter { $0.sport == .strength }.compactMap(\.day)
+      let weekDone = Set((gymDays + watchDays).filter { $0 >= monday && $0 <= today }).count
       let planned = settings.profile.mode == .personal ? settings.schedule(inWeekOf: today).count(of: .strength) : nil
       let openStrength = (focus?.items ?? []).first { $0.sport == .strength && $0.status != .done }
       let routine =
