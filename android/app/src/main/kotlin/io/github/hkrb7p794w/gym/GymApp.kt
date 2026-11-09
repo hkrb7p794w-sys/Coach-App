@@ -43,6 +43,7 @@ sealed interface Page {
     data object NutritionSettings : Page
     data object Recipes : Page
     data object Account : Page
+    data object Friends : Page
 }
 
 @Composable
@@ -87,6 +88,7 @@ fun GymApp(viewModel: GymViewModel) {
         is Page.ExerciseDetail -> ExerciseDetailScreen(viewModel, data, page.id, onBack = ::back)
         is Page.RoutineEditor -> RoutineEditorScreen(viewModel, data, page.id, onBack = ::back)
         Page.Settings -> SettingsScreen(viewModel, data, onBack = ::back, openAccount = { open(Page.Account) })
+        Page.Friends -> FriendsScreen(viewModel, onBack = ::back, openAccount = { open(Page.Account) })
         Page.Account -> AccountScreen(viewModel, invite, onBack = {
             viewModel.pendingInvite.value = null
             back()
@@ -133,6 +135,7 @@ private val PageStackSaver = androidx.compose.runtime.saveable.listSaver<List<Pa
                 Page.NutritionSettings -> "nutrition-settings"
                 Page.Recipes -> "recipes"
                 Page.Account -> "account"
+                Page.Friends -> "friends"
             }
         }
     },
@@ -146,6 +149,7 @@ private val PageStackSaver = androidx.compose.runtime.saveable.listSaver<List<Pa
                 text == "nutrition-settings" -> Page.NutritionSettings
                 text == "recipes" -> Page.Recipes
                 text == "account" -> Page.Account
+                text == "friends" -> Page.Friends
                 else -> null
             }
         }

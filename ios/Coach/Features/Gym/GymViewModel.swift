@@ -662,7 +662,8 @@ final class GymViewModel {
       exerciseIDs: session.exercises.map(\.exerciseID),
       muscles: MuscleLoad.session(session, custom: gym.customExercises),
       volumeChange: SessionComparison.volumeChangePercent(
-        session, previous: SessionComparison.previous(of: session, in: sessions)))
+        session, previous: SessionComparison.previous(of: session, in: sessions)),
+      share: WorkoutShare.gym(session, records: records, now: now))
     setActive(nil)
     resetFlow()
     RestAlarm.schedule(at: nil)
@@ -749,6 +750,8 @@ struct FinishedWorkout: Equatable {
   var muscles: [Muscle: Double] = [:]
   /// Volumen gegenüber der letzten gleichen Einheit in %.
   var volumeChange: Int?
+  /// Was „Mit Freunden teilen“ senden würde (ohne Körperwerte).
+  var share: WorkoutShare?
 }
 
 extension Array {

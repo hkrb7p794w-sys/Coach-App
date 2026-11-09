@@ -11,6 +11,7 @@ struct TodayView: View {
   @State private var viewModel = TodayViewModel()
   @State private var showSettings = false
   @State private var showChat = false
+  @State private var showFriends = false
   @State private var clock = CalendarDay(date: .now)
 
   private var refreshKey: String {
@@ -138,6 +139,13 @@ struct TodayView: View {
       .navigationTitle("Heute")
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
+          Button(
+            model.social.incomingCount > 0 ? "Freunde, \(model.social.incomingCount) neue Anfragen" : "Freunde",
+            systemImage: model.social.incomingCount > 0 ? "person.2.fill" : "person.2"
+          ) { showFriends = true }
+          .badge(model.social.incomingCount)
+        }
+        ToolbarItem(placement: .topBarTrailing) {
           Button("Coach fragen", systemImage: "bubble.left.and.text.bubble.right") { showChat = true }
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -146,6 +154,7 @@ struct TodayView: View {
       }
       .sheet(isPresented: $showSettings) { SettingsView() }
       .sheet(isPresented: $showChat) { ChatView(snapshot: viewModel.snapshot) }
+      .sheet(isPresented: $showFriends) { FriendsView() }
       .refreshable {
         await model.syncNow()
         await viewModel.loadNote(ai: model.ai, settings: model.settings)

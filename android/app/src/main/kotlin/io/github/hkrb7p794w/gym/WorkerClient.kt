@@ -153,8 +153,14 @@ class WorkerClient(private val access: WorkerAccess) {
 
     enum class Auth { PREFERRED, GUEST, SESSION, NONE }
 
+    /** Freunde und Feed (`/v1/social/…`), nur mit Sitzung. */
+    suspend fun social(method: String, path: String, body: JsonObject? = null): JsonObject = api(method, "social/$path", body, Auth.SESSION)
+
     /** Konto-Anfrage (`/v1/account/…`); liefert die JSON-Antwort oder wirft mit der Meldung des Workers. */
-    suspend fun account(method: String, path: String, body: JsonObject? = null, auth: Auth = Auth.SESSION): JsonObject {
+    suspend fun account(method: String, path: String, body: JsonObject? = null, auth: Auth = Auth.SESSION): JsonObject =
+        api(method, "account/$path", body, auth)
+
+    private suspend fun api(method: String, path: String, body: JsonObject?, auth: Auth): JsonObject {
         if (WorkerAccess.normalized(access.url) == null) throw WorkerException("Bitte zuerst die Server-Adresse eintragen.")
         val token = when (auth) {
             Auth.PREFERRED -> access.bearer
@@ -163,7 +169,7 @@ class WorkerClient(private val access: WorkerAccess) {
             Auth.NONE -> ""
         }
         if (auth != Auth.NONE && token.isEmpty()) throw WorkerException("Bitte zuerst anmelden.")
-        val (status, text) = request(method, "${access.url}/v1/account/$path", body?.toString(), auth = token.isNotEmpty(), timeoutMs = 20_000, token = token)
+        val (status, text) = request(method, "${access.url}/v1/$path", body?.toString(), auth = token.isNotEmpty(), timeoutMs = 20_000, token = token)
         val json = runCatching { GymJson.parseToJsonElement(text) }.getOrNull() as? JsonObject
         if (status == 401 && auth == Auth.SESSION) throw unauthorized()
         if (status !in 200..299) {

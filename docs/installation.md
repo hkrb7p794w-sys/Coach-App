@@ -118,3 +118,12 @@ Körperwerte bleiben auf ihrem Gerät. Gespeichert werden auf dem Server nur Ben
    `curl -X POST -H "Authorization: Bearer <HAUPT-TOKEN>" -d '{"username":"lena"}' https://<worker>/v1/account/admin/reset`
 
 KI-Anfragen mit einem Konto zählen wie ein Gast (Tageslimit `AI_GUEST_DAILY_LIMIT`), Betreiberkonten nicht.
+
+### Freunde und Feed
+
+- **iPhone:** Heute › Symbol „Freunde“ (oben rechts). **Android:** Training › „Freunde“.
+- Freunde über den Benutzernamen suchen und hinzufügen; die andere Person nimmt die Anfrage an.
+- Teilen: im Gym nach dem Training „Mit Freunden teilen“, an einer Aktivität (iPhone) oder im Verlauf (Android) das
+  Teilen-Symbol, an einer Mahlzeit „Teilen …“ › „Im Feed mit Freunden teilen“ (Android: Menü › „Mit Freunden teilen“).
+- Geteilte Mahlzeiten lassen sich mit „In mein Tagebuch übernehmen“ als eigener Eintrag übernehmen.
+- Geteilt wird nie automatisch und nie mit Körperwerten (Gewicht, Puls, Schlaf).

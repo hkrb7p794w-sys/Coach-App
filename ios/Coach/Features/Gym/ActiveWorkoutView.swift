@@ -1588,6 +1588,7 @@ private struct WorkoutResultView: View {
   let finished: FinishedWorkout
   let viewModel: GymViewModel
   let close: () -> Void
+  @State private var sharing: WorkoutShare?
 
   var body: some View {
     ScrollView {
@@ -1637,6 +1638,15 @@ private struct WorkoutResultView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
         }
         Text(finished.status).font(.footnote).foregroundStyle(.secondary)
+        if let share = finished.share {
+          Button {
+            sharing = share
+          } label: {
+            Label("Mit Freunden teilen", systemImage: "person.2").frame(maxWidth: .infinity, minHeight: 44)
+          }
+          .buttonStyle(.bordered)
+          .buttonBorderShape(.roundedRectangle(radius: 14))
+        }
         Button {
           close()
         } label: {
@@ -1646,6 +1656,9 @@ private struct WorkoutResultView: View {
         .buttonBorderShape(.roundedRectangle(radius: 14))
       }
       .padding()
+    }
+    .sheet(isPresented: Binding(get: { sharing != nil }, set: { if !$0 { sharing = nil } })) {
+      if let sharing { ShareWithFriendsSheet(content: .workout(sharing)) }
     }
   }
 }

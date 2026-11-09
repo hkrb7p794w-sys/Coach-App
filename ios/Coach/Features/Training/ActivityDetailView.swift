@@ -15,6 +15,7 @@ struct ActivityDetailView: View {
   @State private var fit: FitActivity?
   @State private var loading = false
   @State private var problem: String?
+  @State private var sharing = false
 
   private var current: GarminActivity? { activity ?? record.activity }
 
@@ -51,6 +52,16 @@ struct ActivityDetailView: View {
     }
     .navigationTitle(current?.name ?? "Aktivität")
     .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      if current != nil {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("Mit Freunden teilen", systemImage: "person.2") { sharing = true }
+        }
+      }
+    }
+    .sheet(isPresented: $sharing) {
+      if let current { ShareWithFriendsSheet(content: .workout(WorkoutShare.activity(current))) }
+    }
     .task { await load() }
   }
 
