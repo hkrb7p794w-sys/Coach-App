@@ -57,6 +57,13 @@ struct HealthDashboardView: View {
         }
         .buttonStyle(.plain)
 
+        NavigationLink {
+          MobilityView()
+        } label: {
+          MobilitySummaryCard()
+        }
+        .buttonStyle(.plain)
+
         if visible.isEmpty {
           ContentUnavailableView {
             Label(
