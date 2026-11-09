@@ -78,9 +78,10 @@ struct NowSection: View {
       if let pause = settings.activeBreak(today: snapshot.plan.today), pause.contains(snapshot.plan.today) {
         Label(
           "Pause bis \(GermanFormat.date(pause.end)) – keine Erinnerungen, nichts gilt als verpasst.",
-          systemImage: "suitcase")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
+          systemImage: "suitcase"
+        )
+        .font(.footnote)
+        .foregroundStyle(.secondary)
       }
       if focus.items.isEmpty {
         Text(settings.profile.mode == .season ? "Heute nichts Festes." : "Heute nichts geplant.")
