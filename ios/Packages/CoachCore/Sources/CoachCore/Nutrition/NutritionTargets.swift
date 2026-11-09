@@ -158,6 +158,8 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
   public var weightTargetsWithheld = false
   /// Tag der zuletzt als Körpergewicht übernommenen Wägung.
   public var lastAppliedWeighInDay: CalendarDay?
+  /// Letzter Wochen-Check-in (Gewichtsverlauf angesehen bzw. übersprungen), siehe `NutritionCheckIn`.
+  public var lastCheckInDay: CalendarDay?
 
   public init() {}
 
@@ -176,6 +178,7 @@ public struct NutritionSettings: Codable, Equatable, Sendable {
       max((try? container.decodeIfPresent(Double.self, forKey: .energyAdjustmentKilocalories)) ?? 0, -500), 500)
     weightTargetsWithheld = (try? container.decodeIfPresent(Bool.self, forKey: .weightTargetsWithheld)) ?? false
     lastAppliedWeighInDay = try? container.decodeIfPresent(CalendarDay.self, forKey: .lastAppliedWeighInDay)
+    lastCheckInDay = try? container.decodeIfPresent(CalendarDay.self, forKey: .lastCheckInDay)
   }
 
   /// Einstellungen haben Vorrang, dann Garmin-Profil, dann Standardwerte.

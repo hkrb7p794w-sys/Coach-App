@@ -46,6 +46,38 @@ struct NutritionView: View {
       + "\(viewModel.day.iso)"
   }
 
+  /// Wochen-Check-in (`NutritionCheckIn`): einmal pro Woche Gewichtstrend und Verbrauch ansehen.
+  private var showsCheckIn: Bool {
+    let nutrition = model.settings.nutrition
+    let start = viewModel.today.adding(days: -NutritionCheckIn.dataWindowDays)
+    return NutritionCheckIn.isDue(
+      today: viewModel.today, last: nutrition.lastCheckInDay, withheld: nutrition.weightTargetsWithheld,
+      weighIns: model.allWeights.map(\.day).filter { $0 >= start },
+      mealDays: meals.suffix(200).compactMap { CalendarDay(iso: $0.dayKey) })
+  }
+
+  private var checkInSection: some View {
+    Section {
+      NavigationLink {
+        WeightTrendView()
+      } label: {
+        Label("Gewichtstrend und Verbrauch ansehen", systemImage: "calendar.badge.checkmark")
+      }
+      Button("Diese Woche überspringen") {
+        var nutrition = model.settings.nutrition
+        nutrition.lastCheckInDay = viewModel.today
+        model.settings.nutrition = nutrition
+      }
+    } header: {
+      Text("Wochen-Check-in")
+    } footer: {
+      Text(
+        "Einmal pro Woche: Passt dein Verlauf zum Ziel? Falls nicht, schlägt die App eine Anpassung der Tagesziele "
+          + "vor – sie ändert nichts ohne dein OK."
+      )
+    }
+  }
+
   var body: some View {
     NavigationStack {
       List {
@@ -59,6 +91,9 @@ struct NutritionView: View {
           }
           if !viewModel.pending.isEmpty {
             pendingSection
+          }
+          if showsCheckIn {
+            checkInSection
           }
           // Karten in der gewählten Reihenfolge („Übersicht anpassen“).
           ForEach(model.settings.nutritionDashboard.visible) { card in
