@@ -29,6 +29,7 @@ describe("providerOrder", () => {
       "gemini",
       "cerebras",
       "groq",
+      "github",
       "workers_ai",
       "mistral",
       "openai_compat",
@@ -38,6 +39,7 @@ describe("providerOrder", () => {
       "workers_ai",
       "gemini",
       "cerebras",
+      "github",
       "mistral",
       "openai_compat",
     ]);
@@ -45,24 +47,32 @@ describe("providerOrder", () => {
   });
 
   it("privat schickt nichts an Anbieter, die mit Eingaben trainieren", () => {
-    expect(ids(providerOrder(env, "privat"))).toEqual(["openai_compat", "cerebras", "groq", "workers_ai"]);
+    expect(ids(providerOrder(env, "privat"))).toEqual([
+      "openai_compat",
+      "cerebras",
+      "groq",
+      "github",
+      "workers_ai",
+    ]);
     expect(ids(providerOrder(env, "workers_ai"))).toEqual([
       "workers_ai",
       "cerebras",
       "groq",
+      "github",
       "openai_compat",
     ]);
     // Auch mit Aufgaben-Reihenfolge nie Gemini oder das kostenlose Mistral.
-    expect(ids(providerOrder(env, "privat", true, "meal_analyze"))).toEqual(["groq", "workers_ai"]);
+    expect(ids(providerOrder(env, "privat", true, "meal_analyze"))).toEqual(["github", "groq", "workers_ai"]);
   });
 
   it("Bilder nur an Anbieter mit Bild-Eingabe", () => {
     expect(ids(providerOrder(env, "privat", true))).not.toContain("openai_compat");
   });
 
-  it("Reihenfolge je Aufgabe: Fotos zu Gemini/Mistral, Pläne zu Cerebras, kurze Hinweise zu Groq", () => {
+  it("Reihenfolge je Aufgabe: Fotos zu Gemini/GitHub/Mistral, Pläne zu Cerebras, kurze Hinweise zu Groq", () => {
     expect(ids(providerOrder(env, "auto", true, "meal_analyze"))).toEqual([
       "gemini",
+      "github",
       "mistral",
       "groq",
       "workers_ai",
@@ -70,7 +80,7 @@ describe("providerOrder", () => {
     expect(ids(providerOrder(env, "auto", false, "weekly_recipes")).slice(0, 3)).toEqual([
       "cerebras",
       "gemini",
-      "groq",
+      "github",
     ]);
     expect(ids(providerOrder(env, "auto", false, "coach_chat")).slice(0, 2)).toEqual(["gemini", "cerebras"]);
     expect(ids(providerOrder(env, "auto", false, "gym_hints"))[0]).toBe("groq");
@@ -184,6 +194,33 @@ describe("Cerebras und Mistral", () => {
     );
     expect(result.provider).toBe("groq");
     expect(deps.calls.map((call) => new URL(call.url).host)).toEqual(["api.cerebras.ai", "api.groq.com"]);
+  });
+
+  it("GitHub Models: Token, gpt-4.1, Antwortlänge auf 4.000 begrenzt, Fotos als Objekt", async () => {
+    const deps = fakeDeps([ok]);
+    const result = await generate(
+      {
+        ...request,
+        maxOutputTokens: 9000,
+        images: [{ mimeType: "image/jpeg", data: "QUJD" }],
+        task: "meal_analyze",
+      },
+      { ...env, GEMINI_API_KEY: undefined, GH_MODELS_TOKEN: "ghp" },
+      deps,
+    );
+    expect(result.provider).toBe("github");
+    expect(deps.calls[0]?.url).toBe("https://models.github.ai/inference/chat/completions");
+    const body = deps.calls[0]?.body as {
+      model: string;
+      max_tokens: number;
+      messages: { content: unknown }[];
+    };
+    expect(body).toMatchObject({ model: "openai/gpt-4.1", max_tokens: 4000 });
+    expect(body.messages.at(-1)?.content).toEqual([
+      { type: "text", text: "Hallo" },
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,QUJD" } },
+    ]);
+    expect(new Headers(deps.calls[0]?.init?.headers).get("authorization")).toBe("Bearer ghp");
   });
 
   it("ohne Key übersprungen und als nicht eingerichtet gemeldet", () => {

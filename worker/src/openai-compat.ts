@@ -169,3 +169,29 @@ export async function generateWithMistral(
     deps,
   );
 }
+
+export const GITHUB_MODELS_BASE = "https://models.github.ai/inference";
+export const DEFAULT_GITHUB_MODEL = "openai/gpt-4.1";
+/** Kostenlose Stufe: höchstens 4.000 Ausgabe-Tokens je Anfrage (größere Anfragen lehnt GitHub ab). */
+const GITHUB_MAX_OUTPUT = 4000;
+
+/** GitHub Models: mit dem GitHub-Konto kostenlos (knappe Tageslimits), Bilder je nach Modell. */
+export async function generateWithGitHubModels(
+  request: GenerateRequest,
+  env: Env,
+  deps: Deps,
+): Promise<GenerateResult> {
+  if (!env.GH_MODELS_TOKEN) throw new ProviderError("GH_MODELS_TOKEN ist nicht gesetzt", false);
+  const model = env.GITHUB_MODEL?.trim() || DEFAULT_GITHUB_MODEL;
+  return generateWithChatEndpoint(
+    {
+      provider: "github",
+      label: "GitHub Models",
+      base: GITHUB_MODELS_BASE,
+      model,
+      key: env.GH_MODELS_TOKEN,
+    },
+    { ...request, maxOutputTokens: Math.min(request.maxOutputTokens ?? 4096, GITHUB_MAX_OUTPUT) },
+    deps,
+  );
+}

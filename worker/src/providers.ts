@@ -8,8 +8,10 @@ import { generateWithGroq } from "./groq";
 import {
   compatBase,
   DEFAULT_CEREBRAS_MODEL,
+  DEFAULT_GITHUB_MODEL,
   DEFAULT_MISTRAL_MODEL,
   generateWithCerebras,
+  generateWithGitHubModels,
   generateWithMistral,
   generateWithOpenAiCompat,
 } from "./openai-compat";
@@ -76,6 +78,17 @@ export const PROVIDERS: ProviderDefinition[] = [
     run: generateWithGroq,
   },
   {
+    id: "github",
+    label: "GitHub Models",
+    enabled: (env) => Boolean(env.GH_MODELS_TOKEN),
+    model: (env) => env.GITHUB_MODEL?.trim() || DEFAULT_GITHUB_MODEL,
+    // Laut GitHub werden Eingaben nicht zum Training genutzt.
+    usesInputsForTraining: false,
+    vision: true,
+    pricePerMillion: () => [2, 8],
+    run: generateWithGitHubModels,
+  },
+  {
     id: "workers_ai",
     label: "Cloudflare Workers AI",
     enabled: (env) => Boolean(env.AI),
@@ -114,26 +127,26 @@ export type Preference = "auto" | "privat" | ProviderId;
 /**
  * Standardreihenfolge je Aufgabe (danach alle übrigen Anbieter wie bei `auto`). Ziel: Jede Aufgabe beim Anbieter, der
  * sie am besten kann, und das knappe Gemini-Kontingent für Fotos und Gespräche aufheben.
- * - Fotos und Mahlzeiten: Gemini erkennt Bilder am besten, Mistral als zweites Bildmodell.
+ * - Fotos und Mahlzeiten: Gemini erkennt Bilder am besten, GitHub Models (GPT-4.1) und Mistral als weitere Bildmodelle.
  * - Pläne und Rezepte (lange JSON-Antworten): Cerebras (gpt-oss-120b) mit großem Kontingent zuerst.
  * - Gespräche und Auswertungen: Gemini, dann Cerebras.
  * - Kurze Hinweise: Groq (schnell), damit Gemini frei bleibt.
  * Ändern ohne Code: Worker-Variable AI_TASK_ORDER.
  */
 export const TASK_ROUTES: Record<string, ProviderId[]> = {
-  meal_analyze: ["gemini", "mistral", "groq", "workers_ai", "cerebras"],
-  meal_amend: ["gemini", "mistral", "groq", "workers_ai", "cerebras"],
-  nutrition_label: ["gemini", "mistral", "groq", "workers_ai"],
-  weekly_recipes: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
-  cook_plan: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
-  gym_plan: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
-  meal_now: ["cerebras", "gemini", "groq", "workers_ai", "mistral"],
-  coach_chat: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
-  ai_insights: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
-  daily_note: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
-  personal_note: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
-  nutrition_review: ["gemini", "cerebras", "mistral", "groq", "workers_ai"],
-  gym_hints: ["groq", "cerebras", "gemini", "workers_ai", "mistral"],
+  meal_analyze: ["gemini", "github", "mistral", "groq", "workers_ai", "cerebras"],
+  meal_amend: ["gemini", "github", "mistral", "groq", "workers_ai", "cerebras"],
+  nutrition_label: ["gemini", "github", "mistral", "groq", "workers_ai"],
+  weekly_recipes: ["cerebras", "gemini", "github", "groq", "workers_ai", "mistral"],
+  cook_plan: ["cerebras", "gemini", "github", "groq", "workers_ai", "mistral"],
+  gym_plan: ["cerebras", "gemini", "github", "groq", "workers_ai", "mistral"],
+  meal_now: ["cerebras", "gemini", "github", "groq", "workers_ai", "mistral"],
+  coach_chat: ["gemini", "cerebras", "github", "mistral", "groq", "workers_ai"],
+  ai_insights: ["gemini", "cerebras", "github", "mistral", "groq", "workers_ai"],
+  daily_note: ["gemini", "cerebras", "github", "mistral", "groq", "workers_ai"],
+  personal_note: ["gemini", "cerebras", "github", "mistral", "groq", "workers_ai"],
+  nutrition_review: ["gemini", "cerebras", "github", "mistral", "groq", "workers_ai"],
+  gym_hints: ["groq", "cerebras", "gemini", "github", "workers_ai", "mistral"],
 };
 
 function idList(value: unknown): string[] {
@@ -168,7 +181,7 @@ export function parsePreference(value: unknown): Preference {
 /**
  * Reihenfolge der Versuche:
  * - `auto`: Reihenfolge der Aufgabe (TASK_ROUTES/AI_TASK_ORDER), danach AI_PROVIDER_ORDER bzw. Standard
- *   (Gemini, Cerebras, Groq, Workers AI, Mistral, eigener Server).
+ *   (Gemini, Cerebras, Groq, GitHub Models, Workers AI, Mistral, eigener Server).
  * - `privat`: nur Anbieter, die Eingaben nicht zum Training nutzen (eigener Server zuerst).
  * - ein Anbieter: dieser zuerst, danach die übrigen wie bei `auto` (bzw. `privat`, wenn er privat ist).
  * Bilder nur an Anbieter mit Bild-Eingabe.

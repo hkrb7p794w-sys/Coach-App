@@ -139,12 +139,17 @@ zuerst, die übrigen als Reserve, wenn ein Kontingent aufgebraucht ist. Umsetzun
 
 | Aufgaben | Reihenfolge | Begründung |
 |---|---|---|
-| `meal_analyze`, `meal_amend`, `nutrition_label` (Fotos) | Gemini → Mistral → Groq (Llama 4 Scout) → Workers AI | Gemini erkennt Bilder am besten; Cerebras hat keine Bild-Eingabe |
-| `weekly_recipes`, `cook_plan`, `gym_plan`, `meal_now` (lange JSON-Antworten) | Cerebras → Gemini → Groq → Workers AI → Mistral | gpt-oss-120b stark bei JSON, großes Kontingent; schont Gemini |
-| `coach_chat`, `ai_insights`, `daily_note`, `personal_note`, `nutrition_review` | Gemini → Cerebras → Mistral → Groq → Workers AI | Gesprächsqualität und Deutsch |
-| `gym_hints` | Groq → Cerebras → Gemini → Workers AI → Mistral | kurz, Geschwindigkeit zählt |
-| übrige (`ping`) | Gemini → Cerebras → Groq → Workers AI → Mistral → eigener Server | Standard |
+| `meal_analyze`, `meal_amend`, `nutrition_label` (Fotos) | Gemini → GitHub Models → Mistral → Groq (Llama 4 Scout) → Workers AI | Gemini erkennt Bilder am besten, GPT-4.1 als zweites starkes Bildmodell; Cerebras hat keine Bild-Eingabe |
+| `weekly_recipes`, `cook_plan`, `gym_plan`, `meal_now` (lange JSON-Antworten) | Cerebras → Gemini → GitHub Models → Groq → Workers AI → Mistral | gpt-oss-120b stark bei JSON, großes Kontingent; schont Gemini. GitHub Models nur bis 4.000 Ausgabe-Tokens |
+| `coach_chat`, `ai_insights`, `daily_note`, `personal_note`, `nutrition_review` | Gemini → Cerebras → GitHub Models → Mistral → Groq → Workers AI | Gesprächsqualität und Deutsch |
+| `gym_hints` | Groq → Cerebras → Gemini → GitHub Models → Workers AI → Mistral | kurz, Geschwindigkeit zählt |
+| übrige (`ping`) | Gemini → Cerebras → Groq → GitHub Models → Workers AI → Mistral → eigener Server | Standard |
 
+- **GitHub Models** (ergänzt am 09.11.2026, weil Cerebras eine Kreditkarte verlangt und Groq/Mistral sich beim Nutzer
+  nicht einrichten ließen): Fine-grained Token mit „Models: Read-only“ (`GH_MODELS_TOKEN`), Modell `openai/gpt-4.1`
+  (`GITHUB_MODEL`), Endpunkt `https://models.github.ai/inference`. Kostenlose Stufe mit knappen Tages- und
+  Anfragelimits (Größenordnung 50–150 Anfragen am Tag je nach Modell, maßgeblich ist die GitHub-Doku) und höchstens
+  4.000 Ausgabe-Tokens – daher Reserve, nicht erste Wahl. Laut GitHub keine Nutzung der Eingaben zum Training.
 - **Datenschutz zuerst** (`privat`) schließt Gemini und Mistral (kostenlose Stufe „Experiment“, Eingaben dürfen zum
   Training genutzt werden) auch beim Ausweichen aus.
 - Eine ausdrückliche Anbieterwahl in der App steht vor der Aufgaben-Reihenfolge.
@@ -157,7 +162,8 @@ zuerst, die übrigen als Reserve, wenn ein Kontingent aufgebraucht ist. Umsetzun
   Gesundheitsdaten), keine Bilder, kostenlose Varianten nur unzuverlässig über OpenRouter; gpt-oss-120b bei Cerebras
   und Groq deckt dieselben Stärken ab.
 
-Quellen: [Cerebras Inference Docs](https://inference-docs.cerebras.ai/), [Mistral Docs](https://docs.mistral.ai/),
+Quellen: [GitHub Models – Prototyping und Limits](https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models),
+[Cerebras Inference Docs](https://inference-docs.cerebras.ai/), [Mistral Docs](https://docs.mistral.ai/),
 [Groq Rate Limits](https://console.groq.com/docs/rate-limits). Kontingente ändern sich; maßgeblich ist die Konsole des
 jeweiligen Anbieters.
 

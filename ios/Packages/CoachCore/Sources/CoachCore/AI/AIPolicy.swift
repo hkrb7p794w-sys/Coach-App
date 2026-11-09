@@ -93,6 +93,7 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
   case cerebras
   case groq
   case mistral
+  case github
   case ownServer = "openai_compat"
 
   public var label: String {
@@ -104,6 +105,7 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
     case .cerebras: "Cerebras"
     case .groq: "Groq"
     case .mistral: "Mistral"
+    case .github: "GitHub Models"
     case .ownServer: "Eigener Server"
     }
   }
@@ -114,7 +116,7 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
       "Je Aufgabe der passende Anbieter: Fotos an Gemini, Pläne und Rezepte an Cerebras, Gespräche an Gemini. "
         + "Ist ein Kontingent aufgebraucht, übernimmt der nächste."
     case .privat:
-      "Nur Anbieter ohne Training mit deinen Eingaben: eigener Server, Cerebras, Groq, Workers AI. "
+      "Nur Anbieter ohne Training mit deinen Eingaben: eigener Server, Cerebras, Groq, GitHub Models, Workers AI. "
         + "Nie das kostenlose Gemini oder Mistral."
     case .workersAI:
       "Offene Modelle (Gemma 4) bei Cloudflare. 10.000 Neurons pro Tag frei (rund 150 Anfragen), keine Speicherung."
@@ -125,6 +127,8 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
     case .mistral:
       "Europäischer Anbieter, sehr gutes Deutsch, auch Fotos. "
         + "In der kostenlosen Stufe darf Mistral Eingaben auswerten."
+    case .github:
+      "GPT-4.1 über dein GitHub-Konto, auch Fotos. Kostenlos mit knappen Tageslimits. Laut GitHub kein Training."
     case .ownServer: "Eigenes Modell (z. B. Ollama auf dem PC) – nur, wenn im Worker eingerichtet. Ohne Fotos."
     }
   }

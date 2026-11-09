@@ -41,6 +41,16 @@ Feldliste einer Antwort lässt sich über „Teilen“ weitergeben (sie enthält
    Telefonnummer zur Bestätigung, keine Kreditkarte).
 2. **API Keys** › **Create new key** › Namen „coach“ › Key kopieren (wird nur einmal angezeigt).
 
+**GitHub Models** (GPT-4.1, auch Fotos, über das vorhandene GitHub-Konto, kostenlos mit knappen Tageslimits):
+
+1. GitHub › Profilbild › **Settings** › **Developer settings** › **Personal access tokens** › **Fine-grained tokens** ›
+   **Generate new token**.
+2. Name `coach-models`, Ablauf **366 days**, Repository access **Public repositories** (der Token braucht keine
+   Repos), unter **Permissions › Account** nur **Models: Read-only**. **Generate token** › Token (`github_pat_…`)
+   kopieren – er wird nur einmal angezeigt.
+3. Läuft der Token ab, antwortet GitHub Models nicht mehr; die übrigen Anbieter übernehmen. Neuen Token anlegen und
+   das Secret ersetzen.
+
 Alle KI-Keys sind optional: Der Worker nutzt, was eingerichtet ist, und überspringt den Rest. Welche Aufgabe welcher
 Anbieter zuerst bekommt, steht in `docs/ki-modelle.md` (Abschnitt „Reihenfolge je Aufgabe“).
 
@@ -83,6 +93,7 @@ Im Repo **Settings › Secrets and variables › Actions › New repository secr
 | `GROQ_API_KEY` | Groq-Key aus Schritt 2 (optional) |
 | `CEREBRAS_API_KEY` | Cerebras-Key aus Schritt 2 (optional) |
 | `MISTRAL_API_KEY` | Mistral-Key aus Schritt 2 (optional) |
+| `GH_MODELS_TOKEN` | GitHub-Models-Token aus Schritt 2 (optional) |
 | `COACH_APP_TOKEN` | App-Token aus Schritt 4 |
 
 ## 6. Worker bereitstellen
