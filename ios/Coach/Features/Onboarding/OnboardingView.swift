@@ -100,6 +100,17 @@ struct OnboardingView: View {
   private var sportsStep: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 12) {
+        if !isEditing {
+          Label {
+            Text(
+              "Deine Daten bleiben auf dem iPhone, außer du nutzt KI, Ranglisten oder Garmin. Die App ist kein "
+                + "Medizinprodukt: Kläre bei Vorerkrankungen oder Beschwerden das Training ärztlich ab. Die "
+                + "Garmin-Anbindung nutzt auch einen inoffiziellen Zugang.")
+          } icon: {
+            Image(systemName: "hand.raised")
+          }
+          .font(.footnote)
+        }
         Text("Wähle alles, was du regelmäßig machst oder machen möchtest. Die App richtet sich danach.")
           .foregroundStyle(.secondary)
         ForEach(TrainingSport.allCases) { sport in

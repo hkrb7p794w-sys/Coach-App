@@ -38,7 +38,7 @@ struct ChatView: View {
           if messages.isEmpty {
             Section {
               Text(
-                "Frag mich zu Training, Erholung, Schlaf oder Ernährung. Ich antworte nur aus deinen Daten und den "
+                "Frag die KI zu Training, Erholung, Schlaf oder Ernährung. Sie antwortet aus deinen Daten und den "
                   + "Regeln der App."
               )
               .font(.subheadline)
@@ -54,7 +54,7 @@ struct ChatView: View {
           if isSending {
             HStack(spacing: 8) {
               ProgressView()
-              Text("Coach denkt nach …").font(.subheadline).foregroundStyle(.secondary)
+              Text("KI denkt nach …").font(.subheadline).foregroundStyle(.secondary)
             }
             .listRowSeparator(.hidden)
           }
@@ -65,7 +65,7 @@ struct ChatView: View {
         }
       }
       .safeAreaInset(edge: .bottom) { inputBar }
-      .navigationTitle("Coach fragen")
+      .navigationTitle("KI-Coach")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("Schließen") { dismiss() } }
@@ -74,6 +74,16 @@ struct ChatView: View {
   }
 
   private var inputBar: some View {
+    VStack(spacing: 6) {
+      Text("Antworten kommen von einer KI und können falsch sein. Kein Ersatz für ärztlichen Rat.")
+        .font(.caption2).foregroundStyle(.secondary)
+      question
+    }
+    .padding()
+    .background(.bar)
+  }
+
+  private var question: some View {
     HStack(spacing: 8) {
       TextField("Frage stellen", text: $draft, axis: .vertical)
         .lineLimit(1...4)
@@ -89,8 +99,6 @@ struct ChatView: View {
       .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
       .accessibilityLabel("Senden")
     }
-    .padding()
-    .background(.bar)
   }
 
   @ViewBuilder

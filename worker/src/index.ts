@@ -12,7 +12,7 @@
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { handleAndroid } from "./android";
-import { authenticate, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
+import { authenticate, expiringGuestToken, newGuestID, principalKey, tokensMatch } from "./auth";
 import { handleLeague, type LeagueStore } from "./league";
 import { listPriceUsd, parsePreference, providerInfo } from "./providers";
 import { handleShare, type ShareStore, sharePage } from "./share";
@@ -24,6 +24,7 @@ import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 export const VERSION = "0.4.0";
 export const MAX_BODY_BYTES = 8 * 1024 * 1024;
 export const MAX_IMAGES = 4;
+const GUEST_TOKEN_SECONDS = 365 * 24 * 3600;
 /** Die App wartet 120 s; vorher soll eine verständliche Antwort kommen statt eines Abbruchs. */
 export const AI_DEADLINE_MS = 105_000;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/heic", "image/webp"]);
@@ -88,14 +89,19 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
 
   if (!env.COACH_APP_TOKEN)
     return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
-  const principal = await authenticate(request.headers.get("authorization") ?? "", env);
+  const principal = await authenticate(request.headers.get("authorization") ?? "", env, deps.now());
   if (!principal) return json(401, { error: "Nicht autorisiert" });
+  if (env.RATE_LIMITER) {
+    const { success } = await env.RATE_LIMITER.limit({ key: principalKey(principal) });
+    if (!success) return json(429, { error: "Zu viele Anfragen, bitte kurz warten", code: "rate_limited" });
+  }
 
   if (isInvite) {
     // Nur wer den Worker betreibt, lädt ein; Gäste geben den Ranglisten-Code weiter.
     if (principal.kind !== "owner") return json(403, { error: "Nur mit dem Haupt-Token" });
     const id = newGuestID();
-    return json(200, { id, token: await guestToken(env.COACH_APP_TOKEN, id) });
+    const expiresAt = Math.floor(deps.now() / 1000) + GUEST_TOKEN_SECONDS;
+    return json(200, { id, token: await expiringGuestToken(env.COACH_APP_TOKEN, id, expiresAt) });
   }
 
   if (isShare) {
@@ -129,6 +135,9 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
 
   const task = findTask(body.task);
   if (!task) return json(400, { error: "Unbekannte Aufgabe" });
+  // Die Tagesnotiz enthält das fest hinterlegte Profil der Betreiberperson.
+  if (body.task === "daily_note" && principal.kind === "guest")
+    return json(403, { error: "Diese Aufgabe steht nur dem Haupt-Zugang offen" });
   const input = body.input ?? {};
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return json(400, { error: "input muss ein Objekt sein" });
@@ -161,7 +170,8 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
       },
       env,
       deps,
-      parsePreference(body.provider),
+      // Gäste ohne Einwilligung nie an Anbieter, die Eingaben zum Training nutzen dürfen.
+      principal.kind === "guest" && body.consent !== true ? "privat" : parsePreference(body.provider),
       accept,
     );
     return json(200, {

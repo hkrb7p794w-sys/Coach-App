@@ -147,7 +147,9 @@ final class AIClient {
     }
     let started = Date()
     do {
-      let response = try await generate(task: task, input: input, images: images, provider: settings.provider)
+      let route = AIPolicy.route(task: task, settings: settings)
+      let response = try await generate(
+        task: task, input: input, images: images, provider: route.provider, consent: route.consented)
       onUsage(
         AIUsageEntry(
           date: started, task: task, trigger: trigger, provider: response.provider, model: response.model, ok: true,
@@ -170,11 +172,11 @@ final class AIClient {
   }
 
   private func generate(
-    task: String, input: [String: JSONValue], images: [Image], provider: AIProviderChoice
+    task: String, input: [String: JSONValue], images: [Image], provider: AIProviderChoice, consent: Bool
   ) async throws -> AIResponse {
     let input = UserSources.inject(userSources(), into: input, task: task)
     var body: [String: JSONValue] = [
-      "task": .string(task), "input": .object(input), "provider": .string(provider.rawValue),
+      "task": .string(task), "input": .object(input), "provider": .string(provider.rawValue), "consent": .bool(consent),
     ]
     if !images.isEmpty {
       body["images"] = .array(
