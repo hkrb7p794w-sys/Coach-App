@@ -74,6 +74,15 @@ public enum RunPlanner {
     return runs.reduce(0) { $0 + ($1.durationSeconds ?? 0) } / 60 / 4
   }
 
+  /// Dauer des längsten Laufs der 30 Tage vor `monday`; `nil` ohne Läufe.
+  static func longestRunMinutes(activities: [GarminActivity], before monday: CalendarDay) -> Double? {
+    let start = monday.adding(days: -30)
+    return activities.filter { activity in
+      guard activity.sport == .run, let day = activity.day else { return false }
+      return start <= day && day < monday
+    }.compactMap(\.durationSeconds).max().map { $0 / 60 }
+  }
+
   public static func phase(monday: CalendarDay, event: EventGoal?) -> Phase {
     if let event {
       let days = monday.days(until: event.date)
@@ -109,7 +118,8 @@ public enum RunPlanner {
       case .race: baseline * 0.5
       }
     let sessions = distribute(
-      total: total, runDays: runDays, level: level, monday: monday, phase: phase, event: profile.event)
+      total: total, runDays: runDays, level: level, monday: monday, phase: phase, event: profile.event,
+      longest: longestRunMinutes(activities: activities, before: monday))
     return Week(
       monday: monday, phase: phase, baselineMinutes: Int(baseline.rounded()),
       totalMinutes: sessions.reduce(0) { $0 + $1.minutes }, sessions: sessions)
@@ -117,7 +127,7 @@ public enum RunPlanner {
 
   static func distribute(
     total: Double, runDays: [(Weekday, SessionSlot)], level: ExperienceLevel, monday: CalendarDay, phase: Phase,
-    event: EventGoal?
+    event: EventGoal?, longest: Double? = nil
   ) -> [Session] {
     // Mit nur einer Laufeinheit ist sie die ganze Woche; sonst Anteile nach Gewicht (locker 1, Qualität 0,9, lang 1,4).
     let single = runDays.count == 1
@@ -135,7 +145,8 @@ public enum RunPlanner {
       let minutes: Double
       var detail: String
       let intensity = role(slot)
-      minutes = unit * weight(intensity)
+      // Keine Einheit weit über dem längsten Lauf der letzten 30 Tage (Frandsen et al. 2025).
+      minutes = min(unit * weight(intensity), longest.map { $0 * LoadCheck.singleRunLimit } ?? .infinity)
       switch intensity {
       case .long: detail = "Ruhig und gleichmäßig, du kannst dich dabei unterhalten."
       case .hard: detail = quality(level: level, week: week, phase: phase)

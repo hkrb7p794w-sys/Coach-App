@@ -125,6 +125,10 @@ public struct TemplateItem: Codable, Equatable, Sendable {
   public let kind: Kind
   public var text: String
   public var done = false
+  /// Geplante Minuten, wenn der eigene Wochenplan sie kennt.
+  public var minutes: Int?
+  /// Tagestyp aus Sportart und Intensität; im Saisonplan `nil`, dort entscheidet der Text.
+  public var plannedType: DayType?
 }
 
 /// Kurzplan einer Phase je Disziplin.

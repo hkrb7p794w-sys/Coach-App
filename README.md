@@ -93,6 +93,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 76 | Paket 10 Gym: Abschluss ohne leeren Bildschirm, Aufwärmvorschläge nach Übung und Niveau, Sperrbildschirm neu, Pausenton und Vibration wählbar, KI-Plan vollständig bedienbar, GymBook aus den Vorschlägen | fertig (PR 86) |
 | 77 | Paket 11: Einstellungen nach Bereichen, Quellen nur noch auf Wunsch, Schlaf nach Wochentag, Feiertag und Wecker, einheitliche Pausenlogik, KI kennt Leistung über Pläne hinweg | fertig (PR 87) |
 | 80 | Phase 77 aus dem Audit: eine Tagesampel für alle Reiter, kein Grün ohne Daten, Tageswechsel, Schlaf als Episode, Widgets nach Mitternacht | fertig (PR 91) |
+| 81 | Phase 78 aus dem Audit: Ernährung nach echtem Trainingstag, Ampel wirkt auf die Ziele, Krafteinheiten nur einmal, Wochenfortschritt und Planvorschlag korrigiert, Einzellauf-Grenze | fertig (PR 92) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
 | 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 

@@ -101,10 +101,11 @@ struct WeekScheduleTests {
       .wednesday: [SessionSlot(.strength, .hard)], .thursday: [SessionSlot(.run, .hard)],
       .friday: [SessionSlot(.other)],
     ])
-    #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .monday)) == .moderate)
+    #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .monday)) == .light)
     #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .tuesday)) == .hard)
     #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .wednesday)) == .light)
-    #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .thursday)) == .hard)
+    // Intervalle sind kurz und kein harter Tag für die Ernährung (R2D-01).
+    #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .thursday)) == .moderate)
     #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .friday)) == nil)
     #expect(NutritionPlanner.plannedDayType(plan.templateItems(on: .saturday)) == nil)
   }

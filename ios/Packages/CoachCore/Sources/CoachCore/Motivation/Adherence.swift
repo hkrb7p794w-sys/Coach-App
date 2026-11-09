@@ -58,6 +58,11 @@ public enum ScoreRules {
   /// Ab diesem Anteil zählt eine Woche für die Serie.
   public static let streakShare = 0.8
 
+  /// Zählt die Aktivität als Training? Spaziergänge und Ähnliches nur, wenn an dem Tag so etwas geplant war.
+  public static func countsAsTraining(_ activity: GarminActivity, otherIsPlanned: Bool) -> Bool {
+    (activity.durationSeconds ?? 0) >= 900 && (activity.sport != .other || otherIsPlanned)
+  }
+
   public static func points(_ week: WeekAdherence) -> Int {
     week.done * pointsPerSession + (week.isComplete ? completeWeekBonus : 0)
   }

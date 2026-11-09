@@ -80,7 +80,8 @@ struct NowSection: View {
           .foregroundStyle(.secondary)
       }
       ForEach(focus.items) { item in FocusItemRow(item: item) }
-      if let note = snapshot.today?.focus, !note.isEmpty {
+      // Wochenfokus gehört zum Saisonplan und nicht in ein eigenes Profil.
+      if settings.profile.mode == .season, let note = snapshot.today?.focus, !note.isEmpty {
         Text(note).font(.footnote).foregroundStyle(.secondary)
       }
       if let advice = snapshot.advice {

@@ -6,7 +6,8 @@ public enum SchedulePlanner {
   /// Gewünschte Anzahl Einheiten je Sportart aus Ziel, Wettkampf und Erfahrung (vor dem Kürzen auf die Tage).
   public static func wantedCounts(profile: UserProfile) -> [TrainingSport: Int] {
     var wanted: [TrainingSport: Int] = [:]
-    let level = ScheduleCheck.overallLevel(profile)
+    // Jede Sportart nach ihrer eigenen Erfahrung: Erfahrung im Gym macht niemanden zum geübten Läufer.
+    let runLevel = profile.level(for: .run)
     func want(_ sport: TrainingSport, _ count: Int) {
       if profile.trains(sport) { wanted[sport] = count }
     }
@@ -23,7 +24,7 @@ public enum SchedulePlanner {
       want(.bike, 1)
       want(.swim, 1)
     case .buildMuscle:
-      want(.strength, level == .beginner ? 3 : 4)
+      want(.strength, profile.level(for: .strength) == .beginner ? 3 : 4)
       want(.run, 1)
       want(.bike, 1)
       want(.swim, 1)
@@ -47,9 +48,9 @@ public enum SchedulePlanner {
 
     if let event = profile.event {
       switch event.kind {
-      case .marathon: want(.run, level == .beginner ? 3 : 4)
+      case .marathon: want(.run, runLevel == .beginner ? 3 : 4)
       case .halfMarathon, .run10k: want(.run, 3)
-      case .run5k: want(.run, level == .beginner ? 2 : 3)
+      case .run5k: want(.run, runLevel == .beginner ? 2 : 3)
       case .triathlon:
         want(.swim, 2)
         want(.bike, 2)
@@ -65,10 +66,8 @@ public enum SchedulePlanner {
     }
 
     // Einsteiger:innen starten mit weniger Einheiten je Sportart.
-    if level == .beginner {
-      for sport in TrainingSport.allCases where sport.isEndurance {
-        if let count = wanted[sport] { wanted[sport] = min(count, 3) }
-      }
+    for sport in TrainingSport.allCases where sport.isEndurance && profile.level(for: sport) == .beginner {
+      if let count = wanted[sport] { wanted[sport] = min(count, 3) }
     }
     return wanted
   }
@@ -116,12 +115,17 @@ public enum SchedulePlanner {
     let capacity = min(dayCount, maxSessionsPerWeek)
     func total() -> Int { counts.values.reduce(0, +) }
 
-    // Kürzen: zuerst bei der unwichtigsten Sportart, die über ihrer Untergrenze liegt; sonst fällt die
-    // unwichtigste Sportart weg.
+    // Kürzen: erst die unwichtigste Sportart über ihrer Untergrenze, dann Sportarten ohne Wettkampfbezug. Kernsportarten
+    // eines Wettkampfs werden nur verringert, damit auch mit wenig Zeit ein sinnvoller Plan bleibt.
     while total() > capacity {
       let ascending = order.reversed()
+      let core = { (sport: TrainingSport) in minimumCount(for: sport, profile: profile) > 1 }
       if let sport = ascending.first(where: { (counts[$0] ?? 0) > minimumCount(for: $0, profile: profile) }) {
         counts[sport, default: 0] -= 1
+      } else if let sport = ascending.first(where: { (counts[$0] ?? 0) > 0 && !core($0) }) {
+        counts[sport] = nil
+      } else if let most = counts.values.max(), most > 1, let sport = ascending.first(where: { counts[$0] == most }) {
+        counts[sport] = most - 1
       } else if let sport = ascending.first(where: { (counts[$0] ?? 0) > 0 }) {
         counts[sport] = nil
       } else {
@@ -129,7 +133,6 @@ public enum SchedulePlanner {
       }
     }
 
-    let level = ScheduleCheck.overallLevel(profile)
     let needsLongRun = profile.event.map { $0.kind == .marathon || $0.kind == .halfMarathon } ?? false
     var result: [SessionSlot] = []
     for sport in order {
@@ -137,7 +140,7 @@ public enum SchedulePlanner {
       guard count > 0 else { continue }
       if sport.isEndurance {
         let intensities = enduranceIntensities(
-          count: count, level: sport == .run ? level : profile.level(for: sport),
+          count: count, level: profile.level(for: sport),
           longRun: needsLongRun && sport == .run)
         result += intensities.map { SessionSlot(sport, $0) }
       } else if sport == .strength {

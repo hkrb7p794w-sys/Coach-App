@@ -106,9 +106,18 @@ public struct SessionSlot: Codable, Equatable, Hashable, Sendable, Identifiable 
     sport.isEndurance && intensity.isDemanding
   }
 
-  /// Text für den Tagestyp der Ernährung: Lange und intensive Einheiten brauchen mehr Kohlenhydrate.
-  var nutritionText: String {
-    intensity.isDemanding && sport.isEndurance ? "\(title) intensiv lange" : title
+  /// Tagestyp der Ernährung: Nur lange Einheiten sind harte Tage, ein Intervalltraining dauert 30 bis 50 Minuten.
+  var plannedDayType: DayType? {
+    switch sport {
+    case .other: return nil
+    case .strength: return .light
+    case .run, .bike, .swim:
+      switch intensity {
+      case .long: return .hard
+      case .hard: return .moderate
+      case .easy: return .light
+      }
+    }
   }
 }
 
@@ -196,8 +205,9 @@ public struct WeekSchedule: Codable, Equatable, Hashable, Sendable {
   }
 
   /// Einträge für die Tagestyp-Erkennung der Ernährung (`NutritionPlanner.plannedDayType`).
-  public func templateItems(on weekday: Weekday) -> [TemplateItem] {
-    slots(on: weekday).map { slot in
+  public func templateItems(on weekday: Weekday, runMinutes: [Int] = []) -> [TemplateItem] {
+    var runIndex = 0
+    return slots(on: weekday).map { slot in
       let kind: TemplateItem.Kind =
         switch slot.sport {
         case .run: .run
@@ -206,7 +216,12 @@ public struct WeekSchedule: Codable, Equatable, Hashable, Sendable {
         case .strength: .strength
         case .other: .optional
         }
-      return TemplateItem(kind: kind, text: slot.nutritionText)
+      var minutes: Int? = slot.sport == .other ? nil : SessionMatcher.defaultMinutes(slot)
+      if slot.sport == .run, runMinutes.indices.contains(runIndex) {
+        minutes = runMinutes[runIndex]
+        runIndex += 1
+      }
+      return TemplateItem(kind: kind, text: slot.title, minutes: minutes, plannedType: slot.plannedDayType)
     }
   }
 }

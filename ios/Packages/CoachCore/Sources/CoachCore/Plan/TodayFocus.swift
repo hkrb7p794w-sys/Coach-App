@@ -64,11 +64,13 @@ public struct TodayFocus: Equatable, Sendable {
     }
     let level = recommendation?.level
     let planned = week.results.map(\.planned)
-    let totals = SessionMatcher.totals(
-      planned: planned, activities: activities, monday: PlanAdjustments.monday(of: today))
+    // Nur Einheiten aus dem Plan: Spaziergänge füllen ihn nicht, Krafteinheiten aus der App schon.
+    let minutesDone = week.results.filter(\.status.counts).reduce(0) { sum, result in
+      sum + (result.actualMinutes ?? (result.planned.slot.sport == .strength ? WeekLoad.defaultGymMinutes : 0))
+    }
     let progress = Progress(
       sessionsDone: week.results.filter(\.status.counts).count, sessionsPlanned: week.results.count,
-      minutesDone: totals.reduce(0) { $0 + $1.actual },
+      minutesDone: minutesDone,
       minutesPlanned: planned.isEmpty ? nil : planned.reduce(0) { $0 + $1.targetMinutes })
     let reasons = recommendation?.reasons ?? []
     return TodayFocus(

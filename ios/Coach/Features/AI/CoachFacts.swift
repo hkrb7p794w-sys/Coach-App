@@ -32,9 +32,11 @@ enum CoachFacts {
       }
     }
     facts.sleep = SleepCoach.report(days: metrics, settings: settings.sleep, goal: settings.profile.goal, today: today)
-    facts.targets = NutritionPlanner.compute(
-      activities: allActivities.filter { $0.day == today }, planItems: [], settings: settings.nutrition,
-      garminProfile: model.sync.profile, day: today, hasGarminData: !metrics.isEmpty)
+    // Dieselben Ziele wie im Reiter Ernährung und im Widget.
+    facts.targets = NutritionViewModel.targets(
+      for: today, activities: allActivities, settings: settings, profile: model.sync.profile,
+      hasGarminData: !metrics.isEmpty,
+      recovery: RecoveryEvaluator.today(days: metrics, activities: allActivities, today: today).level)
     let eaten = meals.filter { $0.dayKey == today.iso }.flatMap(\.items)
     if !eaten.isEmpty {
       facts.eatenKilocalories = NutritionSummary.totals(eaten)[.kcal]

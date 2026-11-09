@@ -12,7 +12,13 @@ struct MotivationSections: View {
   @Environment(AppModel.self) private var model
 
   private var trainingDays: Set<CalendarDay> {
-    Set(activities.filter { ($0.durationSeconds ?? 0) >= 900 }.compactMap(\.day)).union(gymDays)
+    let settings = model.settings
+    let counted = activities.filter { activity in
+      guard let day = activity.day else { return false }
+      let otherIsPlanned = settings.schedule(inWeekOf: day).slots(on: Weekday(day: day)).contains { $0.sport == .other }
+      return ScoreRules.countsAsTraining(activity, otherIsPlanned: otherIsPlanned)
+    }
+    return Set(counted.compactMap(\.day)).union(gymDays)
   }
 
   var body: some View {

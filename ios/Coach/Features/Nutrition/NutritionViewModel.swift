@@ -71,20 +71,21 @@ final class NutritionViewModel {
 
   func update(
     meals: [MealRecord], activities: [GarminActivity], settings: CoachSettings, profile: GarminProfile?,
-    hasGarminData: Bool, now: Date = .now
+    hasGarminData: Bool, recovery: RecoveryLevel? = nil, now: Date = .now
   ) {
     today = CalendarDay(date: now)
     if selectedDay == today { selectedDay = nil }
     let day = self.day
     targets = Self.targets(
-      for: day, activities: activities, settings: settings, profile: profile, hasGarminData: hasGarminData)
+      for: day, activities: activities, settings: settings, profile: profile, hasGarminData: hasGarminData,
+      recovery: day == today ? recovery : nil)
     totals = NutritionSummary.totals(meals.filter { $0.dayKey == day.iso }.flatMap(\.items))
   }
 
   /// Tagesziele für einen Tag: Saisonplan aus der Musterwoche, persönliches Profil aus den eigenen Einheiten.
   static func targets(
     for day: CalendarDay, activities: [GarminActivity], settings: CoachSettings, profile: GarminProfile?,
-    hasGarminData: Bool
+    hasGarminData: Bool, recovery: RecoveryLevel? = nil
   ) -> NutritionTargets {
     let dayActivities = activities.filter { $0.day == day }
     let planItems: [TemplateItem]
@@ -92,11 +93,18 @@ final class NutritionViewModel {
       let week = WeeklyVolume(activities: activities, weekContaining: day)
       planItems = SeasonPlan.state(today: day, config: settings.season, week: week).todayFixed
     } else {
-      planItems = settings.schedule(inWeekOf: day).templateItems(on: Weekday(day: day))
+      let schedule = settings.schedule(inWeekOf: day)
+      let weekday = Weekday(day: day)
+      let runs = RunPlanner.week(
+        profile: settings.profile, schedule: schedule, monday: PlanAdjustments.monday(of: day), activities: activities
+      )?.sessions.filter { $0.weekday == weekday }.map(\.minutes)
+      planItems = schedule.templateItems(on: weekday, runMinutes: runs ?? [])
     }
+    // Krankheit zählt wie „Pause“: Die geplante Einheit findet nicht statt.
+    let isSick = settings.illnessDay.map { $0 <= day && $0.days(until: day) <= MissedSessions.illnessEasyDays } ?? false
     return NutritionPlanner.compute(
       activities: dayActivities, planItems: planItems, settings: settings.nutrition, garminProfile: profile,
-      day: day, hasGarminData: hasGarminData)
+      day: day, hasGarminData: hasGarminData, recovery: isSick ? .pause : recovery)
   }
 
   // MARK: - Was jetzt?

@@ -129,6 +129,10 @@ public enum SessionMatcher {
   public static func match(
     planned: [PlannedSession], activities: [GarminActivity], gymDays: Set<CalendarDay> = [], today: CalendarDay
   ) -> Week {
+    // Nur die Wochen des Plans, sonst stünde jede alte Aktivität unter „Außerplanmäßig“.
+    let weeks = planned.isEmpty ? [PlanAdjustments.monday(of: today)] : Set(planned.map { PlanAdjustments.monday(of: $0.day) })
+    let activities = activities.filter { $0.day.map { weeks.contains(PlanAdjustments.monday(of: $0)) } ?? false }
+    let gymDays = gymDays.filter { weeks.contains(PlanAdjustments.monday(of: $0)) }
     var results: [SessionResult] = []
     var used = Set<Int64>()
     /// Krafttraining an einem Tag ohne offene Kraft-Einheit (z. B. Push am Dienstag statt am Montag).
@@ -144,6 +148,8 @@ public enum SessionMatcher {
         if let activity = candidates.first(where: { !used.contains($0.id) && sport($0.sport) == session.slot.sport }) {
           used.insert(activity.id)
           results.append(result(session, activity: activity, substituted: false))
+          // App-Einheit und Uhr-Aufzeichnung desselben Tages sind ein und dasselbe Training.
+          if session.slot.sport == .strength { gymAvailable = false }
         } else if session.slot.sport == .strength, gymAvailable {
           gymAvailable = false
           results.append(
@@ -284,7 +290,10 @@ public enum ManualActivity {
   public static func make(
     sport: TrainingSport, start: Date, minutes: Int, effort: Int, name: String? = nil, timeZone: TimeZone = .current
   ) -> GarminActivity {
-    let id = -idOffset - Int64(start.timeIntervalSince1970 / 60) - 1
+    // Zwei Einträge zur selben Startzeit dürfen sich nicht überschreiben.
+    let sportIndex = Int64(TrainingSport.allCases.firstIndex(of: sport) ?? 0)
+    let unique = sportIndex * 256 + Int64.random(in: 0..<256)
+    let id = -idOffset - Int64(start.timeIntervalSince1970 / 60) * 2_048 - unique - 1
     var activity = GarminActivity(id: id)
     activity.typeKey = typeKey(sport)
     activity.name = name.flatMap { $0.isEmpty ? nil : $0 } ?? "\(sport.label) (nachgetragen)"
