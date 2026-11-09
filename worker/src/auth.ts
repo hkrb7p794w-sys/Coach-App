@@ -66,11 +66,7 @@ function revoked(env: Env): Set<string> {
 }
 
 /** Wer fragt an? `null` bei fehlendem, falschem oder gesperrtem Token. */
-export async function authenticate(
-  header: string,
-  env: Env,
-  now = Date.now(),
-): Promise<Principal | null> {
+export async function authenticate(header: string, env: Env, now = Date.now()): Promise<Principal | null> {
   const master = env.COACH_APP_TOKEN;
   if (!master) return null;
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -78,7 +74,8 @@ export async function authenticate(
   if (token.startsWith(EXPIRING_PREFIX)) {
     const parts = token.slice(EXPIRING_PREFIX.length).split(".");
     const [id = "", expires = "", sig = ""] = parts;
-    if (parts.length !== 3 || !GUEST_ID.test(id) || !/^\d+$/.test(expires) || revoked(env).has(id)) return null;
+    if (parts.length !== 3 || !GUEST_ID.test(id) || !/^\d+$/.test(expires) || revoked(env).has(id))
+      return null;
     if (Number(expires) * 1000 <= now) return null;
     return tokensMatch(sig, await signature(master, `${id}:${expires}`)) ? { kind: "guest", id } : null;
   }

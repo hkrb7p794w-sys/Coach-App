@@ -203,7 +203,8 @@ export async function handleShare(
     if (caller.startsWith("guest:")) {
       const quotaKey = `quota:${caller}:${now.toISOString().slice(0, 10)}`;
       const used = Number((await store.get(quotaKey)) ?? "0");
-      if (used >= GUEST_SHARES_PER_DAY) return json(429, { error: "Heute wurden schon genug Mahlzeiten geteilt" });
+      if (used >= GUEST_SHARES_PER_DAY)
+        return json(429, { error: "Heute wurden schon genug Mahlzeiten geteilt" });
       await store.put(quotaKey, String(used + 1), { expirationTtl: 2 * 24 * 3600 });
     }
     const meal = sanitizeMeal(body);

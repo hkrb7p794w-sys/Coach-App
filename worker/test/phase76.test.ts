@@ -26,7 +26,11 @@ describe("Phase 76: Datenschutz und Betrieb", () => {
   it("nutzt nach der Einwilligung die gewählte Reihenfolge", async () => {
     const guest = await guestToken(master, "abcdefghijk2");
     const deps = fakeDeps([() => geminiText(answer)]);
-    const response = await handle(post(guest, { task: "ping", provider: "gemini", consent: true }), env, deps);
+    const response = await handle(
+      post(guest, { task: "ping", provider: "gemini", consent: true }),
+      env,
+      deps,
+    );
     expect(response.status).toBe(200);
     expect(deps.calls[0]?.url).toContain("generativelanguage");
   });
@@ -48,7 +52,10 @@ describe("Phase 76: Datenschutz und Betrieb", () => {
 
   it("lehnt abgelaufene Gast-Tokens ab", async () => {
     const token = await expiringGuestToken(master, "abcdefghijk2", 2_000);
-    expect(await authenticate(`Bearer ${token}`, env, 1_000_000)).toEqual({ kind: "guest", id: "abcdefghijk2" });
+    expect(await authenticate(`Bearer ${token}`, env, 1_000_000)).toEqual({
+      kind: "guest",
+      id: "abcdefghijk2",
+    });
     expect(await authenticate(`Bearer ${token}`, env, 3_000_000)).toBeNull();
   });
 
@@ -68,9 +75,12 @@ describe("Phase 76: Datenschutz und Betrieb", () => {
 
   it("bricht bei aufgebrauchtem Tageskontingent nicht mehrfach neu an", async () => {
     const quota = () =>
-      new Response('{"error":{"status":"RESOURCE_EXHAUSTED","details":[{"quotaId":"RequestsPerDay-FreeTier"}]}}', {
-        status: 429,
-      });
+      new Response(
+        '{"error":{"status":"RESOURCE_EXHAUSTED","details":[{"quotaId":"RequestsPerDay-FreeTier"}]}}',
+        {
+          status: 429,
+        },
+      );
     const deps = fakeDeps([quota, () => groqText(answer)]);
     const response = await handle(post(master, { task: "ping", provider: "gemini" }), env, deps);
     expect(response.status).toBe(200);

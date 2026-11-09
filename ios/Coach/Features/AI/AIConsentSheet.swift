@@ -56,6 +56,7 @@ struct AIConsentSheet: View {
 enum PrivateClipboard {
   static func copy(_ text: String) {
     UIPasteboard.general.setItems(
-      [["public.utf8-plain-text": text]], options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(300)])
+      [["public.utf8-plain-text": text]],
+      options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(300)])
   }
 }
