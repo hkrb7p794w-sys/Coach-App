@@ -74,8 +74,10 @@ public enum GarminWorkout {
       if let recovery = repeats.recoverySeconds { inner.append(.recovery(.seconds(recovery))) }
       return Plan(
         name: name, sport: sport, description: description,
-        steps: [.warmup(.lapButton, note: "Einlaufen bzw. Einrollen"), .repeats(repeats.count, inner),
-          .cooldown(.lapButton, note: "Auslaufen")])
+        steps: [
+          .warmup(.lapButton, note: "Einlaufen bzw. Einrollen"), .repeats(repeats.count, inner),
+          .cooldown(.lapButton, note: "Auslaufen"),
+        ])
     }
     if let minutes = firstNumber(in: text, unit: "min") {
       return Plan(

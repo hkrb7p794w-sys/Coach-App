@@ -24,18 +24,22 @@ struct GarminWorkoutTests {
   }
 
   @Test func singleStepsFromDurationOrDistance() {
-    #expect(GarminWorkout.plan(name: "Z2", sport: .run, text: "50 min Zone 2").steps == [
-      .interval(.seconds(3_000), note: "50 min Zone 2")
-    ])
-    #expect(GarminWorkout.plan(name: "Z2", sport: .run, text: "60–75 min Z2").steps == [
-      .interval(.seconds(3_600), note: "60–75 min Z2")
-    ])
-    #expect(GarminWorkout.plan(name: "Long", sport: .run, text: "16 km locker").steps == [
-      .interval(.meters(16_000), note: "16 km locker")
-    ])
-    #expect(GarminWorkout.plan(name: "Frei", sport: .bike, text: "nach Gefühl").steps == [
-      .interval(.lapButton, note: "nach Gefühl")
-    ])
+    #expect(
+      GarminWorkout.plan(name: "Z2", sport: .run, text: "50 min Zone 2").steps == [
+        .interval(.seconds(3_000), note: "50 min Zone 2")
+      ])
+    #expect(
+      GarminWorkout.plan(name: "Z2", sport: .run, text: "60–75 min Z2").steps == [
+        .interval(.seconds(3_600), note: "60–75 min Z2")
+      ])
+    #expect(
+      GarminWorkout.plan(name: "Long", sport: .run, text: "16 km locker").steps == [
+        .interval(.meters(16_000), note: "16 km locker")
+      ])
+    #expect(
+      GarminWorkout.plan(name: "Frei", sport: .bike, text: "nach Gefühl").steps == [
+        .interval(.lapButton, note: "nach Gefühl")
+      ])
   }
 
   @Test func payloadMatchesGarminFields() throws {
