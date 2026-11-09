@@ -31,7 +31,7 @@ export async function generate(
 ): Promise<AcceptedResult> {
   const attempts: string[] = [];
   let invalid = false;
-  const providers = providerOrder(env, preference, request.images.length > 0);
+  const providers = providerOrder(env, preference, request.images.length > 0, request.task);
   for (const provider of providers) {
     if (!provider.enabled(env)) {
       attempts.push(`${provider.label}: nicht eingerichtet`);

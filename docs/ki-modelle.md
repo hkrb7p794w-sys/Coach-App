@@ -130,6 +130,37 @@ Weitere Quellen (Drittquellen): [Morph, Oktober 2026](https://www.morphllm.com/o
 [Morph, Gemini-Preise](https://www.morphllm.com/gemini-api-pricing), [Apidog](https://apidog.com/blog/gemini-api-free-tier/),
 [Wavect](https://wavect.io/blog/open-weight-llm-comparison-2026.md).
 
+## Reihenfolge je Aufgabe (09.11.2026)
+
+Auftrag des Nutzers: weitere kostenlose Anbieter (Cerebras, Groq, Workers AI, Mistral) und je Aufgabe der stärkste
+zuerst, die übrigen als Reserve, wenn ein Kontingent aufgebraucht ist. Umsetzung in `worker/src/providers.ts`
+(`TASK_ROUTES`), änderbar ohne Code über die Worker-Variable `AI_TASK_ORDER` (JSON, z. B.
+`{"weekly_recipes": "gemini,cerebras"}`). Nicht genannte Anbieter folgen danach; Anbieter ohne Key werden übersprungen.
+
+| Aufgaben | Reihenfolge | Begründung |
+|---|---|---|
+| `meal_analyze`, `meal_amend`, `nutrition_label` (Fotos) | Gemini → Mistral → Groq (Llama 4 Scout) → Workers AI | Gemini erkennt Bilder am besten; Cerebras hat keine Bild-Eingabe |
+| `weekly_recipes`, `cook_plan`, `gym_plan`, `meal_now` (lange JSON-Antworten) | Cerebras → Gemini → Groq → Workers AI → Mistral | gpt-oss-120b stark bei JSON, großes Kontingent; schont Gemini |
+| `coach_chat`, `ai_insights`, `daily_note`, `personal_note`, `nutrition_review` | Gemini → Cerebras → Mistral → Groq → Workers AI | Gesprächsqualität und Deutsch |
+| `gym_hints` | Groq → Cerebras → Gemini → Workers AI → Mistral | kurz, Geschwindigkeit zählt |
+| übrige (`ping`) | Gemini → Cerebras → Groq → Workers AI → Mistral → eigener Server | Standard |
+
+- **Datenschutz zuerst** (`privat`) schließt Gemini und Mistral (kostenlose Stufe „Experiment“, Eingaben dürfen zum
+  Training genutzt werden) auch beim Ausweichen aus.
+- Eine ausdrückliche Anbieterwahl in der App steht vor der Aufgaben-Reihenfolge.
+- **Nicht gemessen:** Ob gpt-oss-120b bei Cerebras die Rezept- und Planprüfungen (`grounding.ts`) so zuverlässig
+  besteht wie Gemini, ist nicht belegt. Besteht eine Antwort die Prüfung nicht, kommt automatisch der nächste Anbieter
+  dran. Messbar mit dem Workflow „Worker-Smoke“, sobald die Keys gesetzt sind.
+- Modelle: Cerebras `gpt-oss-120b` (`CEREBRAS_MODEL`, mit `reasoning_effort` niedrig bei großen JSON-Antworten),
+  Mistral `mistral-medium-latest` (`MISTRAL_MODEL`, für Bilder optional `MISTRAL_VISION_MODEL`).
+- **DeepSeek** bewusst nicht aufgenommen: offizielle API kostenpflichtig mit Servern in China (Datenschutz bei
+  Gesundheitsdaten), keine Bilder, kostenlose Varianten nur unzuverlässig über OpenRouter; gpt-oss-120b bei Cerebras
+  und Groq deckt dieselben Stärken ab.
+
+Quellen: [Cerebras Inference Docs](https://inference-docs.cerebras.ai/), [Mistral Docs](https://docs.mistral.ai/),
+[Groq Rate Limits](https://console.groq.com/docs/rate-limits). Kontingente ändern sich; maßgeblich ist die Konsole des
+jeweiligen Anbieters.
+
 ## Empfehlung
 
 1. **Datenschutz zuerst** in den Einstellungen wählen, wenn Rohwerte (Ruhepuls, HRV, Schlaf) an die KI dürfen sollen:
