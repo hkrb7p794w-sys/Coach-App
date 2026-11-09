@@ -115,6 +115,7 @@ enum WidgetPublisher {
         last: gymSessions.first.map {
           WidgetSnapshot.LastSession(title: $0.title, day: $0.day, sets: $0.doneSetCount, volumeKg: $0.volumeKg)
         }, weekDone: weekDone, weekPlanned: planned.flatMap { $0 > 0 ? $0 : nil })
+      gymPart?.nextIsForDay = routine == nil ? true : nil
     }
 
     let battery = BodyBatteryAnalysis.summary(days: days, today: today).current

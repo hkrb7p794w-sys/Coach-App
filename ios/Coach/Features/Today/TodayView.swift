@@ -11,13 +11,14 @@ struct TodayView: View {
   @State private var viewModel = TodayViewModel()
   @State private var showSettings = false
   @State private var showChat = false
+  @State private var clock = CalendarDay(date: .now)
 
   private var refreshKey: String {
     let settings = model.settings
     return "\(days.first?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(gymSessions.count)-"
       + "\(settings.season.hashValue)-\(settings.competitionDecisions.values.map(\.rawValue).sorted())-"
       + "\(settings.profile.hashValue)-\(settings.planAdjustments.hashValue)-\(settings.illnessDay?.iso ?? "")-"
-      + "\(GymViewModel.shared.active?.doneSetCount ?? -1)"
+      + "\(GymViewModel.shared.active?.doneSetCount ?? -1)-\(clock.iso)"
   }
 
   /// Laufende Einheit mit mindestens einem Satz zählt in der Wochenübersicht schon mit.
@@ -149,6 +150,7 @@ struct TodayView: View {
         await model.syncNow()
         await viewModel.loadNote(ai: model.ai, settings: model.settings)
       }
+      .onDayChange { clock = $0 }
       .task(id: refreshKey) {
         viewModel.update(
           days: days.compactMap(\.metrics),

@@ -113,18 +113,58 @@ public enum RecoveryEvaluator {
           + "7-Tage-Schnitt")
     }
 
-    if let hours = metrics.sleepHours {
-      if hours < 5 {
+    // Die Schwellen prüfen die ungerundeten Sekunden. Die Anzeige rundet ab, sonst stünden 4:57 h als „5 h“ da.
+    if let seconds = metrics.sleepSeconds {
+      let hours = GermanFormat.decimal((seconds / 360).rounded(.down) / 10)
+      if seconds < 5 * 3_600 {
         worsen(to: .pause)
-        reasons.append("nur \(GermanFormat.decimal(hours)) h Schlaf")
-      } else if hours < 6 {
+        reasons.append("nur \(hours) h Schlaf")
+      } else if seconds < 6 * 3_600 {
         worsen(to: .locker)
-        reasons.append("kurzer Schlaf (\(GermanFormat.decimal(hours)) h)")
+        reasons.append("kurzer Schlaf (\(hours) h)")
       }
     }
 
     if reasons.isEmpty { reasons.append("keine Erholungswerte auffällig") }
     return Recommendation(level: level, reasons: reasons)
+  }
+
+  /// Liegt mindestens ein Wert vor, aus dem die Ampel überhaupt etwas ableiten kann? Schritte allein reichen nicht.
+  public static func hasInputs(_ metrics: DailyMetrics, restingHeartRate7DayAverage average: Double?) -> Bool {
+    let status = metrics.hrvStatus?.uppercased()
+    return (status != nil && status != "NONE") || metrics.trainingReadiness != nil || metrics.sleepSeconds != nil
+      || (metrics.restingHeartRate != nil && average != nil)
+  }
+
+  /// Die eine Tagesampel für alle Ansichten.
+  public struct TodayState: Equatable, Sendable {
+    public var metrics: DailyMetrics?
+    public var recommendation: Recommendation
+    /// `false`: keine bewertbaren Werte, die Ampel darf nicht als Messung erscheinen.
+    public var isKnown: Bool
+
+    public var level: RecoveryLevel? { isKnown ? recommendation.level : nil }
+  }
+
+  /// Werte von heute, sonst die der letzten Nacht; sehr negative Form ergibt höchstens „locker“.
+  public static func today(days: [DailyMetrics], form: [FitnessForm.Point], today: CalendarDay) -> TodayState {
+    let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
+    func average(for day: CalendarDay) -> Double? {
+      RecoveryEvaluator.average(\.restingHeartRate, in: days, daysBefore: 1...7, today: day)
+    }
+    let candidates = [byDay[today], byDay[today.adding(days: -1)]].compactMap { $0 }
+    let usable = candidates.first { hasInputs($0, restingHeartRate7DayAverage: average(for: $0.day)) }
+    let metrics = usable ?? candidates.first
+    let recommendation = evaluate(
+      metrics ?? DailyMetrics(day: today),
+      restingHeartRate7DayAverage: average(for: metrics?.day ?? today)
+    ).limited(byForm: form)
+    return TodayState(
+      metrics: metrics, recommendation: recommendation, isKnown: usable != nil || recommendation.isLimitedByForm)
+  }
+
+  public static func today(days: [DailyMetrics], activities: [GarminActivity], today: CalendarDay) -> TodayState {
+    self.today(days: days, form: FitnessForm.series(activities: activities, today: today), today: today)
   }
 
   /// Mittelwert eines Werts über die Tage `offsets` vor `today` (wie `_history_avg` im Altbestand).

@@ -91,18 +91,22 @@ public enum HealthImport {
     }
   }
 
-  /// Nächte je Aufwachtag. Schlaf, der zwischen 10 und 18 Uhr beginnt, gilt als Nickerchen und zählt nicht.
+  /// Nächte je Aufwachtag. Eine kurze Schlafepisode, die zwischen 10 und 18 Uhr beginnt, gilt als Nickerchen und zählt
+  /// nicht. Bewertet wird die ganze Episode, denn die Uhr schreibt viele kurze Phasen (Schichtarbeit, Ausschlafen).
   /// Je Nacht zählt eine Quelle: die mit Schlafphasen (Apple Watch), sonst die mit dem meisten Schlaf.
   public static func sleep(_ samples: [SleepSample], timeZone: TimeZone = .current) -> [CalendarDay: DailyMetrics] {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = timeZone
     var byNight: [CalendarDay: [SleepSample]] = [:]
-    for sample in samples where sample.end > sample.start {
-      let hour = calendar.component(.hour, from: sample.start)
-      if (10..<18).contains(hour) { continue }
+    let valid = samples.filter { $0.end > $0.start }
+    for episode in Dictionary(grouping: valid, by: \.source).values.flatMap(episodes) {
+      let asleep = episode.filter(\.stage.isAsleep)
+      guard let start = asleep.map(\.start).min(), let end = episode.map(\.end).max() else { continue }
+      let isNap = (10..<18).contains(calendar.component(.hour, from: start)) && asleepSeconds(episode) < napLimit
+      if isNap { continue }
       // Aufwachtag: Ende plus sechs Stunden, damit Schlaf nach Mitternacht und bis in den Vormittag passt.
-      let night = CalendarDay(date: sample.end.addingTimeInterval(6 * 3_600), timeZone: timeZone)
-      byNight[night, default: []].append(sample)
+      let night = CalendarDay(date: end.addingTimeInterval(6 * 3_600), timeZone: timeZone)
+      byNight[night, default: []] += episode
     }
     var result: [CalendarDay: DailyMetrics] = [:]
     for (day, samples) in byNight {
@@ -132,6 +136,27 @@ public enum HealthImport {
       metrics.sleepStartMinutes = minutes(first, calendar)
       metrics.sleepEndMinutes = minutes(last, calendar)
       result[day] = metrics
+    }
+    return result
+  }
+
+  /// Ab so viel Schlaf ist eine Episode kein Nickerchen mehr, egal wann sie beginnt.
+  private static let napLimit = 3.0 * 3_600
+  /// Größere Lücken trennen zwei Schlafepisoden.
+  private static let episodeGap = 3_600.0
+
+  /// Proben einer Quelle, zu Episoden zusammengefasst.
+  private static func episodes(_ samples: [SleepSample]) -> [[SleepSample]] {
+    var result: [[SleepSample]] = []
+    var latestEnd: Date?
+    for sample in samples.sorted(by: { $0.start < $1.start }) {
+      if let end = latestEnd, sample.start.timeIntervalSince(end) < episodeGap {
+        result[result.count - 1].append(sample)
+        latestEnd = max(end, sample.end)
+      } else {
+        result.append([sample])
+        latestEnd = sample.end
+      }
     }
     return result
   }

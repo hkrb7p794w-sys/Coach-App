@@ -14,7 +14,7 @@ enum MorningReportBuilder {
     let form = FitnessForm.series(activities: activities, today: today)
     return MorningReport.make(
       days: days, today: today, sleep: model.settings.sleep, goal: model.settings.profile.goal, sessions: sessions,
-      form: FitnessForm.isReliable(form) ? form.last : nil)
+      form: FitnessForm.isReliable(form) ? form.last : nil, formSeries: form)
   }
 }
 

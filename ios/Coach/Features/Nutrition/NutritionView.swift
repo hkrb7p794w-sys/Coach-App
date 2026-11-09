@@ -26,13 +26,22 @@ struct NutritionView: View {
     var id: String { rawValue }
   }
 
+  @State private var clock = CalendarDay(date: .now)
+
   private var todaysMeals: [MealRecord] {
     meals.filter { $0.dayKey == viewModel.day.iso }
   }
 
+  /// Ändert sich auch, wenn nur die Menge einer älteren Mahlzeit bearbeitet wird.
+  private var mealsHash: Int {
+    var hasher = Hasher()
+    for meal in todaysMeals { hasher.combine(meal.itemsPayload) }
+    return hasher.finalize()
+  }
+
   private var refreshKey: String {
     let settings = model.settings
-    return "\(meals.count)-\(meals.last?.itemsPayload.count ?? 0)-\(activities.count)-"
+    return "\(meals.count)-\(mealsHash)-\(activities.count)-\(clock.iso)-"
       + "\(settings.season.hashValue)-\(settings.nutrition.goal.rawValue)-\(settings.nutrition.weightKilograms ?? 0)-"
       + "\(viewModel.day.iso)"
   }
@@ -101,6 +110,7 @@ struct NutritionView: View {
       }
       // Neue oder gelöschte Mahlzeit: Erinnerungen neu planen (keine Mitteilung für schon Erfasstes).
       .onChange(of: meals.count) { Task { await model.refreshReminders() } }
+      .onDayChange { clock = $0 }
       .task(id: refreshKey) {
         refresh()
         await viewModel.retryPending(ai: model.ai, settings: model.settings, foods: foods)
@@ -549,11 +559,9 @@ struct NutritionView: View {
   }
 
   private var recoveryText: String {
-    let records = days.compactMap(\.metrics)
-    guard let today = records.first else { return "keine Daten" }
-    let average = RecoveryEvaluator.average(
-      \.restingHeartRate, in: records, daysBefore: 1...7, today: today.day)
-    return RecoveryEvaluator.evaluate(today, restingHeartRate7DayAverage: average).label
+    let state = RecoveryEvaluator.today(
+      days: days.compactMap(\.metrics), activities: activities.compactMap(\.activity), today: viewModel.day)
+    return state.isKnown ? state.recommendation.label : "keine Daten"
   }
 }
 

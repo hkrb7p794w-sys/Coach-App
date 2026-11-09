@@ -12,11 +12,12 @@ struct GymView: View {
   @Query(sort: \DailyMetricsRecord.dayKey, order: .reverse) private var days: [DailyMetricsRecord]
   @State private var viewModel = GymViewModel.shared
   @State private var showWorkout = false
+  @State private var clock = CalendarDay(date: .now)
   /// Fokus wurde für die laufende Einheit eingeschaltet.
 
   private var refreshKey: String {
     "\(records.count)-\(records.first?.savedToHealth ?? false)-\(activities.count)-\(days.first?.dayKey ?? "")-"
-      + "\(model.settings.gym.hashValue)"
+      + "\(model.settings.gym.hashValue)-\(clock.iso)"
   }
 
   var body: some View {
@@ -106,6 +107,7 @@ struct GymView: View {
         }
       }
       .navigationTitle("Gym")
+      .onDayChange { clock = $0 }
       .task(id: refreshKey) {
         update()
         if !viewModel.hintSource.hasPrefix("KI") {

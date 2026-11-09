@@ -9,20 +9,22 @@ struct NowSection: View {
   @Environment(AppModel.self) private var model
 
   private var color: Color {
-    switch focus.level ?? .normal {
-    case .normal: .green
-    case .locker: .orange
-    case .pause: .red
+    switch focus.level {
+    case .normal?: .green
+    case .locker?: .orange
+    case .pause?: .red
+    case nil: .gray
     }
   }
 
   private var symbol: String {
     if snapshot.advice?.mode == .done { return "checkmark.seal.fill" }
     if snapshot.advice?.mode == .restDay { return "leaf.fill" }
-    switch focus.level ?? .normal {
-    case .normal: return "checkmark.circle.fill"
-    case .locker: return "tortoise.fill"
-    case .pause: return "bed.double.fill"
+    switch focus.level {
+    case .normal?: return "checkmark.circle.fill"
+    case .locker?: return "tortoise.fill"
+    case .pause?: return "bed.double.fill"
+    case nil: return "questionmark.circle.fill"
     }
   }
 
