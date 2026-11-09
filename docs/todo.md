@@ -125,6 +125,11 @@ hier notieren und als PR beheben.
       liegt eine neue Sicherung dort, die alte als „…-vorher.json“. Test Einspielen: Mahlzeit löschen, Sicherung
       einspielen → Mahlzeit ist wieder da, nichts doppelt.
 
+- [ ] **Beschwerden und Urlaub (PR 100):** Gesundheit › Mobility › Beschwerden „Knie“ an → Mobility-Einheit nennt
+      „Beschwerden: Knie“; im Training zeigt die Kniebeuge den orangen Hinweis. Einstellungen › Urlaub oder Pause für
+      die nächsten Tage → keine Erinnerung, „Jetzt dran“ zeigt die Pause, nach der Pause keine „verpasst“-Karte für
+      diese Tage.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).
