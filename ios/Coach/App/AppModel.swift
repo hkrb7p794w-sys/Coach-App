@@ -58,12 +58,18 @@ final class AppModel {
     let season = settings.profile.mode == .season ? seasonSchedule : nil
     return MotivationSummary.compute(
       schedule: { monday in
-        guard let season else { return settings.schedule(inWeekOf: monday) }
+        // Tage einer Pause (Urlaub) gelten nicht als geplant.
+        guard let season else {
+          let week = settings.schedule(inWeekOf: monday)
+          return settings.trainingBreak?.removing(from: week, monday: monday) ?? week
+        }
         var week = WeekSchedule()
         let reminders = ReminderPlanner.season(
           schedule: season, config: settings.season, decisions: settings.competitionDecisions, today: monday,
           includeToday: true, days: 7)
-        for reminder in reminders { week.set([SessionSlot(.other)], on: Weekday(day: reminder.day)) }
+        for reminder in reminders where !(settings.trainingBreak?.contains(reminder.day) ?? false) {
+          week.set([SessionSlot(.other)], on: Weekday(day: reminder.day))
+        }
         return week
       }, trainingDays: trainingDays, today: today)
   }

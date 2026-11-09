@@ -181,7 +181,7 @@ Grundlage sind Suchergebnisse mit Auszügen der Store-Einträge, Deal- und Foren
 | Bereich | MCI | IronLudi [C] | Entscheidung |
 |---|---|---|---|
 | Schmerz-/Problembereiche | Pläne darauf abgestimmt | nur allgemeines Häkchen „Verletzung“ | **P1 – umgesetzt (PR 100)**: Beschwerdebereiche → Mobility-Vorrang, Hinweis bei belastenden Übungen, KI-Kontext; keine Diagnose |
-| Urlaubsmodus | ja | nur Woche für Woche | **P2 – nächster Schritt**: Zeitraum ohne Erinnerungen und ohne „verpasst“ |
+| Urlaubsmodus | ja | nur Woche für Woche | **P2 – umgesetzt (PR 100)**: `TrainingBreak` – Zeitraum ohne Erinnerungen, ohne „verpasst“, Begleiter/Rangliste zählen die Tage nicht |
 | Krank, verschieben | als unflexibel kritisiert | verschieben, streichen, krank, nachholen | IronLudi weiter |
 | Kalorienbedarf | kritisiert | gemessener Verbrauch, Garmin/Health | IronLudi weiter |
 | Krafttest mit Anleitung | ja | Startgewicht aus Verlauf, RIR-Progression | nicht nötig |

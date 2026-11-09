@@ -37,6 +37,7 @@ final class CoachSettings {
   static let cookReleaseKey = "coach.cookRelease"
   static let showsEvidenceKey = "coach.showsEvidence"
   static let illnessKey = "coach.illnessDay"
+  static let trainingBreakKey = "coach.trainingBreak"
   static let handledMissedKey = "coach.handledMissed"
   static let effortsKey = "coach.efforts"
   static let closedReviewsKey = "coach.closedReviews"
@@ -198,6 +199,22 @@ final class CoachSettings {
     didSet { save(illnessDay, forKey: Self.illnessKey) }
   }
 
+  /// Urlaub oder Trainingspause (`TrainingBreak`); `nil` = keine.
+  var trainingBreak: TrainingBreak? {
+    didSet {
+      if let trainingBreak {
+        save(trainingBreak, forKey: Self.trainingBreakKey)
+      } else {
+        defaults.removeObject(forKey: Self.trainingBreakKey)
+      }
+    }
+  }
+
+  /// Pause, die heute oder später noch gilt.
+  func activeBreak(today: CalendarDay) -> TrainingBreak? {
+    trainingBreak.flatMap { $0.isOver(today: today) ? nil : $0 }
+  }
+
   /// Verpasste Einheiten, über die schon entschieden wurde (nachholen, streichen, krank).
   var handledMissed: [String] {
     didSet { save(handledMissed, forKey: Self.handledMissedKey) }
@@ -312,6 +329,9 @@ final class CoachSettings {
       ?? []
     cookRelease = defaults.data(forKey: Self.cookReleaseKey).flatMap {
       try? JSONDecoder().decode(CookRelease.self, from: $0)
+    }
+    trainingBreak = defaults.data(forKey: Self.trainingBreakKey).flatMap {
+      try? JSONDecoder().decode(TrainingBreak.self, from: $0)
     }
     illnessDay = defaults.data(forKey: Self.illnessKey).flatMap {
       try? JSONDecoder().decode(CalendarDay.self, from: $0)
