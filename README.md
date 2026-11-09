@@ -103,7 +103,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 88 | Anregungen aus MCI: Beschwerdebereiche (Mobility-Vorrang, Hinweis bei Übungen, KI) und Urlaub/Trainingspause | fertig (PR 100) |
 | 89 | Einheiten auf Wunsch an die Garmin-Uhr senden (Laufen, Rad; Schwimmen im persönlichen Plan), Tag wählbar, erneutes Senden ersetzt; Schwimmeinheiten des Saisonplans bleiben beim Add-on | fertig (PR 101) |
 | 90 | KI-Nutzung je Person: Tageslimit für Gäste (Standard 60), eigene Übersicht, Kostenübersicht für den Betreiber (`/v1/usage/all`), klare Meldung in der App | fertig (PR 102) |
-| 91 | Konten für Freunde und Familie: Benutzername + Passwort, nur mit Einladung, Sitzungen je Gerät, Wiederherstellungscode, iPhone und Android | in Arbeit |
+| 91 | Konten für Freunde und Familie: Benutzername + Passwort, nur mit Einladung, Sitzungen je Gerät, Wiederherstellungscode, iPhone und Android | fertig (PR 103) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
 | 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 
