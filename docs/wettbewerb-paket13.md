@@ -79,11 +79,11 @@ von Hevy und Runna häufig genannt **[?]**. Analysiert wird deshalb Boostcamp; b
 | Gym: Logging | Hevy | Satzarten, Supersätze, Rekorde | vorhanden, dazu RIR, Stoppuhr, Live-Aktivität, Ziffernblock [C] | gering – gleichwertig |
 | Gym: Aufwärmen | Hevy (Pro) | Rechner nach Formel | Aufwärmvorschläge nach Übung und Niveau [C] | gering |
 | Gym: Muskeln | Hevy (Pro) | Heatmap, Sätze je Muskel | Heatmap, Sätze, Erholung je Muskel [C] | IronLudi weiter |
-| Gym: Programme | Boostcamp | fertige Programme mit Progression | eigene Pläne, KI-Plan mit Fragebogen, Doppelprogression [C] | mittel: kuratierte Vorlagen fehlen |
+| Gym: Programme | Boostcamp | fertige Programme mit Progression | Vorlagen nach Krafttagen (`RoutineTemplates`), eigene Pläne, KI-Plan mit Fragebogen, Doppelprogression [C] | gering |
 | Gym: Stillstand | – | – | Hinweise zu Stillstand und Volumen [C] | – |
 | Ausdauer: Belastung | TrainingPeaks | CTL/ATL/TSB | „Fitness & Form“ aus eigener Belastung, Wochenbelastung aller Sportarten [C] | gering |
-| Ausdauer: Pläne | Runna, TrainingPeaks | adaptive Pläne, auf die Uhr | Saisonplan bzw. Laufplan mit Steigerung, Soll/Ist, Pace-Check [C] | mittel: Pace-Ziele passen sich nicht automatisch an, Einheiten gehen nicht auf die Uhr |
-| Ernährung: Verbrauch | MacroFactor | Expenditure aus Zufuhr + Gewicht | `Expenditure` (Intake-Balance) mit Vorschlag [C] | mittel: kein fester wöchentlicher Check-in |
+| Ausdauer: Pläne | Runna, TrainingPeaks | adaptive Pläne, auf die Uhr | Saisonplan bzw. Laufplan mit Steigerung, Soll/Ist, Pace-Check mit Anpassungsvorschlag der Schwellenpace [C] | mittel: Einheiten gehen nicht auf die Uhr; im persönlichen Laufplan bewusst ohne Pace (nach Gefühl und Puls) |
+| Ernährung: Verbrauch | MacroFactor | Expenditure aus Zufuhr + Gewicht | `Expenditure` (Intake-Balance) mit Vorschlag [C], Wochen-Check-in [U] | gering |
 | Ernährung: Erfassung | MacroFactor | schneller Logger | Foto/Text/Sprache/Barcode, BLS 4.0 offline, Wie gestern [C] | gering – IronLudi weiter (Foto, KI, deutsche Datenbank) |
 | Ernährung: Meal-Prep | – | – | Rezepte, Vorrat, Wochenplan, Einkaufsliste [C] | – |
 | Health/Recovery | Pliability | Mobility-Test und -Plan | **fehlte** (nur „Ruhetag: Spazieren, Mobility“) [C] → **Mobility-Bereich [U]** | hoch |
@@ -101,11 +101,11 @@ Nährwertdatenbank, jede Regel mit Studie, keine Abo-Kosten.
 | Vorschlag | Vorbild | Mehrwert | Aufwand | Daten da? | Kosten | Priorität |
 |---|---|---|---|---|---|---|
 | Mobility-Bereich: Einheit nach Krafttraining, Ausdauer und Selbsttests, 5/10/20 min, vor dem Training nur dynamisch | Pliability | hoch, verknüpft Bereiche | mittel | ja | keine | **P1 – umgesetzt** |
-| Datensicherung iPhone (Export/Import als Datei, Zusammenführen) | Konten der Konkurrenz | sehr hoch (Datenverlust) | mittel | ja | keine | **P1 – nächste PR** |
-| Mobility auf „Heute“ an Ruhetagen und im KI-Kontext | eigene Idee | mittel | klein | ja | keine | P1 |
-| Wöchentlicher Ernährungs-Check-in (Vorschlag annehmen/ablehnen, fester Wochentag) | MacroFactor | mittel | klein | ja (`Expenditure`) | keine | P2 |
-| Pace-Ziele passen sich an (mehrfach verfehlt/übertroffen → Zone ±) mit Schutzgrenze für Steigerung | Runna | mittel | mittel | ja (Runden aus Garmin) | keine | P2 |
-| Kraft-Vorlagen (Ganzkörper 3×, Oberkörper/Unterkörper, Push/Pull/Beine) mit Progression | Boostcamp | mittel | klein | ja | keine | P2 |
+| Datensicherung iPhone (Export/Import als Datei, Zusammenführen) | Konten der Konkurrenz | sehr hoch (Datenverlust) | mittel | ja | keine | **P1 – umgesetzt (PR 97)** |
+| Mobility auf „Heute“ an Ruhetagen und im KI-Kontext | eigene Idee | mittel | klein | ja | keine | **P1 – umgesetzt (PR 98)** |
+| Wöchentlicher Ernährungs-Check-in (Vorschlag annehmen/ablehnen, einmal pro Woche) | MacroFactor | mittel | klein | ja (`Expenditure`) | keine | **P2 – umgesetzt (PR 99)** |
+| Pace-Ziele passen sich an (mehrfach verfehlt/übertroffen → Zone ±) mit Schutzgrenze für Steigerung | Runna | mittel | – | ja | keine | **schon vorhanden [C]**: `PaceCheck` (≥ 2 Einheiten gleiche Richtung, ≥ 5 s/km, höchstens 10 s/km je Schritt, RPE ≥ 9 bremst); vorsichtiger als Runna |
+| Kraft-Vorlagen (Ganzkörper, Oberkörper/Unterkörper, Push/Pull/Beine) mit Progression | Boostcamp | mittel | – | ja | keine | **schon vorhanden [C]**: `RoutineTemplates` je nach Krafttagen, Sätze nach Niveau, Doppelprogression |
 | Lauf-Einheiten auf die Garmin-Uhr (Workout-Kalender) | Runna, TrainingPeaks | hoch | groß, inoffizielle Schnittstelle | ja | keine | P2 (Risiko: Schnittstelle kann sich ändern) |
 | Einheitliche Karten-Komponente für alle Reiter | Designanalyse | mittel (Konsistenz) | mittel | – | keine | P2 |
 | Kamera-Beweglichkeitstest (Körperhaltung mit Vision auf dem Gerät) | Pliability | mittel | groß | – | keine | P3 |
@@ -146,6 +146,11 @@ Konkrete Designregeln für alle neuen Bildschirme (umgesetzt in der Mobility-Ans
   `MobilityTestSheet` (Anleitung, Eingabe, Verlauf), Karte im Gesundheitsbereich. Daten in `CoachSettings.mobility`.
 - Tests: `MobilityTests` (Bibliothek, Einstufung, Schwerpunkte, Zeitbudget, nur dynamisch vor dem Training,
   Datenquellen, Speicherformat, Regeln). Laufen nur in der CI (Swift ist in der Claude-Sitzung nicht installiert).
+
+**Nachtrag (Korrektur):** In der ersten Fassung standen Kraft-Vorlagen und anpassende Pace-Ziele als fehlend. Die
+Prüfung im Code zeigte, dass beide schon vorhanden sind (`RoutineTemplates`, `PaceCheck`); sie wurden deshalb nicht
+neu gebaut. Umgesetzt wurden zusätzlich: Datensicherung (PR 97), Mobility auf „Heute“ und im KI-Kontext (PR 98),
+Wochen-Check-in Ernährung (PR 99).
 
 ## 6. Offen und Einschränkungen
 
