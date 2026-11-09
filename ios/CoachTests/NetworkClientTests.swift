@@ -176,10 +176,8 @@ extension StubbedNetworkTests {
       #expect(!account.isSignedIn)
 
       StubURLProtocol.install { _ in
-        (
-          200,
-          #"{"token": "s1.sitzung", "account": {"id": "a1", "username": "lena", "displayName": "Lena", "isAdmin": false}}"#
-        )
+        let profile = #"{"id": "a1", "username": "lena", "displayName": "Lena", "isAdmin": false}"#
+        return (200, #"{"token": "s1.sitzung", "account": \#(profile)}"#)
       }
       try await account.login(username: " Lena ", password: "Sommer-Lauf-2026")
       #expect(account.isSignedIn)
