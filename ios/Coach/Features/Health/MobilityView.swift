@@ -21,7 +21,7 @@ struct MobilityView: View {
         custom: model.settings.gym.customExercises),
       enduranceMinutes: MobilityPlanner.enduranceMinutes(
         activities: activityRecords.suffix(60).compactMap(\.activity), today: today),
-      results: settings.results)
+      results: settings.results, complaints: settings.complaints)
     let doneToday = settings.log.contains { $0.day == today }
     let latest = MobilityTestResult.latest(settings.results)
 
@@ -111,6 +111,20 @@ struct MobilityView: View {
       }
 
       Section {
+        ForEach(ComplaintArea.allCases) { area in
+          Toggle(area.label, isOn: complaintBinding(area))
+        }
+      } header: {
+        Text("Beschwerden")
+      } footer: {
+        Text(
+          "Diese Bereiche bekommen in der Mobility-Einheit Vorrang, Krafttraining-Übungen, die sie belasten, zeigen "
+            + "einen Hinweis, und der KI-Coach berücksichtigt sie. Keine Diagnose – bei anhaltenden oder starken "
+            + "Schmerzen ärztlich abklären lassen."
+        )
+      }
+
+      Section {
         EvidenceDisclosure(ruleIDs: ["mobility.stretching", "mobility.focus"])
       }
     }
@@ -126,6 +140,16 @@ struct MobilityView: View {
     Binding(
       get: { model.settings.mobility.minutes },
       set: { model.settings.mobility.minutes = $0 })
+  }
+
+  private func complaintBinding(_ area: ComplaintArea) -> Binding<Bool> {
+    Binding(
+      get: { model.settings.mobility.complaints.contains(area) },
+      set: { on in
+        var complaints = model.settings.mobility.complaints.filter { $0 != area }
+        if on { complaints.append(area) }
+        model.settings.mobility.complaints = ComplaintArea.allCases.filter(complaints.contains)
+      })
   }
 
   static func minutes(_ seconds: Int) -> Int { max(1, Int((Double(seconds) / 60).rounded())) }

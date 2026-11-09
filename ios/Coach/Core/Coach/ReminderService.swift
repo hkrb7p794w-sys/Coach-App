@@ -91,7 +91,8 @@ final class ReminderService: NSObject {
     let today = CalendarDay(date: now)
     let training = GymViewModel.shared.sessionState(now: now).suppressesReminders
     let planned = config.enabled ? reminders(seasonSchedule: seasonSchedule, log: log, now: now) : []
-    for reminder in planned where !(training && reminder.day == today) {
+    let pause = settings.trainingBreak
+    for reminder in planned where !(training && reminder.day == today) && !(pause?.contains(reminder.day) ?? false) {
       // Unmittelbar vor dem Eintragen erneut prüfen: Die Einheit kann inzwischen gestartet sein.
       if reminder.day == today, GymViewModel.shared.sessionState().suppressesReminders { continue }
       let content = UNMutableNotificationContent()

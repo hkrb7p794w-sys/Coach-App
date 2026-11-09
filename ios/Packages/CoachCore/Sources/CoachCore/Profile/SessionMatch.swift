@@ -243,10 +243,15 @@ public enum MissedSessions {
   /// Nach „krank“ so viele Tage nur locker.
   public static let illnessEasyDays = 2
 
-  /// Verpasste, noch nicht entschiedene Einheiten der Woche bis gestern (neueste zuerst).
-  public static func open(_ week: SessionMatcher.Week, handled: Set<String>) -> [SessionResult] {
-    week.results.filter { $0.status == .missed && !handled.contains($0.id) }
-      .sorted { $0.planned.day > $1.planned.day }
+  /// Verpasste, noch nicht entschiedene Einheiten der Woche bis gestern (neueste zuerst). Tage einer Pause
+  /// (`TrainingBreak`) zählen nicht als verpasst.
+  public static func open(
+    _ week: SessionMatcher.Week, handled: Set<String>, pause: TrainingBreak? = nil
+  ) -> [SessionResult] {
+    week.results.filter {
+      $0.status == .missed && !handled.contains($0.id) && !(pause?.contains($0.planned.day) ?? false)
+    }
+    .sorted { $0.planned.day > $1.planned.day }
   }
 
   /// Nachholtag in dieser Woche nach heute: kein fordernder Ausdauertag direkt daneben, möglichst frei.

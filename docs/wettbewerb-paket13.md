@@ -164,3 +164,32 @@ Wochen-Check-in Ernährung (PR 99).
 - Die Mobility-Grenzwerte der Selbsttests sind Orientierungswerte; nur der Knie-zur-Wand-Test hat eine zitierte
   Zuverlässigkeitsstudie.
 - Bedienung und Screenshots der Konkurrenz-Apps wurden nicht selbst geprüft (siehe Kennzeichnung oben).
+
+## 7. Nachtrag: MCI – Personal Training AI (09.11.2026)
+
+Gleiches Schema wie oben. Die App-Store-Seiten waren aus der Claude-Sitzung nicht direkt abrufbar (Netzwerkregel);
+Grundlage sind Suchergebnisse mit Auszügen der Store-Einträge, Deal- und Forenseiten **[R]**. Selbst bedient: nein.
+
+- **Funktionen [R]:** Hybrid-Plan aus Kraft, Cardio, Ernährung und Mobility; über 500 Übungen mit Animationen,
+  über 60 Cardio-Aktivitäten; Pläne für Problem- bzw. Schmerzbereiche; Ernährungsdatenbank (über 2,3 Mio.
+  Produkte); gamifizierter Fortschritt; Support durch Sportwissenschaftler; laut Versionshistorie Urlaubsmodus,
+  flexible Anpassung, eigene Übungen, Mikronährstoffe, eigene Lebensmittel, Apple-Health-Abgleich, Krafttest mit
+  Anleitung ([App Store DE](https://apps.apple.com/de/app/mci-personal-training-ai/id1645679272),
+  [App Store US](https://apps.apple.com/us/app/mci-personal-training-ai/id1645679272)).
+- **Preis [R]:** Nutzung nur mit Abo; Jahresabo regulär 100 €, im Angebot 74,99 € (Dezember 2025,
+  [mydealz](https://www.mydealz.de/deals/mci-fitness-app-jahresabo-1-jahr-fur-7499-eur-nur-uber-apple-app-store-abo-verwaltung-2689172)).
+- **Kritik [R]:** Plan unflexibel bei Krankheit, früher falscher Kalorienbedarf ohne Health-Aktivitätskalorien,
+  Abstürze unter Android, Preis; Google Play etwa 3,8 bei rund 1.000 Bewertungen
+  ([Google Play](https://play.google.com/store/apps/details?id=com.mci.mciApp&gl=DE)).
+- **Nicht überprüfbar [?]:** Apple-Watch-App; „KI lernt aus Änderungen“ (nur Similarweb).
+
+| Bereich | MCI | IronLudi [C] | Entscheidung |
+|---|---|---|---|
+| Schmerz-/Problembereiche | Pläne darauf abgestimmt | nur allgemeines Häkchen „Verletzung“ | **P1 – umgesetzt (PR 100)**: Beschwerdebereiche → Mobility-Vorrang, Hinweis bei belastenden Übungen, KI-Kontext; keine Diagnose |
+| Urlaubsmodus | ja | nur Woche für Woche | **P2 – umgesetzt (PR 100)**: `TrainingBreak` – Zeitraum ohne Erinnerungen, ohne „verpasst“, Begleiter/Rangliste zählen die Tage nicht |
+| Krank, verschieben | als unflexibel kritisiert | verschieben, streichen, krank, nachholen | IronLudi weiter |
+| Kalorienbedarf | kritisiert | gemessener Verbrauch, Garmin/Health | IronLudi weiter |
+| Krafttest mit Anleitung | ja | Startgewicht aus Verlauf, RIR-Progression | nicht nötig |
+| Übungsanimationen | ja | Text-Anleitung | nicht übernehmen (Lizenzen, Produktion) |
+| Sportwissenschaftler-Support | ja | KI-Chat mit eigenen Daten und Quellen | nicht übertragbar |
+| Preis | 75–100 €/Jahr | kostenlos | – |

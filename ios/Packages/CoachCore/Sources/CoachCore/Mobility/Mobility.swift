@@ -44,6 +44,69 @@ public enum MobilityArea: String, CaseIterable, Codable, Sendable, Identifiable 
   }
 }
 
+/// Körperbereiche mit Beschwerden (Anregung: MCI, Paket 13). Die App stellt keine Diagnose: Sie setzt dort
+/// Mobility-Schwerpunkte, weist bei Übungen auf die Belastung hin und gibt die Bereiche an die KI weiter.
+public enum ComplaintArea: String, CaseIterable, Codable, Sendable, Identifiable {
+  case neck, shoulder, elbowWrist, lowerBack, hip, knee, ankle
+
+  public var id: String { rawValue }
+
+  public var label: String {
+    switch self {
+    case .neck: "Nacken"
+    case .shoulder: "Schulter"
+    case .elbowWrist: "Ellbogen oder Handgelenk"
+    case .lowerBack: "Unterer Rücken"
+    case .hip: "Hüfte"
+    case .knee: "Knie"
+    case .ankle: "Sprunggelenk oder Achillessehne"
+    }
+  }
+
+  /// Mobility-Regionen, die bei diesen Beschwerden Vorrang bekommen.
+  public var mobilityAreas: [MobilityArea] {
+    switch self {
+    case .neck: [.thoracicSpine, .shoulders]
+    case .shoulder: [.shoulders, .thoracicSpine]
+    case .elbowWrist: []
+    case .lowerBack: [.lowerBack, .hips, .hamstrings]
+    case .hip: [.hips, .hipFlexors]
+    case .knee: [.hipFlexors, .ankles, .hamstrings]
+    case .ankle: [.ankles]
+    }
+  }
+
+  /// Muskeln, deren Übungen den Bereich als Hauptmuskel belasten (Praxis-Zuordnung).
+  var muscles: Set<Muscle> {
+    switch self {
+    case .neck: [.traps]
+    case .shoulder: [.chest, .frontDelts, .sideDelts]
+    case .elbowWrist: [.biceps, .triceps, .forearms]
+    case .lowerBack: [.lowerBack]
+    case .hip: [.glutes, .adductors]
+    case .knee: [.quads]
+    case .ankle: [.calves]
+    }
+  }
+
+  /// Bereiche aus `complaints`, die eine Übung als Hauptmuskel belastet.
+  public static func loaded(
+    byExercise exerciseID: String, group: MuscleGroup, custom: [ExerciseInfo] = [], complaints: [ComplaintArea]
+  ) -> [ComplaintArea] {
+    guard !complaints.isEmpty else { return [] }
+    let main = Set(
+      MuscleMap.involvement(exerciseID, group: group, custom: custom).filter { $0.value >= MuscleMap.primary }.keys)
+    return complaints.filter { !$0.muscles.isDisjoint(with: main) }
+  }
+
+  /// Hinweis bei einer Übung, die Beschwerdebereiche belastet; `nil`, wenn keiner betroffen ist.
+  public static func hint(for areas: [ComplaintArea]) -> String? {
+    guard !areas.isEmpty else { return nil }
+    return "Belastet: \(areas.map(\.label).joined(separator: ", ")). Gewicht und Bewegungsumfang so wählen, dass es "
+      + "schmerzfrei bleibt – sonst ersetzen. Bei anhaltenden Schmerzen ärztlich abklären lassen."
+  }
+}
+
 /// Wann die Einheit stattfindet. Vor dem Training nur dynamische Übungen: Langes statisches Dehnen direkt davor
 /// kann die Leistung kurz mindern (Behm et al. 2016).
 public enum MobilityContext: String, CaseIterable, Codable, Sendable, Identifiable {
@@ -209,6 +272,8 @@ public struct MobilitySettings: Codable, Equatable, Hashable, Sendable {
   public var minutes: Int = 10
   public var results: [MobilityTestResult] = []
   public var log: [MobilityLogEntry] = []
+  /// Bereiche mit Beschwerden (selbst angegeben).
+  public var complaints: [ComplaintArea] = []
 
   public init() {}
 
@@ -217,6 +282,7 @@ public struct MobilitySettings: Codable, Equatable, Hashable, Sendable {
     minutes = (try? container.decode(Int.self, forKey: .minutes)) ?? 10
     results = (try? container.decode([MobilityTestResult].self, forKey: .results)) ?? []
     log = (try? container.decode([MobilityLogEntry].self, forKey: .log)) ?? []
+    complaints = (try? container.decode([ComplaintArea].self, forKey: .complaints)) ?? []
   }
 
   /// Eine Zeile für Chat und KI-Analyse: Wochenzahl und Einstufung der Selbsttests (keine Rohwerte).
@@ -227,10 +293,16 @@ public struct MobilitySettings: Codable, Equatable, Hashable, Sendable {
       return "\(test.name) \(test.rating(result.value).label)"
     }
     let count = sessions(inWeekEnding: today)
-    guard count > 0 || !tests.isEmpty else { return nil }
+    guard count > 0 || !tests.isEmpty || !complaints.isEmpty else { return nil }
     var line = "Mobility: \(count) Einheiten in den letzten 7 Tagen"
     if !tests.isEmpty { line += "; Selbsttests: " + tests.joined(separator: ", ") }
-    return line + "."
+    line += "."
+    if !complaints.isEmpty {
+      line +=
+        " Angegebene Beschwerden: \(complaints.map(\.label).joined(separator: ", ")) – keine Diagnose stellen, "
+        + "Übungen schmerzfrei wählen und bei anhaltenden Schmerzen ärztliche Abklärung empfehlen."
+    }
+    return line
   }
 
   /// Einheiten in den sieben Tagen bis `today` (einschließlich).
@@ -276,7 +348,8 @@ public enum MobilityPlanner {
   /// `recentSets`: effektive Sätze je Muskel der letzten 48 Stunden. `enduranceMinutes`: Minuten je Sportart
   /// gestern und heute.
   public static func scores(
-    recentSets: [Muscle: Double], enduranceMinutes: [GarminActivity.Sport: Double], results: [MobilityTestResult]
+    recentSets: [Muscle: Double], enduranceMinutes: [GarminActivity.Sport: Double], results: [MobilityTestResult],
+    complaints: [ComplaintArea] = []
   ) -> [Score] {
     var points: [MobilityArea: Double] = [:]
     var reasons: [MobilityArea: [String]] = [:]
@@ -308,6 +381,13 @@ public enum MobilityPlanner {
       }
     }
 
+    for complaint in complaints {
+      for area in complaint.mobilityAreas {
+        points[area, default: 0] += 2
+        reasons[area, default: []].append("Beschwerden: \(complaint.label) – nur schmerzfrei bewegen")
+      }
+    }
+
     // Stabile Reihenfolge: Punkte absteigend, bei Gleichstand die Reihenfolge der Regionen.
     return MobilityArea.allCases.enumerated()
       .map { index, area in (index, Score(area: area, points: points[area] ?? 0, reasons: reasons[area] ?? [])) }
@@ -332,9 +412,10 @@ public enum MobilityPlanner {
 
   public static func routine(
     context: MobilityContext, minutes: Int, recentSets: [Muscle: Double],
-    enduranceMinutes: [GarminActivity.Sport: Double], results: [MobilityTestResult]
+    enduranceMinutes: [GarminActivity.Sport: Double], results: [MobilityTestResult], complaints: [ComplaintArea] = []
   ) -> MobilityRoutine {
-    let ranked = scores(recentSets: recentSets, enduranceMinutes: enduranceMinutes, results: results)
+    let ranked = scores(
+      recentSets: recentSets, enduranceMinutes: enduranceMinutes, results: results, complaints: complaints)
     let focus = Array(ranked.prefix(focusCount(minutes: minutes)))
     let budget = minutes * 60
     var used = Set<String>()

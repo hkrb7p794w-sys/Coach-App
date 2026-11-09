@@ -46,7 +46,9 @@ struct MissedSessionSection: View {
   var body: some View {
     let settings = model.settings
     let today = CalendarDay(date: .now)
-    if let missed = MissedSessions.open(week, handled: Set(settings.handledMissed)).first {
+    if let missed = MissedSessions.open(
+      week, handled: Set(settings.handledMissed), pause: settings.trainingBreak
+    ).first {
       let session = missed.planned
       let makeUp = MissedSessions.makeUpDay(
         for: session, schedule: settings.schedule(inWeekOf: today), profile: settings.profile, today: today,

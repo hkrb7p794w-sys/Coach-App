@@ -98,6 +98,9 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 83 | GitHub Models (GPT-4.1, auch Fotos) als weiterer kostenloser Anbieter über das GitHub-Konto | fertig (PR 95) |
 | 84 | Paket 13: Wettbewerbsanalyse (Pliability, TrainingPeaks, MacroFactor, Boostcamp, Hevy, Runna), Mobility-Bereich mit Selbsttests und Einheit nach Belastung | fertig (PR 96) |
 | 85 | Datensicherung iPhone: täglich automatisch in einen Ordner (z. B. iCloud Drive), als Datei teilen, Einspielen auch beim ersten Start; führt zusammen | fertig (PR 97) |
+| 86 | Mobility auf „Heute“ an Ruhe- und Erholungstagen, Mobility im KI-Kontext | fertig (PR 98) |
+| 87 | Wöchentlicher Ernährungs-Check-in (Gewichtstrend und gemessener Verbrauch, Anpassung nur mit Zustimmung) | fertig (PR 99) |
+| 88 | Anregungen aus MCI: Beschwerdebereiche (Mobility-Vorrang, Hinweis bei Übungen, KI) und Urlaub/Trainingspause | fertig (PR 100) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
 | 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 

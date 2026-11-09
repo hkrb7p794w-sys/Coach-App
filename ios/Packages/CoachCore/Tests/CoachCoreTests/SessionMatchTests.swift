@@ -64,6 +64,10 @@ struct SessionMatchTests {
     let missed = MissedSessions.open(week, handled: [])
     #expect(missed.map(\.planned.day) == [monday.adding(days: 1), monday])
     #expect(MissedSessions.open(week, handled: [missed[0].id]).count == 1)
+    // Im Urlaub gilt nichts als verpasst.
+    let pause = TrainingBreak(start: monday, end: monday.adding(days: 1))
+    #expect(MissedSessions.open(week, handled: [], pause: pause).isEmpty)
+    #expect(MissedSessions.open(week, handled: [], pause: TrainingBreak(start: monday, end: monday)).count == 1)
 
     // Intervalllauf vom Montag nachholen: nicht Fr (vor dem langen Lauf am Sa), sondern Do.
     let session = try #require(week.results.first?.planned)

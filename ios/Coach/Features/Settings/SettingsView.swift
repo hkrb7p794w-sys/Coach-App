@@ -52,6 +52,7 @@ private struct SettingsForm: View {
           }
           area("Training und Fitness", symbol: "figure.strengthtraining.traditional") {
             DisciplineSettingsSection()
+            TrainingBreakSection()
             if model.settings.profile.mode == .season {
               Section("Saison") {
                 NavigationLink("Saison & Rennen") { SeasonSettingsView() }

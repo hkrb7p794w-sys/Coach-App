@@ -124,6 +124,17 @@ struct ExerciseDetailView: View {
       }
       if let exercise {
         let involvement = MuscleMap.involvement(exercise.id, group: exercise.group, custom: gym.customExercises)
+        if let hint = ComplaintArea.hint(
+          for: ComplaintArea.loaded(
+            byExercise: exercise.id, group: exercise.group, custom: gym.customExercises,
+            complaints: model.settings.mobility.complaints))
+        {
+          Section {
+            Label(hint, systemImage: "exclamationmark.bubble").font(.subheadline).foregroundStyle(.orange)
+          } header: {
+            Text("Deine Beschwerden")
+          }
+        }
         Section {
           BodyMapView(values: involvement, full: 1)
             .padding(.vertical, 6)
