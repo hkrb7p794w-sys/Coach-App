@@ -67,9 +67,11 @@ struct GameSection: View {
               .font(.caption).foregroundStyle(.secondary)
           }
           if let next {
-            Label("Nächstes Abzeichen: \(next.title) (\(next.progress(stats))/\(next.target))", systemImage: next.symbol)
-              .font(.caption)
-              .foregroundStyle(.secondary)
+            Label(
+              "Nächstes Abzeichen: \(next.title) (\(next.progress(stats))/\(next.target))", systemImage: next.symbol
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
           }
         }
         .contentShape(.rect)
