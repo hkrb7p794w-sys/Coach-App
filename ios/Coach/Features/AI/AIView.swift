@@ -12,7 +12,7 @@ struct AIView: View {
   @Query(sort: \MealRecord.createdAt) private var meals: [MealRecord]
   @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
   @State private var viewModel = AIViewModel()
-  @State private var topic: InsightTopic?
+  @State private var category: InsightCategory?
   @State private var basis: Insight?
   @State private var showsChat = false
   @State private var showsClosed = false
@@ -22,20 +22,20 @@ struct AIView: View {
     let now = Date.now
     let goals = model.settings.profile.effectiveGoals(today: CalendarDay(date: now))
     let groups = InsightInbox.groups(
-      model.settings.insights, topic: topic, focus: Personalization.insightTopics(goals), now: now)
+      model.settings.insights, category: category, focus: Personalization.insightTopics(goals), now: now)
     NavigationStack {
       ScrollViewReader { proxy in
         List {
           Section {
-            TopicChips(selection: $topic, insights: model.settings.insights, now: now)
+            CategoryChips(selection: $category, insights: model.settings.insights, now: now)
               .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
           }
           if groups.new.isEmpty && groups.open.isEmpty {
             Section {
               Text(
-                topic == nil
+                category == nil
                   ? "Gerade keine offenen Empfehlungen. Die Regeln der App melden sich, sobald es etwas gibt."
-                  : "Zu „\(topic?.label ?? "")“ gibt es gerade nichts Offenes."
+                  : "Zu „\(category?.label ?? "")“ gibt es gerade nichts Offenes."
               )
               .foregroundStyle(.secondary)
             }
@@ -68,7 +68,7 @@ struct AIView: View {
         // Schnellaktion / Kurzbefehl „KI-Analyse starten“: zur Analyse springen und sie anstoßen, sofern erlaubt.
         .onChange(of: AppRouter.shared.pending, initial: true) {
           guard AppRouter.shared.take(.aiAnalysis) else { return }
-          topic = nil
+          category = nil
           Task {
             try? await Task.sleep(for: .milliseconds(300))
             withAnimation { proxy.scrollTo(Self.analysisID, anchor: .top) }
@@ -141,7 +141,7 @@ struct AIView: View {
 
   private func analyze() async {
     await viewModel.analyze(
-      topic: topic, model: model, metrics: days.compactMap(\.metrics),
+      topic: category?.analysisTopic, model: model, metrics: days.compactMap(\.metrics),
       activities: activities.compactMap(\.activity), meals: meals, gym: gymSessions.compactMap(\.session))
   }
 
@@ -157,7 +157,7 @@ struct AIView: View {
           Task { await analyze() }
         } label: {
           Label(
-            topic.map { "„\($0.label)“ analysieren" } ?? "Alles analysieren",
+            category?.analysisTopic.map { "„\($0.label)“ analysieren" } ?? "Alles analysieren",
             systemImage: viewModel.isAnalyzing ? "hourglass" : "sparkles")
         }
         .disabled(viewModel.isAnalyzing)
@@ -234,9 +234,9 @@ struct AIView: View {
   }
 }
 
-/// Themen als Filter; die Zahl zeigt neue Empfehlungen.
-private struct TopicChips: View {
-  @Binding var selection: InsightTopic?
+/// Bereiche als Filter; die Zahl zeigt neue Empfehlungen.
+private struct CategoryChips: View {
+  @Binding var selection: InsightCategory?
   let insights: [Insight]
   let now: Date
 
@@ -244,10 +244,10 @@ private struct TopicChips: View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 8) {
         chip(nil, label: "Alle", count: InsightInbox.unreadCount(insights, now: now))
-        ForEach(InsightTopic.allCases, id: \.self) { topic in
-          let topicInsights = insights.filter { $0.topic == topic }
-          if !topicInsights.isEmpty {
-            chip(topic, label: topic.label, count: InsightInbox.unreadCount(topicInsights, now: now))
+        ForEach(InsightCategory.allCases, id: \.self) { category in
+          let matching = insights.filter { $0.category == category }
+          if !matching.isEmpty {
+            chip(category, label: category.label, count: InsightInbox.unreadCount(matching, now: now))
           }
         }
       }
@@ -255,12 +255,12 @@ private struct TopicChips: View {
     }
   }
 
-  private func chip(_ topic: InsightTopic?, label: String, count: Int) -> some View {
+  private func chip(_ category: InsightCategory?, label: String, count: Int) -> some View {
     Button {
-      selection = topic
+      selection = category
     } label: {
       HStack(spacing: 4) {
-        if let topic { Image(systemName: topic.symbol) }
+        if let category { Image(systemName: category.symbol) }
         Text(label)
         if count > 0 {
           Text("\(count)").font(.caption.bold()).padding(.horizontal, 6).background(.red, in: Capsule())
@@ -269,10 +269,10 @@ private struct TopicChips: View {
       }
       .padding(.horizontal, 12).padding(.vertical, 8)
       .background(
-        selection == topic ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.12), in: Capsule())
+        selection == category ? Color.accentColor.opacity(0.2) : Color.secondary.opacity(0.12), in: Capsule())
     }
     .buttonStyle(.plain)
-    .accessibilityAddTraits(selection == topic ? .isSelected : [])
+    .accessibilityAddTraits(selection == category ? .isSelected : [])
   }
 }
 

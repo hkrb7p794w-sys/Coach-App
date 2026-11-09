@@ -16,6 +16,15 @@ public enum ChatContext {
     /// Gewichts- und Kalorienziele sind gesperrt (`GoalRules`).
     public var withholdsWeightTargets = false
     public var recommendation: String?
+    /// Nur für den Chat: Daten, aus denen die Antwort zur konkreten Frage entsteht.
+    public var gymSessions: [GymSession] = []
+    public var activities: [GarminActivity] = []
+    public var eaten: NutrientValues?
+    public var todayMeals: [MealLine] = []
+    public var weekAverage: NutrientValues?
+    public var tomorrowSessions: [String] = []
+    public var todayMetrics: DailyMetrics?
+    public var insights: [Insight] = []
     public var reasons: [String] = []
     public var todaySessions: [String] = []
     public var sleep: SleepCoach.Report?
@@ -96,8 +105,11 @@ public enum ChatContext {
     if let zone = facts.formZone {
       lines.append("Form (Fitness gegen Ermüdung): \(zone.label).")
     }
-    for highlight in facts.weekHighlights.prefix(3) {
-      lines.append("Wochenbericht: \(highlight)")
+    // Die Sätze des Wochenberichts enthalten Rohwerte (Schlafstunden, Ruhepuls).
+    if full {
+      for highlight in facts.weekHighlights.prefix(3) {
+        lines.append("Wochenbericht: \(highlight)")
+      }
     }
     return lines
   }

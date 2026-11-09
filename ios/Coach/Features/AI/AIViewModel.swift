@@ -67,7 +67,8 @@ final class AIViewModel {
       return
     }
     let rules = model.settings.insights.filter { $0.origin == .rules && $0.isCurrent(at: now) }
-    let input = InsightAnalysis.input(topic: topic, facts: facts, missing: missing, ruleInsights: rules)
+    let input = InsightAnalysis.input(
+      topic: topic, facts: facts, missing: missing, ruleInsights: rules, closed: model.settings.insights)
     do {
       let response = try await model.ai.run(task: "ai_insights", input: input)
       let insights = InsightAnalysis.insights(from: response.output, facts: facts, model: response.model, now: now)

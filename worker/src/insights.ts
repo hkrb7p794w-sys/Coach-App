@@ -52,6 +52,10 @@ export function insightsPrompt(input: Record<string, unknown>): string {
     const rule = object(item);
     return `- ${text(rule.titel, 100)} (Betreff ${text(rule.betreff, 40)}, Richtung ${text(rule.richtung, 10)})`;
   });
+  const closed = (Array.isArray(input.bearbeitet) ? input.bearbeitet : []).slice(0, 20).map((item) => {
+    const entry = object(item);
+    return `- ${text(entry.titel, 100)} (Betreff ${text(entry.betreff, 40)}, ${text(entry.stand, 12)})`;
+  });
   return [
     topic === "alle"
       ? "Analysiere alle Bereiche und gib die wichtigsten Empfehlungen (höchstens 6)."
@@ -65,6 +69,9 @@ export function insightsPrompt(input: Record<string, unknown>): string {
     "",
     "Empfehlungen der Regeln (nicht widersprechen, nicht wiederholen):",
     rules.length ? rules.join("\n") : "(keine)",
+    "",
+    "Bereits bearbeitet (Verworfenes nicht erneut vorschlagen; bei Umgesetztem die Wirkung bewerten, wenn Fakten sie zeigen):",
+    closed.length ? closed.join("\n") : "(keine)",
     "",
     `Themen: ${TOPICS.join(", ")}. Richtung: ${DIRECTIONS.join(", ")}.`,
     'Antwortformat (JSON): {"empfehlungen": [{"thema": str, "betreff": str (1–3 Wörter, z. B. "bankdrücken", ' +

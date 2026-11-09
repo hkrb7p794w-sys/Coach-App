@@ -6,7 +6,8 @@ import Foundation
 enum CoachFacts {
   static func chat(
     model: AppModel, snapshot: TodayViewModel.Snapshot?, metrics: [DailyMetrics],
-    activities allActivities: [GarminActivity], meals: [MealRecord], gymDays: [CalendarDay], now: Date = .now
+    activities allActivities: [GarminActivity], meals: [MealRecord], gymDays: [CalendarDay], gym: [GymSession] = [],
+    now: Date = .now
   ) -> ChatContext.Facts {
     let settings = model.settings
     let today = CalendarDay(date: now)
@@ -35,7 +36,31 @@ enum CoachFacts {
       activities: allActivities.filter { $0.day == today }, planItems: [], settings: settings.nutrition,
       garminProfile: model.sync.profile, day: today, hasGarminData: !metrics.isEmpty)
     let eaten = meals.filter { $0.dayKey == today.iso }.flatMap(\.items)
-    if !eaten.isEmpty { facts.eatenKilocalories = NutritionSummary.totals(eaten)[.kcal] }
+    if !eaten.isEmpty {
+      facts.eatenKilocalories = NutritionSummary.totals(eaten)[.kcal]
+      facts.eaten = NutritionSummary.totals(eaten)
+      facts.todayMeals = meals.filter { $0.dayKey == today.iso }.map {
+        ChatContext.MealLine(title: $0.title, nutrients: NutritionSummary.totals($0.items))
+      }
+    }
+    facts.gymSessions = gym
+    facts.insights = settings.insights
+    facts.activities = allActivities.filter { ($0.day ?? today) >= today.adding(days: -56) }
+    facts.todayMetrics = metrics.last { $0.day == today }
+    facts.tomorrowSessions = settings.schedule(inWeekOf: today.adding(days: 1)).slots(
+      on: Weekday(day: today.adding(days: 1))
+    )
+    .map(\.title)
+    let weekDays = Dictionary(
+      grouping: meals.filter { $0.dayKey >= today.adding(days: -7).iso && $0.dayKey < today.iso }, by: \.dayKey)
+    if !weekDays.isEmpty {
+      let totals = weekDays.values.map { NutritionSummary.totals($0.flatMap(\.items)) }
+      let count = Double(totals.count)
+      facts.weekAverage = NutrientValues([
+        .kcal: totals.reduce(0) { $0 + ($1[.kcal] ?? 0) } / count,
+        .protein: totals.reduce(0) { $0 + ($1[.protein] ?? 0) } / count,
+      ])
+    }
     facts.weightTrend = WeightTrend.trend(WeightTrend.merged(model.allWeights), today: today)
     let form = FitnessForm.series(activities: allActivities, today: today)
     if FitnessForm.isReliable(form), let percent = form.last?.formPercent {

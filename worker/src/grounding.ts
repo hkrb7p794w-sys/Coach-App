@@ -55,12 +55,70 @@ export class GroundingError extends Error {
   }
 }
 
+/** Liest eine Zahl in deutscher Schreibweise („4,8“ → 4.8, „1.200“ → 1200). */
+function parseNumber(value: string): number {
+  return /^\d{1,3}\.\d{3}$/.test(value) ? Number(value.replace(".", "")) : Number(value.replace(",", "."));
+}
+
 /** Zahlen eines Textes, normalisiert („4,8“ → „4.8“, „12,0“ → „12“). */
 export function numbersIn(value: string): Set<string> {
   const result = new Set<string>();
   for (const match of value.matchAll(/\d+(?:[.,]\d+)?/g)) {
-    const normalized = Number(match[0].replace(",", "."));
+    const normalized = parseNumber(match[0]);
     if (Number.isFinite(normalized)) result.add(String(normalized));
+  }
+  return result;
+}
+
+export interface Measure {
+  value: number;
+  unit: string;
+}
+
+const UNITS: Record<string, string> = { minuten: "min", stunden: "h", std: "h", prozent: "%" };
+const MEASURE =
+  /(\d+(?:[.,]\d+)?)\s*(kg|kcal|km|minuten|min|stunden|std|prozent|%|bpm|ms|g|h)(?![a-zäöüß])/gi;
+
+/** Zahlen mit Einheit: Nur gleiche Einheiten dürfen miteinander verrechnet werden. */
+export function measuresIn(value: string): Measure[] {
+  return [...value.matchAll(MEASURE)].map((match) => {
+    const unit = (match[2] ?? "").toLowerCase();
+    return { value: parseNumber(match[1] ?? ""), unit: UNITS[unit] ?? unit };
+  });
+}
+
+/** Ist die Zahl das Ergebnis einer einfachen Rechnung aus belegten Werten derselben Einheit? */
+export function isDerived(claim: Measure, known: Measure[]): boolean {
+  const close = (a: number, b: number) => Math.abs(a - b) < 0.051;
+  if (claim.unit === "%") {
+    return known.some((a) =>
+      known.some(
+        (b) =>
+          a.unit === b.unit &&
+          b.value > 0 &&
+          (Math.round((a.value / b.value) * 100) === claim.value ||
+            Math.round((Math.abs(a.value - b.value) / b.value) * 100) === claim.value),
+      ),
+    );
+  }
+  const same = known.filter((item) => item.unit === claim.unit);
+  return same.some((a) =>
+    same.some(
+      (b) => close(Math.abs(a.value - b.value), claim.value) || close(a.value + b.value, claim.value),
+    ),
+  );
+}
+
+const COUNTED =
+  /(\d{1,2})(?:\s*(?:-|–|bis)\s*(\d{1,2}))?\s*(?:sätze|satz|wiederholungen|wdh|tage|tagen|wochen|einheiten|mahlzeiten|portionen|nächte|nächten|monate|monaten|mal)(?![a-zäöüß])/gi;
+
+/** Kleine Mengen vor einer Zählgröße („8–12 Wiederholungen“) sind Empfehlungen, keine Messwerte. */
+export function countsIn(value: string): Set<string> {
+  const result = new Set<string>();
+  for (const match of value.matchAll(COUNTED)) {
+    for (const part of [match[1], match[2]]) {
+      if (part && Number(part) <= 20) result.add(String(Number(part)));
+    }
   }
   return result;
 }

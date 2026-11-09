@@ -38,6 +38,77 @@ public enum InsightTopic: String, Codable, CaseIterable, Sendable {
   }
 }
 
+/// Bereich einer Empfehlung für die Filter. Wird aus Thema und Inhalt abgeleitet, gespeicherte Empfehlungen bleiben
+/// damit unverändert gültig; ein neuer Bereich braucht nur einen Fall und seine Stichwörter.
+public enum InsightCategory: String, CaseIterable, Sendable {
+  case strength, endurance, nutrition, recovery, health, bodyComposition, general
+
+  public var label: String {
+    switch self {
+    case .strength: "Training und Kraftaufbau"
+    case .endurance: "Ausdauer und Leistung"
+    case .nutrition: "Ernährung"
+    case .recovery: "Schlaf und Regeneration"
+    case .health: "Gesundheit und Belastung"
+    case .bodyComposition: "Körperzusammensetzung"
+    case .general: "Allgemeine Fitness"
+    }
+  }
+
+  public var symbol: String {
+    switch self {
+    case .strength: "dumbbell"
+    case .endurance: "figure.run"
+    case .nutrition: "fork.knife"
+    case .recovery: "bed.double"
+    case .health: "heart.text.square"
+    case .bodyComposition: "scalemass"
+    case .general: "figure.mixed.cardio"
+    }
+  }
+
+  /// Das Thema, das die KI-Analyse für diesen Bereich bekommt.
+  public var analysisTopic: InsightTopic? {
+    switch self {
+    case .strength: .training
+    case .endurance: .performance
+    case .nutrition, .bodyComposition: .nutrition
+    case .recovery, .health: .recovery
+    case .general: nil
+    }
+  }
+
+  fileprivate var keywords: [String] {
+    switch self {
+    case .strength:
+      [
+        "bankdr", "kniebeug", "kreuzheb", "schulterdr", "klimmz", "rudern", "kraft", "gym", "satz", "saetze", "sätze",
+        "volumen", "progression", "deload", "muskel",
+      ]
+    case .endurance:
+      ["lauf", "rennrad", "radfahr", "rad-", "schwimm", "pace", "ausdauer", "tempo", "intervall", "zone"]
+    case .nutrition: ["protein", "kalorien", "kcal", "ernaehr", "ernähr", "mahlzeit", "kohlenhydr", "fett", "essen"]
+    case .recovery: ["schlaf", "erhol", "regener", "hrv", "muedigkeit", "müdigkeit", "ruhetag"]
+    case .health: ["schmerz", "krank", "verletz", "ruhepuls", "ueberlast", "überlast", "belastung", "beschwerd"]
+    case .bodyComposition: ["koerper", "körper", "gewicht", "abnehm", "zunehm", "taille"]
+    case .general: []
+    }
+  }
+
+  /// Das Thema entscheidet zuerst, innerhalb davon der Inhalt. So bleibt „Schlaf für mehr Kraft“ bei der Regeneration.
+  static func of(topic: InsightTopic, content: String) -> InsightCategory {
+    let lower = content.lowercased()
+    func has(_ category: InsightCategory) -> Bool { category.keywords.contains { lower.contains($0) } }
+    switch topic {
+    case .recovery: return has(.health) ? .health : .recovery
+    case .nutrition: return has(.bodyComposition) ? .bodyComposition : .nutrition
+    default:
+      let order: [InsightCategory] = [.health, .bodyComposition, .recovery, .nutrition, .strength, .endurance]
+      return order.first(where: has) ?? .general
+    }
+  }
+}
+
 /// Bearbeitungsstand aus Sicht der Person.
 public enum InsightStatus: String, Codable, Sendable {
   case new = "neu"
@@ -108,6 +179,23 @@ public struct Insight: Codable, Equatable, Sendable, Identifiable {
 
   public func isCurrent(at date: Date) -> Bool { validUntil > date }
 
+  public var category: InsightCategory {
+    InsightCategory.of(topic: topic, content: "\(subject) \(title) \(text)")
+  }
+
+  /// Titel zu Schlaf und Gesundheit können Rohwerte enthalten; sie gehen nur bei vollem Datenschutzmodus an die KI.
+  public var hasRawHealthValue: Bool {
+    (category == .recovery || category == .health) && title.contains(where: \.isNumber)
+  }
+
+  /// Widerspruch: gleicher Betreff mit anderer Richtung, oder „mehr“ gegen „weniger“ zum selben Hauptwort im Bereich.
+  func contradicts(_ other: Insight) -> Bool {
+    if subject == other.subject { return direction != other.direction }
+    let opposite = Set([direction, other.direction]) == [.more, .less]
+    return opposite && category == other.category
+      && subject.split(separator: "-").first == other.subject.split(separator: "-").first
+  }
+
   static func normalizedSubject(_ text: String) -> String {
     let words = FoodSearch.normalized(text).split { !$0.isLetter && !$0.isNumber }
     return words.prefix(4).joined(separator: "-")
@@ -143,8 +231,7 @@ public enum InsightInbox {
         continue
       }
       let conflicts = result.indices.filter {
-        result[$0].subject == candidate.subject && result[$0].direction != candidate.direction
-          && result[$0].isCurrent(at: now) && result[$0].status != .dismissed
+        result[$0].contradicts(candidate) && result[$0].isCurrent(at: now) && result[$0].status != .dismissed
       }
       if conflicts.contains(where: { result[$0].origin == .rules }) && candidate.origin == .ai { continue }
       let replaced = Set(conflicts.map { result[$0].id })
@@ -195,11 +282,12 @@ public enum InsightInbox {
 
   /// `focus`: Themen in der Reihenfolge der Prioritäten der Person; bei gleicher Dringlichkeit zuerst.
   public static func groups(
-    _ insights: [Insight], topic: InsightTopic? = nil, focus: [InsightTopic] = [], now: Date
+    _ insights: [Insight], topic: InsightTopic? = nil, category: InsightCategory? = nil, focus: [InsightTopic] = [],
+    now: Date
   ) -> Groups {
     var groups = Groups()
     func rank(_ topic: InsightTopic) -> Int { focus.firstIndex(of: topic) ?? focus.count }
-    let sorted = insights.filter { topic == nil || $0.topic == topic }
+    let sorted = insights.filter { (topic == nil || $0.topic == topic) && (category == nil || $0.category == category) }
       .sorted { ($0.priority, rank($0.topic), $1.created) < ($1.priority, rank($1.topic), $0.created) }
     for insight in sorted {
       switch insight.status {
@@ -314,9 +402,14 @@ public enum InsightAnalysis {
   }
 
   public static func input(
-    topic: InsightTopic?, facts: [Fact], missing: [String], ruleInsights: [Insight]
+    topic: InsightTopic?, facts: [Fact], missing: [String], ruleInsights: [Insight], closed: [Insight] = []
   ) -> [String: JSONValue] {
     [
+      // Umgesetztes und Verworfenes: nicht erneut vorschlagen, bei Umgesetztem die Wirkung bewerten.
+      "bearbeitet": .array(
+        closed.filter { ($0.status == .done || $0.status == .dismissed) && !$0.hasRawHealthValue }.prefix(20).map {
+          .object(["titel": .string($0.title), "betreff": .string($0.subject), "stand": .string($0.status.rawValue)])
+        }),
       "thema": .string(topic?.rawValue ?? "alle"),
       "fakten": .array(facts.map { .object(["id": .string($0.id), "text": .string($0.text)]) }),
       "fehlend": .array(missing.map { .string($0) }),

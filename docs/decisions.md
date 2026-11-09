@@ -2,6 +2,17 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-08 – Paket 12: Chat und KI-Zentrale
+
+- **Daten je Frage statt immer derselben Liste:** `ChatRouter` ordnet Fragen ohne KI Themen zu (Stichwörter, Folgefragen
+  erben das Thema). Allgemeine Fragen schicken keine persönlichen Daten.
+- **Rechnen bleibt im Code:** Restwerte und Veränderungen stehen als „berechnet“ in den Fakten. Die Zahlenprüfung lässt
+  zusätzlich Summen und Differenzen belegter Werte zu, aber nur innerhalb derselben Einheit, und Zählgrößen wie
+  „8–12 Wiederholungen“. Ohne Einheitenprüfung wäre fast jede Zahl als Differenz erklärbar.
+- **Kein Modellwechsel:** Die Messung zeigt die Ursache in Daten und Prompt, nicht im Modell. Reihenfolge bleibt in
+  `providers.ts` zentral.
+- **Bereiche der Empfehlungen werden abgeleitet**, nicht gespeichert: Vorhandene Empfehlungen brauchen keine Migration.
+- **Regressionsbasis:** `.github/scripts/chat-eval.mjs` mit erfundenem Profil, Workflow „Worker-Smoke“, Modus `chat-*`.
 ## 2026-11-08 – Paket 11: Pausen, Verlauf, Wecker, Skills
 
 - **Pausenzeit, Vorrang:** Übung einzeln gesetzt > Planwert, sofern er von der Vorlage (120/90 s) abweicht > Einstellung.

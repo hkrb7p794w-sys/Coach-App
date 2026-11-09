@@ -89,6 +89,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 71 | Android Ernährung Teil 1: Tagesziele, BLS 4.0, KI per Text/Foto, Barcode, Favoriten/Häufig/Wie gestern, KI-Zugang per Link | fertig (PR 79) |
 | 72 | Android Ernährung Teil 2: Rezepte/Meal-Prep, Was jetzt?, Wochenplan + Einkaufsliste, Tag auswerten, Gewicht + Prognose, Teilen, Erinnerungen, Offline-Warteschlange | fertig (PR 80) |
 | 73 | Ernährung: Wasser aus Getränken und Essen, Mahlzeiten-Widget (Sperrbildschirm/Homescreen, „+“ je Mahlzeit), Kamera-Knopf | fertig (PR 81) |
+| 78 | Paket 12: Chat mit Daten passend zur Frage, Folgefragen, verständliche Fehler, Empfehlungen nach sieben Bereichen, messbare Chat-Qualität | fertig (PR 88) |
 | 76 | Paket 10 Gym: Abschluss ohne leeren Bildschirm, Aufwärmvorschläge nach Übung und Niveau, Sperrbildschirm neu, Pausenton und Vibration wählbar, KI-Plan vollständig bedienbar, GymBook aus den Vorschlägen | fertig (PR 86) |
 | 77 | Paket 11: Einstellungen nach Bereichen, Quellen nur noch auf Wunsch, Schlaf nach Wochentag, Feiertag und Wecker, einheitliche Pausenlogik, KI kennt Leistung über Pläne hinweg | fertig (PR 87) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
