@@ -83,7 +83,8 @@ struct WakeAlarmSection: View {
     let alarm = stored.map { value in
       SleepAlarm(
         minutes: value.time.minutes,
-        onlyDay: value.repeats == .once ? WakePlan.nextDate(value.time, after: .now).map { CalendarDay(date: $0) } : nil,
+        onlyDay: value.repeats == .once
+          ? WakePlan.nextDate(value.time, after: .now).map { CalendarDay(date: $0) } : nil,
         weekdaysOnly: value.repeats == .weekdays)
     }
     if model.settings.sleep.alarm != alarm { model.settings.sleep.alarm = alarm }
