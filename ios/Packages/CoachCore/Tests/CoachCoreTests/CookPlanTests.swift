@@ -283,6 +283,9 @@ struct CookPlanTests {
     #expect(!busy.contains("Gemini"))
     #expect(AIErrorText.message(status: 502, code: "ai_invalid", detail: "x").contains("brauchbare"))
     #expect(AIErrorText.message(status: 400, code: nil, detail: "Name fehlt") == "Name fehlt")
+    let own = "Dein KI-Tageslimit (60 Anfragen) ist erreicht. Morgen geht es weiter."
+    #expect(AIErrorText.message(status: 429, code: "quota_exceeded", detail: own) == own)
+    #expect(AIErrorText.message(status: 429, code: nil, detail: "x").contains("ausgeschöpft"))
     #expect(AIErrorText.isTemporary(status: 503))
     #expect(!AIErrorText.isTemporary(status: 400))
   }
