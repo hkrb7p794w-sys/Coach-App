@@ -483,7 +483,9 @@ private struct PersonView: View {
         }
         Button("Sperren", role: .destructive) { confirmBlock = true }
       } footer: {
-        Text("Wer gesperrt ist, sieht deine Beiträge nicht und kann dir keine Anfragen schicken. Es gibt keine Mitteilung.")
+        Text(
+          "Wer gesperrt ist, sieht deine Beiträge nicht und kann dir keine Anfragen schicken. Es gibt keine Mitteilung."
+        )
       }
       if let error { Text(error).foregroundStyle(.red).font(.footnote) }
     }

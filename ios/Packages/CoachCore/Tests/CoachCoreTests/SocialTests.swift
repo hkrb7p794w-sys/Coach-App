@@ -51,13 +51,15 @@ struct SocialTests {
     run.calories = 600
     run.elevationGain = 42
     let share = WorkoutShare.activity(run)
-    #expect(share == {
-      var expected = WorkoutShare(sport: "run", title: "Morgenlauf")
-      expected.durationMin = 45
-      expected.distanceKm = 8.2
-      expected.elevationM = 42
-      return expected
-    }())
+    #expect(
+      share
+        == {
+          var expected = WorkoutShare(sport: "run", title: "Morgenlauf")
+          expected.durationMin = 45
+          expected.distanceKm = 8.2
+          expected.elevationM = 42
+          return expected
+        }())
     let text = String(decoding: try JSONEncoder().encode(share), as: UTF8.self)
     #expect(!text.contains("150"))
     #expect(!text.contains("600"))

@@ -251,7 +251,8 @@ public enum SocialFormat {
     if seconds < 60 { return "gerade eben" }
     if seconds < 3_600 { return "vor \(Int(seconds / 60)) Min." }
     if calendar.isDate(date, inSameDayAs: now) { return "vor \(Int(seconds / 3_600)) Std." }
-    if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday) {
+    if let yesterday = calendar.date(byAdding: .day, value: -1, to: now), calendar.isDate(date, inSameDayAs: yesterday)
+    {
       return "gestern"
     }
     let formatter = DateFormatter()
