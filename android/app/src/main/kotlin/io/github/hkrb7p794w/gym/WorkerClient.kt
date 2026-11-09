@@ -156,6 +156,9 @@ class WorkerClient(private val access: WorkerAccess) {
     /** Freunde und Feed (`/v1/social/…`), nur mit Sitzung. */
     suspend fun social(method: String, path: String, body: JsonObject? = null): JsonObject = api(method, "social/$path", body, Auth.SESSION)
 
+    /** Rangliste und Challenges (`/v1/game/…`), nur mit Sitzung. */
+    suspend fun game(method: String, path: String, body: JsonObject? = null): JsonObject = api(method, "game/$path", body, Auth.SESSION)
+
     /** Konto-Anfrage (`/v1/account/…`); liefert die JSON-Antwort oder wirft mit der Meldung des Workers. */
     suspend fun account(method: String, path: String, body: JsonObject? = null, auth: Auth = Auth.SESSION): JsonObject =
         api(method, "account/$path", body, auth)

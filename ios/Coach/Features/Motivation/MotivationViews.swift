@@ -36,6 +36,10 @@ struct MotivationSections: View {
             missedYesterday: summary.missedYesterday(today: today)),
           companion: settings.companion, day: today))
     }
+    // Serie, Stufe und Abzeichen (auf „Heute“); meldet den Stand an die Freundes-Rangliste.
+    if showsCompanion {
+      GameSection(summary: summary, activities: activities, trainingDays: days, today: today)
+    }
     if showsLeague, settings.league.isJoined {
       LeagueSection(summary: summary)
         .task(id: "\(summary.weekPoints)-\(summary.totalPoints)-\(settings.league.code)") {

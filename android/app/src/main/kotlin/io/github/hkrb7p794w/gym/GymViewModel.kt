@@ -55,6 +55,7 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
     val nutrition = NutritionModel(application, viewModelScope, ::update) { _data.value }
     val account = AccountModel(application, viewModelScope, nutrition.access, nutrition.client)
     val social = SocialModel(viewModelScope, nutrition.client, account)
+    val game = GameModel(viewModelScope, nutrition.client, account)
 
     /** Einladungslink `ironludi://account?…` (Server und Code), bis der Kontobildschirm ihn übernimmt. */
     val pendingInvite = kotlinx.coroutines.flow.MutableStateFlow<Pair<String, String>?>(null)

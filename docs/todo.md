@@ -148,6 +148,10 @@ hier notieren und als PR beheben.
       „Mit Freunden teilen“ → B sieht es im Feed, reagiert mit 🔥 und kommentiert. A teilt eine Mahlzeit → B
       „In mein Tagebuch übernehmen“. Freundschaft beenden → Beiträge verschwinden bei B.
 
+- [ ] **Wettkampf (PR 93):** Heute zeigt „Fortschritt“ mit Serie und Stufe. Freunde › Wettkampf › „Neue Challenge“
+      (Trainingsminuten, diese Woche, Freund einladen) → Freund sieht die Einladung, tippt „Mitmachen“. Nach einem
+      Training und dem Öffnen von Heute steigen Minuten und Rangliste; 3 Stunden Training zählen als 90 Minuten.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

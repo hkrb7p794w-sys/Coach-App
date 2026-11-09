@@ -105,6 +105,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 90 | KI-Nutzung je Person: Tageslimit für Gäste (Standard 60), eigene Übersicht, Kostenübersicht für den Betreiber (`/v1/usage/all`), klare Meldung in der App | fertig (PR 102) |
 | 91 | Konten für Freunde und Familie: Benutzername + Passwort, nur mit Einladung, Sitzungen je Gerät, Wiederherstellungscode, iPhone und Android | fertig (PR 103) |
 | 92 | Freunde und Feed: Suche per Benutzername, Anfragen, Sperren, Trainings und Mahlzeiten teilen (ohne Körperwerte), Reaktionen, Kommentare, Mahlzeit übernehmen | in Arbeit |
+| 93 | Spielelemente: Tages-Serie mit Joker, Stufen, 18 Abzeichen, Freundes-Rangliste, Wochen-Challenges mit Obergrenzen (kein Anreiz zum Übertraining) | in Arbeit |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
 | 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 

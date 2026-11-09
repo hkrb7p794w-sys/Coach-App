@@ -127,3 +127,13 @@ KI-Anfragen mit einem Konto zählen wie ein Gast (Tageslimit `AI_GUEST_DAILY_LIM
   Teilen-Symbol, an einer Mahlzeit „Teilen …“ › „Im Feed mit Freunden teilen“ (Android: Menü › „Mit Freunden teilen“).
 - Geteilte Mahlzeiten lassen sich mit „In mein Tagebuch übernehmen“ als eigener Eintrag übernehmen.
 - Geteilt wird nie automatisch und nie mit Körperwerten (Gewicht, Puls, Schlaf).
+
+### Serie, Stufen, Rangliste und Challenges
+
+- **Heute › Fortschritt** (iPhone): Tage in Folge mit Training oder Mahlzeit (ein Joker je Woche), Stufe und nächstes
+  Abzeichen. Antippen öffnet **Freunde › Wettkampf** (Android: Training › Freunde › Wettkampf).
+- **Rangliste:** du und deine Freunde, Wochenpunkte 0–100 (100 = Plan erfüllt). Mehr Training als geplant zählt nicht.
+- **Challenges:** eine Kalenderwoche mit Freunden – Plan erfüllt (nur iPhone), Trainingstage, Trainingsminuten (höchstens
+  90 am Tag) oder Tage mit Ernährungstagebuch. Der Stand aktualisiert sich beim Öffnen der App; nach Wochenende steht
+  der Sieger fest.
+- **Abzeichen** gibt es für Beständigkeit (Trainings, Serie, Wochen nach Plan, Tagebuch, Freunde, Siege, Stufen).
