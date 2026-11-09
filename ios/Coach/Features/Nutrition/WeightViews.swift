@@ -102,6 +102,14 @@ struct WeightTrendView: View {
       historySection
     }
     .navigationTitle("Gewichtsverlauf")
+    .onAppear {
+      // Ansehen zählt als Wochen-Check-in (`NutritionCheckIn`).
+      if model.settings.nutrition.lastCheckInDay != today {
+        var nutrition = model.settings.nutrition
+        nutrition.lastCheckInDay = today
+        model.settings.nutrition = nutrition
+      }
+    }
   }
 
   /// Prognose beim Abnehmen aus dem geplanten Tempo (gesund: 0,5–1 % pro Woche, höchstens 25 % Defizit).
