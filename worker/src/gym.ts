@@ -59,6 +59,8 @@ export function gymPlanPrompt(input: Record<string, unknown>): string {
   const lastWeights = list(input.lastWeights, 30, 80);
   const observations = list(input.observations, 8, 300);
   const sports = list(input.otherSports, 6, 40);
+  const notes = list(input.exerciseNotes, 30, 200);
+  const recent = list(input.recentPerformance, 40, 120);
   return [
     "Du bist erfahrener Krafttrainer und erstellst einen individuellen Trainingsplan für das Fitnessstudio.",
     `Ziel: ${text(input.goal, 80) || "Muskelaufbau"}. Erfahrung: ${text(input.experience, 40) || "unbekannt"}.`,
@@ -71,6 +73,10 @@ export function gymPlanPrompt(input: Record<string, unknown>): string {
     `Einschränkungen/Beschwerden (Übungen meiden, die das belasten): ${text(input.limitations, 300) || "keine"}.`,
     favorites.length ? `Bisher genutzte Übungen (bevorzugen): ${favorites.join(", ")}.` : "",
     lastWeights.length ? `Letzte Gewichte: ${lastWeights.join("; ")}.` : "",
+    recent.length
+      ? `Tatsächlich geschafft über alle Pläne (neueste zuerst, Maßstab für die Startgewichte): ${recent.join("; ")}.`
+      : "",
+    notes.length ? `Notizen zu Übungen: ${notes.join("; ")}.` : "",
     observations.length ? "Beobachtungen der Regeln:" : "",
     ...observations.map((line) => `- ${line}`),
     "",

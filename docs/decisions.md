@@ -13,6 +13,17 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   `providers.ts` zentral.
 - **Bereiche der Empfehlungen werden abgeleitet**, nicht gespeichert: Vorhandene Empfehlungen brauchen keine Migration.
 - **Regressionsbasis:** `.github/scripts/chat-eval.mjs` mit erfundenem Profil, Workflow „Worker-Smoke“, Modus `chat-*`.
+## 2026-11-08 – Paket 11: Pausen, Verlauf, Wecker, Skills
+
+- **Pausenzeit, Vorrang:** Übung einzeln gesetzt > Planwert, sofern er von der Vorlage (120/90 s) abweicht > Einstellung.
+  Anzeige, Timer und Mitteilung lesen denselben Wert. Aufwärmsätze nutzen `gym.restWarmup`.
+- **Verlauf über Pläne hinweg:** Kein neues Datenmodell nötig. Sätze hängen an `exerciseID` und nicht am Plan,
+  Vorbelegung und `GymStats` arbeiten schon planübergreifend. Die KI bekommt zusätzlich `recentPerformance` und
+  `exerciseNotes`. Geplant, Ist und Bestwert bleiben getrennt.
+- **Wecker:** Der in der App gestellte Wecker geht den eingestellten Aufstehzeiten vor. Der Wecker der Uhr-App ist für
+  Apps nicht lesbar.
+- **Design-Skills:** Kein fremdes Repository eingebunden, Begründung in `docs/design-skills.md`.
+
 ## 2026-11-08 – Gym: Abschluss, Aufwärmen, Pausenton (Paket 10)
 
 - **Weißer Bildschirm:** `finish` leerte die laufende Einheit und wartete dann auf Apple Health und Garmin (Sekunden). In

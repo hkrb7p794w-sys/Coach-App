@@ -212,7 +212,7 @@ struct GymPlanView: View {
       let input = GymCoach.planInput(
         request: request, profile: settings.profile, equipment: settings.gym.equipment,
         routines: settings.gym.routines, sessions: viewModel.sessions, custom: settings.gym.customExercises,
-        today: CalendarDay(date: .now))
+        today: CalendarDay(date: .now), notes: settings.gym.notes)
       let response = try await model.ai.run(task: "gym_plan", input: input)
       let checked = GymCoach.validatePlan(
         response.output, request: request, equipment: usableEquipment,

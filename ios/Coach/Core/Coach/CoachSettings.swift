@@ -34,6 +34,7 @@ final class CoachSettings {
   static let pantryKey = "coach.pantry"
   static let cookPartnersKey = "coach.cookPartners"
   static let cookReleaseKey = "coach.cookRelease"
+  static let showsEvidenceKey = "coach.showsEvidence"
   static let illnessKey = "coach.illnessDay"
   static let handledMissedKey = "coach.handledMissed"
   static let effortsKey = "coach.efforts"
@@ -165,6 +166,11 @@ final class CoachSettings {
     didSet { save(pantry, forKey: Self.pantryKey) }
   }
 
+  /// Quellen unter Empfehlungen einblenden (Standard: aus; sie bleiben unter „Quellen und Regeln“ erreichbar).
+  var showsEvidence: Bool {
+    didSet { defaults.set(showsEvidence, forKey: Self.showsEvidenceKey) }
+  }
+
   /// Personen, die für gemeinsame Rezepte etwas freigegeben haben (nur deren freigegebene Angaben).
   var cookPartners: [CookPartner] {
     didSet { save(cookPartners, forKey: Self.cookPartnersKey) }
@@ -291,6 +297,7 @@ final class CoachSettings {
       defaults.data(forKey: Self.ownRecipesKey).flatMap { try? JSONDecoder().decode([OwnRecipe].self, from: $0) }
       ?? []
     pantry = defaults.data(forKey: Self.pantryKey).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+    showsEvidence = defaults.bool(forKey: Self.showsEvidenceKey)
     cookPartners =
       defaults.data(forKey: Self.cookPartnersKey).flatMap { try? JSONDecoder().decode([CookPartner].self, from: $0) }
       ?? []

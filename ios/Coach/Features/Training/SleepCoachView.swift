@@ -52,7 +52,7 @@ struct SleepCoachView: View {
             Text("Heute um \(SleepCoach.clock(report.bedtimeMinutes)) ins Bett").font(.title3.bold())
             Text(
               "Für \(GermanFormat.decimal(Double(report.tonightMinutes) / 60)) Stunden Schlaf bis "
-                + "\(SleepCoach.clock(settings.sleep.wakeMinutes)), inklusive etwa \(SleepCoach.latencyMinutes) "
+                + "\(SleepCoach.clock(report.nextWakeMinutes)), inklusive etwa \(SleepCoach.latencyMinutes) "
                 + "Minuten zum Einschlafen."
             )
             .font(.subheadline)
@@ -91,10 +91,21 @@ struct SleepCoachView: View {
           in: 7...9, step: 0.25)
         DatePicker("Aufstehen", selection: wakeTime, displayedComponents: .hourAndMinute)
         Toggle("Erinnerung 30 min vorher", isOn: $settings.sleep.reminder)
+        Toggle("An freien Tagen später aufstehen", isOn: $settings.sleep.usesFreeDayTime)
+        if settings.sleep.usesFreeDayTime {
+          DatePicker("Aufstehen (frei)", selection: freeWakeTime, displayedComponents: .hourAndMinute)
+          Picker("Bundesland", selection: $settings.sleep.state) {
+            Text("Nicht festgelegt").tag(GermanState?.none)
+            ForEach(GermanState.allCases) { Text($0.label).tag(GermanState?.some($0)) }
+          }
+          if settings.sleep.state == nil {
+            Text("Ohne Bundesland zählen nur Wochenenden als frei.").font(.footnote).foregroundStyle(.secondary)
+          }
+        }
       } header: {
         Text("Einstellungen")
       } footer: {
-        Text("Erwachsene brauchen regelmäßig 7–9 Stunden. Feste Zeiten, auch am Wochenende, helfen am meisten.")
+        Text("Erwachsene brauchen regelmäßig 7–9 Stunden. Gleichmäßige Zeiten helfen am meisten.")
       }
       WakeAlarmSection(
         wake: WakePlan.Time(hour: settings.sleep.wakeHour, minute: settings.sleep.wakeMinute),
@@ -104,6 +115,20 @@ struct SleepCoachView: View {
     .task(id: "\(settings.sleep.hashValue)-\(report?.bedtimeMinutes ?? -1)") {
       await BedtimeReminder.schedule(settings: settings.sleep, bedtimeMinutes: report?.bedtimeMinutes)
     }
+  }
+
+  private var freeWakeTime: Binding<Date> {
+    Binding(
+      get: {
+        Calendar.current.date(
+          bySettingHour: model.settings.sleep.freeWakeHour, minute: model.settings.sleep.freeWakeMinute, second: 0,
+          of: .now) ?? .now
+      },
+      set: { date in
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        model.settings.sleep.freeWakeHour = parts.hour ?? 8
+        model.settings.sleep.freeWakeMinute = parts.minute ?? 0
+      })
   }
 
   private var wakeTime: Binding<Date> {

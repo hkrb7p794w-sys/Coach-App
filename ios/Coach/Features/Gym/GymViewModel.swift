@@ -113,7 +113,8 @@ final class GymViewModel {
           let reps = suggestion.reps[safe: index] ?? suggestion.reps.last ?? 0
           return LoggedSet(reps: reps, weightKg: suggestion.weight, done: false)
         },
-        restSeconds: gym.restOverrides[rule.id] ?? planned.restSeconds)
+        restSeconds: gym.rest(
+          for: rule.id, compound: gym.exercise(rule.id)?.compound ?? false, planned: planned.restSeconds))
     }
     setActive(GymSession(workoutKey: workout.key, title: workout.name, start: now, exercises: exercises))
   }
@@ -130,7 +131,7 @@ final class GymViewModel {
             reps: suggestion.reps[safe: index] ?? suggestion.reps.last ?? item.upperReps,
             weightKg: suggestion.weight, done: false)
         },
-        restSeconds: gym.restOverrides[item.exerciseID] ?? item.restSeconds)
+        restSeconds: gym.rest(for: item.exerciseID, compound: info?.compound ?? false, planned: item.restSeconds))
     }
     // „Supersatz mit nächster Übung“ aus der Routine: Ketten bekommen eine gemeinsame Kennung.
     var group: UUID?
@@ -399,8 +400,8 @@ final class GymViewModel {
     mutate(exerciseID) { exercise in
       guard exercise.sets.indices.contains(index), !exercise.sets[index].done else { return }
       exercise.sets[index].done = true
-      // Nach Aufwärmsätzen die kürzere Aufwärmpause, sonst die Pause der Übung.
-      rest = exercise.sets[index].kind == .warmup ? min(warmupRest, exercise.restSeconds) : exercise.restSeconds
+      // Nach Aufwärmsätzen die Aufwärmpause aus den Einstellungen, sonst die Pause der Übung.
+      rest = exercise.sets[index].kind == .warmup ? warmupRest : exercise.restSeconds
     }
     guard let rest, let session = active,
       let exerciseIndex = session.exercises.firstIndex(where: { $0.id == exerciseID })

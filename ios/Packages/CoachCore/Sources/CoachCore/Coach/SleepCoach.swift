@@ -1,5 +1,24 @@
 import Foundation
 
+/// Der in der App gestellte Wecker. Der Wecker der Uhr-App ist für Apps nicht lesbar.
+public struct SleepAlarm: Codable, Equatable, Hashable, Sendable {
+  public var minutes: Int
+  /// Bei einem einmaligen Wecker der Tag, an dem er klingelt.
+  public var onlyDay: CalendarDay?
+  public var weekdaysOnly: Bool
+
+  public init(minutes: Int, onlyDay: CalendarDay? = nil, weekdaysOnly: Bool = false) {
+    self.minutes = minutes
+    self.onlyDay = onlyDay
+    self.weekdaysOnly = weekdaysOnly
+  }
+
+  func rings(on day: CalendarDay) -> Bool {
+    if let onlyDay { return onlyDay == day }
+    return !weekdaysOnly || day.weekdayIndex < 5
+  }
+}
+
 /// Einstellungen des Schlaf-Coaches: gewünschte Schlafdauer, Weckzeit und Erinnerung vor dem Zubettgehen.
 public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
   /// Gewünschte Schlafdauer in Stunden (7–9, Empfehlung für Erwachsene).
@@ -8,6 +27,14 @@ public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
   public var wakeMinute = 30
   /// Mitteilung 30 Minuten vor der empfohlenen Schlafenszeit.
   public var reminder = false
+  /// An freien Tagen (Wochenende, Feiertag) eine andere Aufstehzeit.
+  public var usesFreeDayTime = false
+  public var freeWakeHour = 8
+  public var freeWakeMinute = 0
+  /// Für die Feiertage; ohne Angabe zählen nur Wochenenden als frei.
+  public var state: GermanState?
+  /// Gestellter Wecker; er geht den eingestellten Aufstehzeiten vor.
+  public var alarm: SleepAlarm?
 
   public init() {}
 
@@ -17,9 +44,30 @@ public struct SleepSettings: Codable, Equatable, Hashable, Sendable {
     wakeHour = min(max((try? container.decodeIfPresent(Int.self, forKey: .wakeHour)) ?? 6, 0), 23)
     wakeMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .wakeMinute)) ?? 30, 0), 59)
     reminder = (try? container.decodeIfPresent(Bool.self, forKey: .reminder)) ?? false
+    usesFreeDayTime = (try? container.decodeIfPresent(Bool.self, forKey: .usesFreeDayTime)) ?? false
+    freeWakeHour = min(max((try? container.decodeIfPresent(Int.self, forKey: .freeWakeHour)) ?? 8, 0), 23)
+    freeWakeMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .freeWakeMinute)) ?? 0, 0), 59)
+    state = try? container.decodeIfPresent(GermanState.self, forKey: .state)
+    alarm = try? container.decodeIfPresent(SleepAlarm.self, forKey: .alarm)
   }
 
   public var wakeMinutes: Int { wakeHour * 60 + wakeMinute }
+  public var freeWakeMinutes: Int { freeWakeHour * 60 + freeWakeMinute }
+
+  /// Feiertag an diesem Tag laut Bundesland.
+  public func holiday(on day: CalendarDay) -> String? {
+    state.flatMap { GermanHolidays.name(on: day, state: $0) }
+  }
+
+  public func isFree(_ day: CalendarDay) -> Bool {
+    day.weekdayIndex >= 5 || holiday(on: day) != nil
+  }
+
+  /// Aufstehzeit an einem Tag, Minuten nach Mitternacht.
+  public func wakeMinutes(on day: CalendarDay) -> Int {
+    if let alarm, alarm.rings(on: day) { return alarm.minutes }
+    return usesFreeDayTime && isFree(day) ? freeWakeMinutes : wakeMinutes
+  }
 }
 
 /// Schlaf-Coach wie bei Whoop, aber mit offenen Regeln: Schlafbedarf für heute Nacht, empfohlene Schlafenszeit,
@@ -53,6 +101,12 @@ public enum SleepCoach {
     /// Streuung der Einschlafzeit in Minuten (nur mit mindestens 4 bekannten Zeiten).
     public var bedtimeSpreadMinutes: Double?
     public var tips: [Tip]
+    /// Gilt morgen die Aufstehzeit für freie Tage?
+    public var nextDayIsFree = false
+    /// Name des Feiertags morgen.
+    public var nextHoliday: String?
+    /// Aufstehzeit morgen, Minuten nach Mitternacht.
+    public var nextWakeMinutes = 0
   }
 
   /// Bericht aus den letzten 7 Nächten bis einschließlich `today` (Garmin ordnet die Nacht dem Aufwachtag zu).
@@ -67,7 +121,10 @@ public enum SleepCoach {
     let debt = hours.reduce(0) { $0 + max(0, settings.targetHours - $1) }
     let extra = min(debt * 60 / 4, maxExtraMinutes)
     let tonight = Int(((settings.targetHours * 60 + extra) / 5).rounded()) * 5
-    let bedtime = ((settings.wakeMinutes - tonight - latencyMinutes) % 1_440 + 1_440) % 1_440
+    let tomorrow = today.adding(days: 1)
+    let wake = settings.wakeMinutes(on: tomorrow)
+    let nextIsFree = settings.usesFreeDayTime && settings.isFree(tomorrow)
+    let bedtime = ((wake - tonight - latencyMinutes) % 1_440 + 1_440) % 1_440
 
     // Einschlafzeiten relativ zu 12 Uhr, damit 23:30 und 0:30 nah beieinander liegen.
     let starts = nights.compactMap(\.sleepStartMinutes).map { ($0 + 720).truncatingRemainder(dividingBy: 1_440) }
@@ -119,10 +176,27 @@ public enum SleepCoach {
             + "machen den Schlaf erholsamer.",
           evidenceIDs: ["sleep.regularity"]))
     }
+    if nextIsFree {
+      let reason = settings.holiday(on: tomorrow) ?? "Morgen ist frei"
+      tips.insert(
+        Tip(
+          id: "free",
+          text: "\(reason): Aufstehen gegen \(clock(wake)), Schlafenszeit \(clock(bedtime)).",
+          evidenceIDs: ["sleep.regularity"]),
+        at: 0)
+      if settings.freeWakeMinutes - settings.wakeMinutes > 90 {
+        tips.append(
+          Tip(
+            id: "social-jetlag",
+            text: "Mehr als anderthalb Stunden später als unter der Woche macht den Montag schwerer.",
+            evidenceIDs: ["sleep.regularity"]))
+      }
+    }
     return Report(
       nights: nights.count, averageHours: (average * 10).rounded() / 10, shortNights: shortNights,
       debtHours: (debt * 10).rounded() / 10, tonightMinutes: tonight, bedtimeMinutes: bedtime,
-      bedtimeSpreadMinutes: spread, tips: tips)
+      bedtimeSpreadMinutes: spread, tips: tips, nextDayIsFree: nextIsFree, nextHoliday: settings.holiday(on: tomorrow),
+      nextWakeMinutes: wake)
   }
 
   /// „22:15“

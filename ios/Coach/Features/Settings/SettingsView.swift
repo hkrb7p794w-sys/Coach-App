@@ -27,32 +27,70 @@ private struct SettingsForm: View {
         if model.settings.profile.mode == .personal {
           InputIssuesSection(issues: profileIssues)
         }
-        AppearanceSettingsSection()
-        DisciplineSettingsSection()
-        ReminderSettingsSection()
-        connectSection
-        garminSection
-        HealthImportSection()
         Section {
-          NavigationLink("Datenquellen und Vorrang") { DataSourcesView() }
-        } footer: {
-          Text("Mehrere Geräte: welche Quelle für Schlaf, HRV, Aktivitäten usw. zählt.")
-        }
-        aiSection
-        AISettingsSection()
-        Section("Coach") {
-          if model.settings.profile.mode == .season {
-            NavigationLink("Saison & Rennen") { SeasonSettingsView() }
+          area("Allgemein", symbol: "gearshape") {
+            AppearanceSettingsSection()
+            ReminderSettingsSection()
+            Section("Datenschutz") {
+              Picker(
+                "An die KI gehen",
+                selection: Binding(get: { model.settings.privacy }, set: { model.settings.privacy = $0 })
+              ) {
+                Text("Nur Einordnungen (empfohlen)").tag(PrivacyMode.reduced)
+                Text("Auch Messwerte").tag(PrivacyMode.full)
+              }
+            }
+            Section {
+              Toggle("Quellen bei Empfehlungen zeigen", isOn: showsEvidence)
+              NavigationLink("Quellen und Regeln") { EvidenceLibraryView() }
+            } header: {
+              Text("Quellen")
+            }
+            Section("Motivation") {
+              NavigationLink("Begleiter & Rangliste") { MotivationSettingsView() }
+            }
           }
-          NavigationLink("Begleiter & Rangliste") { MotivationSettingsView() }
-          NavigationLink("Wissenschaftliche Grundlagen") { EvidenceLibraryView() }
-          NavigationLink("Eigene wissenschaftliche Quellen") { UserSourcesView() }
-          NavigationLink("Daten für KI exportieren") { CoachExportView() }
-          NavigationLink("KI-Antwort importieren") { CoachImportView() }
-        }
-        Section("Diagnose") {
-          NavigationLink("Garmin-Diagnose") { GarminDiagnosticsView() }
-          NavigationLink("HealthKit") { DiagnosticsView() }
+          area("Training und Fitness", symbol: "figure.strengthtraining.traditional") {
+            DisciplineSettingsSection()
+            if model.settings.profile.mode == .season {
+              Section("Saison") {
+                NavigationLink("Saison & Rennen") { SeasonSettingsView() }
+              }
+            }
+            connectSection
+          }
+          NavigationLink {
+            NutritionSettingsView()
+          } label: {
+            Label("Ernährung", systemImage: "fork.knife")
+          }
+          area("Health und Erholung", symbol: "heart.text.square") {
+            Section {
+              NavigationLink("Schlaf") { SleepCoachView() }
+            }
+            HealthImportSection()
+            Section {
+              NavigationLink("Datenquellen und Vorrang") { DataSourcesView() }
+            } footer: {
+              Text("Mehrere Geräte: welche Quelle für Schlaf, HRV, Aktivitäten usw. zählt.")
+            }
+          }
+          area("KI und Automatisierung", symbol: "sparkles") {
+            AISettingsSection()
+            Section("Eigene Daten und Quellen") {
+              NavigationLink("Eigene Quellen") { UserSourcesView() }
+              NavigationLink("Daten für KI exportieren") { CoachExportView() }
+              NavigationLink("KI-Antwort importieren") { CoachImportView() }
+            }
+          }
+          area("Technik", symbol: "wrench.and.screwdriver") {
+            aiSection
+            garminSection
+            Section("Diagnose") {
+              NavigationLink("Garmin-Diagnose") { GarminDiagnosticsView() }
+              NavigationLink("HealthKit") { DiagnosticsView() }
+            }
+          }
         }
       }
       .navigationTitle("Einstellungen")
@@ -68,6 +106,27 @@ private struct SettingsForm: View {
       .overlay {
         if viewModel.isBusy { ProgressView() }
       }
+    }
+  }
+
+  private var showsEvidence: Binding<Bool> {
+    Binding(get: { model.settings.showsEvidence }, set: { model.settings.showsEvidence = $0 })
+  }
+
+  /// Eine Kategorie: eigene Seite mit denselben Abschnitten wie zuvor.
+  private func area<Content: View>(
+    _ title: String, symbol: String, @ViewBuilder content: @escaping () -> Content
+  ) -> some View {
+    NavigationLink {
+      Form { content() }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .disabled(viewModel.isBusy)
+        .overlay {
+          if viewModel.isBusy { ProgressView() }
+        }
+    } label: {
+      Label(title, systemImage: symbol)
     }
   }
 
@@ -209,13 +268,6 @@ private struct SettingsForm: View {
       if let status = viewModel.aiStatus {
         Text(status).font(.footnote).foregroundStyle(.secondary)
       }
-      Picker(
-        "Datenschutz",
-        selection: Binding(get: { model.settings.privacy }, set: { model.settings.privacy = $0 })
-      ) {
-        Text("Reduziert (empfohlen)").tag(PrivacyMode.reduced)
-        Text("Voll").tag(PrivacyMode.full)
-      }
       if let source = model.ai.sideStoreSourceURL {
         ShareLink(item: source) {
           Label("SideStore-Quelle teilen", systemImage: "square.and.arrow.up")
@@ -234,7 +286,6 @@ private struct SettingsForm: View {
     } footer: {
       Text(
         "Adresse und App-Token aus der Einrichtung des Cloudflare Workers (siehe docs/einrichtung.md). "
-          + "Datenschutz „reduziert“: An die KI gehen nur Einordnungen (z. B. „Schlaf kurz“), keine Rohwerte. "
           + "SideStore-Quelle und Android-Link sind privat: Wer den Link hat, kann die App laden – nur an Vertraute "
           + "weitergeben."
       )

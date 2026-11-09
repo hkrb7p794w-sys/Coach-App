@@ -142,7 +142,7 @@ public enum GymCoach {
   /// Eingabe für die Worker-Aufgabe `gym_plan`.
   public static func planInput(
     request: PlanRequest, profile: UserProfile, equipment: Set<Equipment>, routines: [Routine],
-    sessions: [GymSession], custom: [ExerciseInfo], today: CalendarDay
+    sessions: [GymSession], custom: [ExerciseInfo], today: CalendarDay, notes: [String: String] = [:]
   ) -> [String: JSONValue] {
     let usable = request.equipment ?? equipment
     let available = (ExerciseLibrary.all + custom).filter { $0.isAvailable(with: usable) }
@@ -169,8 +169,25 @@ public enum GymCoach {
       "lastWeights": .array(lastWeights.prefix(30).map { .string($0) }),
       "repRange": .string("\(request.goal.repRange.lowerBound)–\(request.goal.repRange.upperBound)"),
       "observations": .array(observations(sessions: sessions, today: today).map { .string($0) }),
+      "exerciseNotes": .array(
+        notes.sorted { $0.key < $1.key }.prefix(30).map { .string("\($0.key): \(String($0.value.prefix(120)))") }),
+      "recentPerformance": .array(recentPerformance(sessions).map { .string($0) }),
       "evidence": CoachingNote.evidenceInput(["gym.frequency", "gym.volume", "gym.load", "gym.rir", "gym.progression"]),
     ]
+  }
+
+  /// Tatsächlich Geschafftes je Übung über alle Pläne hinweg: die letzten drei Einheiten, neueste zuerst.
+  public static func recentPerformance(_ sessions: [GymSession]) -> [String] {
+    var byExercise: [String: [String]] = [:]
+    for session in sessions.sorted(by: { $0.start > $1.start }) {
+      for exercise in session.exercises {
+        guard (byExercise[exercise.exerciseID]?.count ?? 0) < 3,
+          let best = exercise.doneSets.max(by: { ($0.weightKg, $0.reps) < ($1.weightKg, $1.reps) })
+        else { continue }
+        byExercise[exercise.exerciseID, default: []].append("\(GermanFormat.number(best.weightKg)) kg × \(best.reps)")
+      }
+    }
+    return byExercise.sorted { $0.key < $1.key }.prefix(40).map { "\($0.key): \($0.value.joined(separator: ", "))" }
   }
 
   /// Schwerster Satz je Übung aus der jeweils letzten Einheit mit Gewicht (Startgewicht für neue Routinen).
