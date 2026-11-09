@@ -101,7 +101,7 @@ Nährwertdatenbank, jede Regel mit Studie, keine Abo-Kosten.
 | Vorschlag | Vorbild | Mehrwert | Aufwand | Daten da? | Kosten | Priorität |
 |---|---|---|---|---|---|---|
 | Mobility-Bereich: Einheit nach Krafttraining, Ausdauer und Selbsttests, 5/10/20 min, vor dem Training nur dynamisch | Pliability | hoch, verknüpft Bereiche | mittel | ja | keine | **P1 – umgesetzt** |
-| Datensicherung iPhone (Export/Import als Datei, Zusammenführen) | Konten der Konkurrenz | sehr hoch (Datenverlust) | mittel | ja | keine | **P1 – nächste PR** |
+| Datensicherung iPhone (Export/Import als Datei, Zusammenführen) | Konten der Konkurrenz | sehr hoch (Datenverlust) | mittel | ja | keine | **P1 – umgesetzt (PR 97)** |
 | Mobility auf „Heute“ an Ruhetagen und im KI-Kontext | eigene Idee | mittel | klein | ja | keine | **P1 – umgesetzt (PR 98)** |
 | Wöchentlicher Ernährungs-Check-in (Vorschlag annehmen/ablehnen, einmal pro Woche) | MacroFactor | mittel | klein | ja (`Expenditure`) | keine | **P2 – umgesetzt (PR 99)** |
 | Pace-Ziele passen sich an (mehrfach verfehlt/übertroffen → Zone ±) mit Schutzgrenze für Steigerung | Runna | mittel | – | ja | keine | **schon vorhanden [C]**: `PaceCheck` (≥ 2 Einheiten gleiche Richtung, ≥ 5 s/km, höchstens 10 s/km je Schritt, RPE ≥ 9 bremst); vorsichtiger als Runna |
