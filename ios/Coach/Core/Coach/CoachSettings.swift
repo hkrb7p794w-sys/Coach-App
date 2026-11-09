@@ -28,6 +28,7 @@ final class CoachSettings {
   static let sleepKey = "coach.sleep"
   static let healthDashboardKey = "coach.healthDashboard"
   static let mobilityKey = "coach.mobility"
+  static let sentWorkoutsKey = "coach.sentWorkouts"
   static let sourcesKey = "coach.sources"
   static let importedNotesKey = "coach.importedNotes"
   static let userSourcesKey = "coach.userSources"
@@ -146,6 +147,11 @@ final class CoachSettings {
   /// Widgets im Gesundheitsbereich (Reihenfolge, Darstellung, ausgeblendet).
   var healthDashboard: HealthDashboard {
     didSet { save(healthDashboard, forKey: Self.healthDashboardKey) }
+  }
+
+  /// An die Uhr gesendete Workouts (je Einheit und Tag), damit erneutes Senden ersetzt statt verdoppelt.
+  var sentWorkouts: SentWorkouts {
+    didSet { save(sentWorkouts, forKey: Self.sentWorkoutsKey) }
   }
 
   /// Mobility: gewählte Dauer, Testergebnisse, erledigte Einheiten.
@@ -310,6 +316,9 @@ final class CoachSettings {
       defaults.data(forKey: Self.healthDashboardKey).flatMap {
         try? JSONDecoder().decode(HealthDashboard.self, from: $0)
       } ?? HealthDashboard()
+    sentWorkouts =
+      defaults.data(forKey: Self.sentWorkoutsKey).flatMap { try? JSONDecoder().decode(SentWorkouts.self, from: $0) }
+      ?? SentWorkouts()
     mobility =
       defaults.data(forKey: Self.mobilityKey).flatMap { try? JSONDecoder().decode(MobilitySettings.self, from: $0) }
       ?? MobilitySettings()

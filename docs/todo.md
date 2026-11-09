@@ -130,6 +130,11 @@ hier notieren und als PR beheben.
       die nächsten Tage → keine Erinnerung, „Jetzt dran“ zeigt die Pause, nach der Pause keine „verpasst“-Karte für
       diese Tage.
 
+- [ ] **An die Uhr senden (PR 101):** Heute › „Jetzt dran“ › Laufeinheit › „An die Uhr senden“ › Tag › Senden →
+      erscheint im Garmin-Connect-Kalender, nach dem Uhren-Sync als Training auf der Uhr (Schritte wie in der
+      Vorschau, Pace als Notiz). Nochmals senden → kein doppeltes Workout. Schwimmeinheiten des Saisonplans zeigen
+      keinen Knopf (macht weiter das Add-on).
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

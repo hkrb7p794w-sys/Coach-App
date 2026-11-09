@@ -76,6 +76,17 @@ struct PlanUnitDetailView: View {
         CompetitionSection(unit: unit, week: week)
       }
 
+      // Lauf- und Radeinheiten auf Wunsch an die Uhr; Schwimmen legt weiterhin das Add-on wöchentlich an.
+      if let sport = Self.watchSport(unit.kind), model.garmin.connect?.isLoggedIn == true, !unit.done {
+        Section {
+          SendToWatchButton(
+            plan: GarminWorkout.plan(
+              name: unit.title, sport: sport, text: unit.detail.isEmpty ? unit.title : unit.detail),
+            day: Self.defaultDay(week: week))
+        } footer: {
+          Text("Tag im nächsten Schritt wählen. Nur diese Einheit, nichts wird automatisch gesendet.")
+        }
+      }
       UnitGuideSections(guide: UnitGuides.guide(for: unit))
 
       Section {
@@ -90,6 +101,22 @@ struct PlanUnitDetailView: View {
     let reps = exercise.reps.map { "\(exercise.sets) × \($0)" } ?? "\(exercise.sets) Sätze"
     let weight = exercise.weightKg.map { " · \(GermanFormat.number($0)) kg" } ?? ""
     return reps + weight
+  }
+}
+
+extension PlanUnitDetailView {
+  static func watchSport(_ kind: PlannedUnit.Kind) -> GarminWorkout.Sport? {
+    switch kind {
+    case .quality, .easyRun, .longRun: .run
+    case .bike, .bikeOptional: .bike
+    case .swim, .gym: nil
+    }
+  }
+
+  /// Heute, wenn die Woche läuft oder vorbei ist; bei künftigen Wochen ihr Montag.
+  static func defaultDay(week: PlanWeek, today: CalendarDay = CalendarDay(date: .now)) -> CalendarDay {
+    guard let monday = CalendarDay(iso: week.w) else { return today }
+    return max(today, monday)
   }
 }
 
