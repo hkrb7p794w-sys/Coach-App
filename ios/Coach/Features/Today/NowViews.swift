@@ -87,7 +87,16 @@ struct NowSection: View {
         Text(settings.profile.mode == .season ? "Heute nichts Festes." : "Heute nichts geplant.")
           .foregroundStyle(.secondary)
       }
-      ForEach(focus.items) { item in FocusItemRow(item: item) }
+      ForEach(focus.items) { item in
+        FocusItemRow(item: item)
+        // Auf Wunsch an die Uhr; die Schwimmeinheiten des Saisonplans legt weiterhin das Add-on an.
+        if let plan = Self.watchPlan(item, season: settings.profile.mode == .season),
+          model.garmin.connect?.isLoggedIn == true, item.status != .done
+        {
+          SendToWatchButton(plan: plan, day: snapshot.plan.today)
+            .font(.subheadline)
+        }
+      }
       if MobilityPlanner.suggestToday(
         hasTraining: focus.items.contains { $0.sport != nil }, recovery: focus.level,
         doneToday: settings.mobility.log.contains { $0.day == snapshot.plan.today })
@@ -128,6 +137,14 @@ struct NowSection: View {
         PlanDayActions(day: today, suggested: advice.move)
       }
     }
+  }
+
+  /// Workout für eine heutige Einheit; `nil` für Kraft, Ruhetag und die Schwimmeinheiten des Saisonplans.
+  static func watchPlan(_ item: TodayFocus.Item, season: Bool) -> GarminWorkout.Plan? {
+    guard let sport = item.sport, let watchSport = GarminWorkout.Sport(sport) else { return nil }
+    if season, watchSport == .swim { return nil }
+    let text = [item.detail, item.target].filter { !$0.isEmpty }.joined(separator: " · ")
+    return GarminWorkout.plan(name: item.title, sport: watchSport, text: text.isEmpty ? item.title : text)
   }
 
   private func countdown(_ days: Int) -> String {

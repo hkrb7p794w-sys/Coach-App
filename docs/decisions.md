@@ -1392,3 +1392,15 @@ als zusätzliche Stufe dazu.
   Quelle: <https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md>
 - XcodeGen erzeugt das Projekt; `CODE_SIGNING_ALLOWED=NO`; SideStore signiert beim Installieren.
 - Plattformunabhängige Logik liegt in `CoachCore` und wird auf Linux getestet (günstiger als macOS).
+
+## Workouts an die Uhr (09.11.2026)
+
+- **Entscheidung:** Einheiten werden nur auf ausdrücklichen Wunsch je Einheit als strukturiertes Workout in den
+  Garmin-Connect-Kalender gelegt (`POST /workout-service/workout`, dann `POST /workout-service/schedule/{id}`),
+  gleiche Felder wie das Schwimm-Export des Add-ons (`garmin_ai_coach/garmin_swim.py`). Die wöchentlichen
+  Schwimmeinheiten des Saisonplans legt weiterhin das Add-on an; die App bietet dafür keinen Knopf (Wunsch des
+  Nutzers, keine Doppelten).
+- **Ziele:** Pace und Puls stehen als Notiz am Schritt, nicht als Zielbereich – Garmin verwirft unbekannte Zielwerte
+  still (Erfahrung aus dem Add-on), der Plantext bleibt so immer lesbar.
+- **Risiko:** inoffizielle Schnittstelle (Anmeldung über das Garmin-Konto); die offizielle Training-API verlangt eine
+  Partner-Freigabe. Ändert Garmin die Schnittstelle, meldet die App „Senden hat nicht geklappt“.
