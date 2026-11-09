@@ -2,6 +2,17 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-09 – Phase 77: Tag und Ampel
+
+- **Eine Ampel:** `RecoveryEvaluator.today` ist die einzige Quelle für Heute, Gym, Ernährung und Morning Report. Sie
+  nimmt die Werte von heute, sonst die der letzten Nacht, und meldet „unbekannt“, wenn nichts Bewertbares vorliegt.
+- **Morning Report ändert die Stufe nicht mehr:** Die frühere Regel „zwei Auffälligkeiten ergeben locker“ zählte
+  korrelierte Werte mehrfach. Auffälligkeiten stehen weiter als Hinweise da.
+- **HRV ohne Garmin-Status:** 7-Tage-Schnitt von ln(HRV) gegen die Tage 7 bis 60 ± 0,5 SD; ohne genug Verlauf weiter die
+  Einzelnacht. Apple liefert SDNN statt rMSSD, das bleibt eine Einschränkung.
+- **Schlaf als Episode:** Proben einer Quelle mit weniger als 60 Minuten Abstand gehören zusammen. Nickerchen sind nur
+  Episoden unter 3 Stunden, die zwischen 10 und 18 Uhr beginnen.
+
 ## 2026-11-08 – Paket 12: Chat und KI-Zentrale
 
 - **Daten je Frage statt immer derselben Liste:** `ChatRouter` ordnet Fragen ohne KI Themen zu (Stichwörter, Folgefragen

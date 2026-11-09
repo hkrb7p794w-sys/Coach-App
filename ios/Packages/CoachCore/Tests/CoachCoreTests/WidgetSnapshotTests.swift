@@ -58,7 +58,8 @@ struct WidgetSnapshotTests {
     #expect(display.snapshot.gym?.running == false)
     // Gleiche Woche (Mi → Do): Zählung bleibt.
     #expect(display.snapshot.gym?.weekDone == 2)
-    #expect(!display.healthIsOld)
+    // Der Stand von gestern enthält nicht die letzte Nacht (R3C-02).
+    #expect(display.healthIsOld)
     #expect(snapshot().display(on: day.adding(days: 2)).healthIsOld)
   }
 

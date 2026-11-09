@@ -147,6 +147,8 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
     public var weekDone: Int
     /// Geplante Krafteinheiten dieser Woche; `nil`, wenn der Plan keine Zahl hergibt.
     public var weekPlanned: Int?
+    /// `next` gehört zu genau diesem Tag (Plan-Einheit statt Routine) und gilt am Folgetag nicht mehr.
+    public var nextIsForDay: Bool?
 
     public init(
       next: String?, nextDetail: String?, running: Bool, runningTitle: String?, last: LastSession?, weekDone: Int,
@@ -247,7 +249,7 @@ public enum HealthMetric: String, Codable, CaseIterable, Sendable {
 
 extension WidgetSnapshot {
   /// Stand für die Anzeige an `day`: Am neuen Tag ist nichts gegessen und nichts geplant bekannt (keine Schätzung –
-  /// das Widget bittet ums Öffnen der App); Gesundheitswerte bleiben, gelten aber als von früher. Wartende
+  /// das Widget bittet ums Öffnen der App); Gesundheitswerte gelten ab dem Folgetag als alt. Wartende
   /// Wasser-Einträge aus dem Widget zählen sofort mit.
   public func display(on day: CalendarDay, queue: WidgetActionQueue = WidgetActionQueue()) -> Display {
     var snapshot = self
@@ -262,6 +264,10 @@ extension WidgetSnapshot {
       if var gym = snapshot.gym {
         gym.running = false
         gym.runningTitle = nil
+        if gym.nextIsForDay == true {
+          gym.next = "App öffnen"
+          gym.nextDetail = nil
+        }
         // Neue Woche: Zählung beginnt von vorn.
         if day.adding(days: -day.weekdayIndex) != self.day.adding(days: -self.day.weekdayIndex) { gym.weekDone = 0 }
         snapshot.gym = gym
@@ -272,14 +278,14 @@ extension WidgetSnapshot {
       nutrition.waterMilliliters += pendingWater
       snapshot.nutrition = nutrition
     }
-    return Display(snapshot: snapshot, isCurrent: isCurrent, healthIsOld: day.adding(days: -1) > self.day)
+    return Display(snapshot: snapshot, isCurrent: isCurrent, healthIsOld: day > self.day)
   }
 
   public struct Display: Equatable, Sendable {
     public var snapshot: WidgetSnapshot
     /// Stand ist von heute.
     public var isCurrent: Bool
-    /// Gesundheitswerte sind älter als die letzte Nacht.
+    /// Gesundheitswerte stammen nicht von der letzten Nacht: Der Stand ist von einem früheren Tag.
     public var healthIsOld: Bool
   }
 }

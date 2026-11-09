@@ -59,18 +59,10 @@ final class TodayViewModel {
     gym: [ActivityFeed.GymItem] = [], now: Date = .now
   ) {
     let today = CalendarDay(date: now)
-    let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
-    let yesterday = byDay[today.adding(days: -1)]
-    let metrics = byDay[today] ?? yesterday
-    let referenceDay = metrics?.day ?? today
-
-    // Sehr negative Form (Ermüdung weit über der Fitness) ergibt höchstens „locker“.
-    let recommendation = RecoveryEvaluator.evaluate(
-      metrics ?? DailyMetrics(day: today),
-      restingHeartRate7DayAverage: RecoveryEvaluator.average(
-        \.restingHeartRate, in: days, daysBefore: 1...7, today: referenceDay)
-    ).limited(byForm: FitnessForm.series(activities: activities, today: today))
-    let hasRecovery = metrics != nil || recommendation.isLimitedByForm
+    let state = RecoveryEvaluator.today(days: days, activities: activities, today: today)
+    let metrics = state.metrics
+    let recommendation = state.recommendation
+    let hasRecovery = state.isKnown
     let week = WeeklyVolume(activities: activities, weekContaining: today, gymDays: gymDays)
     let plan = SeasonPlan.state(today: today, config: settings.season, week: week)
     let todayPlan = schedule.map {
@@ -101,7 +93,7 @@ final class TodayViewModel {
     }
     snapshot = Snapshot(
       metrics: metrics,
-      isFromYesterday: byDay[today] == nil && yesterday != nil,
+      isFromYesterday: metrics.map { $0.day < today } ?? false,
       recommendation: recommendation,
       plan: plan,
       week: week,

@@ -14,6 +14,8 @@ hier notieren und als PR beheben.
       (iOS 26) ändert sie. Pause: Übungswert, Planwert, Einstellung; Anzeige, Timer und Mitteilung gleich.
 - [ ] **Paket 12 (Chat):** „Wie hat sich mein Bankdrücken entwickelt?“, „Wie viel Protein fehlt mir heute noch?“, „Sollte ich heute schwer trainieren?“, danach
       „Und was bedeutet das für mein Training morgen?“: stimmen die Antworten mit deinen echten Daten? KI aus oder offline: verständliche Meldung? AI-Reiter: Filter nach Bereichen.
+- [ ] **Phase 75:** Einladungslink: Server wird vor dem Beitreten angezeigt? Worker-Adresse auf einen anderen Server ändern, ohne Token einzugeben: altes Token weg?
+- [ ] **Phase 77:** App über Mitternacht offen lassen, um 00:05 eine Mahlzeit eintragen: landet am neuen Tag? Ältere Mahlzeit von 100 auf 150 g ändern: Ring und Widget gleich? Ohne Uhr: graue Ampel statt grün? Heute, Gym, Ernährung und Morning Report zeigen dieselbe Stufe? Nachtschicht oder Ausschlafen bis nach 10 Uhr: Schlaf vollständig?
 - [ ] **Schutzgrenzen (Phase 74):** Profil mit „Schwanger“ oder „Essstörung“: Gewichtsverlauf ohne Kalorienvorschläge, Chat und
       Rezepte ohne „Abnehmen“. Wägung unter BMI 18,5 eintragen: Ziel auf „halten“. Zielgewicht erreichen: Hinweis und kein
       Defizit mehr. Einstellungen zeigen „Ernährung: …“ passend.

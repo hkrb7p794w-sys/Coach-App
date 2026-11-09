@@ -218,6 +218,7 @@ final class NutritionViewModel {
 
   /// Zeitpunkt für einen Eintrag am gewählten Tag: heute jetzt, sonst derselbe Tag zur aktuellen Uhrzeit.
   func timestamp(now: Date = .now) -> Date {
+    today = CalendarDay(date: now)
     guard day != today else { return now }
     let calendar = Calendar.current
     let time = calendar.dateComponents([.hour, .minute], from: now)
@@ -237,6 +238,8 @@ final class NutritionViewModel {
       return copy
     }
     guard !fresh.isEmpty else { return }
+    // Die App kann über Mitternacht offen geblieben sein.
+    today = CalendarDay(date: now)
     let record = MealRecord(
       day: day, category: category, title: title, hint: "", items: fresh, at: timestamp(now: now))
     context.insert(record)
@@ -364,6 +367,7 @@ final class NutritionViewModel {
 
   /// Speichert den Entwurf und merkt sich die Lebensmittel für Vorschläge und KI-Hinweise.
   func save(_ draft: Draft, context: ModelContext, foods: [FoodRecord]) {
+    today = CalendarDay(date: .now)
     let items = draft.items.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty && $0.grams > 0 }
     guard !items.isEmpty else {
       errorMessage = "Mindestens eine Position mit Name und Menge eintragen."

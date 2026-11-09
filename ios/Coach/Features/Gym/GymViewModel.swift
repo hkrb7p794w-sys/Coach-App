@@ -77,12 +77,9 @@ final class GymViewModel {
     self.sessions = sessions
     self.gym = gym
     ranges = plan.repRanges.merging(gym.routines.repRanges) { _, routine in routine }
-    let byDay = Dictionary(days.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
-    if let metrics = byDay[today] ?? byDay[today.adding(days: -1)] {
-      recovered = RecoveryEvaluator.evaluate(metrics, restingHeartRate7DayAverage: nil).level == .normal
-    } else {
-      recovered = nil
-    }
+    // Dieselbe Ampel wie unter „Heute“.
+    let state = RecoveryEvaluator.today(days: days, activities: activities, today: today)
+    recovered = state.level.map { $0 == .normal }
 
     // Erledigt: eigene Einheiten und Krafttrainings von Garmin.
     let doneDays = Set(sessions.map(\.day)).union(activities.filter { $0.sport == .strength }.compactMap(\.day))

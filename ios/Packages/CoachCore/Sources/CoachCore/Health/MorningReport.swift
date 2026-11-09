@@ -68,12 +68,9 @@ public struct MorningReport: Equatable, Sendable {
 
   public var isFromYesterday: Bool { dataDay.map { $0 < day } ?? false }
 
-  /// Ab so vielen persönlichen Auffälligkeiten mindestens „locker“, auch wenn keine Einzelregel greift.
-  public static let attentionForEasy = 2
-
   public static func make(
     days: [DailyMetrics], today: CalendarDay, sleep: SleepSettings, goal: FitnessGoal? = nil,
-    sessions: [Session] = [], form: FitnessForm.Point? = nil
+    sessions: [Session] = [], form: FitnessForm.Point? = nil, formSeries: [FitnessForm.Point] = []
   ) -> MorningReport {
     let sorted = days.sorted { $0.day < $1.day }
     let metrics =
@@ -90,7 +87,7 @@ public struct MorningReport: Equatable, Sendable {
     items.append(sleepQuality(metrics))
     items.append(sleepStages(metrics, deepNorm: norm { $0.deepSleepSeconds }))
     items.append(restingHeartRate(metrics, norm: norm { $0.restingHeartRate }))
-    items.append(hrv(metrics, norm: norm { $0.hrvLastNightAverage }))
+    items.append(hrv(metrics, norm: norm { $0.hrvLastNightAverage }, trend: hrvTrend(sorted, reference: reference)))
     // Stress des Vortags: der heutige Tagesschnitt ist am Morgen noch nicht aussagekräftig.
     let stressDay = sorted.last { $0.day == reference.adding(days: -1) }
     items.append(
@@ -110,14 +107,9 @@ public struct MorningReport: Equatable, Sendable {
     items.append(recovery(metrics, evaluated: evaluated))
     items.append(load(metrics, form: form))
 
-    let measured = items.filter { $0.status != .missing && $0.metric != .recovery && $0.metric != .load }
     let attention = items.filter { $0.status == .attention }
-    var level = evaluated?.level
-    if measured.count < 2 {
-      level = nil
-    } else if attention.filter({ $0.metric != .load }).count >= attentionForEasy {
-      level = max(level ?? .normal, .locker)
-    }
+    // Dieselbe Ampel wie überall. Auffälligkeiten stehen als Hinweise da und ändern die Stufe nicht.
+    let level = RecoveryEvaluator.today(days: sorted, form: formSeries, today: today).level
 
     let findings = attention.map(\.note)
     let report = SleepCoach.report(days: sorted, settings: sleep, goal: goal, today: today)
@@ -141,10 +133,12 @@ public struct MorningReport: Equatable, Sendable {
   // MARK: - Einordnung
 
   static func sleepDuration(_ metrics: DailyMetrics?, need: Double, norm: PersonalNorm?) -> Item {
-    guard let hours = metrics?.sleepHours else {
+    guard let seconds = metrics?.sleepSeconds, let shown = metrics?.sleepHours else {
       return Item(metric: .sleepDuration, value: nil, status: .missing, note: "Keine Schlafdaten")
     }
-    let value = hoursText(hours)
+    // Vergleiche mit dem genauen Wert, gerundet wird nur die Anzeige.
+    let hours = seconds / 3_600
+    let value = hoursText(shown)
     let needText = GermanFormat.decimal(need)
     if hours < need - 0.5 {
       let short = Int(((need - hours) * 60).rounded())
@@ -206,8 +200,25 @@ public struct MorningReport: Equatable, Sendable {
     }
   }
 
-  /// Garmins HRV-Status (7-Tage-Schnitt gegen Baseline) zuerst, sonst die Nacht gegen den eigenen Bereich.
-  static func hrv(_ metrics: DailyMetrics?, norm: PersonalNorm?) -> Item {
+  /// 7-Tage-Schnitt des logarithmierten HRV-Werts gegen die Basis der Tage 7 bis 60, Grenze ± 0,5 SD (Plews 2013,
+  /// Javaloyes 2019). `nil`, solange die Basis fehlt. Apple liefert SDNN statt rMSSD; die Methode bleibt dieselbe.
+  static func hrvTrend(_ days: [DailyMetrics], reference: CalendarDay) -> PersonalNorm.Position? {
+    func values(_ range: ClosedRange<Int>) -> [Double] {
+      days.filter { range.contains($0.day.days(until: reference)) }
+        .compactMap(\.hrvLastNightAverage).filter { $0 > 0 }.map(log)
+    }
+    let recent = values(0...6)
+    let baseline = values(7...60)
+    guard recent.count >= 4, baseline.count >= 14 else { return nil }
+    let mean = baseline.reduce(0, +) / Double(baseline.count)
+    let deviation = (baseline.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(baseline.count)).squareRoot()
+    let week = recent.reduce(0, +) / Double(recent.count)
+    if week < mean - 0.5 * deviation { return .below }
+    return week > mean + 0.5 * deviation ? .above : .within
+  }
+
+  /// Garmins HRV-Status (7-Tage-Schnitt gegen Baseline) zuerst, sonst der eigene Wochenschnitt, sonst die Einzelnacht.
+  static func hrv(_ metrics: DailyMetrics?, norm: PersonalNorm?, trend: PersonalNorm.Position? = nil) -> Item {
     let night = metrics?.hrvLastNightAverage
     let value = night.map { "\(Int($0)) ms" }
     switch metrics?.hrvStatus?.uppercased() {
@@ -228,6 +239,14 @@ public struct MorningReport: Equatable, Sendable {
       break
     }
     guard let night else { return Item(metric: .hrv, value: nil, status: .missing, note: "Keine HRV") }
+    if let trend {
+      switch trend {
+      case .below:
+        return Item(metric: .hrv, value: value, status: .attention, note: "HRV-Wochenschnitt unter deinem Normalbereich.")
+      case .within: return Item(metric: .hrv, value: value, status: .normal, note: "HRV-Wochenschnitt im üblichen Bereich.")
+      case .above: return Item(metric: .hrv, value: value, status: .good, note: "HRV-Wochenschnitt höher als sonst.")
+      }
+    }
     guard let norm else {
       return Item(
         metric: .hrv, value: value, status: .normal, note: "Eigener Bereich ab \(PersonalNorm.minimumDays) Nächten.")

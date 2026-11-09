@@ -93,7 +93,7 @@ public enum CoachingNote {
     case .reduced:
       return [
         "HRV-Status (7-Tage-Schnitt vs. Baseline): \(status)",
-        "Schlaf: \(band(metrics.sleepHours, [(6, "kurz"), (7.5, "normal")], otherwise: "gut"))",
+        "Schlaf: \(band(metrics.sleepSeconds.map { $0 / 3_600 }, [(6, "kurz"), (7.5, "normal")], otherwise: "gut"))",
         "Body Battery: \(band(metrics.bodyBatteryHigh, [(30, "niedrig"), (60, "mittel")], otherwise: "hoch"))",
       ]
     }
