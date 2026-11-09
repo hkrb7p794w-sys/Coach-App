@@ -1,5 +1,5 @@
-import Combine
 import CoachCore
+import Combine
 import SwiftUI
 
 /// Meldet einen neuen Kalendertag, auch wenn die App über Mitternacht offen bleibt oder aus dem Hintergrund kommt.

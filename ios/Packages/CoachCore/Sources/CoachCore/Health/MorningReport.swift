@@ -242,8 +242,10 @@ public struct MorningReport: Equatable, Sendable {
     if let trend {
       switch trend {
       case .below:
-        return Item(metric: .hrv, value: value, status: .attention, note: "HRV-Wochenschnitt unter deinem Normalbereich.")
-      case .within: return Item(metric: .hrv, value: value, status: .normal, note: "HRV-Wochenschnitt im üblichen Bereich.")
+        return Item(
+          metric: .hrv, value: value, status: .attention, note: "HRV-Wochenschnitt unter deinem Normalbereich.")
+      case .within:
+        return Item(metric: .hrv, value: value, status: .normal, note: "HRV-Wochenschnitt im üblichen Bereich.")
       case .above: return Item(metric: .hrv, value: value, status: .good, note: "HRV-Wochenschnitt höher als sonst.")
       }
     }

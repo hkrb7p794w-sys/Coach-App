@@ -70,7 +70,8 @@ struct Phase77Tests {
   private func hrvDays(recent: Double, baseline: Double) -> [DailyMetrics] {
     (0..<40).map { offset in
       var day = DailyMetrics(day: today.adding(days: -offset))
-      day.hrvLastNightAverage = offset < 7 ? recent : baseline + Double(offset % 3) * 2
+      // Streuung wie bei echten Nächten: Eine zu glatte Basis machte schon kleine Änderungen auffällig.
+      day.hrvLastNightAverage = offset < 7 ? recent : baseline + Double(offset % 5 - 2) * 4
       return day
     }
   }
