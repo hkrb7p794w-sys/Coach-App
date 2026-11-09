@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,6 +42,7 @@ sealed interface Page {
     data object Settings : Page
     data object NutritionSettings : Page
     data object Recipes : Page
+    data object Account : Page
 }
 
 @Composable
@@ -49,6 +51,7 @@ fun GymApp(viewModel: GymViewModel) {
     var tab by rememberSaveable { mutableStateOf(Tab.TRAINING) }
     var pages by rememberSaveable(stateSaver = PageStackSaver) { mutableStateOf(listOf<Page>()) }
     var showLoadWarning by rememberSaveable { mutableStateOf(viewModel.loadFailed) }
+    val invite by viewModel.pendingInvite.collectAsStateWithLifecycle()
 
     fun open(page: Page) {
         pages = pages + page
@@ -59,6 +62,11 @@ fun GymApp(viewModel: GymViewModel) {
     }
 
     BackHandler(enabled = pages.isNotEmpty()) { back() }
+
+    // Einladungslink geöffnet: Kontobildschirm zeigen.
+    LaunchedEffect(invite) {
+        if (invite != null && pages.lastOrNull() != Page.Account) pages = pages + Page.Account
+    }
 
     if (showLoadWarning) {
         AlertDialog(
@@ -78,7 +86,11 @@ fun GymApp(viewModel: GymViewModel) {
         is Page.SessionDetail -> SessionDetailScreen(viewModel, data, page.id, onBack = ::back, open = ::open)
         is Page.ExerciseDetail -> ExerciseDetailScreen(viewModel, data, page.id, onBack = ::back)
         is Page.RoutineEditor -> RoutineEditorScreen(viewModel, data, page.id, onBack = ::back)
-        Page.Settings -> SettingsScreen(viewModel, data, onBack = ::back)
+        Page.Settings -> SettingsScreen(viewModel, data, onBack = ::back, openAccount = { open(Page.Account) })
+        Page.Account -> AccountScreen(viewModel, invite, onBack = {
+            viewModel.pendingInvite.value = null
+            back()
+        })
         Page.NutritionSettings -> NutritionSettingsScreen(viewModel, data, onBack = ::back)
         Page.Recipes -> RecipesScreen(viewModel, data, onBack = ::back)
         // Ränder: Die Reiter haben eigene Titelleisten (Statusleiste), die Navigationsleiste den unteren Rand.
@@ -120,6 +132,7 @@ private val PageStackSaver = androidx.compose.runtime.saveable.listSaver<List<Pa
                 Page.Settings -> "settings"
                 Page.NutritionSettings -> "nutrition-settings"
                 Page.Recipes -> "recipes"
+                Page.Account -> "account"
             }
         }
     },
@@ -132,6 +145,7 @@ private val PageStackSaver = androidx.compose.runtime.saveable.listSaver<List<Pa
                 text == "settings" -> Page.Settings
                 text == "nutrition-settings" -> Page.NutritionSettings
                 text == "recipes" -> Page.Recipes
+                text == "account" -> Page.Account
                 else -> null
             }
         }

@@ -2,6 +2,36 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-09 – Konten für Freunde und Familie (Phase 91)
+
+- **Wunsch des Nutzers:** Nach der Weitergabe soll jede Person ein eigenes Konto haben, auf das nur sie zugreift;
+  über Benutzernamen findet man sich als Freunde (Phase 92), dazu Spielelemente und Challenges (Phase 93).
+- **Speicher:** Cloudflare D1 „coach-social“ (SQLite, Binding `DB`) statt KV: Freundschaften und Feed brauchen viele
+  Schreibzugriffe, KV hat im Gratis-Plan nur 1.000 am Tag. D1 Gratis-Plan: 5 Mio. gelesene und 100.000 geschriebene
+  Zeilen am Tag, 5 GB; darüber schlagen Abfragen bis 00:00 UTC fehl, Daten bleiben.
+  Quelle: <https://developers.cloudflare.com/d1/platform/pricing/>. Die Tabellen legt der Worker selbst an
+  (`CREATE TABLE IF NOT EXISTS`), so braucht der Deploy keine Migrationen und keine weiteren Token-Rechte: Für eine
+  Bindung an D1 reicht das Recht am Worker. Quelle: <https://developers.cloudflare.com/workers/authorization/workers/>
+- **Anmeldung:** Benutzername + Passwort. „Mit Apple anmelden“ und Passkeys brauchen Entitlements bzw. Associated
+  Domains, die SideStore mit kostenloser Apple-ID nicht signiert; E-Mail-Versand bräuchte einen weiteren Dienst.
+- **Passwörter:** PBKDF2-SHA-256, 16 Byte Salz, 100.000 Runden – der Höchstwert der Web Crypto in Workers. Das kostet
+  rund 20 ms CPU; der Gratis-Plan erlaubt 10 ms je Anfrage mit Spielraum für seltene Ausreißer. Anmeldungen sind
+  selten. Die Rundenzahl steht im Hash, damit sie sich ändern lässt. Quelle:
+  <https://developers.cloudflare.com/workers/platform/limits/#cpu-time>
+- **Nur die Person selbst:** Sitzungs-Token (32 Zufallsbytes) liegen nur als SHA-256 in der Datenbank, auf dem iPhone
+  im Keychain (nur dieses Gerät), auf Android in privaten Einstellungen ohne Backup. 5 Fehlversuche sperren das
+  Konto 15 Minuten. Passwort ändern beendet die anderen Sitzungen; „überall abmelden“ alle.
+- **Kein offenes Registrieren:** nur mit Einladung (Code einmalig, 14 Tage, höchstens 5 offene je Konto) oder mit
+  dem bisherigen Gast-Token (einmal je Token). So kann niemand Fremdes die KI-Kontingente verbrauchen.
+- **Vergessenes Passwort:** Wiederherstellungscode (80 Bit), nur bei der Registrierung angezeigt. Fehlt er, stellt
+  der Betreiber mit dem Haupt-Token einen neuen aus (`POST /v1/account/admin/reset`). Das ist ehrlich gesagt die
+  Grenze von „nur ich“: Wer den Server betreibt, könnte ein Konto übernehmen – Gesundheitsdaten liegen dort aber
+  nicht, nur Benutzername, Anzeigename und Hashes.
+- **Unbekannte Benutzernamen** werden ohne Hash-Rechnung abgewiesen (spart CPU). Das verrät, ob es einen Namen gibt –
+  das tut die Freundessuche ohnehin.
+- **Bisherige Zugänge bleiben:** Haupt- und Gast-Token gelten weiter (SideStore-Quelle, Android-Link, KI). Mit dem
+  Haupt-Token angelegte Konten gelten als Betreiber (kein KI-Tageslimit).
+
 ## 2026-11-09 – Phase 78: Soll/Ist und Trainingstage
 
 - **Geplanter Tag:** Der Tagestyp der Ernährung kommt im eigenen Plan aus Sportart und Intensität, nicht mehr aus Text:

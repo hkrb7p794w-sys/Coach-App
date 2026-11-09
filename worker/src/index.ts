@@ -10,11 +10,16 @@
  * POST /v1/invite        – nur Haupt-Token: Gast-Token für eine Einladung
  * GET  /v1/usage         – eigene KI-Nutzung heute (mit Limit) und letzte Tage (siehe usage.ts)
  * GET  /v1/usage/all     – nur Haupt-Token: Nutzung und geschätzte Kosten je Person
+ * /v1/account/…         – Konten: Registrieren mit Einladung, Anmelden, Sitzungen (siehe accounts.ts). Überall, wo ein
+ *                         Gast-Token gilt, gilt auch das Sitzungs-Token eines Kontos.
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
+
+import { handleAccount, invitePage, isSessionToken } from "./accounts";
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { handleAndroid } from "./android";
-import { authenticate, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
+import { authenticate, bearerToken, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
+import type { SqlDatabase } from "./db";
 import { handleLeague, type LeagueStore } from "./league";
 import { listPriceUsd, parsePreference, providerInfo } from "./providers";
 import { handleShare, type ShareStore, sharePage } from "./share";
@@ -87,8 +92,28 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
   }
 
   if (request.method === "GET") {
-    const page = sharePage(pathname);
+    const page = sharePage(pathname) ?? invitePage(pathname, new URL(request.url).origin);
     if (page) return page;
+  }
+
+  if (pathname.startsWith("/v1/account/")) {
+    if (!env.COACH_APP_TOKEN)
+      return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
+    const header = request.headers.get("authorization") ?? "";
+    const token = bearerToken(header);
+    const accountPrincipal = token ? await authenticate(header, env, deps.now()) : null;
+    // Ein abgelaufenes Token darf Anmelden und Registrieren nicht verhindern; alles andere prüft accounts.ts.
+    const open = /^\/v1\/account\/(login|register|recover)$/.test(pathname);
+    if (token && !accountPrincipal && !open)
+      return json(401, { error: "Nicht autorisiert", code: "unauthorized" });
+    return (
+      (await handleAccount(request, {
+        db: env.DB as unknown as SqlDatabase | undefined,
+        now: deps.now(),
+        principal: accountPrincipal,
+        sessionToken: isSessionToken(token) ? token : undefined,
+      })) ?? json(404, { error: "Nicht gefunden" })
+    );
   }
 
   const isLeague = pathname.startsWith("/v1/league/");
@@ -102,7 +127,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
 
   if (!env.COACH_APP_TOKEN)
     return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
-  const principal = await authenticate(request.headers.get("authorization") ?? "", env);
+  const principal = await authenticate(request.headers.get("authorization") ?? "", env, deps.now());
   if (!principal) return json(401, { error: "Nicht autorisiert" });
 
   if (isInvite) {

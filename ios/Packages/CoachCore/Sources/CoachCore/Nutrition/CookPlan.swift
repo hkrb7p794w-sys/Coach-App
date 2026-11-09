@@ -532,8 +532,8 @@ public enum AIErrorText {
   public static func message(status: Int, code: String?, detail: String) -> String {
     switch status {
     case 429:
-      // Eigenes Tageslimit des Workers: dessen Text nennt Limit und Zeitpunkt der Rückkehr.
-      if code == "quota_exceeded", !detail.isEmpty { return detail }
+      // Eigene Grenzen des Workers (Tageslimit, Sperre nach Fehlversuchen …) kommen mit Code und klarem Text.
+      if code != nil, !detail.isEmpty { return detail }
       return "Das KI-Kontingent ist gerade ausgeschöpft. Bitte versuche es später noch einmal. (Fehlercode 429)"
     case 502, 503, 504:
       if code == "ai_invalid" {

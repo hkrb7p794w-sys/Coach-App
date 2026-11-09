@@ -23,6 +23,7 @@ private struct SettingsForm: View {
   var body: some View {
     NavigationStack {
       Form {
+        AccountSettingsSection()
         profileSection
         if model.settings.profile.mode == .personal {
           InputIssuesSection(issues: profileIssues)

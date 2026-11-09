@@ -13,6 +13,8 @@ export interface Env {
   RELEASES?: KVNamespace;
   /** Workers KV „coach-league“: Ranglisten (nur Namen und Punkte). */
   LEAGUE?: KVNamespace;
+  /** D1 „coach-social“: Konten, Sitzungen, Einladungen (siehe db.ts, accounts.ts). */
+  DB?: D1Database;
   /** Variablen aus wrangler.jsonc. */
   GEMINI_MODEL?: string;
   GEMINI_FALLBACK_MODEL?: string;

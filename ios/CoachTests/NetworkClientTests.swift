@@ -166,5 +166,68 @@ extension StubbedNetworkTests {
         _ = try await client.run(task: "ping")
       }
     }
+
+    @Test func accountSessionTakesPrecedenceAndExpires() async throws {
+      let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+      let secrets = InMemorySecretStore()
+      let client = AIClient(secrets: secrets, defaults: defaults, session: StubURLProtocol.session())
+      try client.configure(url: "https://coach-ai.example.workers.dev", token: "g1.abcdefghjkmn.sig")
+      let account = AccountService(ai: client, defaults: defaults)
+      #expect(!account.isSignedIn)
+
+      StubURLProtocol.install { _ in
+        let profile = #"{"id": "a1", "username": "lena", "displayName": "Lena", "isAdmin": false}"#
+        return (200, #"{"token": "s1.sitzung", "account": \#(profile)}"#)
+      }
+      try await account.login(username: " Lena ", password: "Sommer-Lauf-2026")
+      #expect(account.isSignedIn)
+      #expect(account.account?.username == "lena")
+      let login = try #require(StubURLProtocol.requests.last)
+      #expect(authorization(login) == nil)
+
+      // KI-Anfragen tragen jetzt die Sitzung statt des Gast-Tokens; das Gast-Token bleibt gespeichert.
+      StubURLProtocol.install { _ in (200, #"{"output": {"ok": true}, "model": "m", "provider": "gemini"}"#) }
+      _ = try await client.run(task: "ping")
+      #expect(authorization(try #require(StubURLProtocol.requests.last)) == "Bearer s1.sitzung")
+      #expect(client.appToken == "g1.abcdefghjkmn.sig")
+
+      // Lehnt der Worker die Sitzung ab, ist das Konto abgemeldet.
+      StubURLProtocol.install { _ in (401, #"{"error": "Nicht autorisiert"}"#) }
+      await #expect(throws: AIClientError.signedOut) {
+        _ = try await client.run(task: "ping")
+      }
+      try await Task.sleep(for: .milliseconds(50))
+      #expect(!account.isSignedIn)
+      #expect(account.notice != nil)
+      #expect(client.sessionToken == nil)
+    }
+
+    @Test func loginErrorsShowWorkerText() async throws {
+      let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+      let client = AIClient(secrets: InMemorySecretStore(), defaults: defaults, session: StubURLProtocol.session())
+      try client.configure(url: "https://coach-ai.example.workers.dev", token: "")
+      let account = AccountService(ai: client, defaults: defaults)
+      StubURLProtocol.install { _ in
+        (401, #"{"error": "Benutzername oder Passwort falsch.", "code": "wrong_login"}"#)
+      }
+      await #expect(throws: AIClientError.http(401, "Benutzername oder Passwort falsch.")) {
+        try await account.login(username: "lena", password: "falsch-falsch")
+      }
+      StubURLProtocol.install { _ in (429, #"{"error": "Bitte in 15 Minuten erneut versuchen.", "code": "locked"}"#) }
+      await #expect(throws: AIClientError.http(429, "Bitte in 15 Minuten erneut versuchen.")) {
+        try await account.login(username: "lena", password: "falsch-falsch")
+      }
+    }
+
+    @Test func serverChangeDropsSession() throws {
+      let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
+      let secrets = InMemorySecretStore([.accountSession: "s1.alt"])
+      let client = AIClient(secrets: secrets, defaults: defaults)
+      try client.configure(url: "https://coach-ai.example.workers.dev", token: "")
+      #expect(client.sessionToken == nil)
+      try client.setSession("s1.neu")
+      try client.configure(url: "https://coach-ai.example.workers.dev/", token: "")
+      #expect(client.sessionToken == "s1.neu")
+    }
   }
 }

@@ -41,6 +41,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="ironludi" android:host="connect" />
             </intent-filter>
+            <!-- Einladung zu einem Konto: Seite /i/<code> des Workers öffnet ironludi://account?worker=…&invite=… -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ironludi" android:host="account" />
+            </intent-filter>
             <!-- Geteilte Mahlzeit: Seite /m/<code> des Workers leitet auf coach://meal/<code> weiter (wie beim iPhone). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

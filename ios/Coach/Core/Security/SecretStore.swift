@@ -8,6 +8,8 @@ enum SecretKey: String, CaseIterable {
   /// Token des inoffiziellen Garmin-Connect-Zugangs (JSON, `GarminConnect.Token`).
   case garminConnectToken
   case aiAppToken
+  /// Sitzung des eigenen Kontos am Worker (`s1.…`, siehe worker/src/accounts.ts). Nur auf diesem Gerät.
+  case accountSession
 }
 
 /// Ablage für Geheimnisse; im Test durch einen Speicher im Arbeitsspeicher ersetzt.

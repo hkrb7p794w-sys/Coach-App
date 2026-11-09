@@ -139,6 +139,11 @@ hier notieren und als PR beheben.
       → zeigt die Nutzung der letzten Tage. Mit `AI_GUEST_DAILY_LIMIT=2` testweise: dritte Anfrage eines Gastes zeigt
       in der App „Dein KI-Tageslimit (2 Anfragen) ist erreicht“.
 
+- [ ] **Konten (PR 91):** Einstellungen › Konto › „Konto erstellen“ (mit App-Token ohne Code) → Wiederherstellungscode
+      erscheint einmal. „Neue Einladung erstellen“ › an ein zweites Gerät schicken › Link öffnen › „Auf dem iPhone“
+      bzw. „Auf Android öffnen“ → Registrieren mit vorausgefülltem Code. Falsches Passwort 5× → „15 Minuten“.
+      Passwort ändern → anderes Gerät ist abgemeldet und zeigt das in den Einstellungen.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

@@ -61,10 +61,18 @@ function parseNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
-/** Tageslimit in Anfragen; `0` = unbegrenzt. Gäste: `AI_GUEST_DAILY_LIMIT` (Standard 60), Betreiber: `AI_OWNER_DAILY_LIMIT`. */
+/** Betreiber: Haupt-Token oder ein damit angelegtes Konto. Alle anderen (Gäste, Konten) haben das Gast-Limit. */
+function isOperator(principal: Principal): boolean {
+  return principal.kind === "owner" || (principal.kind === "account" && principal.admin);
+}
+
+/**
+ * Tageslimit in Anfragen; `0` = unbegrenzt. Gäste und Konten: `AI_GUEST_DAILY_LIMIT` (Standard 60), Betreiber:
+ * `AI_OWNER_DAILY_LIMIT`.
+ */
 export function dailyLimit(env: Env, principal: Principal): number {
   return Math.floor(
-    principal.kind === "guest"
+    !isOperator(principal)
       ? parseNumber(env.AI_GUEST_DAILY_LIMIT, DEFAULT_GUEST_DAILY_LIMIT)
       : parseNumber(env.AI_OWNER_DAILY_LIMIT, 0),
   );
@@ -72,7 +80,7 @@ export function dailyLimit(env: Env, principal: Principal): number {
 
 /** Optionales Tagesbudget für Gäste in Dollar (Listenpreis); `0` = aus. */
 export function dailyBudgetUsd(env: Env, principal: Principal): number {
-  return principal.kind === "guest" ? parseNumber(env.AI_GUEST_DAILY_BUDGET_USD, 0) : 0;
+  return !isOperator(principal) ? parseNumber(env.AI_GUEST_DAILY_BUDGET_USD, 0) : 0;
 }
 
 function parseRecord(text: string | null | undefined): UsageRecord {

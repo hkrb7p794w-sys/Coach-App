@@ -3,8 +3,10 @@
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="worker.xml" />
+        <exclude domain="sharedpref" path="account.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="worker.xml" />
+        <exclude domain="sharedpref" path="account.xml" />
     </device-transfer>
 </data-extraction-rules>

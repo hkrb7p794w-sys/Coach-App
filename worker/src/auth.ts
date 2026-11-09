@@ -9,9 +9,15 @@
  *
  * POST /v1/invite – nur mit Haupt-Token: neues Gast-Token, Antwort {token, id}
  */
+import { accountForSession, isSessionToken } from "./accounts";
+import type { SqlDatabase } from "./db";
 import type { Env } from "./types";
 
-export type Principal = { kind: "owner" } | { kind: "guest"; id: string };
+/** Haupt-Token, Gast-Token oder Sitzung eines Kontos (`s1.…`, siehe accounts.ts). */
+export type Principal =
+  | { kind: "owner" }
+  | { kind: "guest"; id: string }
+  | { kind: "account"; id: string; username: string; displayName: string; admin: boolean };
 
 const GUEST_PREFIX = "g1.";
 const GUEST_ID = /^[a-z0-9]{12}$/;
@@ -59,12 +65,30 @@ function revoked(env: Env): Set<string> {
   );
 }
 
-/** Wer fragt an? `null` bei fehlendem, falschem oder gesperrtem Token. */
-export async function authenticate(header: string, env: Env): Promise<Principal | null> {
+export function bearerToken(header: string): string {
+  return header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+}
+
+/** Wer fragt an? `null` bei fehlendem, falschem, gesperrtem oder abgelaufenem Token. */
+export async function authenticate(header: string, env: Env, now = Date.now()): Promise<Principal | null> {
   const master = env.COACH_APP_TOKEN;
   if (!master) return null;
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const token = bearerToken(header);
   if (!token) return null;
+  if (isSessionToken(token)) {
+    const db = env.DB as unknown as SqlDatabase | undefined;
+    if (!db) return null;
+    const account = await accountForSession(db, token, now);
+    return account
+      ? {
+          kind: "account",
+          id: account.id,
+          username: account.username,
+          displayName: account.displayName,
+          admin: account.isAdmin,
+        }
+      : null;
+  }
   if (token.startsWith(GUEST_PREFIX)) {
     const parts = token.slice(GUEST_PREFIX.length).split(".");
     const [id = "", sig = ""] = parts;
@@ -76,5 +100,6 @@ export async function authenticate(header: string, env: Env): Promise<Principal 
 
 /** Kennung für die Zuordnung gespeicherter Einträge (Rangliste, geteilte Mahlzeiten). */
 export function principalKey(principal: Principal): string {
-  return principal.kind === "owner" ? "owner" : `guest:${principal.id}`;
+  if (principal.kind === "owner") return "owner";
+  return principal.kind === "guest" ? `guest:${principal.id}` : `acct:${principal.id}`;
 }

@@ -22,7 +22,7 @@ final class LeagueService {
   var canUse: Bool { ai.isConfigured }
 
   /// Einladungen verschickt nur, wer den Worker betreibt; Gäste geben den Code weiter.
-  var canInvite: Bool { settings.league.isJoined && ai.isConfigured && !ai.isGuest }
+  var canInvite: Bool { settings.league.isJoined && ai.isConfigured && ai.isOwner }
 
   /// Einladungslink mit Worker-Adresse, eigens ausgestelltem Gast-Token und Code. Das Haupt-Token bleibt auf dem
   /// iPhone; jede Einladung bekommt ein eigenes Token, das sich im Worker einzeln sperren lässt.
