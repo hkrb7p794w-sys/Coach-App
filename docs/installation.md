@@ -75,7 +75,7 @@ nicht mehr. Updates meldet SideStore („New Update Available“) und installier
 |---|---|---|
 | Android-Link | keine feste Grenze für den Download | Der Worker liefert nur die Datei aus (kostenlos: 100.000 Aufrufe und 100.000 KV-Lesezugriffe am Tag). Wer die KI nutzt, zählt zur Zeile „KI“. |
 | SideStore-Link (iPhone) | keine feste Grenze | Jede Person installiert mit **ihrer eigenen** Apple-ID (je 3 aktive Apps, 10 neue App-IDs pro Woche – betrifft nur ihr eigenes Gerät). |
-| KI (iPhone und Android) | **realistisch 5–10 aktive Personen** | Alle teilen deine kostenlosen KI-Kontingente (Gemini, Groq, Workers AI mit 10.000 Neurons am Tag). Bei mehr Nutzung kommen Fehlermeldungen „KI nicht verfügbar“, bis die Kontingente am nächsten Tag zurückgesetzt sind; es gibt noch keine Begrenzung je Person. |
+| KI (iPhone und Android) | **realistisch 5–10 aktive Personen** | Alle teilen deine kostenlosen KI-Kontingente (Gemini, Groq, Workers AI mit 10.000 Neurons am Tag). Bei mehr Nutzung kommen Fehlermeldungen „KI nicht verfügbar“, bis die Kontingente am nächsten Tag zurückgesetzt sind; Jeder Gast ist auf **60 KI-Anfragen am Tag** begrenzt (siehe unten). |
 | Rangliste | 20 Personen je Rangliste, rund 500 Abgleiche am Tag insgesamt | kostenlose Workers-KV-Grenzen (1.000 Schreib- und 1.000 List-Zugriffe am Tag) |
 | Garmin | keine | jede Person nutzt ihren eigenen Garmin-Key |
 
@@ -83,3 +83,22 @@ nicht mehr. Updates meldet SideStore („New Update Available“) und installier
 Grenze ist die KI: Mit den kostenlosen Kontingenten bleibt es bei einer Handvoll Personen, die sie täglich
 nutzen. Einen Gastzugang entziehst du über die Worker-Variable `REVOKED_GUESTS` oder indem du das Haupt-Token
 wechselst (`docs/qualitaet-paket8.md`, Abschnitt 7).
+
+### KI-Nutzung je Person: Limit und Kostenübersicht
+
+Der Worker zählt erfolgreiche KI-Anfragen je Person und Tag (UTC) im KV `LEAGUE` (nur Zahlen, 45 Tage; der Verbindungstest „ping“ zählt nicht).
+
+| Variable (Worker, Klartext) | Standard | Wirkung |
+|---|---|---|
+| `AI_GUEST_DAILY_LIMIT` | 60 | Anfragen je Gast und Tag; `0` = unbegrenzt. Danach Antwort 429 mit klarer Meldung in der App |
+| `AI_OWNER_DAILY_LIMIT` | 0 | dasselbe für dein Haupt-Token (Standard: unbegrenzt) |
+| `AI_GUEST_DAILY_BUDGET_USD` | 0 (aus) | optionales Tagesbudget je Gast in Dollar (Listenpreis) |
+
+- `GET /v1/usage` (jedes Token): eigene Nutzung heute und die letzten 7 Tage.
+- `GET /v1/usage/all` (nur Haupt-Token): alle Personen der letzten 31 Tage mit Summen, Durchschnitt je aktiver Person
+  und Aufgaben. Aufruf z. B. `curl -H "Authorization: Bearer <HAUPT-TOKEN>" https://<worker>/v1/usage/all`.
+- Die Dollarwerte sind der **Listenpreis** bei bezahlter Nutzung, nicht deine Rechnung – in den Gratis-Kontingenten
+  zahlst du nichts. Sie zeigen, was die Nutzung kosten würde, wenn du auf ein bezahltes Modell wechselst.
+- Die Grenze ist weich: Bei gleichzeitigen Anfragen kann ein Gast sie um einzelne Anfragen überschreiten. Fällt der
+  Speicher aus (z. B. die KV-Schreibgrenze von 1.000 am Tag im Gratis-Plan, die sich Zähler und Rangliste teilen),
+  läuft die KI ohne Zählung weiter.

@@ -36,6 +36,11 @@ export interface Env {
    * Standardzuordnung in providers.ts (TASK_ROUTES); nicht genannte Anbieter folgen danach.
    */
   AI_TASK_ORDER?: string;
+  /** KI-Tageslimit je Gast (Anfragen, Standard 60, 0 = unbegrenzt) und für den Betreiber (Standard 0). */
+  AI_GUEST_DAILY_LIMIT?: string;
+  AI_OWNER_DAILY_LIMIT?: string;
+  /** Optionales Tagesbudget je Gast in US-Dollar (Listenpreis, 0 = aus). */
+  AI_GUEST_DAILY_BUDGET_USD?: string;
 }
 
 /** Ausschnitt des Workers-AI-Bindings, den der Worker nutzt (Tests ersetzen ihn). */

@@ -8,6 +8,8 @@
  * /v1/league/…          – Rangliste (siehe league.ts), Authorization: Bearer <COACH_APP_TOKEN>
  * POST /v1/ai/generate   – Authorization: Bearer <COACH_APP_TOKEN> oder Gast-Token (siehe auth.ts)
  * POST /v1/invite        – nur Haupt-Token: Gast-Token für eine Einladung
+ * GET  /v1/usage         – eigene KI-Nutzung heute (mit Limit) und letzte Tage (siehe usage.ts)
+ * GET  /v1/usage/all     – nur Haupt-Token: Nutzung und geschätzte Kosten je Person
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
  */
 import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
@@ -20,6 +22,15 @@ import { handleSideStore } from "./sidestore";
 import { findTask } from "./tasks";
 import { readLimited } from "./tasks-util";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
+import {
+  checkQuota,
+  nextReset,
+  ownerOverview,
+  ownSummary,
+  quotaMessage,
+  recordUsage,
+  type UsageStore,
+} from "./usage";
 
 export const VERSION = "0.4.0";
 export const MAX_BODY_BYTES = 8 * 1024 * 1024;
@@ -83,9 +94,11 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
   const isLeague = pathname.startsWith("/v1/league/");
   const isShare = pathname.startsWith("/v1/share/");
   const isInvite = pathname === "/v1/invite";
-  if (pathname !== "/v1/ai/generate" && !isLeague && !isShare && !isInvite)
+  const isUsage = pathname === "/v1/usage" || pathname === "/v1/usage/all";
+  if (pathname !== "/v1/ai/generate" && !isLeague && !isShare && !isInvite && !isUsage)
     return json(404, { error: "Nicht gefunden" });
-  if (!isLeague && !isShare && request.method !== "POST") return json(405, { error: "Nur POST" });
+  if (isUsage && request.method !== "GET") return json(405, { error: "Nur GET" });
+  if (!isLeague && !isShare && !isUsage && request.method !== "POST") return json(405, { error: "Nur POST" });
 
   if (!env.COACH_APP_TOKEN)
     return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
@@ -97,6 +110,15 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     if (principal.kind !== "owner") return json(403, { error: "Nur mit dem Haupt-Token" });
     const id = newGuestID();
     return json(200, { id, token: await guestToken(env.COACH_APP_TOKEN, id) });
+  }
+
+  if (isUsage) {
+    const usageStore = env.LEAGUE as unknown as UsageStore | undefined;
+    if (pathname === "/v1/usage/all") {
+      if (principal.kind !== "owner") return json(403, { error: "Nur mit dem Haupt-Token" });
+      return json(200, await ownerOverview(usageStore, deps.now()));
+    }
+    return json(200, await ownSummary(env, usageStore, principal, deps.now()));
   }
 
   if (isShare) {
@@ -139,6 +161,20 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
   if (images.length > 0 && !task.allowImages)
     return json(400, { error: "Diese Aufgabe nimmt keine Bilder an" });
 
+  // Tageslimit je Person (Gäste); der Verbindungstest „ping“ zählt nicht.
+  const usageStore = env.LEAGUE as unknown as UsageStore | undefined;
+  const counted = body.task !== "ping";
+  const quota = await checkQuota(env, counted ? usageStore : undefined, principal, deps.now());
+  if (!quota.allowed) {
+    return json(429, {
+      error: quotaMessage(quota),
+      code: "quota_exceeded",
+      used: quota.used,
+      limit: quota.limit,
+      resetsAt: nextReset(deps.now()),
+    });
+  }
+
   const { system, prompt } = task.build(input as Record<string, unknown>, images.length);
   // Unbrauchbare Antworten (kein JSON, nichts belegt) gelten als Ausfall des Anbieters: Der nächste kommt dran.
   const accept = (text: string): unknown => {
@@ -165,10 +201,22 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
       parsePreference(body.provider),
       accept,
     );
+    const priceUsd = listPriceUsd(result.provider, result.model, result.usage) ?? 0;
+    if (usageStore && counted) {
+      try {
+        await recordUsage(usageStore, principal, deps.now(), String(body.task), result.provider, priceUsd);
+      } catch (error) {
+        // Zähler nie zur Fehlerquelle machen (z. B. KV-Schreibgrenze).
+        deps.log(`[usage] Zählen fehlgeschlagen: ${String(error)}`);
+      }
+    }
     return json(200, {
       output: result.output,
       model: result.model,
       provider: result.provider,
+      ...(quota.limit > 0 && counted && usageStore
+        ? { quota: { used: quota.used + 1, limit: quota.limit } }
+        : {}),
       ...(result.usage
         ? {
             usage: {

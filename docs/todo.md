@@ -135,6 +135,10 @@ hier notieren und als PR beheben.
       Vorschau, Pace als Notiz). Nochmals senden → kein doppeltes Workout. Schwimmeinheiten des Saisonplans zeigen
       keinen Knopf (macht weiter das Add-on).
 
+- [ ] **Nutzung je Person:** Nach dem Deploy `curl -H "Authorization: Bearer <HAUPT-TOKEN>" https://<worker>/v1/usage/all`
+      → zeigt die Nutzung der letzten Tage. Mit `AI_GUEST_DAILY_LIMIT=2` testweise: dritte Anfrage eines Gastes zeigt
+      in der App „Dein KI-Tageslimit (2 Anfragen) ist erreicht“.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).
