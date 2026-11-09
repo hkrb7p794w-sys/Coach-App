@@ -73,6 +73,18 @@ public enum AIPolicy {
     }
   }
 
+  /// Aufgaben mit frei eingegebenen Gesundheitsangaben oder Fotos: Sie brauchen eine eigene Zustimmung.
+  public static func usesHealthDetails(_ task: String) -> Bool {
+    ["coach_chat", "meal_analyze", "meal_amend", "gym_plan", "weekly_recipes", "meal_now", "cook_plan"].contains(task)
+  }
+
+  /// Anbieter und Zustimmung für eine Anfrage. Ohne passende Einwilligung geht nichts an Anbieter mit Training.
+  public static func route(task: String, settings: AISettings) -> (provider: AIProviderChoice, consented: Bool) {
+    guard settings.provider.mayUseInputsForTraining else { return (settings.provider, settings.hasConsent) }
+    let allowed = settings.hasConsent && (!usesHealthDetails(task) || settings.consent?.includesHealthDetails == true)
+    return allowed ? (settings.provider, true) : (.privat, false)
+  }
+
   /// Hinweis, wenn die Einstellung eine Anfrage verhindert.
   public static func blockedMessage(_ mode: AIMode) -> String {
     switch mode {
@@ -130,10 +142,35 @@ public enum AIProviderChoice: String, Codable, CaseIterable, Sendable {
   }
 }
 
+extension AIProviderChoice {
+  /// Kann die Anfrage bei einem Anbieter landen, der Eingaben zum Training nutzen darf?
+  public var mayUseInputsForTraining: Bool { self == .auto || self == .gemini || self == .mistral }
+}
+
+/// Zustimmung zur Datenweitergabe an KI-Anbieter. Ändert sich, was weitergegeben wird, steigt die Version.
+public struct AIConsent: Codable, Equatable, Hashable, Sendable {
+  public static let currentVersion = 1
+  public var version: Int
+  public var date: Date
+  /// Auch Chat-Fragen, Fotos, Beschwerden und Allergien.
+  public var includesHealthDetails: Bool
+
+  public init(version: Int = AIConsent.currentVersion, date: Date, includesHealthDetails: Bool) {
+    self.version = version
+    self.date = date
+    self.includesHealthDetails = includesHealthDetails
+  }
+}
+
 /// KI-Einstellungen der App.
 public struct AISettings: Codable, Equatable, Hashable, Sendable {
   public var mode: AIMode = .full
   public var provider: AIProviderChoice = .auto
+  public var consent: AIConsent?
+
+  public var hasConsent: Bool { consent?.version == AIConsent.currentVersion }
+  /// Die App muss vor der KI-Nutzung fragen.
+  public var needsConsent: Bool { mode != .off && provider.mayUseInputsForTraining && !hasConsent }
 
   public init(mode: AIMode = .full, provider: AIProviderChoice = .auto) {
     self.mode = mode
@@ -144,5 +181,6 @@ public struct AISettings: Codable, Equatable, Hashable, Sendable {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     mode = (try? container.decode(AIMode.self, forKey: .mode)) ?? .full
     provider = (try? container.decode(AIProviderChoice.self, forKey: .provider)) ?? .auto
+    consent = try? container.decodeIfPresent(AIConsent.self, forKey: .consent)
   }
 }

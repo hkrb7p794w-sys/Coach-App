@@ -2,6 +2,7 @@ import CoachCore
 import SwiftUI
 
 struct SettingsView: View {
+  @AppStorage("privacy.coverSwitcher") private var coversSwitcher = false
   @Environment(AppModel.self) private var model
 
   var body: some View {
@@ -39,6 +40,7 @@ private struct SettingsForm: View {
                 Text("Nur Einordnungen (empfohlen)").tag(PrivacyMode.reduced)
                 Text("Auch Messwerte").tag(PrivacyMode.full)
               }
+              Toggle("Inhalte im App-Umschalter verbergen", isOn: $coversSwitcher)
             }
             Section {
               Toggle("Quellen bei Empfehlungen zeigen", isOn: showsEvidence)
@@ -273,7 +275,7 @@ private struct SettingsForm: View {
           Label("SideStore-Quelle teilen", systemImage: "square.and.arrow.up")
         }
         Button {
-          UIPasteboard.general.url = source
+          PrivateClipboard.copy(source.absoluteString)
         } label: {
           Label("SideStore-Quelle kopieren", systemImage: "doc.on.doc")
         }

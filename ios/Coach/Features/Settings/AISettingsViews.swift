@@ -4,6 +4,7 @@ import SwiftUI
 /// KI-Stufe und bevorzugter Anbieter; darunter Anbieter im Worker und das Nutzungsprotokoll.
 struct AISettingsSection: View {
   @Environment(AppModel.self) private var model
+  @State private var showsConsent = false
 
   var body: some View {
     @Bindable var settings = model.settings
@@ -18,6 +19,20 @@ struct AISettingsSection: View {
         }
         Text(settings.ai.provider.detail).font(.footnote).foregroundStyle(.secondary)
       }
+      if settings.ai.provider.mayUseInputsForTraining, settings.ai.mode != .off {
+        if let consent = settings.ai.consent, settings.ai.hasConsent {
+          Toggle(
+            "Auch Gesundheitsangaben",
+            isOn: Binding(
+              get: { consent.includesHealthDetails },
+              set: { settings.ai.consent?.includesHealthDetails = $0 }))
+          Button("Einwilligung widerrufen", role: .destructive) { settings.ai.consent = nil }
+        } else {
+          Button("Datenweitergabe festlegen") { showsConsent = true }
+          Text("Ohne Einwilligung gehen Anfragen nur an Anbieter ohne Training.")
+            .font(.footnote).foregroundStyle(.secondary)
+        }
+      }
       NavigationLink("Anbieter und Nutzung") { AIUsageView() }
     } header: {
       Text("KI")
@@ -27,6 +42,7 @@ struct AISettingsSection: View {
           + "zusammen. Fällt sie aus oder ist sie aus, bleibt alles nutzbar – auch Importe und der Export."
       )
     }
+    .sheet(isPresented: $showsConsent) { AIConsentSheet() }
   }
 }
 

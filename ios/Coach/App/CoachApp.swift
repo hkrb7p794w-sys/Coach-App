@@ -6,12 +6,15 @@ struct CoachApp: App {
   @State private var model = DemoData.isRequested ? DemoData.makeModel() : AppModel()
   @Environment(\.scenePhase) private var scenePhase
   @AppStorage(AppAppearance.storageKey) private var appearance = AppAppearance.system.rawValue
+  @AppStorage("privacy.coverSwitcher") private var coversSwitcher = false
   /// Schnellaktionen am App-Icon (`AppRouter`).
   @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
   init() {
     // Früh anbinden: Tippt man „Satz erledigt“ auf dem Sperrbildschirm, startet iOS die App ggf. im Hintergrund.
     WorkoutActivityController.connect(GymViewModel.shared)
+    // Exportdateien mit Gesundheitsdaten nicht unbefristet im Temp-Ordner lassen.
+    try? FileManager.default.removeItem(at: FileManager.default.temporaryDirectory.appending(path: "ki-export"))
   }
 
   var body: some Scene {
@@ -20,6 +23,10 @@ struct CoachApp: App {
       RootView()
         .environment(appModel)
         .preferredColorScheme(DemoData.colorScheme.map { $0 == "dark" ? ColorScheme.dark : ColorScheme.light })
+        // Im App-Umschalter nichts Lesbares zeigen.
+        .overlay {
+          if coversSwitcher && scenePhase != .active { Rectangle().fill(.ultraThinMaterial).ignoresSafeArea() }
+        }
     }
     .modelContainer(appModel.container)
     .onChange(of: scenePhase) { _, phase in

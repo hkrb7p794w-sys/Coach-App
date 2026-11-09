@@ -136,7 +136,10 @@ public struct LeagueInvite: Equatable, Sendable {
 public enum GuestToken {
   public static let prefix = "g1."
 
-  public static func isGuest(_ token: String) -> Bool { token.hasPrefix(prefix) }
+  /// `g2.` trägt zusätzlich ein Ablaufdatum.
+  public static let expiringPrefix = "g2."
+
+  public static func isGuest(_ token: String) -> Bool { token.hasPrefix(prefix) || token.hasPrefix(expiringPrefix) }
 }
 
 /// Link zur Android-Download-Seite mit Gastzugang im Anker: Der Browser schickt den Anker nicht an den Server, die

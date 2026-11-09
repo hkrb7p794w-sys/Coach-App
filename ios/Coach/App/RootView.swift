@@ -7,6 +7,8 @@ struct RootView: View {
   @State private var sharedMeal: SharedMealLink?
   @State private var cookLink: CookLink?
   @State private var router = AppRouter.shared
+  /// In dieser Sitzung weggewischt: nicht sofort wieder fragen. Bis dahin gehen Anfragen nur an Anbieter ohne Training.
+  @State private var consentDeferred = false
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
   private var reminderKey: Int {
@@ -102,6 +104,16 @@ struct RootView: View {
         get: { model.reminders.showsWeekPlanning }, set: { model.reminders.showsWeekPlanning = $0 })
     ) {
       NextWeekPlanSheet()
+    }
+    .sheet(
+      isPresented: Binding(
+        get: {
+          profile.onboardingDone && !model.isDemo && !consentDeferred && model.ai.isConfigured
+            && model.settings.ai.needsConsent
+        },
+        set: { if !$0 { consentDeferred = true } })
+    ) {
+      AIConsentSheet()
     }
     // Erster Start: Einrichtungsassistent, bis das Profil fertig ist.
     .fullScreenCover(isPresented: Binding(get: { !profile.onboardingDone }, set: { _ in })) {

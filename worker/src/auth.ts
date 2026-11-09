@@ -14,6 +14,7 @@ import type { Env } from "./types";
 export type Principal = { kind: "owner" } | { kind: "guest"; id: string };
 
 const GUEST_PREFIX = "g1.";
+const EXPIRING_PREFIX = "g2.";
 const GUEST_ID = /^[a-z0-9]{12}$/;
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
 
@@ -44,6 +45,11 @@ export async function guestToken(master: string, id: string): Promise<string> {
   return `${GUEST_PREFIX}${id}.${await signature(master, id)}`;
 }
 
+/** Gast-Token mit Ablauf `g2.<id>.<ablauf in Sekunden>.<signatur>`: Einladungslinks liegen in Messengern. */
+export async function expiringGuestToken(master: string, id: string, expiresAt: number): Promise<string> {
+  return `${EXPIRING_PREFIX}${id}.${expiresAt}.${await signature(master, `${id}:${expiresAt}`)}`;
+}
+
 export function newGuestID(
   random: (bytes: Uint8Array) => Uint8Array = (b) => crypto.getRandomValues(b),
 ): string {
@@ -60,11 +66,19 @@ function revoked(env: Env): Set<string> {
 }
 
 /** Wer fragt an? `null` bei fehlendem, falschem oder gesperrtem Token. */
-export async function authenticate(header: string, env: Env): Promise<Principal | null> {
+export async function authenticate(header: string, env: Env, now = Date.now()): Promise<Principal | null> {
   const master = env.COACH_APP_TOKEN;
   if (!master) return null;
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return null;
+  if (token.startsWith(EXPIRING_PREFIX)) {
+    const parts = token.slice(EXPIRING_PREFIX.length).split(".");
+    const [id = "", expires = "", sig = ""] = parts;
+    if (parts.length !== 3 || !GUEST_ID.test(id) || !/^\d+$/.test(expires) || revoked(env).has(id))
+      return null;
+    if (Number(expires) * 1000 <= now) return null;
+    return tokensMatch(sig, await signature(master, `${id}:${expires}`)) ? { kind: "guest", id } : null;
+  }
   if (token.startsWith(GUEST_PREFIX)) {
     const parts = token.slice(GUEST_PREFIX.length).split(".");
     const [id = "", sig = ""] = parts;

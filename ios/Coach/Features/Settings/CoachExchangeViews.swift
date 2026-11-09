@@ -65,7 +65,7 @@ struct CoachExportView: View {
           }
           if format != .csv {
             Button(copied ? "Kopiert" : "Als Text kopieren", systemImage: copied ? "checkmark" : "doc.on.doc") {
-              UIPasteboard.general.string = files.first.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+              PrivateClipboard.copy(files.first.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? "")
               copied = true
             }
           }

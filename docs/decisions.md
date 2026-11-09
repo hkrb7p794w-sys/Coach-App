@@ -2,6 +2,17 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-09 – Phase 76: Datenschutz und Worker-Betrieb
+
+- **Einwilligung:** Reihenfolge der Anbieter bleibt wie in PR 93 (Entscheidung des Nutzers). Vor der ersten KI-Nutzung
+  fragt die App; ohne Einwilligung gehen Anfragen nur an Anbieter ohne Training. Chat, Fotos, Beschwerden und Allergien
+  brauchen eine zusätzliche Zustimmung. Android und ältere Apps senden keine Einwilligung und laufen bei Gästen über
+  `privat`.
+- **Bekannte Grenze (WRK-01):** Die Gemini-Bedingungen erlauben für API-Clients mit Nutzer:innen im EWR laut Audit nur
+  bezahlte Dienste. Eine Einwilligung löst das nicht. Vor einer Weitergabe an andere ist das rechtlich zu klären.
+- **Gast-Tokens** laufen nach einem Jahr ab (`g2.`), bestehende `g1.` bleiben gültig. `keep_vars` hält die Sperrliste.
+- **Rate Limit** 60 Anfragen je Zugang und Minute, Gäste teilen höchstens 20 Mahlzeiten am Tag.
+
 ## 2026-11-09 – Phase 78: Soll/Ist und Trainingstage
 
 - **Geplanter Tag:** Der Tagestyp der Ernährung kommt im eigenen Plan aus Sportart und Intensität, nicht mehr aus Text:

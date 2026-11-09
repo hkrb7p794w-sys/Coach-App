@@ -149,6 +149,8 @@ async function tryModel(
   hops = 0,
 ): Promise<GenerateResult> {
   let lastError: ProviderError | undefined;
+  // Einmal serialisieren: Mit Bildern kann der Body mehrere Megabyte groß sein.
+  const payload = JSON.stringify(requestBody(request, model));
   for (const [attempt, delay] of RETRY_DELAYS_MS.entries()) {
     if (delay) await deps.sleep(delay);
     if (request.deadline !== undefined && deps.now() >= request.deadline) {
@@ -159,7 +161,7 @@ async function tryModel(
       response = await deps.fetch(`${BASE}/models/${model}:generateContent`, {
         method: "POST",
         headers: { "x-goog-api-key": env.GEMINI_API_KEY ?? "", "content-type": "application/json" },
-        body: JSON.stringify(requestBody(request, model)),
+        body: payload,
         signal: attemptSignal(request, deps),
       });
     } catch (error) {
@@ -173,6 +175,10 @@ async function tryModel(
         return tryModel(successor, request, env, deps, hops + 1);
       }
       throw new ProviderError(`Gemini-Modell ${model} nicht gefunden`, true, 404);
+    }
+    // Tageskontingent aufgebraucht: Wiederholen hilft heute nicht mehr, der nächste Anbieter ist dran.
+    if (response.status === 429 && /PerDay|per day/i.test(await response.clone().text())) {
+      throw new ProviderError(`Gemini HTTP 429 (${model}): Tageskontingent`, false, 429);
     }
     if (RETRYABLE_STATUS.has(response.status)) {
       lastError = new ProviderError(`Gemini HTTP ${response.status} (${model})`, true, response.status);

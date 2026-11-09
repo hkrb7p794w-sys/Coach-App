@@ -91,7 +91,7 @@ struct PromptDetailView: View {
       }
       Section {
         Button(copied ? "Kopiert" : "Prompt mit Daten kopieren", systemImage: copied ? "checkmark" : "doc.on.doc") {
-          UIPasteboard.general.string = composed(prompt, input: input)
+          PrivateClipboard.copy(composed(prompt, input: input))
           copied = true
         }
         Button("Als Datei vorbereiten", systemImage: "doc") {

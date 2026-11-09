@@ -22,6 +22,7 @@ export interface ShareStore {
 
 export const SHARE_TTL_SECONDS = 7 * 24 * 3600;
 const MAX_BYTES = 24_000;
+const GUEST_SHARES_PER_DAY = 20;
 const MAX_ITEMS = 40;
 const CODE = /^[a-z0-9]{10}$/;
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -197,6 +198,14 @@ export async function handleShare(
       body = JSON.parse(raw);
     } catch {
       return json(400, { error: "Ungültiges JSON" });
+    }
+    // Das Schreibkontingent gilt für das ganze Konto: Ein Gast darf es nicht aufbrauchen.
+    if (caller.startsWith("guest:")) {
+      const quotaKey = `quota:${caller}:${now.toISOString().slice(0, 10)}`;
+      const used = Number((await store.get(quotaKey)) ?? "0");
+      if (used >= GUEST_SHARES_PER_DAY)
+        return json(429, { error: "Heute wurden schon genug Mahlzeiten geteilt" });
+      await store.put(quotaKey, String(used + 1), { expirationTtl: 2 * 24 * 3600 });
     }
     const meal = sanitizeMeal(body);
     if (typeof meal === "string") return json(400, { error: meal });

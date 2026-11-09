@@ -34,12 +34,12 @@ describe("Anmeldung", () => {
       handle(
         new Request("https://x/v1/invite", { method: "POST", headers: { authorization: `Bearer ${token}` } }),
         env,
-        fakeDeps([]),
+        fakeDeps([], Date.now()),
       );
     const response = await invite(master);
     expect(response.status).toBe(200);
     const { token, id } = (await response.json()) as { token: string; id: string };
-    expect(token.startsWith(`g1.${id}.`)).toBe(true);
+    expect(token.startsWith(`g2.${id}.`)).toBe(true);
     expect(await authenticate(`Bearer ${token}`, env)).toEqual({ kind: "guest", id });
     expect((await invite(token)).status).toBe(403);
     expect((await invite("falsch")).status).toBe(401);

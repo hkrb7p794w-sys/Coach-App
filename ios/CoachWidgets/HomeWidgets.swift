@@ -373,8 +373,8 @@ struct MealsWidgetView: View {
       let parts =
         nutrition.meals ?? MealSplit.order.map { WidgetSnapshot.MealPart(category: $0, kcal: 0, target: nil) }
       switch family {
-      case .accessoryRectangular: rectangular(parts)
-      case .accessoryCircular: circular(nutrition)
+      case .accessoryRectangular: rectangular(parts).privacySensitive()
+      case .accessoryCircular: circular(nutrition).privacySensitive()
       default: medium(parts, nutrition: nutrition)
       }
     } else {
@@ -451,9 +451,9 @@ struct NutritionWidgetView: View {
   var body: some View {
     if let nutrition = display?.snapshot.nutrition {
       switch family {
-      case .accessoryCircular: circular(nutrition)
-      case .accessoryRectangular: rectangular(nutrition)
-      case .accessoryInline: Text(headline(nutrition))
+      case .accessoryCircular: circular(nutrition).privacySensitive()
+      case .accessoryRectangular: rectangular(nutrition).privacySensitive()
+      case .accessoryInline: Text(headline(nutrition)).privacySensitive()
       case .systemMedium: medium(nutrition)
       default: small(nutrition)
       }
@@ -565,20 +565,21 @@ struct HealthWidgetView: View {
             Text("\(Int(gauge))")
           }
           .gaugeStyle(.accessoryCircular)
+          .privacySensitive()
         } else {
           VStack(spacing: 0) {
             Image(systemName: metric.symbol).font(.caption)
-            Text(value ?? "–").font(.headline).minimumScaleFactor(0.5)
+            Text(value ?? "–").font(.headline).minimumScaleFactor(0.5).privacySensitive()
           }
         }
       case .accessoryRectangular:
         VStack(alignment: .leading, spacing: 1) {
           Label(metric.title, systemImage: metric.symbol).font(.caption.bold())
-          Text(value ?? "–").font(.headline)
+          Text(value ?? "–").font(.headline).privacySensitive()
           Text(health.map { Style.label($0.status) } ?? "fehlt").font(.caption2).foregroundStyle(.secondary)
         }
       case .accessoryInline:
-        Text("\(metric.title) \(value ?? "–")")
+        Text("\(metric.title) \(value ?? "–")").privacySensitive()
       default:
         VStack(alignment: .leading, spacing: 4) {
           Label(metric.title, systemImage: metric.symbol).font(.caption.bold()).foregroundStyle(.secondary)
