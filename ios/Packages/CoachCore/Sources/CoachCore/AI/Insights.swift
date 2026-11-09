@@ -183,6 +183,11 @@ public struct Insight: Codable, Equatable, Sendable, Identifiable {
     InsightCategory.of(topic: topic, content: "\(subject) \(title) \(text)")
   }
 
+  /// Titel zu Schlaf und Gesundheit können Rohwerte enthalten; sie gehen nur bei vollem Datenschutzmodus an die KI.
+  public var hasRawHealthValue: Bool {
+    (category == .recovery || category == .health) && title.contains(where: \.isNumber)
+  }
+
   /// Widerspruch: gleicher Betreff mit anderer Richtung, oder „mehr“ gegen „weniger“ zum selben Hauptwort im Bereich.
   func contradicts(_ other: Insight) -> Bool {
     if subject == other.subject { return direction != other.direction }
@@ -402,7 +407,7 @@ public enum InsightAnalysis {
     [
       // Umgesetztes und Verworfenes: nicht erneut vorschlagen, bei Umgesetztem die Wirkung bewerten.
       "bearbeitet": .array(
-        closed.filter { $0.status == .done || $0.status == .dismissed }.prefix(20).map {
+        closed.filter { ($0.status == .done || $0.status == .dismissed) && !$0.hasRawHealthValue }.prefix(20).map {
           .object(["titel": .string($0.title), "betreff": .string($0.subject), "stand": .string($0.status.rawValue)])
         }),
       "thema": .string(topic?.rawValue ?? "alle"),

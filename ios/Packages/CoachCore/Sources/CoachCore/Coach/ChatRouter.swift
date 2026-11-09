@@ -163,7 +163,7 @@ extension ChatContext {
     let recent = facts.activities.filter { ($0.day ?? today) >= today.adding(days: -28) }.suffix(8)
     for activity in recent {
       let minutes = Int((activity.durationSeconds ?? 0) / 60)
-      let distance = activity.distanceMeters.map { " , \(GermanFormat.decimal($0 / 1000)) km" } ?? ""
+      let distance = activity.distanceMeters.map { ", \(GermanFormat.decimal($0 / 1000)) km" } ?? ""
       lines.append(
         "\(activity.name ?? "Aktivität") am \(activity.day.map(short) ?? "?"): \(minutes) Minuten\(distance) (gemessen)."
       )
@@ -173,6 +173,10 @@ extension ChatContext {
   }
 
   private static func nutritionLines(_ facts: Facts) -> [String] {
+    // Schutzgrenze aktiv (z. B. Essstörung): keine Kalorien und Mengen, auch nicht als erfasste Werte.
+    if facts.withholdsWeightTargets {
+      return facts.todayMeals.prefix(8).map { "Mahlzeit heute: \($0.title)." }
+    }
     var lines: [String] = []
     let eaten = facts.eaten
     if let eaten {
@@ -263,7 +267,8 @@ extension ChatContext {
     if topics.contains(.nutrition) { wanted.formUnion([.nutrition, .bodyComposition]) }
     if topics.contains(.recovery) { wanted.formUnion([.recovery, .health]) }
     if topics.contains(.longTerm) { wanted.formUnion(InsightCategory.allCases) }
-    return facts.insights.filter { wanted.contains($0.category) }.sorted { $0.created > $1.created }.prefix(5).map {
+    let visible = facts.insights.filter { facts.privacy == .full || !$0.hasRawHealthValue }
+    return visible.filter { wanted.contains($0.category) }.sorted { $0.created > $1.created }.prefix(5).map {
       let state: String
       switch $0.status {
       case .done: state = "umgesetzt"
@@ -283,7 +288,6 @@ extension ChatContext {
     let older = history.dropLast(recent.count).filter { $0.role == "user" }.map { String($0.text.prefix(80)) }
     return [
       "question": .string(String(question.prefix(600))),
-      "topics": .array(topics.map(\.rawValue).sorted().map { .string($0) }),
       "history": .array(
         recent.map { .object(["role": .string($0.role), "text": .string(String($0.text.prefix(800)))]) }),
       "olderQuestions": .array(older.suffix(6).map { .string($0) }),

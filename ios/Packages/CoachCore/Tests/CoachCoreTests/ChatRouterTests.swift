@@ -152,6 +152,24 @@ struct ChatRouterTests {
     #expect(!result.contains("Mehr Protein"))
   }
 
+  @Test func guardHidesNutritionAmounts() {
+    var value = facts()
+    value.withholdsWeightTargets = true
+    let result = text(value, question: "Wie viel habe ich heute gegessen?")
+    #expect(result.contains("Haferbrei"))
+    #expect(!result.contains("kcal"))
+    #expect(!result.contains("70 g Protein"))
+  }
+
+  @Test func insightTitlesWithHealthValuesStayLocalInReducedMode() {
+    let raw = insight(.recovery, "ruhepuls", "Ruhepuls 8 über Normal")
+    var value = facts(.reduced)
+    value.insights = [raw]
+    #expect(!text(value, question: "Wie ist meine Erholung?").contains("Ruhepuls 8"))
+    value.privacy = .full
+    #expect(text(value, question: "Wie ist meine Erholung?").contains("Frühere Empfehlung (offen): Ruhepuls 8"))
+  }
+
   @Test func inputKeepsRecentHistoryAndSummarizesOlder() {
     let history = (0..<14).map { (role: "user", text: "Frage \($0)") }
     let input = ChatContext.focusedInput(facts(), question: "Wie geht es weiter?", history: history, today: today)
