@@ -17,6 +17,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import io.github.hkrb7p794w.gym.core.AccountRules
 
 class MainActivity : ComponentActivity() {
     private val viewModel: GymViewModel by viewModels()
@@ -26,12 +27,20 @@ class MainActivity : ComponentActivity() {
         handleLink(intent)
     }
 
-    /** `ironludi://connect?worker=…&token=…` von der Download-Seite: KI-Zugang übernehmen. */
+    /**
+     * `ironludi://connect?worker=…&token=…` von der Download-Seite: KI-Zugang übernehmen.
+     * `ironludi://account?worker=…&invite=…` von der Einladungsseite: Konto anlegen.
+     */
     private fun handleLink(intent: Intent?) {
         val uri = intent?.data ?: return
         if (uri.scheme == "coach" && uri.host == "meal") {
             // Geteilte Mahlzeit: als Entwurf öffnen (Ernährung).
             viewModel.nutrition.openShared(uri.toString(), java.time.LocalDate.now())
+            return
+        }
+        AccountRules.parseInvite(uri.scheme, uri.host, uri.getQueryParameter("worker"), uri.getQueryParameter("invite"))?.let { invite ->
+            // Einladung zu einem Konto (Seite /i/<code> des Workers).
+            viewModel.pendingInvite.value = invite
             return
         }
         val (worker, token) = WorkerAccess.fromLink(uri) ?: return

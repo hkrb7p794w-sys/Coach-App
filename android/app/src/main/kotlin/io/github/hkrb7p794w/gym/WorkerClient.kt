@@ -26,12 +26,26 @@ class WorkerAccess(context: Context) {
 
     val url: String get() = prefs.getString("url", "").orEmpty()
     val token: String get() = prefs.getString("token", "").orEmpty()
-    val isConfigured: Boolean get() = normalized(url) != null && token.isNotEmpty()
+    /** Sitzung des eigenen Kontos (`s1.…`, siehe worker/src/accounts.ts); hat Vorrang vor dem Gast-Token. */
+    val session: String get() = prefs.getString("session", "").orEmpty()
+    val isConfigured: Boolean get() = normalized(url) != null && (token.isNotEmpty() || session.isNotEmpty())
+
+    /** Token für Anfragen: Sitzung, sonst Gast-Token. */
+    val bearer: String get() = session.ifEmpty { token }
 
     fun save(url: String, token: String) {
-        val editor = prefs.edit().putString("url", normalized(url) ?: url.trim())
+        val next = normalized(url) ?: url.trim()
+        val editor = prefs.edit().putString("url", next)
+        val serverChanged = next != this.url
         if (token.isNotBlank()) editor.putString("token", token.trim())
+        // Token und Sitzung gehören zu genau einem Server: nie an eine andere Adresse schicken.
+        else if (serverChanged) editor.remove("token")
+        if (serverChanged) editor.remove("session")
         editor.apply()
+    }
+
+    fun saveSession(token: String?) {
+        prefs.edit().apply { if (token.isNullOrEmpty()) remove("session") else putString("session", token) }.apply()
     }
 
     fun clear() = prefs.edit().clear().apply()
@@ -54,7 +68,7 @@ class WorkerAccess(context: Context) {
     }
 }
 
-class WorkerException(message: String, val isNetwork: Boolean = false) : Exception(message)
+class WorkerException(message: String, val isNetwork: Boolean = false, val status: Int = 0) : Exception(message)
 
 /** HTTP ohne Zusatzbibliothek (HttpURLConnection), immer im IO-Thread. */
 class WorkerClient(private val access: WorkerAccess) {
@@ -83,7 +97,7 @@ class WorkerClient(private val access: WorkerAccess) {
         }
         val (status, text) = request("POST", "${access.url}/v1/ai/generate", body.toString(), auth = true, timeoutMs = 120_000)
         val json = runCatching { GymJson.parseToJsonElement(text) }.getOrNull() as? JsonObject
-        if (status == 401) throw WorkerException("Zugang ungültig oder entzogen – bitte neuen Link anfordern.")
+        if (status == 401) throw unauthorized()
         if (status !in 200..299) {
             val message = (json?.get("error") as? JsonPrimitive)?.content ?: "Fehler $status"
             throw WorkerException(message)
@@ -124,6 +138,40 @@ class WorkerClient(private val access: WorkerAccess) {
         return GymJson.parseToJsonElement(text)
     }
 
+    /** Abgelehnte Sitzung: abmelden und klar sagen, was zu tun ist. */
+    private fun unauthorized(): WorkerException {
+        if (access.session.isNotEmpty()) {
+            access.saveSession(null)
+            onSessionRejected()
+            return WorkerException("Deine Anmeldung gilt nicht mehr. Bitte unter Einstellungen › Konto neu anmelden.", status = 401)
+        }
+        return WorkerException("Zugang ungültig oder entzogen – bitte neuen Link anfordern.", status = 401)
+    }
+
+    /** Wird aufgerufen, wenn der Worker die Sitzung ablehnt (Konto zeigt dann „abgemeldet“). */
+    var onSessionRejected: () -> Unit = {}
+
+    enum class Auth { PREFERRED, GUEST, SESSION, NONE }
+
+    /** Konto-Anfrage (`/v1/account/…`); liefert die JSON-Antwort oder wirft mit der Meldung des Workers. */
+    suspend fun account(method: String, path: String, body: JsonObject? = null, auth: Auth = Auth.SESSION): JsonObject {
+        if (WorkerAccess.normalized(access.url) == null) throw WorkerException("Bitte zuerst die Server-Adresse eintragen.")
+        val token = when (auth) {
+            Auth.PREFERRED -> access.bearer
+            Auth.GUEST -> access.token
+            Auth.SESSION -> access.session
+            Auth.NONE -> ""
+        }
+        if (auth != Auth.NONE && token.isEmpty()) throw WorkerException("Bitte zuerst anmelden.")
+        val (status, text) = request(method, "${access.url}/v1/account/$path", body?.toString(), auth = token.isNotEmpty(), timeoutMs = 20_000, token = token)
+        val json = runCatching { GymJson.parseToJsonElement(text) }.getOrNull() as? JsonObject
+        if (status == 401 && auth == Auth.SESSION) throw unauthorized()
+        if (status !in 200..299) {
+            throw WorkerException((json?.get("error") as? JsonPrimitive)?.content ?: "Fehler $status", status = status)
+        }
+        return json ?: JsonObject(emptyMap())
+    }
+
     /** Link zur Weiterleitungsseite des Workers (`/m/<code>`). */
     fun shareLink(code: String): String = "${access.url}/m/$code"
 
@@ -135,7 +183,14 @@ class WorkerClient(private val access: WorkerAccess) {
         return runCatching { GymJson.parseToJsonElement(text) }.getOrNull()
     }
 
-    private suspend fun request(method: String, url: String, body: String?, auth: Boolean, timeoutMs: Int): Pair<Int, String> =
+    private suspend fun request(
+        method: String,
+        url: String,
+        body: String?,
+        auth: Boolean,
+        timeoutMs: Int,
+        token: String = access.bearer,
+    ): Pair<Int, String> =
         withContext(Dispatchers.IO) {
             try {
                 val connection = URL(url).openConnection() as HttpURLConnection
@@ -144,7 +199,7 @@ class WorkerClient(private val access: WorkerAccess) {
                 connection.readTimeout = timeoutMs
                 connection.setRequestProperty("User-Agent", OpenFoodFacts.USER_AGENT)
                 connection.setRequestProperty("Accept", "application/json")
-                if (auth) connection.setRequestProperty("Authorization", "Bearer ${access.token}")
+                if (auth) connection.setRequestProperty("Authorization", "Bearer $token")
                 if (body != null) {
                     connection.doOutput = true
                     connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")

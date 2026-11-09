@@ -2,4 +2,5 @@
 <!-- Android bis 11: Trainings und Ernährung sichern, den KI-Zugang (Token) nicht. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="worker.xml" />
+    <exclude domain="sharedpref" path="account.xml" />
 </full-backup-content>

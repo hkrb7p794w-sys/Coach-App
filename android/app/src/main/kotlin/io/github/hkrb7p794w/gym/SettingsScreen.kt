@@ -24,6 +24,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,7 +36,7 @@ import io.github.hkrb7p794w.gym.core.AppData
 import io.github.hkrb7p794w.gym.core.Backup
 
 @Composable
-fun SettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -> Unit) {
+fun SettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -> Unit, openAccount: () -> Unit) {
     var message by rememberSaveable { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
@@ -61,6 +62,17 @@ fun SettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -> Unit) {
             Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            SectionTitle("Konto")
+            val account by viewModel.account.info.collectAsState()
+            Text(
+                account?.let { "Angemeldet als ${it.displayName} (@${it.username})" }
+                    ?: "Mit einem eigenen Konto findest du Freunde über den Benutzernamen. Nur du kennst dein Passwort.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlinedButton(onClick = openAccount, modifier = Modifier.fillMaxWidth()) {
+                Text(if (account != null) "Konto verwalten" else "Anmelden oder Konto erstellen")
+            }
+
             SectionTitle("Pause nach einem Satz")
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(0, 60, 90, 120, 180).forEach { seconds ->
@@ -100,7 +112,7 @@ fun SettingsScreen(viewModel: GymViewModel, data: AppData, onBack: () -> Unit) {
             Text(
                 "IronLudi ${BuildConfig.VERSION_NAME} · ${data.sessions.size} Trainings · ${data.meals.size} Mahlzeiten · " +
                     "${viewModel.library.size} Übungen. Regeln wie in der iPhone-App (Doppelprogression, Ernährungsziele, BLS 4.0). " +
-                    "Kein Konto; Internet nur für KI über deinen Worker und Barcodes (Open Food Facts).",
+                    "Konto optional; Internet nur für Konto und KI über deinen Worker und Barcodes (Open Food Facts).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

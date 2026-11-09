@@ -286,6 +286,7 @@ struct CookPlanTests {
     let own = "Dein KI-Tageslimit (60 Anfragen) ist erreicht. Morgen geht es weiter."
     #expect(AIErrorText.message(status: 429, code: "quota_exceeded", detail: own) == own)
     #expect(AIErrorText.message(status: 429, code: nil, detail: "x").contains("ausgeschöpft"))
+    #expect(AIErrorText.message(status: 429, code: "locked", detail: "Bitte in 15 Minuten") == "Bitte in 15 Minuten")
     #expect(AIErrorText.isTemporary(status: 503))
     #expect(!AIErrorText.isTemporary(status: 400))
   }

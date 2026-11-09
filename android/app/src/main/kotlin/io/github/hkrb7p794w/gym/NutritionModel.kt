@@ -58,7 +58,7 @@ class NutritionModel(
     private val current: () -> AppData,
 ) {
     val access = WorkerAccess(application)
-    private val client = WorkerClient(access)
+    val client = WorkerClient(access)
 
     private val _bls = MutableStateFlow<Bls?>(null)
     /** BLS-Tabelle (rund 7.000 Lebensmittel), im Hintergrund geladen. */

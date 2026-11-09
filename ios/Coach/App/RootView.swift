@@ -6,6 +6,7 @@ struct RootView: View {
   @State private var invite: LeagueInvite?
   @State private var sharedMeal: SharedMealLink?
   @State private var cookLink: CookLink?
+  @State private var accountInvite: AccountInvite?
   @State private var router = AppRouter.shared
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
@@ -61,6 +62,7 @@ struct RootView: View {
     .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
       Task { await model.refreshReminders() }
     }
+    // Einladung zu einem Konto coach://account?… (über die Einladungsseite des Workers).
     // Einladungslink coach://join?… (Rangliste).
     // Geteilte Mahlzeit coach://meal/<code>.
     // Ziel in der App coach://open/<route> (Widgets, Kurzbefehle).
@@ -71,11 +73,20 @@ struct RootView: View {
         router.open(route, mealCategory: AppRoute.mealCategory(from: url))
       } else if let link = SharedMealLink(url: url) {
         sharedMeal = link
+      } else if let link = AccountInvite(url: url) {
+        accountInvite = link
       } else {
         invite = LeagueInvite(url: url)
       }
     }
     .sheet(item: $sharedMeal) { link in ReceivedMealSheet(code: link.code) }
+    .sheet(item: $accountInvite) { link in
+      if model.account.isSignedIn {
+        AlreadySignedInSheet()
+      } else {
+        AccountAuthView(initialMode: .register, invite: link)
+      }
+    }
     .sheet(item: $cookLink) { link in
       NavigationStack {
         switch link {

@@ -18,6 +18,7 @@ final class AppModel {
   let settings: CoachSettings
   let reminders: ReminderService
   let league: LeagueService
+  let account: AccountService
   @ObservationIgnored private lazy var seasonSchedule = SeasonSchedule.load()
 
   private(set) var isSyncing = false
@@ -42,6 +43,7 @@ final class AppModel {
     // In Tests (inMemory) ohne Mitteilungszentrale.
     reminders = ReminderService(settings: settings, center: inMemory ? nil : .current())
     league = LeagueService(ai: ai, settings: settings)
+    account = AccountService(ai: ai, defaults: defaults)
     let current = self.settings
     sources.preferences = { current.sources }
     sync.sources = sources

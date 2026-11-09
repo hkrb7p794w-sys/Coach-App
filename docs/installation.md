@@ -102,3 +102,19 @@ Der Worker zählt erfolgreiche KI-Anfragen je Person und Tag (UTC) im KV `LEAGUE
 - Die Grenze ist weich: Bei gleichzeitigen Anfragen kann ein Gast sie um einzelne Anfragen überschreiten. Fällt der
   Speicher aus (z. B. die KV-Schreibgrenze von 1.000 am Tag im Gratis-Plan, die sich Zähler und Rangliste teilen),
   läuft die KI ohne Zählung weiter.
+
+## Konten für Freunde und Familie
+
+Jede Person legt ein eigenes Konto an (Benutzername + Passwort). Nur sie kennt ihr Passwort; Trainings, Mahlzeiten und
+Körperwerte bleiben auf ihrem Gerät. Gespeichert werden auf dem Server nur Benutzername, Anzeigename und Hashes.
+
+1. **Du selbst:** Einstellungen › Konto › „Konto erstellen“. Weil dein App-Token hinterlegt ist, brauchst du keinen
+   Einladungscode; dein Konto gilt als Betreiberkonto.
+2. **Einladen:** Einstellungen › Konto › dein Name › „Neue Einladung erstellen“ › teilen. Der Link öffnet eine Seite
+   des Workers mit „Auf dem iPhone öffnen“ und „Auf Android öffnen“. Jede Einladung gilt einmal und 14 Tage.
+3. **Wer schon einen Gastzugang hat** (Rangliste, Android-Link), legt das Konto ohne Code an – einmal je Zugang.
+4. **Passwort vergessen:** „Anmelden“ › „Vergessen“ mit dem Wiederherstellungscode von der Registrierung. Ist auch der
+   weg, stellst du als Betreiber einen neuen aus:
+   `curl -X POST -H "Authorization: Bearer <HAUPT-TOKEN>" -d '{"username":"lena"}' https://<worker>/v1/account/admin/reset`
+
+KI-Anfragen mit einem Konto zählen wie ein Gast (Tageslimit `AI_GUEST_DAILY_LIMIT`), Betreiberkonten nicht.

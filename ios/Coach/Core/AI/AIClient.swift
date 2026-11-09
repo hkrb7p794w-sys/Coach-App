@@ -24,6 +24,8 @@ enum AIClientError: Error, LocalizedError, Equatable {
   case notConfigured
   case invalidURL
   case unauthorized
+  /// Die Sitzung des Kontos gilt nicht mehr (abgemeldet, Passwort geändert, abgelaufen).
+  case signedOut
   case http(Int, String)
   case network(String)
   /// Die KI-Stufe in den Einstellungen erlaubt diese Anfrage nicht.
@@ -34,6 +36,7 @@ enum AIClientError: Error, LocalizedError, Equatable {
     case .notConfigured: "KI-Worker ist nicht eingerichtet (Adresse und App-Token in den Einstellungen)."
     case .invalidURL: "Die Worker-Adresse muss mit https:// beginnen."
     case .unauthorized: "Der Worker hat das App-Token abgelehnt."
+    case .signedOut: "Deine Anmeldung gilt nicht mehr. Bitte unter Einstellungen › Konto neu anmelden."
     case .http(_, let message): message
     case .network(let detail): "Netzwerkfehler: \(detail)"
     case .disabled(let message): message
@@ -69,8 +72,22 @@ final class AIClient {
     !(secrets.string(for: .aiAppToken) ?? "").isEmpty
   }
 
+  /// Sitzung des eigenen Kontos; hat Vorrang vor dem App-Token (Betreiber- oder Gast-Token).
+  var sessionToken: String? {
+    secrets.string(for: .accountSession).flatMap { $0.isEmpty ? nil : $0 }
+  }
+
+  var hasSession: Bool { sessionToken != nil }
+
+  func setSession(_ token: String?) throws {
+    try secrets.set(token, for: .accountSession)
+  }
+
+  /// Meldet, dass der Worker die Sitzung abgelehnt hat (das Konto zeigt dann „abgemeldet“).
+  var onSessionRejected: () -> Void = {}
+
   var isConfigured: Bool {
-    Self.normalizedURL(workerURL) != nil && hasToken
+    Self.normalizedURL(workerURL) != nil && (hasToken || hasSession)
   }
 
   /// Private SideStore-Quelle des Workers (`worker/src/sidestore.ts`): Pfad aus SHA-256("sidestore:" + Token).
@@ -109,11 +126,14 @@ final class AIClient {
     let previousHost = Self.normalizedURL(workerURL)?.host()?.lowercased()
     defaults.set(normalized.absoluteString, forKey: Self.urlKey)
     let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+    let serverChanged = previousHost != normalized.host()?.lowercased()
     if !trimmed.isEmpty {
       try secrets.set(trimmed, for: .aiAppToken)
-    } else if previousHost != normalized.host()?.lowercased() {
+    } else if serverChanged {
       try secrets.set(nil, for: .aiAppToken)
     }
+    // Eine Sitzung gehört zu genau einem Server.
+    if serverChanged { try secrets.set(nil, for: .accountSession) }
   }
 
   /// Token für den Abgleich mit einer Einladung; verlässt die App nicht.
@@ -195,26 +215,49 @@ final class AIClient {
   /// Eingeladen (Gast-Token) statt Betreiber:in des Workers.
   var isGuest: Bool { appToken.map(GuestToken.isGuest) ?? false }
 
+  /// Haupt-Token hinterlegt: darf Gast-Tokens ausstellen und Konten zurücksetzen.
+  var isOwner: Bool { appToken != nil && !isGuest }
+
+  /// Welches Token eine Anfrage trägt.
+  enum Auth {
+    /// Sitzung des Kontos, sonst App-Token.
+    case preferred
+    /// Nur das App-Token (Betreiber-Funktionen, Registrieren ohne Einladungscode).
+    case appToken
+    /// Nur die Sitzung.
+    case session
+    /// Ohne Token (Anmelden, Wiederherstellen).
+    case none
+  }
+
   /// Neues Gast-Token für eine Einladung (nur mit dem Haupt-Token).
   func createGuestToken() async throws -> String {
     struct Invite: Decodable { let token: String }
-    let data = try await send(path: "v1/invite", method: "POST")
+    let data = try await send(path: "v1/invite", method: "POST", auth: .appToken)
     return try JSONDecoder().decode(Invite.self, from: data).token
   }
 
-  /// Anfrage an den Worker mit App-Token; liefert den Antwortkörper bei Status 2xx.
+  /// Anfrage an den Worker; liefert den Antwortkörper bei Status 2xx.
   func send(
-    path: String, method: String, body: Data? = nil, query: [URLQueryItem] = [], timeout: TimeInterval = 30
+    path: String, method: String, body: Data? = nil, query: [URLQueryItem] = [], timeout: TimeInterval = 30,
+    auth: Auth = .preferred
   ) async throws -> Data {
-    guard let base = Self.normalizedURL(workerURL), let token = appToken else {
-      throw AIClientError.notConfigured
+    guard let base = Self.normalizedURL(workerURL) else { throw AIClientError.notConfigured }
+    let token: String?
+    switch auth {
+    case .preferred: token = sessionToken ?? appToken
+    case .appToken: token = appToken
+    case .session: token = sessionToken
+    case .none: token = nil
     }
+    if auth != .none, token == nil { throw AIClientError.notConfigured }
+    let usedSession = token != nil && token == sessionToken
     var url = base.appending(path: path)
     if !query.isEmpty { url.append(queryItems: query) }
     var request = URLRequest(url: url, timeoutInterval: timeout)
     request.httpMethod = method
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
     request.httpBody = body
 
     let result: (Data, URLResponse)
@@ -226,8 +269,15 @@ final class AIClient {
     let (data, response) = result
     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
     guard (200..<300).contains(status) else {
-      if status == 401 { throw AIClientError.unauthorized }
       let failure = try? JSONDecoder().decode(AIErrorBody.self, from: data)
+      // 401 ohne Token (z. B. falsches Passwort) trägt eine eigene Meldung des Workers.
+      if status == 401, auth != .none {
+        if usedSession {
+          onSessionRejected()
+          throw AIClientError.signedOut
+        }
+        throw AIClientError.unauthorized
+      }
       let message = AIErrorText.message(
         status: status, code: failure?.code, detail: failure?.error ?? "Unbekannter Fehler (Fehlercode \(status)).")
       throw AIClientError.http(status, message)

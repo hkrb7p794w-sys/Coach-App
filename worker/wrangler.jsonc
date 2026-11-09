@@ -13,6 +13,14 @@
     { "binding": "RELEASES", "id": "103715a4f0004a398c9e75637a2edf36" },
     { "binding": "LEAGUE", "id": "41093b08a16e441ba7ca34b5d423364b" }
   ],
+  // Konten, Freunde, Feed (siehe src/db.ts). Tabellen legt der Worker selbst an.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "coach-social",
+      "database_id": "308818b6-7a2e-4e17-8297-6ac3a8f343e6"
+    }
+  ],
   // Workers AI: offene Modelle bei Cloudflare (10.000 Neurons/Tag frei, keine Speicherung, kein Training).
   "ai": { "binding": "AI" },
   "observability": {

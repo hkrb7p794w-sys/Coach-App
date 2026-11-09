@@ -53,6 +53,10 @@ class GymViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Ernährung: BLS, KI über den Worker, Barcodes (siehe NutritionModel.kt). */
     val nutrition = NutritionModel(application, viewModelScope, ::update) { _data.value }
+    val account = AccountModel(application, viewModelScope, nutrition.access, nutrition.client)
+
+    /** Einladungslink `ironludi://account?…` (Server und Code), bis der Kontobildschirm ihn übernimmt. */
+    val pendingInvite = kotlinx.coroutines.flow.MutableStateFlow<Pair<String, String>?>(null)
 
     fun exercise(id: String): Exercise? = Workouts.find(id, library, _data.value.customExercises)
 
