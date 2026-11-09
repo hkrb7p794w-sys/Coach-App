@@ -8,6 +8,7 @@ import {
   evidenceBlock,
   evidenceFrom,
   GroundingError,
+  hasMeasure,
   isDerived,
   measuresIn,
   numbersIn,
@@ -22,6 +23,8 @@ export const CHAT_SYSTEM = [
   "- Erfinde keine Werte. Du darfst Zahlen aus den Fakten addieren, subtrahieren und vergleichen.",
   "- Unterscheide: „gemessen“ und „erfasst“ sind Daten, „berechnet“ ist abgeleitet, „KI-Schätzung“ ist unsicher. " +
     "Fehlt etwas, sage genau, was fehlt, statt allgemein zu antworten.",
+  "- Die Herkunftsangaben in Klammern sind Hinweise für dich: nicht in die Antwort übernehmen, außer ein Wert ist " +
+    "eine KI-Schätzung.",
   "- Bei einer Empfehlung: konkret, was heute oder morgen zu tun ist, und warum. Der Tagesampel nie widersprechen.",
   "- Bezieht sich die Frage auf das Gespräch („das“, „dann“, „und morgen?“), knüpfe an die letzte Antwort an.",
   "- Beantworte nur Fragen zu Training, Erholung, Schlaf, Ernährung und zur App. Bei anderen Themen sag freundlich, " +
@@ -72,7 +75,11 @@ export function groundChat(output: unknown, requestText: string, input: Record<s
     .filter((claim) => isDerived(claim, facts))
     .map((claim) => String(claim.value));
   const backed = new Set([...known, ...FREE_NUMBERS, ...derived, ...countsIn(antwort)]);
-  const unknown = [...numbersIn(antwort)].filter((n) => !backed.has(n));
+  // Eine Zahl kann belegt sein und trotzdem falsch verwendet werden („8 Wiederholungen“ wird zu „8 kg“).
+  const wrongUnit = measuresIn(antwort)
+    .filter((claim) => claim.value > 3 && !hasMeasure(claim, facts) && !isDerived(claim, facts))
+    .map((claim) => `${claim.value} ${claim.unit}`);
+  const unknown = [...[...numbersIn(antwort)].filter((n) => !backed.has(n)), ...wrongUnit];
   if (unknown.length > 0)
     throw new GroundingError(`Chat-Antwort mit unbelegten Zahlen: ${unknown.join(", ")}`);
   const allowed = new Set(evidenceFrom(input).map((item) => item.id));

@@ -8,6 +8,12 @@ hier notieren und als PR beheben.
 - [ ] **Paket 9:** Erfassen: Kamera, Foto, Barcode, Manuell, Nur kcal ohne Scrollen sichtbar, Vorschläge darunter. Rezeptideen: Woche
       erstellt alle Tage. Kochen planen: Freigabe auf beiden iPhones, Link öffnen, „Für uns beide“, Teller und Gesamtmengen plausibel,
       Zutat ändern rechnet neu, Freigabe zurückziehen löscht beim anderen Gerät beim nächsten Abruf.
+- [ ] **Paket 10 (Gym):** Training beenden: Ergebnis statt weißem Bildschirm. Aufwärmsätze vorschlagen und ändern, zählen nicht ins Volumen. Pausenton und
+      Vibration: einmal, pünktlich, nach Abbruch keiner. Sperrbildschirm zeigt Pause und nächsten Satz. KI-Plan: Zusammenfassung vor dem Senden.
+- [ ] **Paket 11 (Einstellungen):** Bereiche übersichtlich? Schlaf: Bundesland wählen, freie Tage und Feiertag zeigen eine andere Schlafenszeit, gestellter Wecker
+      (iOS 26) ändert sie. Pause: Übungswert, Planwert, Einstellung; Anzeige, Timer und Mitteilung gleich.
+- [ ] **Paket 12 (Chat):** „Wie hat sich mein Bankdrücken entwickelt?“, „Wie viel Protein fehlt mir heute noch?“, „Sollte ich heute schwer trainieren?“, danach
+      „Und was bedeutet das für mein Training morgen?“: stimmen die Antworten mit deinen echten Daten? KI aus oder offline: verständliche Meldung? AI-Reiter: Filter nach Bereichen.
 - [ ] **Schutzgrenzen (Phase 74):** Profil mit „Schwanger“ oder „Essstörung“: Gewichtsverlauf ohne Kalorienvorschläge, Chat und
       Rezepte ohne „Abnehmen“. Wägung unter BMI 18,5 eintragen: Ziel auf „halten“. Zielgewicht erreichen: Hinweis und kein
       Defizit mehr. Einstellungen zeigen „Ernährung: …“ passend.

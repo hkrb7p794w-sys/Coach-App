@@ -87,6 +87,11 @@ export function measuresIn(value: string): Measure[] {
   });
 }
 
+/** Steht genau dieser Wert mit dieser Einheit in den belegten Angaben? */
+export function hasMeasure(claim: Measure, known: Measure[]): boolean {
+  return known.some((item) => item.unit === claim.unit && item.value === claim.value);
+}
+
 /** Ist die Zahl das Ergebnis einer einfachen Rechnung aus belegten Werten derselben Einheit? */
 export function isDerived(claim: Measure, known: Measure[]): boolean {
   const close = (a: number, b: number) => Math.abs(a - b) < 0.051;
