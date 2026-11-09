@@ -98,8 +98,28 @@ public struct LeagueInvite: Equatable, Sendable {
     func value(_ name: String) -> String { items.first { $0.name == name }?.value ?? "" }
     let worker = value("worker")
     let code = value("league")
-    guard worker.hasPrefix("https://"), LeagueCode.isValid(code) else { return nil }
-    self.init(workerURL: worker, token: value("token"), code: code)
+    let token = value("token").trimmingCharacters(in: .whitespacesAndNewlines)
+    // Ohne Gast-Token würde das gespeicherte Token an die Adresse aus dem Link gehen.
+    guard worker.hasPrefix("https://"), !token.isEmpty, LeagueCode.isValid(code) else { return nil }
+    self.init(workerURL: worker, token: token, code: code)
+  }
+
+  /// Server aus der Einladung; wird vor dem Beitreten angezeigt.
+  public var host: String? { URL(string: workerURL)?.host()?.lowercased() }
+
+  public enum Decision: Equatable, Sendable {
+    /// Gleicher Server: Das vorhandene Token bleibt.
+    case keepCurrentToken
+    case useInviteToken
+    /// Anderer Server, aber das Haupt-Token ist hinterlegt: Es darf weder gesendet noch überschrieben werden.
+    case rejectOtherServer
+  }
+
+  /// Was eine Einladung mit dem gespeicherten Zugang machen darf.
+  public func decision(currentURL: String, currentToken: String?) -> Decision {
+    guard let currentToken, !currentToken.isEmpty else { return .useInviteToken }
+    if URL(string: currentURL)?.host()?.lowercased() == host { return .keepCurrentToken }
+    return GuestToken.isGuest(currentToken) ? .useInviteToken : .rejectOtherServer
   }
 
   public var url: URL? {

@@ -4,6 +4,7 @@
  * der Anfrage stehen noch daraus in derselben Einheit berechnet sind, führen zum Verwerfen der Antwort.
  */
 import {
+  contradictsRestriction,
   countsIn,
   evidenceBlock,
   evidenceFrom,
@@ -12,8 +13,9 @@ import {
   isDerived,
   measuresIn,
   numbersIn,
+  restrictedToday,
 } from "./grounding";
-import { list, text } from "./tasks-util";
+import { list, text, USER_TEXT_RULE } from "./tasks-util";
 
 export const CHAT_SYSTEM = [
   "Du bist ein persönlicher Trainings- und Ernährungscoach. Die Tagesampel und die Ziele entscheiden feste Regeln, " +
@@ -34,6 +36,7 @@ export const CHAT_SYSTEM = [
     "ärztlicher Abklärung raten und Training bis dahin ruhen lassen. Keine Medikamente.",
   "- Länge passend zur Frage: einfache Fragen ein bis drei Sätze, Analysen höchstens etwa 180 Wörter. Du-Form, keine " +
     "Überschriften, keine Wiederholung der Frage.",
+  `- ${USER_TEXT_RULE}`,
 ].join("\n");
 
 const FREE_NUMBERS = new Set(["0", "1", "2", "3"]);
@@ -68,6 +71,8 @@ export function groundChat(output: unknown, requestText: string, input: Record<s
   const record = (typeof output === "object" && output !== null ? output : {}) as Record<string, unknown>;
   const antwort = text(record.antwort, 1500);
   if (!antwort) throw new GroundingError("Leere Chat-Antwort");
+  if (restrictedToday(input) && contradictsRestriction(antwort))
+    throw new GroundingError("Chat-Antwort widerspricht der Tagesampel");
   const known = numbersIn(requestText);
   const facts = measuresIn(requestText);
   // Belegt sind Werte aus der Anfrage, Rechnungen daraus in derselben Einheit und Zählgrößen.

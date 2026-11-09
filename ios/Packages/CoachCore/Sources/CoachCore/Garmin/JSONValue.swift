@@ -44,6 +44,12 @@ public enum JSONValue: Equatable, Sendable {
     doubleValue.flatMap { $0.isFinite ? Int(exactly: $0.rounded()) : nil }
   }
 
+  /// Ganzzahl in festen Grenzen. Fremde Zahlen (KI, Import) können riesig sein, und `Int(Double)` stürzt dann ab.
+  public func clampedInt(_ range: ClosedRange<Int>) -> Int? {
+    guard let value = doubleValue, !value.isNaN else { return nil }
+    return Int(min(max(value, Double(range.lowerBound)), Double(range.upperBound)))
+  }
+
   public var stringValue: String? {
     switch self {
     case .string(let text): text

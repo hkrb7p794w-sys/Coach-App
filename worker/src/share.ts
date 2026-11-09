@@ -12,6 +12,8 @@
  * Alle /v1-Aufrufe mit Haupt- oder Gast-Token (Prüfung in index.ts). Zurückziehen darf nur, wer geteilt hat
  * (Mahlzeiten von vor dieser Regel ohne Besitzer: jede angemeldete Person, sie verfallen ohnehin nach 7 Tagen).
  */
+import { nutrientLimit, readLimited } from "./tasks-util";
+
 
 export interface ShareStore {
   get(key: string): Promise<string | null>;
@@ -62,7 +64,7 @@ export function sanitizeMeal(body: unknown): Record<string, unknown> | string {
     ) as Record<string, unknown>;
     const per100g: Record<string, number> = {};
     for (const [key, amount] of Object.entries(nutrients).slice(0, 30)) {
-      const number = finite(amount, 100_000);
+      const number = finite(amount, nutrientLimit(key));
       if (/^[a-z0-9_]{2,20}$/.test(key) && number !== null) per100g[key] = number;
     }
     return [
@@ -124,8 +126,8 @@ async function handleCookShare(
 ): Promise<Response> {
   const expiresAt = new Date(now.getTime() + COOK_TTL_SECONDS * 1000).toISOString();
   const read = async (): Promise<Record<string, unknown> | Response> => {
-    const raw = await request.text();
-    if (raw.length > COOK_MAX_BYTES) return json(413, { error: "Freigabe zu groß" });
+    const raw = await readLimited(request, COOK_MAX_BYTES);
+    if (raw === null) return json(413, { error: "Freigabe zu groß" });
     try {
       const share = sanitizeCookShare(JSON.parse(raw));
       return typeof share === "string" ? json(400, { error: share }) : share;
@@ -189,8 +191,8 @@ export async function handleShare(
 
   if (id === undefined) {
     if (request.method !== "POST") return json(405, { error: "Nur POST" });
-    const raw = await request.text();
-    if (raw.length > MAX_BYTES) return json(413, { error: "Mahlzeit zu groß" });
+    const raw = await readLimited(request, MAX_BYTES);
+    if (raw === null) return json(413, { error: "Mahlzeit zu groß" });
     let body: unknown;
     try {
       body = JSON.parse(raw);

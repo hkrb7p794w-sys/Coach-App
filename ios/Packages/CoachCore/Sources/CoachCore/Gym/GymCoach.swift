@@ -225,16 +225,16 @@ public enum GymCoach {
           continue
         }
         guard !items.contains(where: { $0.exerciseID == id }), items.count < maxExercises else { continue }
-        let sets = Int(entry["saetze"]?.doubleValue ?? 3)
+        let sets = entry["saetze"]?.clampedInt(-1_000...1_000) ?? 3
         let isTime = info.tracking == .time
         let limits = isTime ? 10...120 : 3...30
-        var lower = Int(entry["wdh_min"]?.doubleValue ?? Double(info.lowerReps))
-        var upper = Int(entry["wdh_max"]?.doubleValue ?? Double(info.upperReps))
+        var lower = entry["wdh_min"]?.clampedInt(limits) ?? info.lowerReps
+        var upper = entry["wdh_max"]?.clampedInt(limits) ?? info.upperReps
         lower = min(max(lower, limits.lowerBound), limits.upperBound)
         upper = min(max(upper, lower), limits.upperBound)
         let clampedSets = min(max(sets, 1), 5)
         if clampedSets != sets { corrections.append("\(info.name): Sätze auf \(clampedSets) begrenzt.") }
-        let rest = min(max(Int(entry["pause"]?.doubleValue ?? (info.compound ? 120 : 90)), 45), 240)
+        let rest = entry["pause"]?.clampedInt(45...240) ?? (info.compound ? 120 : 90)
         items.append(
           RoutineItem(
             exerciseID: id, name: info.name, sets: clampedSets, lowerReps: lower, upperReps: upper, restSeconds: rest,

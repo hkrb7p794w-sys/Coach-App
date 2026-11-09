@@ -4,7 +4,7 @@
  * vor; die App prüft Ernährungsweise und Allergene erneut und passt die Mengen ans Tagesziel an.
  */
 import { evidenceBlock, evidenceFrom, GroundingError } from "./grounding";
-import { list, text } from "./tasks-util";
+import { list, text, userText } from "./tasks-util";
 
 const DIET_TEXT: Record<string, string> = {
   alles: "Mischkost (alles erlaubt).",
@@ -46,7 +46,7 @@ export function weeklyRecipesPrompt(input: Record<string, unknown>): string {
     `Ernährungsweise: ${DIET_TEXT[text(input.diet, 20)] ?? "Mischkost."}`,
     `Ziel: ${text(input.goal, 80) || "Gewicht halten"}.`,
     `Allergene/Unverträglichkeiten (strikt meiden, auch in Spuren als Zutat): ${allergens.join(", ") || "keine"}.`,
-    `Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`,
+    userText(`Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`),
     `Zubereitung höchstens ${minutes} Minuten pro Gericht. Mahlzeiten pro Tag: ${meals}.`,
     input.mealPrep === true
       ? "Meal-Prep: Das Abendessen darf als Mittagessen am Folgetag wiederverwendet werden (gleiches Gericht)."
@@ -128,7 +128,7 @@ export function mealNowPrompt(input: Record<string, unknown>): string {
       `${n("carbs_g")} g Kohlenhydrate, ${n("fat_g")} g Fett.`,
     `Ernährungsweise: ${DIET_TEXT[text(input.diet, 20)] ?? "Mischkost."}`,
     `Allergene/Unverträglichkeiten (strikt meiden): ${allergens.join(", ") || "keine"}.`,
-    `Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`,
+    userText(`Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`),
     `Zubereitung höchstens ${minutes} Minuten.`,
     pantry.length
       ? `Vorrat (vorrangig verwenden, mindestens ein Gericht nur daraus plus Grundzutaten): ${pantry.join(", ")}.`
@@ -187,7 +187,7 @@ export function cookPlanPrompt(input: Record<string, unknown>): string {
     `Mahlzeit: ${MEAL_LABEL[text(input.mahlzeit, 20)] ?? "Hauptmahlzeit"}.`,
     `Ernährungsweise (gilt für alle): ${DIET_TEXT[text(input.diet, 20)] ?? "Mischkost."}`,
     `Allergene/Unverträglichkeiten (strikt meiden, auch in Spuren als Zutat): ${allergens.join(", ") || "keine"}.`,
-    `Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`,
+    userText(`Mag nicht: ${text(input.dislikes, 200) || "nichts angegeben"}.`),
     `Zubereitung höchstens ${minutes} Minuten.`,
     favorites.length ? `Isst gern: ${favorites.join(", ")}.` : "",
     "",

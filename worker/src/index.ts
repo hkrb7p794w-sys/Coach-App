@@ -18,6 +18,7 @@ import { listPriceUsd, parsePreference, providerInfo } from "./providers";
 import { handleShare, type ShareStore, sharePage } from "./share";
 import { handleSideStore } from "./sidestore";
 import { findTask } from "./tasks";
+import { readLimited } from "./tasks-util";
 import { type Deps, defaultDeps, type Env, type ImageInput } from "./types";
 
 export const VERSION = "0.4.0";
@@ -108,10 +109,8 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     );
   }
 
-  const length = Number(request.headers.get("content-length") ?? "0");
-  if (length > MAX_BODY_BYTES) return json(413, { error: "Anfrage zu groß" });
-  const raw = await request.text();
-  if (raw.length > MAX_BODY_BYTES) return json(413, { error: "Anfrage zu groß" });
+  const raw = await readLimited(request, MAX_BODY_BYTES);
+  if (raw === null) return json(413, { error: "Anfrage zu groß" });
 
   let body: Record<string, unknown>;
   try {

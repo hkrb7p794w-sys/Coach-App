@@ -148,7 +148,8 @@ export async function generateWithGroq(
       continue;
     }
     if (result.status >= 400) {
-      throw new ProviderError(`Groq HTTP ${result.status} (${model}): ${result.body.slice(0, 300)}`, false);
+      // Kein Antworttext: `failed_generation` kann die Modellausgabe enthalten.
+      throw new ProviderError(`Groq HTTP ${result.status} (${model})`, false);
     }
     const body = JSON.parse(result.body) as ChatCompletion;
     const text = body.choices?.[0]?.message?.content?.trim();

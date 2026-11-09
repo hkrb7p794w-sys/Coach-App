@@ -433,12 +433,12 @@ public enum InsightAnalysis {
       else { return nil }
       let basis = (item["belege"]?.arrayValue ?? []).compactMap(\.stringValue).compactMap { byID[$0] }
       guard !basis.isEmpty else { return nil }
-      let days = min(max(Int(item["gueltig_tage"]?.doubleValue ?? 7), 1), 14)
+      let days = item["gueltig_tage"]?.clampedInt(1...14) ?? 7
       return Insight(
         topic: topic, subject: item["betreff"]?.stringValue ?? title, title: String(title.prefix(80)),
         text: String(text.prefix(400)),
         direction: item["richtung"]?.stringValue.flatMap(InsightDirection.init(rawValue:)) ?? .check,
-        priority: Int(item["prioritaet"]?.doubleValue ?? 2), origin: .ai, created: now,
+        priority: item["prioritaet"]?.clampedInt(1...3) ?? 2, origin: .ai, created: now,
         validUntil: now.addingTimeInterval(Double(days) * 86_400), basis: basis, model: model,
         uncertain: item["sicherheit"]?.stringValue == "niedrig")
     }

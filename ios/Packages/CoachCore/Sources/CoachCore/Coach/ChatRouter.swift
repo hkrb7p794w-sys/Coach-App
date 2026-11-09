@@ -174,10 +174,15 @@ extension ChatContext {
     return lines
   }
 
+  /// Titel können von anderen Personen stammen (geteilte Mahlzeit). Zahlen darin dürfen nicht als belegt gelten.
+  private static func mealTitle(_ meal: MealLine) -> String {
+    meal.title.filter { !$0.isNumber }.trimmingCharacters(in: .whitespaces)
+  }
+
   private static func nutritionLines(_ facts: Facts) -> [String] {
     // Schutzgrenze aktiv (z. B. Essstörung): keine Kalorien und Mengen, auch nicht als erfasste Werte.
     if facts.withholdsWeightTargets {
-      return facts.todayMeals.prefix(8).map { "Mahlzeit heute: \($0.title)." }
+      return facts.todayMeals.prefix(8).map { "Mahlzeit heute: \(mealTitle($0))." }
     }
     var lines: [String] = []
     let eaten = facts.eaten
@@ -187,7 +192,7 @@ extension ChatContext {
           + "\(grams(eaten[.carbs])) g Kohlenhydrate, \(grams(eaten[.fat])) g Fett (erfasst, teils KI-Schätzung).")
       for meal in facts.todayMeals.prefix(8) {
         lines.append(
-          "Mahlzeit heute: \(meal.title), \(grams(meal.nutrients[.kcal])) kcal, \(grams(meal.nutrients[.protein])) g Protein."
+          "Mahlzeit heute: \(mealTitle(meal)), \(grams(meal.nutrients[.kcal])) kcal, \(grams(meal.nutrients[.protein])) g Protein."
         )
       }
     } else {

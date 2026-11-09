@@ -68,10 +68,23 @@ final class LeagueService {
     members = []
   }
 
-  /// Einladung annehmen: Worker übernehmen (falls angegeben) und beitreten.
+  /// Einladung annehmen und beitreten. Das Haupt-Token bleibt dabei immer auf diesem Gerät und unverändert.
   func accept(_ invite: LeagueInvite) throws {
-    try ai.configure(url: invite.workerURL, token: invite.token)
+    switch invite.decision(currentURL: ai.workerURL, currentToken: ai.storedToken) {
+    case .keepCurrentToken: break
+    case .useInviteToken: try ai.configure(url: invite.workerURL, token: invite.token)
+    case .rejectOtherServer: throw InviteError.otherServer
+    }
     join(code: invite.code)
+  }
+
+  enum InviteError: LocalizedError {
+    case otherServer
+
+    var errorDescription: String? {
+      "Diese Einladung gehört zu einem anderen Server. Dein eigener Zugang bleibt unverändert, ein Beitritt ist so "
+        + "nicht möglich."
+    }
   }
 
   func leave() async {

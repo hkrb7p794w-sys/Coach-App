@@ -305,10 +305,12 @@ struct JoinLeagueSheet: View {
       Form {
         Section {
           Text("Du wurdest in eine IronLudi-Rangliste eingeladen.")
+          LabeledContent("Server", value: invite.host ?? invite.workerURL)
           TextField("Dein Name in der Rangliste", text: $settings.league.name)
         } footer: {
           Text(
-            "Die App nutzt dafür den KI-Worker aus der Einladung. Dein Profil, Garmin-Konto und alle Daten bleiben "
+            "Tritt nur bei, wenn du die Person kennst und der Server stimmt. Die App nutzt den KI-Worker aus der "
+              + "Einladung. Dein Profil, Garmin-Konto und alle Daten bleiben "
               + "auf deinem iPhone; geteilt werden nur Name und Punkte.")
         }
         if let error {

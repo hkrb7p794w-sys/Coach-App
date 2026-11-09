@@ -3,7 +3,7 @@
  * Reserve) haben je Übung entschieden; die KI fasst das in kurze, motivierende Hinweise für die nächste Einheit.
  */
 import { evidenceBlock, evidenceFrom, GroundingError, numbersIn, POINTS_WITH_SOURCES } from "./grounding";
-import { list, text } from "./tasks-util";
+import { list, text, userText, withoutUserText } from "./tasks-util";
 
 export function gymHintsPrompt(input: Record<string, unknown>): string {
   const exercises = list(input.exercises, 10, 500);
@@ -70,7 +70,9 @@ export function gymPlanPrompt(input: Record<string, unknown>): string {
     sports.length
       ? `Weitere Sportarten (Beine nicht vor harten Einheiten überlasten): ${sports.join(", ")}.`
       : "",
-    `Einschränkungen/Beschwerden (Übungen meiden, die das belasten): ${text(input.limitations, 300) || "keine"}.`,
+    userText(
+      `Einschränkungen/Beschwerden (Übungen meiden, die das belasten): ${text(input.limitations, 300) || "keine"}.`,
+    ),
     favorites.length ? `Bisher genutzte Übungen (bevorzugen): ${favorites.join(", ")}.` : "",
     lastWeights.length ? `Letzte Gewichte: ${lastWeights.join("; ")}.` : "",
     recent.length
@@ -116,7 +118,7 @@ export function checkGymPlan(output: unknown, promptText: string, input: Record<
     })
     .filter((routine) => routine.uebungen.length > 0);
   if (routinen.length === 0) throw new GroundingError("KI-Antwort enthielt keine gültigen Routinen");
-  const known = numbersIn(promptText);
+  const known = numbersIn(withoutUserText(promptText));
   const hinweise = list(record.hinweise, 5, 300).filter((line) =>
     [...numbersIn(line)].every((n) => known.has(n)),
   );

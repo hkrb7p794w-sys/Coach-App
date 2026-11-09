@@ -102,13 +102,22 @@ final class AIClient {
     return String(digest.map { String(format: "%02x", $0) }.joined().prefix(32))
   }
 
-  /// Speichert Adresse und (falls angegeben) Token. Ein leeres Token-Feld lässt das gespeicherte stehen.
+  /// Speichert Adresse und (falls angegeben) Token. Ein leeres Token-Feld lässt das gespeicherte stehen, außer der
+  /// Server wechselt: Dann wird es gelöscht, damit es nie an eine andere Adresse geht.
   func configure(url: String, token: String) throws {
     guard let normalized = Self.normalizedURL(url) else { throw AIClientError.invalidURL }
+    let previousHost = Self.normalizedURL(workerURL)?.host()?.lowercased()
     defaults.set(normalized.absoluteString, forKey: Self.urlKey)
     let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
-    if !trimmed.isEmpty { try secrets.set(trimmed, for: .aiAppToken) }
+    if !trimmed.isEmpty {
+      try secrets.set(trimmed, for: .aiAppToken)
+    } else if previousHost != normalized.host()?.lowercased() {
+      try secrets.set(nil, for: .aiAppToken)
+    }
   }
+
+  /// Token für den Abgleich mit einer Einladung; verlässt die App nicht.
+  var storedToken: String? { secrets.string(for: .aiAppToken) }
 
   static func normalizedURL(_ text: String) -> URL? {
     var trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
