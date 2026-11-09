@@ -7,6 +7,8 @@ public enum LoadCheck {
   public static let maxIncrease = 0.30
   /// Einzellauf gegen den längsten Lauf der letzten 30 Tage (Frandsen et al. 2025).
   public static let singleRunLimit = 1.10
+  /// Unter diesem bisher längsten Lauf (km) wird nicht gewarnt: Aus 2 km werden schnell 4 km, ohne dass es etwas heißt.
+  public static let minimumLongestKilometers = 3.0
   /// Unter dieser Differenz (km) wird nicht gewarnt: kleine Umfänge schwanken stark.
   public static let minimumDifferenceKilometers = 5.0
 
@@ -33,7 +35,8 @@ public enum LoadCheck {
     guard baseline > 0 else { return result }
     let increase = last / baseline - 1
     result.increase = (increase * 100).rounded() / 100
-    if increase > maxIncrease, last - baseline >= minimumDifferenceKilometers {
+    // Die Warnung zum Einzellauf ist besser belegt und hat Vorrang.
+    if result.warning == nil, increase > maxIncrease, last - baseline >= minimumDifferenceKilometers {
       result.warning =
         "In den letzten 7 Tagen bist du \(GermanFormat.number(result.lastWeekKilometers)) km gelaufen, "
         + "\(Int((increase * 100).rounded())) % mehr als im Schnitt der drei Wochen davor "
@@ -54,9 +57,10 @@ public enum LoadCheck {
     guard let latest = recent.max(by: { $0.meters < $1.meters }) else { return nil }
     let start = latest.day.adding(days: -30)
     guard let longest = runs.filter({ $0.day >= start && $0.day < latest.day }).map(\.meters).max(),
-      latest.meters > longest * singleRunLimit
+      longest >= minimumLongestKilometers * 1_000, latest.meters > longest * singleRunLimit
     else { return nil }
-    return "Dein letzter Lauf war mit \(GermanFormat.number(latest.meters / 1_000)) km deutlich länger als dein längster "
+    return
+      "Dein letzter Lauf war mit \(GermanFormat.number(latest.meters / 1_000)) km deutlich länger als dein längster "
       + "der letzten 30 Tage (\(GermanFormat.number(longest / 1_000)) km). Lass die nächsten Läufe locker und kürzer."
   }
 }

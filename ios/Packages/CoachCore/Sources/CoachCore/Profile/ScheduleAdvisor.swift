@@ -64,7 +64,9 @@ public enum ScheduleAdvisor {
     case .pause?:
       if demanding {
         // Der Plan ist zyklisch: Ein freier Tag in der nächsten Woche liegt für diese Woche in der Vergangenheit.
-        let target = schedule.nextRestDay(after: weekday, within: 3).flatMap { $0.rawValue > weekday.rawValue ? $0 : nil }
+        let target = schedule.nextRestDay(after: weekday, within: 3).flatMap {
+          $0.rawValue > weekday.rawValue ? $0 : nil
+        }
         var detail = "Deine Erholung ist niedrig. Mache heute nur einen lockeren Spaziergang und hole "
         detail += "\(joined) nach, sobald die Erholung wieder passt."
         if let target {

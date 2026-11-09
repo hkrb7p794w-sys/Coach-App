@@ -130,7 +130,8 @@ public enum SessionMatcher {
     planned: [PlannedSession], activities: [GarminActivity], gymDays: Set<CalendarDay> = [], today: CalendarDay
   ) -> Week {
     // Nur die Wochen des Plans, sonst stünde jede alte Aktivität unter „Außerplanmäßig“.
-    let weeks = planned.isEmpty ? [PlanAdjustments.monday(of: today)] : Set(planned.map { PlanAdjustments.monday(of: $0.day) })
+    let weeks =
+      planned.isEmpty ? [PlanAdjustments.monday(of: today)] : Set(planned.map { PlanAdjustments.monday(of: $0.day) })
     let activities = activities.filter { $0.day.map { weeks.contains(PlanAdjustments.monday(of: $0)) } ?? false }
     let gymDays = gymDays.filter { weeks.contains(PlanAdjustments.monday(of: $0)) }
     var results: [SessionResult] = []

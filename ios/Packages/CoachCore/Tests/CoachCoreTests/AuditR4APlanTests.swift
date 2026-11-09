@@ -116,7 +116,8 @@ struct AuditR4APlanTests {
   @Test func appGymSessionsFillTheWeekProgress() {
     var schedule = WeekSchedule()
     for day in [Weekday.monday, .wednesday, .friday] { schedule.set([SessionSlot(.strength, .hard)], on: day) }
-    let person = profile(sports: [.strength], goal: .buildMuscle, levels: [.strength: .intermediate], schedule: schedule)
+    let person = profile(
+      sports: [.strength], goal: .buildMuscle, levels: [.strength: .intermediate], schedule: schedule)
     let thursday = monday.adding(days: 3)
     let planned = SessionMatcher.planned(schedule: schedule, monday: monday)
     let week = SessionMatcher.match(
