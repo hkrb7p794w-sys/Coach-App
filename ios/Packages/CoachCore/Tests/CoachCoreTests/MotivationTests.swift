@@ -233,4 +233,14 @@ struct DaisyGeometryTests {
     #expect(url.absoluteString == "https://w.example.dev/android/abc/#zugang=g1.abcdefghijk2.0f")
     #expect(url.fragment == "zugang=g1.abcdefghijk2.0f")
   }
+
+  @Test func inviteMayNeverExposeTheOwnerToken() {
+    let invite = LeagueInvite(workerURL: "https://fremd.example", token: "g1.gast.sig", code: "team-abc234")
+    let home = "https://mein.example"
+    #expect(invite.host == "fremd.example")
+    #expect(invite.decision(currentURL: home, currentToken: "haupt") == .rejectOtherServer)
+    #expect(invite.decision(currentURL: "https://FREMD.example", currentToken: "haupt") == .keepCurrentToken)
+    #expect(invite.decision(currentURL: home, currentToken: "g1.alt.sig") == .useInviteToken)
+    #expect(invite.decision(currentURL: "", currentToken: nil) == .useInviteToken)
+  }
 }

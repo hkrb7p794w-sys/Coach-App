@@ -13,15 +13,16 @@ import {
   GROUNDING_SYSTEM,
   groundPoints,
   POINTS_WITH_SOURCES,
+  restrictedToday,
 } from "./grounding";
 import { checkGymPlan, gymHintsPrompt, gymPlanPrompt } from "./gym";
 import { groundInsights, INSIGHTS_SYSTEM, insightsPrompt } from "./insights";
 import {
   groundAmend,
+  groundMeal,
   labelPrompt,
   mealAmendPrompt,
   mealPrompt,
-  mergeMeals,
   nutritionReviewPrompt,
 } from "./nutrition";
 import { personalNotePrompt } from "./personal";
@@ -34,7 +35,7 @@ import {
   mealNowPrompt,
   weeklyRecipesPrompt,
 } from "./recipes";
-import { list, text } from "./tasks-util";
+import { list, text, USER_TEXT_RULE } from "./tasks-util";
 
 export { list, text } from "./tasks-util";
 
@@ -58,6 +59,7 @@ function groundedPoints(output: unknown, requestText: string, input: Record<stri
     output,
     requestText,
     evidenceFrom(input).map((item) => item.id),
+    restrictedToday(input),
   );
 }
 
@@ -160,8 +162,8 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.2,
     // Je Position rund 20 Nährwerte; mehrere Mahlzeiten in einer Eingabe sprengen sonst das Standardbudget.
     maxOutputTokens: 12000,
-    build: (input, images) => ({ prompt: mealPrompt(input, images > 0) }),
-    ground: mergeMeals,
+    build: (input, images) => ({ system: USER_TEXT_RULE, prompt: mealPrompt(input, images > 0) }),
+    ground: groundMeal,
   },
   /** Erkannte Mahlzeit ergänzen („noch 150 g Hähnchen und 1 EL Öl“): nur neue Positionen. */
   meal_amend: {
@@ -169,7 +171,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: true,
     temperature: 0.2,
     maxOutputTokens: 6000,
-    build: (input, images) => ({ prompt: mealAmendPrompt(input, images > 0) }),
+    build: (input, images) => ({ system: USER_TEXT_RULE, prompt: mealAmendPrompt(input, images > 0) }),
     ground: groundAmend,
   },
   /** Nährwerttabelle vom Foto ablesen (Barcode unbekannt); nur Bild, keine Gesundheitsdaten. */
@@ -201,7 +203,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     allowImages: false,
     temperature: 0.3,
     maxOutputTokens: 8000,
-    build: (input) => ({ prompt: gymPlanPrompt(input) }),
+    build: (input) => ({ system: USER_TEXT_RULE, prompt: gymPlanPrompt(input) }),
     ground: checkGymPlan,
   },
   /** Chat mit dem Coach, nur aus den Fakten der App. */
@@ -230,7 +232,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.6,
     maxOutputTokens: 6000,
     lowThinking: true,
-    build: (input) => ({ prompt: mealNowPrompt(input) }),
+    build: (input) => ({ system: USER_TEXT_RULE, prompt: mealNowPrompt(input) }),
     ground: checkMealNow,
   },
   /** Rezeptideen für die kommende Woche zu den Tageszielen der App. */
@@ -240,7 +242,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.6,
     maxOutputTokens: 16000,
     lowThinking: true,
-    build: (input) => ({ prompt: weeklyRecipesPrompt(input) }),
+    build: (input) => ({ system: USER_TEXT_RULE, prompt: weeklyRecipesPrompt(input) }),
     ground: checkRecipes,
   },
   /** Kochen für eine oder zwei Personen, auch zum Vorkochen. Teller und Mengen rechnet die App. */
@@ -250,7 +252,7 @@ export const TASKS: Record<string, TaskDefinition> = {
     temperature: 0.6,
     maxOutputTokens: 8000,
     lowThinking: true,
-    build: (input) => ({ prompt: cookPlanPrompt(input) }),
+    build: (input) => ({ system: USER_TEXT_RULE, prompt: cookPlanPrompt(input) }),
     ground: checkCookPlan,
   },
 };

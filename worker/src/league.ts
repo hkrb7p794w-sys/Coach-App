@@ -11,6 +11,7 @@
  * gesetzt hat: Andere dürfen ihn weder überschreiben noch löschen. Einträge von vor dieser Regel (ohne Besitzer)
  * übernimmt der nächste Schreibzugriff.
  */
+import { readLimited } from "./tasks-util";
 
 export interface LeagueEntry {
   id: string;
@@ -46,6 +47,7 @@ export interface LeagueStore {
 
 export const LEAGUE_TTL_SECONDS = 90 * 24 * 3600;
 export const MAX_MEMBERS = 20;
+const MAX_ENTRY_BYTES = 4_096;
 const CODE = /^[a-z0-9-]{6,40}$/;
 const MEMBER = /^[A-Za-z0-9-]{8,64}$/;
 const WEEK = /^\d{4}-\d{2}-\d{2}$/;
@@ -147,9 +149,11 @@ export async function handleLeague(
     await store.delete(key);
     return json(200, { ok: true });
   }
+  const raw = await readLimited(request, MAX_ENTRY_BYTES);
+  if (raw === null) return json(413, { error: "Eintrag zu groß" });
   let body: unknown;
   try {
-    body = JSON.parse(await request.text());
+    body = JSON.parse(raw);
   } catch {
     return json(400, { error: "Ungültiges JSON" });
   }

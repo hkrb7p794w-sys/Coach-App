@@ -230,7 +230,7 @@ public enum RecipePlanner {
     let items = rawItems.compactMap(MealAnalysis.item)
     guard !items.isEmpty, items.contains(where: { ($0.per100g[.kcal] ?? 0) > 0 }) else { return nil }
     let meal = value["mahlzeit"]?.stringValue.flatMap(MealCategory.init(rawValue:)) ?? .other
-    let minutes = Int(value["minuten"]?.doubleValue ?? 0)
+    let minutes = value["minuten"]?.clampedInt(0...1_440) ?? 0
     let steps = (value["zubereitung"]?.arrayValue ?? []).compactMap(\.stringValue).prefix(8)
     return Recipe(
       meal: meal, title: String(title.prefix(60)), minutes: max(minutes, 0), ingredients: items, steps: Array(steps))

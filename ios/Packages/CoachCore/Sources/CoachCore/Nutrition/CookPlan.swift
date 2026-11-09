@@ -442,7 +442,7 @@ public enum CookPlanner {
         notes.append("„\(recipe.title)“ verworfen: unstimmige Nährwerte bei „\(item.name)“.")
         continue
       }
-      let fridge = Int(min(max(value["haltbarkeit_tage"]?.doubleValue ?? 0, 0), 30))
+      let fridge = value["haltbarkeit_tage"]?.clampedInt(0...30) ?? 0
       let freezable = value["einfrierbar"] == .bool(true)
       if meals > 1 {
         if value["vorkochen_geeignet"] != .bool(true) {

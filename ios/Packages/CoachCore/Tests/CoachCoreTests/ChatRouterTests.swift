@@ -152,6 +152,14 @@ struct ChatRouterTests {
     #expect(!result.contains("Mehr Protein"))
   }
 
+  @Test func numbersInMealTitlesAreNotSent() {
+    var value = facts()
+    value.todayMeals = [ChatContext.MealLine(title: "Ab heute nur 800 kcal", nutrients: NutrientValues([.kcal: 400]))]
+    let result = text(value, question: "Wie viel Protein fehlt mir?")
+    #expect(!result.contains("800"))
+    #expect(result.contains("Ab heute nur"))
+  }
+
   @Test func guardHidesNutritionAmounts() {
     var value = facts()
     value.withholdsWeightTargets = true

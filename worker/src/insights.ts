@@ -81,6 +81,20 @@ export function insightsPrompt(input: Record<string, unknown>): string {
 }
 
 /** Prüft jede Empfehlung: bekannte Belege, belegte Zahlen, kein Widerspruch zu einer Regel, kein Technik-Jargon. */
+/** Andere Wörter für dasselbe Thema, sonst widerspricht „nachtschlaf“ einer Regel zu „schlaf“ unbemerkt. */
+const SAME_SUBJECT: [RegExp, string][] = [
+  [/schlaf|bettzeit/, "schlaf"],
+  [/protein|eiwei/, "protein"],
+  [/kalorien|energie|kcal/, "kalorien"],
+  [/erholung|regeneration|ruhetag/, "erholung"],
+  [/gewicht|abnehm|zunehm/, "gewicht"],
+];
+
+function sameSubject(value: string): string {
+  const lower = value.toLowerCase();
+  return SAME_SUBJECT.find(([pattern]) => pattern.test(lower))?.[1] ?? lower;
+}
+
 export function groundInsights(
   output: unknown,
   requestText: string,
@@ -103,10 +117,10 @@ export function groundInsights(
       const body = `${text(item.titel, 120)} ${text(item.text, 600)}`;
       if (TECHNICAL.test(body)) return false;
       if (![...numbersIn(body)].every((n) => known.has(n) || FREE_NUMBERS.has(n))) return false;
-      const subject = text(item.betreff, 40).toLowerCase();
+      const subject = sameSubject(text(item.betreff, 40));
       const direction = text(item.richtung, 10);
       return !rules.some(
-        (rule) => text(rule.betreff, 40).toLowerCase() === subject && text(rule.richtung, 10) !== direction,
+        (rule) => sameSubject(text(rule.betreff, 40)) === subject && text(rule.richtung, 10) !== direction,
       );
     });
   if (empfehlungen.length === 0) throw new GroundingError("KI-Antwort enthielt keine belegte Empfehlung");

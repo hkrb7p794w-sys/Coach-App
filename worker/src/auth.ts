@@ -66,8 +66,9 @@ export async function authenticate(header: string, env: Env): Promise<Principal 
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return null;
   if (token.startsWith(GUEST_PREFIX)) {
-    const [id = "", sig = ""] = token.slice(GUEST_PREFIX.length).split(".");
-    if (!GUEST_ID.test(id) || revoked(env).has(id)) return null;
+    const parts = token.slice(GUEST_PREFIX.length).split(".");
+    const [id = "", sig = ""] = parts;
+    if (parts.length !== 2 || !GUEST_ID.test(id) || revoked(env).has(id)) return null;
     return tokensMatch(sig, await signature(master, id)) ? { kind: "guest", id } : null;
   }
   return tokensMatch(token, master) ? { kind: "owner" } : null;

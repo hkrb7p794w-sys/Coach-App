@@ -48,7 +48,7 @@ describe("Fehlerkette der Rezeptideen", () => {
     expect(deps.calls.length).toBe(2);
   });
 
-  it("gibt keine Antworttexte der Anbieter an die App, protokolliert sie aber", async () => {
+  it("gibt Antworttexte der Anbieter weder an die App noch ins Protokoll", async () => {
     const deps = fakeDeps([
       () => new Response("GEHEIM-DETAIL", { status: 400 }),
       () => new Response("GEHEIM-DETAIL", { status: 401 }),
@@ -58,7 +58,9 @@ describe("Fehlerkette der Rezeptideen", () => {
     const text = await response.text();
     expect(text).not.toContain("GEHEIM-DETAIL");
     expect(JSON.parse(text).code).toBe("ai_unavailable");
-    expect(deps.logs.join(" ")).toContain("GEHEIM-DETAIL");
+    const logs = deps.logs.join(" ");
+    expect(logs).not.toContain("GEHEIM-DETAIL");
+    expect(logs).toContain("HTTP 400");
   });
 
   it("verlangt wenig Denk-Tokens bei großen JSON-Antworten", async () => {

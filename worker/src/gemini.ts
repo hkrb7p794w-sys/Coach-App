@@ -182,8 +182,8 @@ async function tryModel(
       continue;
     }
     if (!response.ok) {
-      const detail = (await response.text()).slice(0, 300);
-      throw new ProviderError(`Gemini HTTP ${response.status} (${model}): ${detail}`, false, response.status);
+      // Kein Antworttext: Er kann Eingaben enthalten und landet sonst im Protokoll.
+      throw new ProviderError(`Gemini HTTP ${response.status} (${model})`, false, response.status);
     }
     try {
       const body = await response.json();

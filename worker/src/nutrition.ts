@@ -1,8 +1,10 @@
 /**
  * Ernährungs-Prompts (Portierung von `ernaehrung/app/analyze.py` aus dem Altbestand, ohne BLS-Abgleich).
  */
-import { evidenceBlock, evidenceFrom, POINTS_WITH_SOURCES } from "./grounding";
-import { list, text } from "./tasks-util";
+import { evidenceBlock, evidenceFrom, GroundingError, POINTS_WITH_SOURCES } from "./grounding";
+import { list, nutrientLimit, text, userText } from "./tasks-util";
+
+const MAX_ITEM_GRAMS = 5_000;
 
 export const GROUPS = [
   "gemuese",
@@ -98,7 +100,7 @@ ${hasImage ? `${PHOTO_RULES}\n` : ""}${diet ? `${diet}\n` : ""}Häufige eigene L
 
 ${SHAPE}
 
-Mahlzeit: ${meal}`;
+${userText(`Mahlzeit: ${meal}`)}`;
 }
 
 /** Bestehende Positionen einer Mahlzeit (Name und Menge), die beim Ergänzen nicht angefasst werden. */
@@ -123,7 +125,7 @@ export function mealAmendPrompt(input: Record<string, unknown>, hasImage: boolea
 Schon erfasst (NICHT wiederholen, NICHT ändern):
 ${existing || "(nichts)"}
 
-Ergänzung des Nutzers: ${text(input.text, 600)}
+${userText(`Ergänzung des Nutzers: ${text(input.text, 600)}`)}
 
 Regeln:
 - Liefere in items NUR die Bestandteile, die der Nutzer ergänzen möchte. Bestehende Positionen nie erneut aufführen.
@@ -151,7 +153,37 @@ export function groundAmend(output: unknown, _requestText: string, input: Record
       (old) => normalize(old.name) === name && Math.abs(old.grams - grams) <= Math.max(5, old.grams * 0.1),
     );
   });
-  return { ...record, items: fresh, verworfen: items.length - fresh.length };
+  return { ...limitItems(record, fresh), verworfen: items.length - fresh.length };
+}
+
+function plausibleItem(item: unknown): boolean {
+  const entry = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+  const grams = entry.menge_g;
+  if (typeof grams === "number" && (!Number.isFinite(grams) || grams <= 0 || grams > MAX_ITEM_GRAMS))
+    return false;
+  const per100g = (
+    typeof entry.naehrwerte_100g === "object" && entry.naehrwerte_100g !== null ? entry.naehrwerte_100g : {}
+  ) as Record<string, unknown>;
+  return Object.entries(per100g).every(
+    ([key, value]) => typeof value !== "number" || (value >= 0 && value <= nutrientLimit(key)),
+  );
+}
+
+/** Unmögliche Positionen fallen weg und werden im Hinweis genannt. */
+function limitItems(record: Record<string, unknown>, items: unknown[]): Record<string, unknown> {
+  const kept = items.filter(plausibleItem);
+  if (kept.length === items.length) return { ...record, items };
+  if (kept.length === 0) throw new GroundingError("KI-Antwort enthielt nur unmögliche Mengen oder Nährwerte");
+  const note = "Eine Position hatte unmögliche Werte und fehlt.";
+  return { ...record, items: kept, hinweis: `${text(record.hinweis, 200)} ${note}`.trim() };
+}
+
+/** Mahlzeit zusammenführen und Mengen sowie Nährwerte auf das physikalisch Mögliche prüfen. */
+export function groundMeal(output: unknown): unknown {
+  const merged = mergeMeals(output);
+  if (typeof merged !== "object" || merged === null || Array.isArray(merged)) return merged;
+  const record = merged as Record<string, unknown>;
+  return Array.isArray(record.items) ? limitItems(record, record.items) : record;
 }
 
 function fmt(value: unknown, unit: string): string {
@@ -177,7 +209,9 @@ export function nutritionReviewPrompt(input: Record<string, unknown>): string {
     `Laut Wochenrahmen heute: ${list(input.planned).join(", ") || "nichts Festes"}.`,
     `Tagesampel Erholung: ${text(input.recovery)}.`,
     `Ernährungsziel: ${text(input.goal)}, Ernährungsweise: ${text(input.diet)}.`,
-    `Bisher gegessen (${text(input.mealCount)} Mahlzeiten): ${list(input.meals, 12, 120).join("; ") || "nichts"}.`,
+    userText(
+      `Bisher gegessen (${text(input.mealCount)} Mahlzeiten): ${list(input.meals, 12, 120).join("; ") || "nichts"}.`,
+    ),
     "",
     "Stand gegenüber den Tageszielen:",
     table || "- keine Daten",

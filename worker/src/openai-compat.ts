@@ -52,7 +52,7 @@ export async function generateWithOpenAiCompat(
     throw new ProviderError(`Eigener Server HTTP ${response.status} (${model})`, true, response.status);
   }
   if (!response.ok) {
-    throw new ProviderError(`Eigener Server HTTP ${response.status} (${model}): ${raw.slice(0, 300)}`, false);
+    throw new ProviderError(`Eigener Server HTTP ${response.status} (${model})`, false);
   }
   const body = JSON.parse(raw) as ChatCompletion;
   const text = body.choices?.[0]?.message?.content?.trim();

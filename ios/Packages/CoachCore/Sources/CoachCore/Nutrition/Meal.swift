@@ -106,13 +106,13 @@ public struct MealAnalysis: Equatable, Sendable {
 
   static func item(_ value: JSONValue) -> MealItem? {
     guard let name = value["name"]?.stringValue, !name.isEmpty,
-      let grams = value["menge_g"]?.doubleValue, grams > 0
+      let grams = value["menge_g"]?.doubleValue, grams > 0, grams <= 5_000
     else { return nil }
     var per100g = NutrientValues()
     if let nutrients = value["naehrwerte_100g"]?.objectValue {
       for nutrient in Nutrient.allCases {
         let key = nutrient == .water ? "water_g" : nutrient.rawValue
-        if let amount = nutrients[key]?.doubleValue, amount >= 0 { per100g[nutrient] = amount }
+        if let amount = nutrients[key]?.doubleValue, amount.isFinite, amount >= 0 { per100g[nutrient] = amount }
       }
     }
     var item = MealItem(name: name, grams: grams, source: .ai, per100g: per100g)

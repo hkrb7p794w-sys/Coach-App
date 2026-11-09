@@ -7,7 +7,7 @@
  *    Punkte werden verworfen; bleibt keiner übrig, gilt die Antwort als unbelegt und die App
  *    zeigt die regelbasierte Notiz.
  */
-import { list, text } from "./tasks-util";
+import { list, text, USER_TEXT_RULE, withoutUserText } from "./tasks-util";
 
 export const GROUNDING_SYSTEM = [
   "Du bist ein sachlicher Ausdauer- und Ernährungscoach. Du FORMULIERST nur – entschieden haben feste Regeln.",
@@ -19,6 +19,7 @@ export const GROUNDING_SYSTEM = [
   "- Keine Diagnosen, keine Medikamente, keine Nahrungsergänzung ohne Anlass in den Fakten.",
   "- Nie mehr Training oder zusätzliche Einheiten fordern; verpasste Einheiten nicht vorwerfen.",
   "- Lieber kurz und richtig als ausführlich.",
+  `- ${USER_TEXT_RULE}`,
 ].join("\n");
 
 export interface EvidenceItem {
@@ -57,13 +58,15 @@ export class GroundingError extends Error {
 
 /** Liest eine Zahl in deutscher Schreibweise („4,8“ → 4.8, „1.200“ → 1200). */
 function parseNumber(value: string): number {
-  return /^\d{1,3}\.\d{3}$/.test(value) ? Number(value.replace(".", "")) : Number(value.replace(",", "."));
+  return /^\d{1,3}(\.\d{3})+$/.test(value)
+    ? Number(value.replace(/\./g, ""))
+    : Number(value.replace(",", "."));
 }
 
 /** Zahlen eines Textes, normalisiert („4,8“ → „4.8“, „12,0“ → „12“). */
 export function numbersIn(value: string): Set<string> {
   const result = new Set<string>();
-  for (const match of value.matchAll(/\d+(?:[.,]\d+)?/g)) {
+  for (const match of value.matchAll(/\d{1,3}(?:\.\d{3})+(?!\d)|\d+(?:[.,]\d+)?/g)) {
     const normalized = parseNumber(match[0]);
     if (Number.isFinite(normalized)) result.add(String(normalized));
   }
@@ -128,6 +131,26 @@ export function countsIn(value: string): Set<string> {
   return result;
 }
 
+const HARD_EFFORT = /\b(hart(e[nrsm]?)?|intervall\w*|schwelle\w*|tempo\w*|durchziehen|vollgas)\b/i;
+const NOT_TODAY =
+  /\b(nicht|kein\w*|statt|anstatt|ohne|lieber|verzicht\w*|vermeide\w*|weniger|nein|verschieb\w*|morgen|nächste\w*|später|wenn|falls|locker\w*)\b/i;
+
+/** Hat die Tagesampel heute nur lockeres Training oder Ruhe erlaubt? */
+export function restrictedToday(input: Record<string, unknown>): boolean {
+  const decision = input.decision;
+  const label =
+    typeof decision === "object" && decision !== null
+      ? text((decision as Record<string, unknown>).label, 80)
+      : text(decision, 80);
+  const line = list(input.facts, 60, 300).find((fact) => /Tagesampel heute/i.test(fact)) ?? "";
+  return [label, text(input.recovery, 120), line].some((value) => /ruhetag|locker/i.test(value));
+}
+
+/** Fordert ein Satz hartes Training für heute, obwohl die Regel das ausschließt? Verneinungen zählen nicht. */
+export function contradictsRestriction(value: string): boolean {
+  return value.split(/[.!?]+/).some((sentence) => HARD_EFFORT.test(sentence) && !NOT_TODAY.test(sentence));
+}
+
 const FREE_NUMBERS = new Set(["0", "1", "2", "3"]);
 
 export interface GroundedPoints {
@@ -137,12 +160,19 @@ export interface GroundedPoints {
 }
 
 /** Prüft `{"punkte": [...], "quellen": [...]}` gegen den Anfragetext und die erlaubten Quellen. */
-export function groundPoints(output: unknown, promptText: string, allowedSources: string[]): GroundedPoints {
+export function groundPoints(
+  output: unknown,
+  promptText: string,
+  allowedSources: string[],
+  restricted = false,
+): GroundedPoints {
   const record = (typeof output === "object" && output !== null ? output : {}) as Record<string, unknown>;
   const raw = list(Array.isArray(record.punkte) ? record.punkte : output, 6, 600);
-  const known = numbersIn(promptText);
-  const punkte = raw.filter((point) =>
-    [...numbersIn(point)].every((n) => known.has(n) || FREE_NUMBERS.has(n)),
+  const known = numbersIn(withoutUserText(promptText));
+  const punkte = raw.filter(
+    (point) =>
+      [...numbersIn(point)].every((n) => known.has(n) || FREE_NUMBERS.has(n)) &&
+      !(restricted && contradictsRestriction(point)),
   );
   if (punkte.length === 0) throw new GroundingError("KI-Antwort enthielt nur unbelegte Aussagen");
   const allowed = new Set(allowedSources);
