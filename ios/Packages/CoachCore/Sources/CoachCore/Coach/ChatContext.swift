@@ -34,6 +34,7 @@ public enum ChatContext {
     public var weekHighlights: [String] = []
     public var weightTrend: WeightTrend.Result?
     public var runWeek: RunPlanner.Week?
+    public var mobilityLine: String?
 
     public init(profile: UserProfile, privacy: PrivacyMode) {
       self.profile = profile
@@ -104,6 +105,9 @@ public enum ChatContext {
     }
     if let zone = facts.formZone {
       lines.append("Form (Fitness gegen Ermüdung): \(zone.label).")
+    }
+    if let mobility = facts.mobilityLine {
+      lines.append(mobility)
     }
     // Die Sätze des Wochenberichts enthalten Rohwerte (Schlafstunden, Ruhepuls).
     if full {
