@@ -68,6 +68,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
         cerebras: Boolean(env.CEREBRAS_API_KEY),
         groq: Boolean(env.GROQ_API_KEY),
         mistral: Boolean(env.MISTRAL_API_KEY),
+        github: Boolean(env.GH_MODELS_TOKEN),
       },
       providerList: providerInfo(env),
       configured: Boolean(env.COACH_APP_TOKEN),

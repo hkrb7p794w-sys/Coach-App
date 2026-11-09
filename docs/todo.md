@@ -116,6 +116,9 @@ hier notieren und als PR beheben.
       bearbeiten“ umstellen; Werte wie in der App? „+250 ml“ im mittleren Ernährungs-Widget zählt sofort, nach dem
       Öffnen der App steht der Eintrag im Tagebuch (genau einmal). Sperrbildschirm: kcal-Ring, Body Battery. Am
       nächsten Morgen ohne Öffnen: 0 kcal, „Neuer Tag – App öffnen“.
+- [ ] **GitHub-Models-Token erneuern (spätestens Nov. 2027):** Fine-grained Token `coach-models` läuft nach 366 Tagen
+      ab. Neuen Token mit „Models: Read-only“ anlegen und das Secret `GH_MODELS_TOKEN` ersetzen, dann Actions › Worker
+      › Run workflow (`docs/einrichtung.md`, Schritt 2).
 
 ## Gestrichen
 

@@ -4,6 +4,8 @@ export interface Env {
   GROQ_API_KEY?: string;
   CEREBRAS_API_KEY?: string;
   MISTRAL_API_KEY?: string;
+  /** Fine-grained Token mit „Models: Read-only“ für GitHub Models. */
+  GH_MODELS_TOKEN?: string;
   COACH_APP_TOKEN?: string;
   /** Gesperrte Gast-IDs (siehe auth.ts), durch Komma getrennt. */
   REVOKED_GUESTS?: string;
@@ -19,6 +21,7 @@ export interface Env {
   CEREBRAS_MODEL?: string;
   MISTRAL_MODEL?: string;
   MISTRAL_VISION_MODEL?: string;
+  GITHUB_MODEL?: string;
   /** Workers AI (Binding „AI“ in wrangler.jsonc): offene Modelle bei Cloudflare, kein eigener Key nötig. */
   AI?: WorkersAiBinding;
   WORKERS_AI_MODEL?: string;
@@ -62,7 +65,14 @@ export interface GenerateRequest {
   task?: string;
 }
 
-export type ProviderId = "gemini" | "cerebras" | "groq" | "mistral" | "workers_ai" | "openai_compat";
+export type ProviderId =
+  | "gemini"
+  | "cerebras"
+  | "groq"
+  | "mistral"
+  | "github"
+  | "workers_ai"
+  | "openai_compat";
 
 /** Verbrauch einer Anfrage, so wie der Anbieter ihn meldet (fehlt, wenn er nichts meldet). */
 export interface Usage {
