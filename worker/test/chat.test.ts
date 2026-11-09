@@ -67,7 +67,10 @@ describe("coach_chat", () => {
 
   it("verwirft belegte Zahlen mit falscher Einheit", () => {
     const task = findTask("coach_chat");
-    const facts = { ...input, facts: ["Bankdrücken: von 75 kg für 8 Wiederholungen auf 80 kg für 8 Wiederholungen"] };
+    const facts = {
+      ...input,
+      facts: ["Bankdrücken: von 75 kg für 8 Wiederholungen auf 80 kg für 8 Wiederholungen"],
+    };
     const prompt = chatPrompt(facts);
     expect(() =>
       task?.ground?.({ antwort: "Eine Steigerung von 75 kg auf 8 kg.", quellen: [] }, prompt, facts),
