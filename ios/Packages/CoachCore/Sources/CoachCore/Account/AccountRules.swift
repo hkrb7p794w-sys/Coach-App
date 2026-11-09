@@ -5,7 +5,9 @@ import Foundation
 public enum AccountRules {
   public static let minPasswordLength = 10
   public static let maxPasswordLength = 128
-  static let reserved: Set<String> = ["admin", "administrator", "coach", "ironludi", "support", "system", "root", "owner"]
+  static let reserved: Set<String> = [
+    "admin", "administrator", "coach", "ironludi", "support", "system", "root", "owner",
+  ]
 
   public static func normalizeUsername(_ text: String) -> String {
     text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

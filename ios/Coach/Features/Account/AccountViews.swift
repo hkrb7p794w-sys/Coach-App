@@ -484,7 +484,8 @@ struct AlreadySignedInSheet: View {
       ContentUnavailableView(
         "Schon angemeldet", systemImage: "person.crop.circle.badge.checkmark",
         description: Text(
-          "Die Einladung ist für eine Person ohne Konto. Gib den Link an die Person weiter, für die er gedacht ist."))
+          "Die Einladung ist für eine Person ohne Konto. Gib den Link an die Person weiter, für die er gedacht ist.")
+      )
       .toolbar { ToolbarItem(placement: .confirmationAction) { Button("OK") { dismiss() } } }
     }
   }
