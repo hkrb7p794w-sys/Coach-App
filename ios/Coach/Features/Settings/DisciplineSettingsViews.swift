@@ -26,16 +26,6 @@ struct DisciplineSettingsSection: View {
           Label(sport.shortLabel, systemImage: sport.symbol)
         }
       }
-      NavigationLink {
-        NutritionSettingsView()
-      } label: {
-        Label("Ernährung", systemImage: "fork.knife")
-      }
-      NavigationLink {
-        SleepCoachView()
-      } label: {
-        Label("Schlaf", systemImage: "moon.stars.fill")
-      }
     } header: {
       Text("Disziplinen")
     }
@@ -64,7 +54,7 @@ struct GymSettingsView: View {
         Text("Satzpausen")
       } footer: {
         Text(
-          "Gilt, wenn weder der Trainingsplan noch die Übung eine eigene Pause hat. Eine Pause je Übung stellst du "
+          "Vorrang: eigene Pause der Übung, dann eine bewusst andere Pause im Trainingsplan, dann diese Werte. Gilt ab der nächsten Einheit. Eine Pause je Übung stellst du "
             + "unter „Pausen und Notizen je Übung“ oder während der Einheit im Menü der Übung ein. Ohne sofortigen Start "
             + "erscheint nach dem Satz „Pause starten“.")
       }
