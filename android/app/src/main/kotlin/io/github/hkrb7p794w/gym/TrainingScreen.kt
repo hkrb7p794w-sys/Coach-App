@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,6 +88,8 @@ private fun StartContent(viewModel: GymViewModel, data: AppData, modifier: Modif
         TopAppBar(
             title = { Text("Training") },
             actions = {
+                val incoming by viewModel.social.incoming.collectAsState()
+                TextButton(onClick = { open(Page.Friends) }) { Text(if (incoming.isEmpty()) "Freunde" else "Freunde (${incoming.size})") }
                 IconButton(onClick = { open(Page.Settings) }) { Icon(Icons.Filled.Settings, contentDescription = "Einstellungen") }
             },
         )

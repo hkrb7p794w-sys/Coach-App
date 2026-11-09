@@ -28,6 +28,7 @@
  */
 import type { Principal } from "./auth";
 import { ensureSchema, type SqlDatabase } from "./db";
+import { SOCIAL_CLEANUP } from "./social";
 import { readLimited } from "./tasks-util";
 
 export const PBKDF2_ITERATIONS = 100_000;
@@ -501,6 +502,7 @@ export const ACCOUNT_CLEANUP: ((db: SqlDatabase, accountId: string) => ReturnTyp
   [
     (db, id) => db.prepare("DELETE FROM sessions WHERE account_id = ?").bind(id),
     (db, id) => db.prepare("DELETE FROM invites WHERE created_by = ? AND used_by IS NULL").bind(id),
+    ...SOCIAL_CLEANUP,
     (db, id) => db.prepare("DELETE FROM accounts WHERE id = ?").bind(id),
   ];
 

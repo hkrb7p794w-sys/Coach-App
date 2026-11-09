@@ -2,6 +2,23 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-09 – Freunde und Feed (Phase 92)
+
+- **Finden:** nur über den Anfang des Benutzernamens (ab 2 Zeichen, höchstens 10 Treffer), nicht über den
+  Anzeigenamen – so lässt sich nicht nach Vornamen durchsuchen. Freundschaft erst nach Zustimmung.
+- **Nur ausdrücklich Geteiltes:** Es gibt kein automatisches Teilen. Die Person tippt „Mit Freunden teilen“ beim
+  Abschluss im Gym, an einer Aktivität oder an einer Mahlzeit und sieht vorher, was geteilt wird. Der Worker nimmt je
+  Art nur bekannte Felder an (Training: Sportart, Titel, Dauer, Strecke, Höhenmeter, Sätze, bewegtes Gewicht,
+  Übungen, Bestleistungen, Notiz; Mahlzeit: Positionen mit Nährwerten wie beim Teilen per Code). Puls, Kalorienverbrauch,
+  Körpergewicht, HRV und Schlaf werden verworfen, auch wenn eine App sie mitschicken würde.
+- **Sichtbarkeit:** Beiträge sehen nur befreundete Konten und die Person selbst; nach dem Entfernen der Freundschaft
+  sofort nicht mehr. Sperren beendet die Freundschaft, verhindert Anfragen und blendet aus der Suche aus, ohne
+  Mitteilung.
+- **Grenzen:** 30 Beiträge am Tag, 30 offene Anfragen, 100 Kommentare je Beitrag, Kommentare 280 Zeichen. Beiträge
+  verfallen nach 90 Tagen mit Reaktionen und Kommentaren. Feste Reaktionen (👏 🔥 💪 😋 ❤️) statt freier Emojis.
+- **Keine Push-Mitteilungen:** Push bräuchte APNs mit bezahltem Apple-Entwicklerkonto bzw. Firebase; neue Anfragen
+  zeigt die App beim Öffnen (Zähler an „Freunde“).
+
 ## 2026-11-09 – Konten für Freunde und Familie (Phase 91)
 
 - **Wunsch des Nutzers:** Nach der Weitergabe soll jede Person ein eigenes Konto haben, auf das nur sie zugreift;

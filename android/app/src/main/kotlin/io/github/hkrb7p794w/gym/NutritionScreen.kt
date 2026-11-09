@@ -85,6 +85,7 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
     var capturing by rememberSaveable { mutableStateOf(false) }
     var choosingDayType by rememberSaveable { mutableStateOf(false) }
     var portionFor by remember { mutableStateOf<Meal?>(null) }
+    var friendMeal by remember { mutableStateOf<Meal?>(null) }
     val draft by model.draft.collectAsStateWithLifecycle()
     val busy by model.busy.collectAsStateWithLifecycle()
     val message by model.message.collectAsStateWithLifecycle()
@@ -202,6 +203,7 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
                             onFavorite = { viewModel.update { Diary.toggleFavorite(it, meal) } },
                             onPortion = { portionFor = meal },
                             onShare = if (model.access.isConfigured) ({ model.share(meal) }) else null,
+                            onShareFriends = if (viewModel.social.isAvailable) ({ friendMeal = meal }) else null,
                             onRecipe = {
                                 viewModel.update { Diary.saveRecipe(it, io.github.hkrb7p794w.gym.core.OwnRecipe.from(meal.title, meal.items)) }
                                 open(Page.Recipes)
@@ -253,6 +255,14 @@ fun NutritionScreen(viewModel: GymViewModel, data: AppData, modifier: Modifier, 
                 }
             },
             confirmButton = { TextButton(onClick = { choosingDayType = false }) { Text("Schließen") } },
+        )
+    }
+    friendMeal?.let { meal ->
+        ShareWithFriendsDialog(
+            title = meal.title,
+            preview = "${meal.items.size} Positionen · ${formatKg(Math.rint(meal.totals[Nutrient.KCAL] ?: 0.0))} kcal – Freunde können sie übernehmen.",
+            onShare = { note -> viewModel.social.shareMeal(meal.title, meal.items, note) { friendMeal = null } },
+            onDismiss = { friendMeal = null },
         )
     }
     portionFor?.let { meal ->
@@ -364,6 +374,7 @@ private fun MealCard(
     onPortion: () -> Unit,
     onShare: (() -> Unit)?,
     onRecipe: () -> Unit,
+    onShareFriends: (() -> Unit)? = null,
 ) {
     var menu by remember { mutableStateOf(false) }
     val totals = meal.totals
@@ -394,6 +405,7 @@ private fun MealCard(
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Portion anpassen") }, onClick = { menu = false; onPortion() })
                     if (onShare != null) DropdownMenuItem(text = { Text("Teilen …") }, onClick = { menu = false; onShare() })
+                    if (onShareFriends != null) DropdownMenuItem(text = { Text("Mit Freunden teilen") }, onClick = { menu = false; onShareFriends() })
                     DropdownMenuItem(text = { Text("Als Rezept speichern") }, onClick = { menu = false; onRecipe() })
                 }
             }

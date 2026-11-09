@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +72,7 @@ fun SessionDetailScreen(viewModel: GymViewModel, data: AppData, id: String, onBa
     val session = data.sessions.firstOrNull { it.id == id }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var routineName by rememberSaveable { mutableStateOf<String?>(null) }
+    var sharing by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -78,6 +80,9 @@ fun SessionDetailScreen(viewModel: GymViewModel, data: AppData, id: String, onBa
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück") } },
                 actions = {
                     if (session != null) {
+                        if (viewModel.social.isAvailable) {
+                            IconButton(onClick = { sharing = true }) { Icon(Icons.Filled.Share, contentDescription = "Mit Freunden teilen") }
+                        }
                         IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, contentDescription = "Training löschen") }
                     }
                 },
@@ -87,6 +92,14 @@ fun SessionDetailScreen(viewModel: GymViewModel, data: AppData, id: String, onBa
         if (session == null) {
             Text("Training nicht gefunden.", Modifier.padding(padding).padding(16.dp))
             return@Scaffold
+        }
+        if (sharing) {
+            ShareWithFriendsDialog(
+                title = session.name,
+                preview = "${session.workingSets} Sätze · ${session.exercises.size} Übungen",
+                onShare = { note -> viewModel.social.shareWorkout(session, note) { sharing = false } },
+                onDismiss = { sharing = false },
+            )
         }
         LazyColumn(
             Modifier.padding(padding),

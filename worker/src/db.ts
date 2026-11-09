@@ -52,6 +52,45 @@ const SCHEMA = [
     used_by TEXT
   )`,
   "CREATE INDEX IF NOT EXISTS invites_creator ON invites(created_by)",
+  // Freunde (social.ts): ein Eintrag je Paar, a < b.
+  `CREATE TABLE IF NOT EXISTS friendships (
+    a TEXT NOT NULL,
+    b TEXT NOT NULL,
+    status TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (a, b)
+  )`,
+  "CREATE INDEX IF NOT EXISTS friendships_b ON friendships(b)",
+  `CREATE TABLE IF NOT EXISTS blocks (
+    blocker TEXT NOT NULL,
+    blocked TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (blocker, blocked)
+  )`,
+  `CREATE TABLE IF NOT EXISTS posts (
+    id TEXT PRIMARY KEY,
+    author TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    payload TEXT NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS posts_author_time ON posts(author, created_at)",
+  `CREATE TABLE IF NOT EXISTS reactions (
+    post_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (post_id, account_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS comments (
+    id TEXT PRIMARY KEY,
+    post_id TEXT NOT NULL,
+    author TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS comments_post ON comments(post_id, created_at)",
 ];
 
 const ready = new WeakMap<SqlDatabase, Promise<void>>();

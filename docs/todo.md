@@ -144,6 +144,10 @@ hier notieren und als PR beheben.
       bzw. „Auf Android öffnen“ → Registrieren mit vorausgefülltem Code. Falsches Passwort 5× → „15 Minuten“.
       Passwort ändern → anderes Gerät ist abgemeldet und zeigt das in den Einstellungen.
 
+- [ ] **Freunde (PR 92):** Zwei Konten: A sucht B über „@b…“ › Hinzufügen; B nimmt an. A teilt nach dem Gym
+      „Mit Freunden teilen“ → B sieht es im Feed, reagiert mit 🔥 und kommentiert. A teilt eine Mahlzeit → B
+      „In mein Tagebuch übernehmen“. Freundschaft beenden → Beiträge verschwinden bei B.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

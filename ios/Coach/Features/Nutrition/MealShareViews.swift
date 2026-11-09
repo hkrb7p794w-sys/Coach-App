@@ -39,6 +39,7 @@ struct ShareMealSheet: View {
   @State private var created: MealShareService.Created?
   @State private var error: String?
   @State private var revoked = false
+  @State private var sharingWithFriends = false
 
   var body: some View {
     let meal = SharedMeal(title: title, items: items)
@@ -52,6 +53,13 @@ struct ShareMealSheet: View {
           Text(
             "Geteilt werden nur Titel, Mengen und Nährwerte – kein Name, kein Datum, keine Gesundheitsdaten. "
               + "Abrufen kann nur, wer IronLudi über denselben Zugang nutzt.")
+        }
+        if model.social.isAvailable {
+          Section {
+            Button("Im Feed mit Freunden teilen", systemImage: "person.2") { sharingWithFriends = true }
+          } footer: {
+            Text("Deine Freunde sehen die Mahlzeit im Feed und können sie übernehmen.")
+          }
         }
         if let created, !revoked {
           Section {
@@ -80,6 +88,7 @@ struct ShareMealSheet: View {
           Section { ProgressView("Freigabe wird erstellt …") }
         }
       }
+      .sheet(isPresented: $sharingWithFriends) { ShareWithFriendsSheet(content: .meal(meal)) }
       .navigationTitle("Mahlzeit teilen")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
@@ -98,6 +107,8 @@ struct ShareMealSheet: View {
 /// Empfangene Mahlzeit: Vorschau und Übernahme als neuer Eintrag (nie überschreibend) oder als Favorit.
 struct ReceivedMealSheet: View {
   let code: String?
+  /// Aus dem Feed: Mahlzeit liegt schon vor, kein Code nötig.
+  var preloaded: SharedMeal? = nil
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var input = ""
@@ -150,6 +161,7 @@ struct ReceivedMealSheet: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } } }
       .task {
+        if let preloaded, meal == nil { meal = preloaded }
         if let code, meal == nil { await load(code) }
       }
     }
