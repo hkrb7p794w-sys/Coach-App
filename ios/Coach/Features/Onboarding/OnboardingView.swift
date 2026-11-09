@@ -32,6 +32,7 @@ struct OnboardingView: View {
   @State private var step: Step = .sports
   @State private var draft = UserProfile()
   @State private var loaded = false
+  @State private var restoring = false
 
   @State private var eventEnabled = false
   @State private var eventName = ""
@@ -88,10 +89,21 @@ struct OnboardingView: View {
             Button("Schließen", systemImage: "xmark") { dismiss() }
           }
         }
+        if !isEditing && step == .sports {
+          ToolbarItem(placement: .topBarTrailing) {
+            // Nach einer Neuinstallation: Daten aus der Datensicherung zurückholen statt neu einzurichten.
+            Button("Sicherung einspielen") { restoring = true }
+          }
+        }
       }
       .safeAreaInset(edge: .bottom) { bottomBar }
     }
     .interactiveDismissDisabled(!isEditing)
+    .sheet(isPresented: $restoring) {
+      NavigationStack {
+        BackupView()
+      }
+    }
     .task { loadOnce() }
   }
 

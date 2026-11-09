@@ -120,6 +120,11 @@ hier notieren und als PR beheben.
       ab. Neuen Token mit „Models: Read-only“ anlegen und das Secret `GH_MODELS_TOKEN` ersetzen, dann Actions › Worker
       › Run workflow (`docs/einrichtung.md`, Schritt 2).
 
+- [ ] **Datensicherung (PR 97):** Einstellungen › Datensicherung › „Ordner wählen“ → iCloud Drive › neuen Ordner
+      „IronLudi“ → erste Sicherung erscheint dort als `IronLudi-Sicherung.json`. App schließen → am nächsten Tag
+      liegt eine neue Sicherung dort, die alte als „…-vorher.json“. Test Einspielen: Mahlzeit löschen, Sicherung
+      einspielen → Mahlzeit ist wieder da, nichts doppelt.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

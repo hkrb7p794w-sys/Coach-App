@@ -50,6 +50,10 @@ darin, die gibt jeder in seiner App selbst ein).
 
 ## Gut zu wissen
 
+- **Datensicherung einrichten** (Einstellungen › Datensicherung › Ordner in iCloud Drive wählen). Muss IronLudi oder
+  SideStore neu installiert werden, auf dem ersten Bildschirm oben rechts „Sicherung einspielen“ tippen. Ohne
+  Sicherung sind Krafteinheiten, Mahlzeiten und Einstellungen nach dem Löschen der App weg.
+
 - Mit kostenloser Apple-ID laufen Apps **7 Tage**. SideStore frischt sie auf, solange LocalDevVPN verbunden
   ist. Spätestens alle 7 Tage einmal SideStore öffnen und auffrischen.
 - Höchstens **3 Apps** gleichzeitig (SideStore zählt mit) und **10 neue App-IDs pro Woche**.
