@@ -6,7 +6,9 @@ const mode = process.env.CHAT_EVAL_MODE ?? "focused";
 const runs = Number(process.env.CHAT_EVAL_RUNS ?? 2);
 const provider = process.env.CHAT_EVAL_PROVIDER || undefined;
 // Interne Begriffe gehören nie in eine Antwort, egal zu welcher Frage.
-const JARGON = /\b(in den|laut den|aus den) (aktuellen )?Fakten\b|nicht in den Fakten/i;
+const JARGON = /\b(in den|laut den|aus den) (aktuellen )?Fakten\b|nicht in den Fakten|berechnet|\((erfasst|gemessen)\)/i;
+// Beim Bankdrücken sind nur diese Gewichte und ihre Differenzen richtig.
+const BENCH_WEIGHTS = /\b(?!(?:75|77,5|80|5|2,5)\s*kg)\d+(?:,\d+)?\s*kg/;
 
 const legacy = [
   "Ziel: Muskelaufbau",
@@ -41,11 +43,11 @@ const nutrition = [
 ];
 const bench = [
   ...plan,
-  "Bankdrücken am 12.10.2026: bester Satz 75 kg × 8, 3 Arbeitssätze (erfasst).",
-  "Bankdrücken am 19.10.2026: bester Satz 75 kg × 9, 3 Arbeitssätze (erfasst).",
-  "Bankdrücken am 26.10.2026: bester Satz 77,5 kg × 8, 3 Arbeitssätze (erfasst).",
-  "Bankdrücken am 06.11.2026: bester Satz 80 kg × 8, 3 Arbeitssätze (erfasst).",
-  "Bankdrücken in den letzten 4 Wochen: von 75 kg × 8 auf 80 kg × 8, Differenz 5 kg (berechnet aus 4 Einheiten).",
+  "Bankdrücken am 12.10.2026: bester Satz 75 kg für 8 Wiederholungen, 3 Arbeitssätze (erfasst).",
+  "Bankdrücken am 19.10.2026: bester Satz 75 kg für 9 Wiederholungen, 3 Arbeitssätze (erfasst).",
+  "Bankdrücken am 26.10.2026: bester Satz 77,5 kg für 8 Wiederholungen, 3 Arbeitssätze (erfasst).",
+  "Bankdrücken am 06.11.2026: bester Satz 80 kg für 8 Wiederholungen, 3 Arbeitssätze (erfasst).",
+  "Bankdrücken in den letzten 4 Wochen: von 75 kg für 8 Wiederholungen auf 80 kg für 8 Wiederholungen, Differenz 5 kg (berechnet aus 4 Einheiten).",
 ];
 
 // Jeder Fall nennt die Daten und was eine brauchbare Antwort enthalten muss (`must`) oder nicht darf (`not`).
@@ -55,6 +57,7 @@ const cases = [
     question: "Wie hat sich meine Leistung beim Bankdrücken in den letzten vier Wochen entwickelt?",
     facts: bench,
     must: [/80/, /75/],
+    not: [BENCH_WEIGHTS],
   },
   {
     id: "protein-offen",
@@ -107,6 +110,7 @@ const cases = [
       "Gewichtstrend: stabil.",
     ],
     must: [/12/],
+    not: [BENCH_WEIGHTS],
   },
   {
     id: "allgemein-ohne-profil",

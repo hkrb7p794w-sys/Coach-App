@@ -65,6 +65,17 @@ describe("coach_chat", () => {
     );
   });
 
+  it("verwirft belegte Zahlen mit falscher Einheit", () => {
+    const task = findTask("coach_chat");
+    const facts = { ...input, facts: ["Bankdrücken: von 75 kg für 8 Wiederholungen auf 80 kg für 8 Wiederholungen"] };
+    const prompt = chatPrompt(facts);
+    expect(() =>
+      task?.ground?.({ antwort: "Eine Steigerung von 75 kg auf 8 kg.", quellen: [] }, prompt, facts),
+    ).toThrow(GroundingError);
+    const ok = "Eine Steigerung von 75 kg auf 80 kg, also 5 kg mehr bei 8 Wiederholungen.";
+    expect(task?.ground?.({ antwort: ok, quellen: [] }, prompt, facts)).toMatchObject({ antwort: ok });
+  });
+
   it("erlaubt Satz- und Wiederholungszahlen, aber keine freien Lastwerte", () => {
     const task = findTask("coach_chat");
     const prompt = chatPrompt(input);

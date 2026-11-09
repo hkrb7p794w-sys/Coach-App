@@ -50,8 +50,8 @@ struct ChatRouterTests {
   @Test func benchHistoryIsCompared() {
     let result = text(
       facts(), question: "Wie hat sich meine Leistung beim Bankdrücken in den letzten vier Wochen entwickelt?")
-    #expect(result.contains("75 kg × 8"))
-    #expect(result.contains("80 kg × 8"))
+    #expect(result.contains("75 kg für 8 Wiederholungen"))
+    #expect(result.contains("80 kg für 8 Wiederholungen"))
     #expect(result.contains("Differenz 5 kg"))
   }
 

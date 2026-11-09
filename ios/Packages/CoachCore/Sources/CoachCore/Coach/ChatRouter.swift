@@ -126,7 +126,7 @@ extension ChatContext {
         lines.append("\(exercise.name): keine erfassten Sätze in den letzten 8 Wochen.")
         continue
       }
-      func set(_ value: LoggedSet) -> String { "\(GermanFormat.number(value.weightKg)) kg × \(value.reps)" }
+      func set(_ value: LoggedSet) -> String { "\(GermanFormat.number(value.weightKg)) kg für \(value.reps) Wiederholungen" }
       for (day, best, count) in history.suffix(8) {
         lines.append("\(exercise.name) am \(short(day)): bester Satz \(set(best)), \(count) Arbeitssätze (erfasst).")
       }
