@@ -29,7 +29,8 @@ Feldliste einer Antwort lässt sich über „Teilen“ weitergeben (sie enthält
 
 1. <https://console.groq.com/keys> › anmelden › **Create API Key** › Namen „coach“ › Key kopieren.
 
-**Cerebras** (gpt-oss-120b für Pläne und Rezepte, großes kostenloses Kontingent, keine Kreditkarte):
+**Cerebras** (optional; gpt-oss-120b für Pläne und Rezepte – verlangt bei der Anmeldung eine Kreditkarte, Stand
+09.11.2026; ohne Key übernimmt Gemini die Pläne):
 
 1. <https://cloud.cerebras.ai> › anmelden (Google-Konto oder E-Mail) › links **API Keys** › **Generate API Key** ›
    Key kopieren.
