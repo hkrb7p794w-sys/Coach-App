@@ -154,4 +154,25 @@ struct MobilityTests {
     #expect(Evidence.rulesByID["mobility.stretching"]?.studies.count == 3)
     #expect(Evidence.rulesByID["mobility.focus"] != nil)
   }
+
+  @Test func suggestionOnRestAndRecoveryDays() {
+    #expect(MobilityPlanner.suggestToday(hasTraining: false, recovery: .normal, doneToday: false))
+    #expect(!MobilityPlanner.suggestToday(hasTraining: true, recovery: .normal, doneToday: false))
+    #expect(MobilityPlanner.suggestToday(hasTraining: true, recovery: .locker, doneToday: false))
+    #expect(MobilityPlanner.suggestToday(hasTraining: true, recovery: .pause, doneToday: false))
+    #expect(!MobilityPlanner.suggestToday(hasTraining: false, recovery: nil, doneToday: true))
+  }
+
+  @Test func contextLineWithoutRawValues() {
+    var settings = MobilitySettings()
+    #expect(settings.contextLine(today: today) == nil)
+    settings.log = [MobilityLogEntry(day: today, minutes: 10, areas: [.hips])]
+    settings.results = [MobilityTestResult(testID: "knee_to_wall", day: today, value: 4)]
+    #expect(
+      settings.contextLine(today: today)
+        == "Mobility: 1 Einheiten in den letzten 7 Tagen; Selbsttests: Knie zur Wand eingeschränkt.")
+    var facts = ChatContext.Facts(profile: UserProfile(), privacy: .reduced)
+    facts.mobilityLine = settings.contextLine(today: today)
+    #expect(ChatContext.lines(facts).contains { $0.hasPrefix("Mobility: 1 Einheiten") })
+  }
 }

@@ -80,6 +80,17 @@ struct NowSection: View {
           .foregroundStyle(.secondary)
       }
       ForEach(focus.items) { item in FocusItemRow(item: item) }
+      if MobilityPlanner.suggestToday(
+        hasTraining: focus.items.contains { $0.sport != nil }, recovery: focus.level,
+        doneToday: settings.mobility.log.contains { $0.day == snapshot.plan.today })
+      {
+        NavigationLink {
+          MobilityView()
+        } label: {
+          Label("Mobility für heute · \(settings.mobility.minutes) min", systemImage: "figure.flexibility")
+            .font(.subheadline)
+        }
+      }
       // Wochenfokus gehört zum Saisonplan und nicht in ein eigenes Profil.
       if settings.profile.mode == .season, let note = snapshot.today?.focus, !note.isEmpty {
         Text(note).font(.footnote).foregroundStyle(.secondary)

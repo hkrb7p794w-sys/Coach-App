@@ -31,6 +31,7 @@ enum CoachFacts {
         facts.todaySessions = schedule.slots(on: Weekday(day: today)).map(\.title)
       }
     }
+    facts.mobilityLine = settings.mobility.contextLine(today: today)
     facts.sleep = SleepCoach.report(days: metrics, settings: settings.sleep, goal: settings.profile.goal, today: today)
     // Dieselben Ziele wie im Reiter Ernährung und im Widget.
     facts.targets = NutritionViewModel.targets(

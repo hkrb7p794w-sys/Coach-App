@@ -219,6 +219,20 @@ public struct MobilitySettings: Codable, Equatable, Hashable, Sendable {
     log = (try? container.decode([MobilityLogEntry].self, forKey: .log)) ?? []
   }
 
+  /// Eine Zeile für Chat und KI-Analyse: Wochenzahl und Einstufung der Selbsttests (keine Rohwerte).
+  public func contextLine(today: CalendarDay) -> String? {
+    let latest = MobilityTestResult.latest(results)
+    let tests = MobilityTest.all.compactMap { test -> String? in
+      guard let result = latest[test.id] else { return nil }
+      return "\(test.name) \(test.rating(result.value).label)"
+    }
+    let count = sessions(inWeekEnding: today)
+    guard count > 0 || !tests.isEmpty else { return nil }
+    var line = "Mobility: \(count) Einheiten in den letzten 7 Tagen"
+    if !tests.isEmpty { line += "; Selbsttests: " + tests.joined(separator: ", ") }
+    return line + "."
+  }
+
   /// Einheiten in den sieben Tagen bis `today` (einschließlich).
   public func sessions(inWeekEnding today: CalendarDay) -> Int {
     let start = today.adding(days: -6)
@@ -369,6 +383,14 @@ public enum MobilityPlanner {
       context: context, minutes: minutes, focus: focus.map(\.area),
       reasons: reasons.isEmpty ? [balancedReason] : reasons,
       blocks: blocks)
+  }
+
+  /// Mobility auf „Heute“ vorschlagen: an Tagen ohne Training und bei gelber oder roter Ampel (dann ersetzt eine
+  /// ruhige Einheit das harte Training), sofern heute noch keine eingetragen ist.
+  public static func suggestToday(hasTraining: Bool, recovery: RecoveryLevel?, doneToday: Bool) -> Bool {
+    guard !doneToday else { return false }
+    if !hasTraining { return true }
+    return recovery == .locker || recovery == .pause
   }
 
   /// Effektive Sätze je Muskel in den 48 Stunden vor `now`.
