@@ -13,7 +13,6 @@
  */
 import { readLimited } from "./tasks-util";
 
-
 export interface LeagueEntry {
   id: string;
   name: string;
