@@ -8,7 +8,9 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   Fortschrittsring, Symbol in der Mitte, Plakette („+“ zum Eintragen, Haken wenn erledigt), Titel und Wert; die
   letzte Kachel abgesetzt.
 - **Umsetzung:** Alle Homescreen-Widgets (Heute, Mahlzeiten, Ernährung, Health, Gym) nutzen dieselben Bausteine
-  (`WidgetHeader`, `RingTile`). Sperrbildschirm-Widgets bleiben wie bisher, weil iOS sie einfarbig zeichnet.
+  (`WidgetHeader`, `RingTile`). Die Sperrbildschirm-Widgets folgen demselben Aufbau mit eigenen einfarbigen
+  Bausteinen (`LockHeader`, `LockRing`, `LockTile`, `LockCircle`, `LockRow`), weil iOS sie einfarbig zeichnet:
+  Symbole statt Emojis, Plakette als gefülltes Symbol (PR 109, PR 110).
 - **Serie im Widget:** `WidgetSnapshot.streak` aus `DailyStreak` (Training oder Mahlzeit, ein Joker je Woche). Am
   Folgetag läuft sie grau weiter („Heute noch etwas erfassen“), ältere Stände zeigen keine Serie – kein Text, der
   mit Verlust droht.
