@@ -595,9 +595,9 @@ struct MealsWidgetView: View {
       let parts =
         nutrition.meals ?? MealSplit.order.map { WidgetSnapshot.MealPart(category: $0, kcal: 0, target: nil) }
       switch family {
-      case .accessoryRectangular: rectangular(parts, streak: snapshot.streak)
+      case .accessoryRectangular: rectangular(parts, streak: snapshot.mealStreak)
       case .accessoryCircular: circular(nutrition)
-      default: medium(parts, nutrition: nutrition, streak: snapshot.streak)
+      default: medium(parts, nutrition: nutrition, streak: snapshot.mealStreak)
       }
     } else {
       NoDataView()
@@ -642,7 +642,9 @@ struct MealsWidgetView: View {
   private func rectangular(_ parts: [WidgetSnapshot.MealPart], streak: WidgetSnapshot.Streak?) -> some View {
     VStack(spacing: 2) {
       if let streak, streak.days > 0 {
-        LockHeader(title: streak.activeToday ? "Weiter so!" : "Heute eintragen", streak: streak)
+        LockHeader(
+          title: streak.isRunning ? "Weiter so!" : streak.activeToday ? "Guter Start" : "Heute eintragen",
+          streak: streak)
       }
       HStack(alignment: .top, spacing: 0) {
         ForEach(parts) { part in
@@ -671,10 +673,10 @@ struct NutritionWidgetView: View {
     if let snapshot = display?.snapshot, let nutrition = snapshot.nutrition {
       switch family {
       case .accessoryCircular: circular(nutrition)
-      case .accessoryRectangular: rectangular(nutrition, streak: snapshot.streak)
+      case .accessoryRectangular: rectangular(nutrition, streak: snapshot.mealStreak)
       case .accessoryInline: Text(headline(nutrition))
-      case .systemMedium: medium(nutrition, streak: snapshot.streak)
-      default: small(nutrition, streak: snapshot.streak)
+      case .systemMedium: medium(nutrition, streak: snapshot.mealStreak)
+      default: small(nutrition, streak: snapshot.mealStreak)
       }
     } else {
       NoDataView()
@@ -938,6 +940,7 @@ extension WidgetSnapshot {
   fileprivate func withStreak() -> WidgetSnapshot {
     var copy = self
     copy.streak = Streak(days: 34, activeToday: true)
+    copy.mealStreak = Streak(days: 34, activeToday: true)
     return copy
   }
 }

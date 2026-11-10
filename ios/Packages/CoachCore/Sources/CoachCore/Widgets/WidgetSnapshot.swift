@@ -19,6 +19,9 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
   public var health: [Health]
   /// Tages-Serie (`DailyStreak`); fehlt in älteren Ständen.
   public var streak: Streak?
+  /// Serie der Mahlzeiten: nur Tage mit eingetragener Mahlzeit, lückenlos (ohne Joker, ohne Training von der Uhr).
+  /// Für die Mahlzeiten- und Ernährungs-Anzeigen; fehlt in älteren Ständen.
+  public var mealStreak: Streak?
 
   public init(
     createdAt: Date, day: CalendarDay, today: Today, nutrition: Nutrition?, gym: Gym?, health: [Health]
@@ -47,8 +50,12 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
     public var headline: String {
       if days <= 0 { return "Heute starten – erster Tag!" }
       if !activeToday { return "Heute noch etwas erfassen" }
-      if days >= 3 { return "Serie läuft – weiter so!" }
+      if isRunning { return "Serie läuft – weiter so!" }
       return "Guter Start – dranbleiben!"
+    }
+
+    /// Erst ab drei Tagen in Folge und mit Eintrag heute ist es eine laufende Serie.
+    public var isRunning: Bool { days >= 3 && activeToday
     }
   }
 
@@ -280,8 +287,10 @@ extension WidgetSnapshot {
       // Am Folgetag läuft die Serie weiter, heute ist aber noch nichts erfasst; älter ist sie unbekannt.
       if day == self.day.adding(days: 1) {
         snapshot.streak?.activeToday = false
+        snapshot.mealStreak?.activeToday = false
       } else {
         snapshot.streak = nil
+        snapshot.mealStreak = nil
       }
       snapshot.today = Today(level: nil, headline: "Neuer Tag – App öffnen")
       snapshot.nutrition = nutrition.map { _ in
