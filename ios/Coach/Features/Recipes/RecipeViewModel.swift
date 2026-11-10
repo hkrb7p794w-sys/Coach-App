@@ -3,11 +3,19 @@ import Foundation
 import Observation
 import SwiftData
 
-/// Rezeptideen für die kommende Woche: Tagesziele aus Wochenplan und Ernährungszielen, Lücken der letzten zwei
-/// Wochen und häufige Lebensmittel als Eingabe; die KI schlägt Gerichte vor, die Regeln prüfen und passen an.
+/// Rezeptideen für einen frei gewählten Zeitraum (1 bis 14 Tage): gleiche Tagesziele aus dem Durchschnitt einer
+/// typischen Woche, Lücken der letzten zwei Wochen und häufige Lebensmittel als Eingabe; die KI schlägt Gerichte
+/// vor, die Regeln prüfen und passen an. Tage ohne brauchbare Rezepte werden einmal nachgefordert.
 @Observable
 final class RecipeViewModel {
   static let checkedKey = "recipes.checked"
+  static let startKey = "recipes.periodStart"
+  static let lengthKey = "recipes.periodDays"
+  static let defaultLength = 7
+
+  /// Gewählter Zeitraum: erster Tag und Anzahl Tage.
+  private(set) var start: CalendarDay
+  private(set) var length: Int
 
   private(set) var plan: WeeklyRecipePlan?
   private(set) var targets: [RecipeDayTarget] = []
@@ -24,6 +32,9 @@ final class RecipeViewModel {
     self.defaults = defaults
     self.fileURL = fileURL
     checked = Set(defaults.stringArray(forKey: Self.checkedKey) ?? [])
+    start = defaults.string(forKey: Self.startKey).flatMap(CalendarDay.init(iso:)) ?? CalendarDay(date: .now)
+    let stored = defaults.integer(forKey: Self.lengthKey)
+    length = stored > 0 ? min(stored, RecipePlanner.maxPeriodDays) : Self.defaultLength
     plan = fileURL.flatMap { try? Data(contentsOf: $0) }.flatMap {
       let decoder = JSONDecoder()
       return try? decoder.decode(WeeklyRecipePlan.self, from: $0)
@@ -37,25 +48,35 @@ final class RecipeViewModel {
     .appending(path: "recipes.json")
   }
 
-  /// Erster Tag der Planung: der kommende Montag (am Sonntag also morgen).
-  static func startDay(today: CalendarDay) -> CalendarDay {
-    today.adding(days: 7 - today.weekdayIndex)
+  /// Zeitraum wählen (ab heute, 1 bis 14 Tage); die Ziele werden mit dem nächsten `update` neu berechnet.
+  func setPeriod(start: CalendarDay, days: Int, today: CalendarDay = CalendarDay(date: .now)) {
+    self.start = max(start, today)
+    length = min(max(days, 1), RecipePlanner.maxPeriodDays)
+    defaults.set(self.start.iso, forKey: Self.startKey)
+    defaults.set(length, forKey: Self.lengthKey)
   }
 
-  /// Tagesziele und Lücken neu berechnen.
+  /// Tage des Zeitraums, für die es noch keine Rezepte gibt.
+  var missing: [RecipeDayTarget] { RecipePlanner.missing(targets, in: plan) }
+
+  /// Tagesziele und Lücken neu berechnen. Die Ziele sind an jedem Tag gleich: der Durchschnitt der nächsten sieben
+  /// Tage aus Plan und Ernährungszielen – die Rezepte hängen nicht an einzelnen Trainingstagen.
   func update(
     settings: CoachSettings, garminProfile: GarminProfile?, meals: [MealRecord],
     today: CalendarDay = CalendarDay(date: .now)
   ) {
-    let start = Self.startDay(today: today)
-    targets = (0..<7).map { offset in
-      let day = start.adding(days: offset)
+    // Ein gespeicherter Beginn in der Vergangenheit rückt auf heute.
+    if start < today { start = today }
+    let reference = (0..<7).map { offset in
+      let day = today.adding(days: offset)
       let (items, sessions) = Self.planned(day: day, settings: settings)
       let values = NutritionPlanner.compute(
         activities: [], planItems: items, settings: settings.nutrition, garminProfile: garminProfile, day: day,
         hasGarminData: false)
       return RecipeDayTarget(day: day, sessions: sessions, targets: values)
     }
+    targets = RecipePlanner.uniformTargets(
+      days: RecipePlanner.period(start: start, days: length), reference: reference)
     gaps = Self.gaps(meals: meals, settings: settings, garminProfile: garminProfile, today: today)
   }
 
@@ -86,19 +107,51 @@ final class RecipeViewModel {
     return RecipePlanner.gaps(dailyTotals: totals, targets: reference.values)
   }
 
-  func generate(ai: AIClient, settings: CoachSettings, favorites: [String], now: Date = .now) async {
+  /// Rezepte für den Zeitraum erstellen. `missingOnly`: nur Tage ohne Rezepte ergänzen, vorhandene bleiben.
+  func generate(
+    ai: AIClient, settings: CoachSettings, favorites: [String], missingOnly: Bool = false, now: Date = .now
+  ) async {
     guard ai.isConfigured else {
       errorMessage = "Für Rezeptideen muss der KI-Worker eingerichtet sein (Einstellungen › KI-Worker)."
       return
     }
-    guard !isWorking, !targets.isEmpty else { return }
+    let wanted = missingOnly ? missing : targets
+    guard !isWorking, !wanted.isEmpty else { return }
     isWorking = true
     defer { isWorking = false }
-    // Nebeneinander in Teilen: Eine Antwort über sieben Tage überschreitet das Antwortlimit der KI.
-    let batches = RecipePlanner.batches(targets)
+    let first = await requestDays(wanted, ai: ai, settings: settings, favorites: favorites, now: now)
+    var result = first.plan
+    let failures = first.failures
+    // Tage ohne brauchbare Rezepte (Antwort unvollständig oder alle Gerichte verworfen) genau einmal nachfordern.
+    let open = RecipePlanner.missing(wanted, in: result)
+    if !open.isEmpty, result != nil {
+      let second = await requestDays(open, ai: ai, settings: settings, favorites: favorites, now: now).plan
+      if let second { result = result?.adding(second) ?? second }
+    }
+    guard var plan = result else {
+      errorMessage = failures.first ?? "Die KI hat keine brauchbaren Rezepte geliefert. Bitte erneut versuchen."
+      return
+    }
+    if missingOnly, let existing = self.plan { plan = existing.adding(plan) }
+    // Hinweise zu fehlenden Tagen sind nach dem zweiten Anlauf überholt; unten steht der aktuelle Stand.
+    let stillOpen = RecipePlanner.missing(targets, in: plan)
+    plan.notes.removeAll { $0.hasSuffix("keine Rezepte erhalten.") || $0.hasSuffix("versucht es noch einmal.") }
+    if !stillOpen.isEmpty {
+      plan.notes.append(
+        "Für \(stillOpen.count) \(stillOpen.count == 1 ? "Tag" : "Tage") gab es keine passenden Rezepte. "
+          + "„Fehlende Tage erstellen“ versucht es noch einmal.")
+    }
+    store(plan, keepChecked: missingOnly)
+    errorMessage = nil
+  }
+
+  /// Nebeneinander in Teilen: Eine Antwort über viele Tage überschreitet das Antwortlimit der KI.
+  private func requestDays(
+    _ days: [RecipeDayTarget], ai: AIClient, settings: CoachSettings, favorites: [String], now: Date
+  ) async -> (plan: WeeklyRecipePlan?, failures: [String]) {
     var parts: [WeeklyRecipePlan] = []
     var failures: [String] = []
-    let requests = batches.map { batch in
+    let requests = RecipePlanner.batches(days).map { batch in
       Task { await requestBatch(batch, ai: ai, settings: settings, favorites: favorites, now: now) }
     }
     for request in requests {
@@ -107,15 +160,7 @@ final class RecipeViewModel {
       case .failed(let message): failures.append(message)
       }
     }
-    guard var plan = WeeklyRecipePlan.merged(parts, created: now) else {
-      errorMessage = failures.first ?? "Die KI hat keine brauchbaren Rezepte geliefert. Bitte erneut versuchen."
-      return
-    }
-    if !failures.isEmpty {
-      plan.notes.append("Nicht alle Tage konnten erstellt werden. „Neu erstellen“ versucht es noch einmal.")
-    }
-    store(plan)
-    errorMessage = nil
+    return (WeeklyRecipePlan.merged(parts, created: now), failures)
   }
 
   private nonisolated enum BatchResult: Sendable {
@@ -274,10 +319,12 @@ final class RecipeViewModel {
     defaults.set(Array(checked), forKey: Self.checkedKey)
   }
 
-  private func store(_ plan: WeeklyRecipePlan) {
+  private func store(_ plan: WeeklyRecipePlan, keepChecked: Bool = false) {
     self.plan = plan
-    checked = []
-    defaults.set([String](), forKey: Self.checkedKey)
+    if !keepChecked {
+      checked = []
+      defaults.set([String](), forKey: Self.checkedKey)
+    }
     if let fileURL, let data = try? JSONEncoder().encode(plan) {
       try? data.write(to: fileURL, options: .atomic)
     }

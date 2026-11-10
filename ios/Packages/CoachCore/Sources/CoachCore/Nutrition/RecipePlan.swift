@@ -158,7 +158,8 @@ public enum RecipePlanner {
     favorites: [String]
   ) -> [String: JSONValue] {
     let dayLines = days.map { target -> JSONValue in
-      let sessions = target.sessions.isEmpty ? "frei" : target.sessions.joined(separator: " + ")
+      // Ohne Einheiten (frei gewählter Zeitraum): Die Rezepte hängen nicht am Trainingsplan.
+      let sessions = target.sessions.isEmpty ? "nicht berücksichtigt" : target.sessions.joined(separator: " + ")
       return .object([
         "datum": .string(target.day.iso),
         "wochentag": .string(Weekday(day: target.day).long),
@@ -197,8 +198,12 @@ public enum RecipePlanner {
     guard let rawDays = output["tage"]?.arrayValue else { return nil }
     var notes: [String] = []
     var days: [RecipeDay] = []
-    for target in targets {
-      let raw = rawDays.first { $0["datum"]?.stringValue == target.day.iso }
+    // Schreibt die KI das Datum anders, zählt die Reihenfolge – sonst blieben Tage ohne Rezepte.
+    let datesMatch = targets.contains { target in rawDays.contains { $0["datum"]?.stringValue == target.day.iso } }
+    for (index, target) in targets.enumerated() {
+      let raw =
+        datesMatch || rawDays.count != targets.count
+        ? rawDays.first { $0["datum"]?.stringValue == target.day.iso } : rawDays[index]
       var recipes = (raw?["gerichte"]?.arrayValue ?? []).compactMap(recipe)
       let before = recipes.count
       recipes = recipes.filter { recipe in
@@ -440,15 +445,65 @@ public enum RecipePlanner {
     public var aisle: ShoppingAisle { ShoppingAisle.of(name: name, group: group) }
   }
 
-  /// Einkaufsliste der Woche: gleiche Zutaten zusammengefasst, für `servings` Personen.
-  public static func shoppingList(_ plan: WeeklyRecipePlan, servings: Int) -> [ShoppingItem] {
+  /// Einkaufsliste: gleiche Zutaten aller Rezepte im Zeitraum zusammengefasst, für `servings` Personen.
+  /// Ohne `from`/`to` der ganze Plan.
+  public static func shoppingList(
+    _ plan: WeeklyRecipePlan, servings: Int, from: CalendarDay? = nil, to: CalendarDay? = nil
+  ) -> [ShoppingItem] {
     var sums: [String: (name: String, grams: Double, group: String?)] = [:]
-    for item in plan.days.flatMap(\.recipes).flatMap(\.ingredients) {
+    let days = plan.days.filter { day in (from.map { day.day >= $0 } ?? true) && (to.map { day.day <= $0 } ?? true) }
+    for item in days.flatMap(\.recipes).flatMap(\.ingredients) {
       let key = item.name.lowercased().trimmingCharacters(in: .whitespaces)
       let current = sums[key] ?? (item.name, 0, item.group)
       sums[key] = (current.name, current.grams + item.grams * Double(max(servings, 1)), current.group ?? item.group)
     }
     return sums.values.map { ShoppingItem(name: $0.name, grams: ($0.grams / 5).rounded() * 5, group: $0.group) }
       .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+  }
+}
+
+extension RecipePlanner {
+  /// Längster Zeitraum, für den Rezepte auf einmal erstellt werden.
+  public static let maxPeriodDays = 14
+
+  /// Tage eines frei gewählten Zeitraums (1 bis 14 Tage ab `start`).
+  public static func period(start: CalendarDay, days: Int) -> [CalendarDay] {
+    (0..<min(max(days, 1), maxPeriodDays)).map { start.adding(days: $0) }
+  }
+
+  /// Gleiche Ziele für jeden Tag des Zeitraums: der Durchschnitt einer typischen Woche (`reference`, aus Plan und
+  /// Ernährungszielen). So hängen die Rezepte nicht an einzelnen Trainingstagen, und die Energie passt im Schnitt.
+  public static func uniformTargets(days: [CalendarDay], reference: [RecipeDayTarget]) -> [RecipeDayTarget] {
+    guard !reference.isEmpty else { return [] }
+    let count = Double(reference.count)
+    func mean(_ value: (RecipeDayTarget) -> Double) -> Double {
+      (reference.reduce(0) { $0 + value($1) } / count).rounded()
+    }
+    // Häufigster Tagestyp der Woche; bei Gleichstand der ruhigere.
+    let counts = Dictionary(grouping: reference, by: \.dayType).mapValues(\.count)
+    let dayType = counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }.first?.key ?? .light
+    return days.map {
+      RecipeDayTarget(
+        day: $0, sessions: [], dayType: dayType, kcal: mean(\.kcal), protein: mean(\.protein), carbs: mean(\.carbs),
+        fat: mean(\.fat))
+    }
+  }
+
+  /// Tage des Zeitraums, für die der Plan (noch) keine Rezepte hat.
+  public static func missing(_ targets: [RecipeDayTarget], in plan: WeeklyRecipePlan?) -> [RecipeDayTarget] {
+    targets.filter { target in plan?.day(target.day)?.recipes.isEmpty ?? true }
+  }
+}
+
+extension WeeklyRecipePlan {
+  /// Neue Tage übernehmen; vorhandene Tage bleiben, soweit sie nicht ersetzt werden.
+  public func adding(_ other: WeeklyRecipePlan) -> WeeklyRecipePlan {
+    let replaced = Set(other.days.map(\.day))
+    var result = self
+    result.days = (days.filter { !replaced.contains($0.day) } + other.days).sorted { $0.day < $1.day }
+    result.created = other.created
+    if !source.contains(other.source) { result.source = [source, other.source].joined(separator: ", ") }
+    result.notes = notes + other.notes.filter { !notes.contains($0) }
+    return result
   }
 }

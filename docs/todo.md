@@ -182,6 +182,10 @@ hier notieren und als PR beheben.
       Report“; Tippen öffnet Gesundheit. App vor 8 Uhr geöffnet (Daten der Nacht da) → Text nennt die Einordnung.
       Einstellungen › Allgemein › Erinnerungen › Schalter aus → keine Mitteilung mehr.
 
+- [ ] **Rezeptideen für einen Zeitraum:** Ernährung › Rezeptideen › „Ab“ und Anzahl Tage wählen (z. B. 5 Tage ab
+      morgen) › „Rezeptideen erstellen“ → jeder Tag hat Gerichte. Fehlt ein Tag: „Fehlende Tage erstellen“ ergänzt ihn.
+      „Einkaufsliste für den Zeitraum“ › „Von“/„Bis“ ändern → Mengen passen zu den gewählten Tagen; Abhaken bleibt.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).
