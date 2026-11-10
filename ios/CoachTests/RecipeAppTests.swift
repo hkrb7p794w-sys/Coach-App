@@ -20,19 +20,22 @@ struct RecipeAppTests {
     return settings
   }
 
-  @Test func targetsCoverNextWeekWithTrainingDays() throws {
+  @Test func targetsCoverTheChosenPeriodWithEqualDays() throws {
     let settings = try settings()
     let viewModel = RecipeViewModel(
       defaults: try #require(UserDefaults(suiteName: "r-\(UUID().uuidString)")), fileURL: nil)
+    viewModel.setPeriod(start: wednesday.adding(days: 2), days: 3, today: wednesday)
     viewModel.update(settings: settings, garminProfile: nil, meals: [], today: wednesday)
-    #expect(viewModel.targets.count == 7)
-    #expect(viewModel.targets.first?.day == CalendarDay(year: 2026, month: 11, day: 2))
-    #expect(viewModel.targets[1].sessions == ["Krafttraining"])
-    let sunday = try #require(viewModel.targets.last)
-    #expect(sunday.sessions == ["Langer Lauf"])
-    #expect(sunday.dayType > viewModel.targets[0].dayType)
-    #expect(sunday.carbs > viewModel.targets[0].carbs)
-    #expect(RecipeViewModel.startDay(today: CalendarDay(year: 2026, month: 11, day: 1)) == viewModel.targets.first?.day)
+    #expect(viewModel.targets.map(\.day) == (2...4).map { wednesday.adding(days: $0) })
+    // Unabhängig vom Trainingsplan: an jedem Tag dieselben Ziele, ohne Einheiten.
+    #expect(Set(viewModel.targets.map(\.kcal)).count == 1)
+    #expect(viewModel.targets.allSatisfy { $0.sessions.isEmpty && $0.kcal > 0 })
+    #expect(viewModel.missing.count == 3)
+    // Höchstens 14 Tage, nicht in der Vergangenheit.
+    viewModel.setPeriod(start: wednesday.adding(days: -5), days: 40, today: wednesday)
+    viewModel.update(settings: settings, garminProfile: nil, meals: [], today: wednesday)
+    #expect(viewModel.targets.count == 14)
+    #expect(viewModel.targets.first?.day == wednesday)
   }
 
   @Test func gapsComeFromLoggedMeals() throws {

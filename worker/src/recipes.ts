@@ -42,7 +42,7 @@ export function weeklyRecipesPrompt(input: Record<string, unknown>): string {
       ? "Frühstück, Mittagessen, Abendessen"
       : "Frühstück, Mittagessen, Abendessen, Snack";
   return [
-    "Du bist Sporternährungs-Coach und Koch. Erstelle alltagstaugliche Rezeptideen für die kommende Woche.",
+    "Du bist Sporternährungs-Coach und Koch. Erstelle alltagstaugliche Rezeptideen für die genannten Tage.",
     `Ernährungsweise: ${DIET_TEXT[text(input.diet, 20)] ?? "Mischkost."}`,
     `Ziel: ${text(input.goal, 80) || "Gewicht halten"}.`,
     `Allergene/Unverträglichkeiten (strikt meiden, auch in Spuren als Zutat): ${allergens.join(", ") || "keine"}.`,

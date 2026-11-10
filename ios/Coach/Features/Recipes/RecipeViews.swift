@@ -2,7 +2,7 @@ import CoachCore
 import SwiftData
 import SwiftUI
 
-/// Rezeptideen für die kommende Woche, passend zu Trainingstagen, Zielen und Ernährungsweise.
+/// Rezeptideen für einen frei gewählten Zeitraum, passend zu Zielen und Ernährungsweise; dazu die Einkaufsliste.
 struct RecipesView: View {
   @Environment(AppModel.self) private var model
   @Environment(\.modelContext) private var context
@@ -14,7 +14,8 @@ struct RecipesView: View {
   private var refreshKey: String {
     let settings = model.settings
     return "\(meals.count)-\(settings.profile.hashValue)-\(settings.planAdjustments.hashValue)-"
-      + "\(settings.nutrition.goal.rawValue)-\(settings.nutrition.diet.rawValue)"
+      + "\(settings.nutrition.goal.rawValue)-\(settings.nutrition.diet.rawValue)-"
+      + "\(viewModel.start.iso)-\(viewModel.length)"
   }
 
   var body: some View {
@@ -30,21 +31,46 @@ struct RecipesView: View {
         Text("Für dich, eine verbundene Person oder euch beide; auch zum Vorkochen für mehrere Tage.")
       }
       Section {
+        DatePicker(
+          "Ab",
+          selection: Binding(
+            get: { viewModel.start.localDate },
+            set: { viewModel.setPeriod(start: CalendarDay(date: $0), days: viewModel.length) }),
+          in: Date.now...Date.now.addingTimeInterval(60 * 24 * 3600), displayedComponents: .date)
+        Stepper(
+          "\(viewModel.length) \(viewModel.length == 1 ? "Tag" : "Tage")",
+          value: Binding(
+            get: { viewModel.length }, set: { viewModel.setPeriod(start: viewModel.start, days: $0) }),
+          in: 1...RecipePlanner.maxPeriodDays)
         if let first = viewModel.targets.first, let last = viewModel.targets.last {
-          Text("Woche \(Formatters.shortDate(first.day)) – \(Formatters.shortDate(last.day))").font(.headline)
+          Text(
+            first.day == last.day
+              ? Formatters.day(first.day) : "\(Formatters.shortDate(first.day)) – \(Formatters.shortDate(last.day))"
+          )
+          .font(.headline)
+          Text(
+            "Ziel je Tag: \(Int(first.kcal)) kcal, \(Int(first.protein)) g Protein, \(Int(first.carbs)) g KH – der "
+              + "Durchschnitt deiner Woche, an jedem Tag gleich. Die KI schlägt Gerichte vor; die App prüft "
+              + "Ernährungsweise und Allergene und passt die Mengen an."
+          )
+          .font(.footnote)
+          .foregroundStyle(.secondary)
         }
-        Text(
-          "Die App berechnet für jeden Tag Energie, Protein und Kohlenhydrate aus deinem Wochenplan und deinem Ziel. "
-            + "Die KI schlägt Gerichte vor; die App prüft Ernährungsweise und Allergene und passt die Mengen an."
-        )
-        .font(.footnote)
-        .foregroundStyle(.secondary)
         Button(plan == nil ? "Rezeptideen erstellen" : "Neu erstellen", systemImage: "sparkles") {
           Task {
             await viewModel.generate(ai: model.ai, settings: model.settings, favorites: foods.prefix(15).map(\.name))
           }
         }
         .disabled(viewModel.isWorking)
+        if plan != nil, !viewModel.missing.isEmpty {
+          Button("Fehlende Tage erstellen (\(viewModel.missing.count))", systemImage: "plus.circle") {
+            Task {
+              await viewModel.generate(
+                ai: model.ai, settings: model.settings, favorites: foods.prefix(15).map(\.name), missingOnly: true)
+            }
+          }
+          .disabled(viewModel.isWorking)
+        }
         Button("Wünsche und Allergene", systemImage: "slider.horizontal.3") { showPreferences = true }
         if let error = viewModel.errorMessage {
           Text(error).font(.footnote).foregroundStyle(.red)
@@ -76,14 +102,10 @@ struct RecipesView: View {
           NavigationLink {
             ShoppingListView(viewModel: viewModel, servings: model.settings.recipes.servings)
           } label: {
-            Label("Einkaufsliste", systemImage: "cart")
+            Label("Einkaufsliste für den Zeitraum", systemImage: "cart")
           }
         } footer: {
           Text("Quelle: \(plan.source). Nährwerte der Zutaten sind KI-Schätzungen wie bei der Mahlzeiten-Analyse.")
-        }
-      } else {
-        ForEach(viewModel.targets) { target in
-          Section(Formatters.day(target.day)) { TargetRow(target: target) }
         }
       }
       Section {
@@ -105,23 +127,6 @@ struct RecipesView: View {
   }
 }
 
-private struct TargetRow: View {
-  let target: RecipeDayTarget
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(target.sessions.isEmpty ? "Kein Training geplant" : target.sessions.joined(separator: " + "))
-        .font(.subheadline)
-      Text(
-        "\(target.dayType.label) · Ziel \(Int(target.kcal)) kcal, \(Int(target.protein)) g Protein, "
-          + "\(Int(target.carbs)) g KH"
-      )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-    }
-  }
-}
-
 private struct RecipeDaySection: View {
   let target: RecipeDayTarget
   let day: RecipeDay?
@@ -129,7 +134,6 @@ private struct RecipeDaySection: View {
 
   var body: some View {
     Section {
-      TargetRow(target: target)
       if let day {
         ForEach(day.recipes) { recipe in
           NavigationLink {
@@ -154,7 +158,9 @@ private struct RecipeDaySection: View {
         .font(.caption)
         .foregroundStyle(.secondary)
       } else {
-        Text("Für diesen Tag gibt es keine passenden Rezepte.").font(.footnote).foregroundStyle(.secondary)
+        Text("Für diesen Tag gibt es noch keine Rezepte – oben „Fehlende Tage erstellen“.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
       }
     } header: {
       Text(Formatters.day(target.day))
@@ -227,11 +233,33 @@ struct ShoppingListView: View {
   let viewModel: RecipeViewModel
   let servings: Int
   @Environment(AppModel.self) private var model
+  /// Gewählter Ausschnitt; `nil` = erster bzw. letzter Tag mit Rezepten.
+  @State private var from: CalendarDay?
+  @State private var to: CalendarDay?
 
   var body: some View {
-    let items = viewModel.plan.map { RecipePlanner.shoppingList($0, servings: servings) } ?? []
+    let days = (viewModel.plan?.days ?? []).filter { !$0.recipes.isEmpty }.map(\.day)
+    let today = CalendarDay(date: .now)
+    let first = from ?? days.first ?? today
+    let last = max(to ?? days.last ?? first, first)
+    let items = viewModel.plan.map { RecipePlanner.shoppingList($0, servings: servings, from: first, to: last) } ?? []
     let groups = Dictionary(grouping: items, by: \.aisle)
     List {
+      if days.count > 1 {
+        Section {
+          Picker("Von", selection: Binding(get: { first }, set: { from = $0 })) {
+            ForEach(days, id: \.self) { Text(Formatters.day($0)).tag($0) }
+          }
+          Picker("Bis", selection: Binding(get: { last }, set: { to = $0 })) {
+            ForEach(days.filter { $0 >= first }, id: \.self) { Text(Formatters.day($0)).tag($0) }
+          }
+        } header: {
+          Text("Zeitraum")
+        } footer: {
+          let count = days.filter { $0 >= first && $0 <= last }.count
+          Text("Alle Rezepte von \(count) \(count == 1 ? "Tag" : "Tagen") zusammengeführt.")
+        }
+      }
       // Nach Supermarkt-Abteilung, damit man den Laden einmal durchläuft statt hin und her.
       ForEach(ShoppingAisle.allCases.filter { groups[$0] != nil }) { aisle in
         Section(aisle.label) {

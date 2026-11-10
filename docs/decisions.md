@@ -2,6 +2,22 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Rezeptideen für einen frei gewählten Zeitraum
+
+- **Rückmeldung des Nutzers:** Für manche Tage entstanden keine Rezepte; die Rezepte sollen nicht vom Trainingsplan
+  abhängen, sondern für einen frei wählbaren Zeitraum entstehen, mit einer Einkaufsliste über diesen Zeitraum.
+- **Zeitraum:** Beginn (ab heute) und 1 bis 14 Tage statt fest „nächste Woche ab Montag“.
+- **Ziele je Tag gleich:** der Durchschnitt der nächsten sieben Tage aus Plan und Ernährungszielen
+  (`RecipePlanner.uniformTargets`). So trifft die Energie im Schnitt den Bedarf, ohne dass ein Tag an einer
+  bestimmten Einheit hängt; an die KI geht „Training: nicht berücksichtigt“. Die Schutzgrenzen der Ernährungsziele
+  gelten unverändert, weil die Werte weiter aus `NutritionPlanner` stammen.
+- **Fehlende Tage:** Ursache waren unvollständige Antworten und Tage, deren Gerichte die Prüfung alle verworfen hat
+  (Ernährungsweise, Allergene, unstimmige Nährwerte). Jetzt fordert die App solche Tage einmal nach; schreibt die KI
+  das Datum anders, zählt die Reihenfolge. Was dann noch fehlt, ergänzt „Fehlende Tage erstellen“, ohne vorhandene
+  Rezepte und Haken der Einkaufsliste zu verlieren.
+- **Einkaufsliste:** führt alle Rezepte des Plans zusammen; „Von“/„Bis“ grenzt auf einen Teil des Zeitraums ein
+  (`RecipePlanner.shoppingList(from:to:)`).
+
 ## 2026-11-10 – Kopfzeile der Mahlzeiten-Anzeigen passt sich dem Tag an
 
 - **Rückmeldung des Nutzers:** „Guter Start – dranbleiben!“ stand den ganzen Tag da.

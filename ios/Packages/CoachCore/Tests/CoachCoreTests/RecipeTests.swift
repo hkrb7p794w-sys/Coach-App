@@ -148,6 +148,39 @@ struct RecipePlanTests {
     let list = RecipePlanner.shoppingList(plan, servings: 2)
     #expect(list.map(\.name) == ["Testbanane", "Testflocken"])
     #expect(list.last?.grams == 240)
+    // Einkaufsliste nur für einen Teil des Zeitraums.
+    #expect(RecipePlanner.shoppingList(plan, servings: 2, from: monday, to: monday) == list)
+    #expect(RecipePlanner.shoppingList(plan, servings: 2, from: monday.adding(days: 1)).isEmpty)
+
+    // Frei gewählter Zeitraum: gleiche Ziele je Tag aus dem Durchschnitt, höchstens 14 Tage.
+    let days = RecipePlanner.period(start: monday, days: 3)
+    #expect(days == [monday, monday.adding(days: 1), monday.adding(days: 2)])
+    #expect(RecipePlanner.period(start: monday, days: 40).count == 14)
+    #expect(RecipePlanner.period(start: monday, days: 0).count == 1)
+    let reference = [
+      RecipeDayTarget(day: monday, sessions: ["Lauf"], dayType: .hard, kcal: 3000, protein: 150, carbs: 400, fat: 80),
+      RecipeDayTarget(day: monday, sessions: [], dayType: .restDay, kcal: 2000, protein: 150, carbs: 200, fat: 70),
+      RecipeDayTarget(day: monday, sessions: [], dayType: .restDay, kcal: 2200, protein: 150, carbs: 210, fat: 75),
+    ]
+    let uniform = RecipePlanner.uniformTargets(days: days, reference: reference)
+    #expect(uniform.map(\.kcal) == [2400, 2400, 2400])
+    #expect(uniform.allSatisfy { $0.sessions.isEmpty && $0.dayType == .restDay && $0.protein == 150 })
+    #expect(RecipePlanner.uniformTargets(days: days, reference: []).isEmpty)
+
+    // Fehlende Tage erkennen und nachträglich ergänzen, ohne vorhandene zu verlieren.
+    #expect(RecipePlanner.missing(uniform, in: plan).map(\.day) == [monday.adding(days: 1), monday.adding(days: 2)])
+    #expect(RecipePlanner.missing(uniform, in: nil).count == 3)
+    let tuesday = monday.adding(days: 1)
+    let more = try #require(
+      RecipePlanner.plan(
+        output: output([(tuesday, dishes)]),
+        targets: [
+          RecipeDayTarget(day: tuesday, sessions: [], dayType: .restDay, kcal: 552, protein: 0, carbs: 0, fat: 0)
+        ],
+        diet: .omnivore, allergens: [], source: "", created: .now))
+    let both = plan.adding(more)
+    #expect(both.days.map(\.day) == [monday, tuesday])
+    #expect(RecipePlanner.missing(uniform, in: both).map(\.day) == [monday.adding(days: 2)])
   }
 }
 
@@ -172,7 +205,7 @@ struct RecipeInputTests {
     #expect(first?["wochentag"]?.stringValue == "Montag")
     #expect(first?["training"]?.stringValue == "Lockerer Lauf")
     #expect(first?["kcal"]?.doubleValue == 2000)
-    #expect(input["days"]?.arrayValue?.last?["training"]?.stringValue == "frei")
+    #expect(input["days"]?.arrayValue?.last?["training"]?.stringValue == "nicht berücksichtigt")
     #expect(input["diet"]?.stringValue == "vegetarisch")
     #expect(input["allergens"]?.arrayValue?.first?.stringValue == "Erdnüsse")
     #expect(input["snacks"] == .bool(false))
