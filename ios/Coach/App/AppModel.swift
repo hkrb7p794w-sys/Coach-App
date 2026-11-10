@@ -87,7 +87,19 @@ final class AppModel {
     guard settings.profile.onboardingDone, !isDemo else { return }
     await reminders.refresh(
       seasonSchedule: settings.profile.mode == .season ? seasonSchedule : nil, log: trainingLog(),
-      loggedMeals: loggedMeals())
+      loggedMeals: loggedMeals(), morningSummary: morningSummary())
+  }
+
+  /// Einordnung der letzten Nacht für die 8-Uhr-Mitteilung; `nil`, solange die Werte von heute fehlen.
+  func morningSummary(now: Date = .now) -> String? {
+    guard settings.reminders.morningReport else { return nil }
+    let today = CalendarDay(date: now)
+    let start = today.adding(days: -60).iso
+    let query = FetchDescriptor<DailyMetricsRecord>(
+      predicate: #Predicate { $0.dayKey >= start }, sortBy: [SortDescriptor(\.dayKey)])
+    let days = ((try? container.mainContext.fetch(query)) ?? []).compactMap(\.metrics)
+    return ReminderPlanner.morningSummary(
+      MorningReport.make(days: days, today: today, sleep: settings.sleep, goal: settings.profile.goal))
   }
 
   /// Heute und morgen schon erfasste Mahlzeiten (Wasser zählt nicht) – dafür keine Erinnerung.

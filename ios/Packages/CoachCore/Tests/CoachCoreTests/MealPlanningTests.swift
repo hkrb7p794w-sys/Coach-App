@@ -84,6 +84,16 @@ struct MealPlanningTests {
     #expect(ShoppingAisle.of(name: "Skyr", group: "milch") == .cooled)
     #expect(ShoppingAisle.of(name: "Irgendwas", group: nil) == .other)
 
+    // Morning Report um 8 Uhr: heute mit Einordnung, danach allgemein; nach 8 Uhr erst ab morgen.
+    let morning = ReminderPlanner.morningReport(today: today, minutesNow: 7 * 60, summary: " Gut erholt. ", days: 3)
+    #expect(morning.map(\.day) == [today, today.adding(days: 1), today.adding(days: 2)])
+    #expect(morning.map(\.hour) == [8, 8, 8])
+    #expect(morning[0].body == "Gut erholt.")
+    #expect(morning[1].body == ReminderPlanner.morningReportFallback)
+    #expect(morning[0].id == "coach.reminder.morningReport.\(today.iso)")
+    let late = ReminderPlanner.morningReport(today: today, minutesNow: 8 * 60, days: 3)
+    #expect(late.first?.day == today.adding(days: 1))
+    #expect(ReminderPlanner.morningReport(today: today, minutesNow: 0, days: 1).first?.body.isEmpty == false)
     let notes = ReminderPlanner.nutritionReview(today: today, minutesNow: 21 * 60, days: 3)
     #expect(notes.map(\.day) == [today.adding(days: 1), today.adding(days: 2)])
     #expect(notes.first?.hour == 20)

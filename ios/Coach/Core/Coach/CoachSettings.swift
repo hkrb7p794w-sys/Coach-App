@@ -470,6 +470,8 @@ struct ReminderSettings: Codable, Equatable, Hashable {
   var nutritionReview = false
   /// Erinnerungen an Mahlzeiten (je Mahlzeit Uhrzeit und Schalter).
   var meals = MealReminderSettings()
+  /// Morgens um 8 Uhr eine Mitteilung zum Morning Report.
+  var morningReport = true
 
   init() {}
 
@@ -484,6 +486,7 @@ struct ReminderSettings: Codable, Equatable, Hashable {
     planningMinute = min(max((try? container.decodeIfPresent(Int.self, forKey: .planningMinute)) ?? 0, 0), 59)
     nutritionReview = (try? container.decodeIfPresent(Bool.self, forKey: .nutritionReview)) ?? false
     meals = (try? container.decodeIfPresent(MealReminderSettings.self, forKey: .meals)) ?? MealReminderSettings()
+    morningReport = (try? container.decodeIfPresent(Bool.self, forKey: .morningReport)) ?? true
   }
 
   /// Uhrzeit der Sonntags-Erinnerung für den DatePicker.

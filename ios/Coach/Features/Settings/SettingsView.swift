@@ -310,6 +310,7 @@ private struct ReminderSettingsSection: View {
       if settings.reminders.enabled {
         DatePicker("Uhrzeit", selection: $settings.reminders.time, displayedComponents: .hourAndMinute)
       }
+      Toggle("Morgens um 8 Uhr Morning Report", isOn: $settings.reminders.morningReport)
       Toggle("Sonntags „Nächste Woche planen“", isOn: $settings.reminders.weekPlanning)
       if settings.reminders.weekPlanning {
         DatePicker(
