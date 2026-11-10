@@ -2,6 +2,15 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Anmelde-Fenster schließt sich von selbst
+
+- **Rückmeldung des Nutzers:** Beim Anmelden verschwindet das Fenster. Die Ursache ließ sich ohne Gerät nicht
+  nachstellen; wahrscheinlich schließt SwiftUI ein Fenster, das an einer Zeile der Einstellungsliste hängt, sobald
+  sich der Abschnitt ändert (Anmelden wird durch den Kontonamen ersetzt, Meldung „abgemeldet“ erscheint).
+- **Änderung:** Das Fenster hängt jetzt am Einstellungsbildschirm selbst (`SettingsForm`), nicht am Abschnitt. Beim
+  Öffnen einer Einladung wird „Schon angemeldet“ vorab entschieden, damit das Fenster nicht beim Registrieren
+  (vor dem Wiederherstellungscode) wechselt.
+
 ## 2026-11-10 – Serie der Mahlzeiten zählt nur eingetragene Mahlzeiten
 
 - **Rückmeldung des Nutzers:** „Serie läuft – 28 Tage“, obwohl er an mehreren Tagen nichts eingetragen hatte. Grund:

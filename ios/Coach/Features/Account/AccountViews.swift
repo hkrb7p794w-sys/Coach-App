@@ -1,10 +1,12 @@
 import CoachCore
 import SwiftUI
 
-/// Abschnitt „Konto“ in den Einstellungen.
+/// Abschnitt „Konto“ in den Einstellungen. Das Anmelde-Fenster zeigt der Aufrufer außerhalb der Liste (`authMode`):
+/// Hängt es an der Zeile, schließt SwiftUI es, sobald sich der Abschnitt ändert – etwa wenn der Server die Sitzung
+/// meldet und „Anmelden“ durch den Kontonamen ersetzt wird, noch bevor das Fenster fertig ist.
 struct AccountSettingsSection: View {
   @Environment(AppModel.self) private var model
-  @State private var authMode: AccountAuthView.Mode?
+  @Binding var authMode: AccountAuthView.Mode?
 
   var body: some View {
     let account = model.account
@@ -35,7 +37,6 @@ struct AccountSettingsSection: View {
             + "deine Gesundheitsdaten bleiben auf diesem Gerät.")
       }
     }
-    .sheet(item: $authMode) { mode in AccountAuthView(initialMode: mode, invite: nil) }
   }
 }
 
