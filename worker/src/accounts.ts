@@ -28,6 +28,7 @@
  */
 import type { Principal } from "./auth";
 import { ensureSchema, type SqlDatabase } from "./db";
+import { GAME_CLEANUP } from "./game";
 import { SOCIAL_CLEANUP } from "./social";
 import { readLimited } from "./tasks-util";
 
@@ -503,6 +504,7 @@ export const ACCOUNT_CLEANUP: ((db: SqlDatabase, accountId: string) => ReturnTyp
     (db, id) => db.prepare("DELETE FROM sessions WHERE account_id = ?").bind(id),
     (db, id) => db.prepare("DELETE FROM invites WHERE created_by = ? AND used_by IS NULL").bind(id),
     ...SOCIAL_CLEANUP,
+    ...GAME_CLEANUP,
     (db, id) => db.prepare("DELETE FROM accounts WHERE id = ?").bind(id),
   ];
 

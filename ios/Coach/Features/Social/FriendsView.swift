@@ -6,12 +6,17 @@ struct FriendsView: View {
   enum Page: String, CaseIterable, Identifiable {
     case feed = "Feed"
     case friends = "Freunde"
+    case game = "Wettkampf"
     var id: Self { self }
   }
 
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
-  @State private var page: Page = .feed
+  @State private var page: Page
+
+  init(initialPage: Page = .feed) {
+    _page = State(initialValue: initialPage)
+  }
   @State private var signIn: AccountAuthView.Mode?
 
   var body: some View {
@@ -23,6 +28,8 @@ struct FriendsView: View {
               ForEach(Page.allCases) { item in
                 if item == .friends, model.social.incomingCount > 0 {
                   Text("Freunde (\(model.social.incomingCount))").tag(item)
+                } else if item == .game, !model.game.invitations.isEmpty {
+                  Text("Wettkampf (\(model.game.invitations.count))").tag(item)
                 } else {
                   Text(item.rawValue).tag(item)
                 }
@@ -34,6 +41,7 @@ struct FriendsView: View {
             switch page {
             case .feed: FeedList()
             case .friends: FriendList()
+            case .game: GameView()
             }
           }
         } else {
@@ -55,7 +63,10 @@ struct FriendsView: View {
         ToolbarItem(placement: .confirmationAction) { Button("Fertig") { dismiss() } }
       }
       .sheet(item: $signIn) { mode in AccountAuthView(initialMode: mode, invite: nil) }
-      .task { await model.social.refresh() }
+      .task {
+        await model.social.refresh()
+        await model.game.refresh()
+      }
     }
   }
 }

@@ -10,6 +10,7 @@
  * POST /v1/invite        – nur Haupt-Token: Gast-Token für eine Einladung
  * GET  /v1/usage         – eigene KI-Nutzung heute (mit Limit) und letzte Tage (siehe usage.ts)
  * GET  /v1/usage/all     – nur Haupt-Token: Nutzung und geschätzte Kosten je Person
+ * /v1/game/…            – Rangliste und Challenges unter Freunden (siehe game.ts), nur mit Sitzung
  * /v1/social/…          – Freunde und Feed zwischen Konten (siehe social.ts), nur mit Sitzung
  * /v1/account/…         – Konten: Registrieren mit Einladung, Anmelden, Sitzungen (siehe accounts.ts). Überall, wo ein
  *                         Gast-Token gilt, gilt auch das Sitzungs-Token eines Kontos.
@@ -21,6 +22,7 @@ import { AllProvidersFailed, generate, parseJsonOutput } from "./ai";
 import { handleAndroid } from "./android";
 import { authenticate, bearerToken, guestToken, newGuestID, principalKey, tokensMatch } from "./auth";
 import type { SqlDatabase } from "./db";
+import { handleGame } from "./game";
 import { handleLeague, type LeagueStore } from "./league";
 import { listPriceUsd, parsePreference, providerInfo } from "./providers";
 import { handleShare, type ShareStore, sharePage } from "./share";
@@ -118,7 +120,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     );
   }
 
-  if (pathname.startsWith("/v1/social/")) {
+  if (pathname.startsWith("/v1/social/") || pathname.startsWith("/v1/game/")) {
     if (!env.COACH_APP_TOKEN)
       return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
     const principal = await authenticate(request.headers.get("authorization") ?? "", env, deps.now());
@@ -126,6 +128,7 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
     const me = principal.kind === "account" ? { id: principal.id, username: principal.username } : null;
     return (
       (await handleSocial(request, env.DB as unknown as SqlDatabase | undefined, me, deps.now())) ??
+      (await handleGame(request, env.DB as unknown as SqlDatabase | undefined, me, deps.now())) ??
       json(404, { error: "Nicht gefunden" })
     );
   }

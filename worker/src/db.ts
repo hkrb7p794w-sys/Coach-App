@@ -91,6 +91,35 @@ const SCHEMA = [
     created_at INTEGER NOT NULL
   )`,
   "CREATE INDEX IF NOT EXISTS comments_post ON comments(post_id, created_at)",
+  // Spielelemente (game.ts).
+  `CREATE TABLE IF NOT EXISTS scores (
+    account_id TEXT NOT NULL,
+    week TEXT NOT NULL,
+    week_points INTEGER NOT NULL,
+    total_points INTEGER NOT NULL,
+    streak INTEGER NOT NULL,
+    day_streak INTEGER NOT NULL,
+    level INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (account_id, week)
+  )`,
+  `CREATE TABLE IF NOT EXISTS challenges (
+    id TEXT PRIMARY KEY,
+    creator TEXT NOT NULL,
+    title TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    week TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS challenge_members (
+    challenge_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    progress REAL NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (challenge_id, account_id)
+  )`,
+  "CREATE INDEX IF NOT EXISTS challenge_members_account ON challenge_members(account_id)",
 ];
 
 const ready = new WeakMap<SqlDatabase, Promise<void>>();
