@@ -24,6 +24,9 @@ Altbestand (nur lesen, Logik übernehmen, keine HA-/MQTT-Teile): `hkrb7p794w-sys
 
 ## Grundregeln
 
+- **Vorerst nur iOS** (Auftrag des Nutzers vom 10.11.2026): Neue Funktionen und Änderungen nur für die iPhone-App
+  (und den Worker, soweit die iPhone-App ihn braucht). Android (`android/`) nicht anfassen, bis der Nutzer es anders sagt.
+
 - **Regeln entscheiden, KI formuliert.** Tagesampel, Ziele und Progression sind deterministisch und getestet;
   Gemini/Groq liefern nur Text. Fällt die KI aus, bleibt die Empfehlung korrekt.
 - **KI-Aufrufe und KI-API-Keys nur im Cloudflare Worker**, nie in der App. Der Garmin-Key des Nutzers wird in der
