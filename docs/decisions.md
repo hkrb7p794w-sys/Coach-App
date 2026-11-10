@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Mahlzeiten als Live-Aktivität auf dem Sperrbildschirm (Phase 97)
+
+- **Wunsch des Nutzers:** Die Mahlzeiten sollen auf dem Sperrbildschirm farbig und in voller Breite stehen wie in der
+  Bildvorlage. Sperrbildschirm-Widgets können das nicht: iOS zeichnet sie einfarbig („vibrant“), und
+  `accessoryRectangular` ist höchstens halb so breit
+  (Apple: [Creating accessory widgets](https://developer.apple.com/documentation/widgetkit/creating-accessory-widgets-and-watch-complications)).
+- **Weg:** eine Live-Aktivität (`MealsActivityAttributes`, `MealsLiveActivity`) mit denselben Bausteinen wie die
+  Homescreen-Widgets (`WidgetHeader`, `RingTile`): Serie mit Flamme, je Mahlzeit farbiger Ring mit Emoji und „+“
+  bzw. Haken; Tippen öffnet das Erfassen dieser Mahlzeit.
+- **Grenzen von iOS:** Eine Live-Aktivität startet nur aus der sichtbaren App, läuft höchstens etwa acht Stunden und
+  bleibt danach noch bis zu vier Stunden stehen
+  (Apple: [Displaying live data with Live Activities](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities)).
+  Ohne Push (kostenlose Apple-ID) kann die App sie nicht aus der Ferne erneuern. Deshalb: Beim Öffnen startet die App
+  sie neu, sobald sie älter als zwei Stunden ist; im Hintergrund wird nur aktualisiert. Ab Mitternacht ist der Stand
+  veraltet (`staleDate`), die Anzeige zeigt dann einen leeren Tag statt der Werte von gestern.
+- **Schalter, Standard aus:** Ernährung › „Mahlzeiten auf dem Sperrbildschirm“. Eine dauerhafte Anzeige auf dem
+  Sperrbildschirm soll niemand ungefragt bekommen. Die Einstellung liegt in `UserDefaults` (gerätebezogen).
+
 ## 2026-11-10 – Widgets im einheitlichen Stil (Phase 96)
 
 - **Wunsch des Nutzers** (Bildvorlage): Kopfzeile mit kurzem Satz und Serie (Flamme mit Zahl), darunter Kacheln mit

@@ -29,9 +29,18 @@ enum WidgetPublisher {
 
   /// Stand schreiben und die Widgets neu laden. Günstig: rechnet dieselben Regeln wie die Reiter, ohne KI.
   static func publish(model: AppModel, now: Date = .now) {
-    guard WidgetStore.isAvailable, !model.isDemo, model.settings.profile.onboardingDone else { return }
-    WidgetStore.save(snapshot(model: model, now: now))
-    WidgetCenter.shared.reloadAllTimelines()
+    guard !model.isDemo, model.settings.profile.onboardingDone else { return }
+    // Die Live-Aktivität „Mahlzeiten heute“ braucht keine App Group.
+    guard WidgetStore.isAvailable || MealsActivityController.isEnabled else {
+      MealsActivityController.update(nil, now: now)
+      return
+    }
+    let current = snapshot(model: model, now: now)
+    if WidgetStore.isAvailable {
+      WidgetStore.save(current)
+      WidgetCenter.shared.reloadAllTimelines()
+    }
+    MealsActivityController.update(current, now: now)
   }
 
   static func snapshot(model: AppModel, now: Date = .now) -> WidgetSnapshot {

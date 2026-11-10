@@ -248,7 +248,7 @@ private struct NoDataView: View {
   }
 }
 
-private enum Style {
+enum Style {
   static func color(_ level: RecoveryLevel?) -> Color {
     switch level {
     case .normal?: .green
@@ -289,7 +289,7 @@ private enum Style {
 // MARK: - Bausteine im gemeinsamen Stil
 
 /// Kopfzeile aller Widgets: kurzer Satz links, Serie mit Flamme rechts.
-private struct WidgetHeader: View {
+struct WidgetHeader: View {
   let title: String
   let streak: WidgetSnapshot.Streak?
   var dot: Color?
@@ -314,7 +314,7 @@ private struct WidgetHeader: View {
 }
 
 /// Kachel: Fortschrittsring mit Symbol in der Mitte, Plakette unten rechts, darunter Titel und Wert.
-private struct RingTile: View {
+struct RingTile: View {
   enum Badge { case hidden, plus, check, play }
 
   var emoji: String?
@@ -572,7 +572,7 @@ struct MealsWidgetView: View {
     }
   }
 
-  private static func emoji(_ category: MealCategory) -> String {
+  static func emoji(_ category: MealCategory) -> String {
     switch category {
     case .breakfast: "☕️"
     case .lunch: "🍲"

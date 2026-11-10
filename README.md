@@ -109,6 +109,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 94 | Aufzeichnungen der Uhr vollständig: jede Garmin-Aktivität mit allen Kennzahlen, Runden, Splits und Verlauf übertragen und gespeichert; Auswertung (Tempo-Einteilung, Puls-Drift, Intervalle, Standzeit) in Detailansicht, Coach und KI-Export | fertig (PR 106) |
 | 95 | Apple Watch: Verlauf der Workouts aus Apple Health (Puls, Distanz, Leistung, Strecke, Runden, Pausen) – gleiche Auswertung, Splits und Diagramme wie bei Garmin | fertig (PR 107) |
 | 96 | Widgets im einheitlichen Stil: Kopfzeile mit Serie (Flamme), Ring-Kacheln mit Symbol und Plakette für Heute, Mahlzeiten, Ernährung, Health und Gym | fertig (PR 108) |
+| 97 | Mahlzeiten als Live-Aktivität: farbig und in voller Breite auf dem Sperrbildschirm (Serie, Ring je Mahlzeit, „+“ zum Eintragen), Schalter unter Ernährung | fertig (PR 111) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
 | 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 
