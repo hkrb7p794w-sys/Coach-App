@@ -2,6 +2,27 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Reiter „Aktivitäten“, Gym im Training, AI über „Heute“ (Phase 98)
+
+- **Wunsch des Nutzers:** ein Reiter mit den eigenen Aktivitäten (neueste oben) und denen der Freunde als Feed; Gym
+  in den Reiter Training, AI als Reiter auflösen; ein Kurzweg zum Start einer Gym-Einheit soll bleiben.
+- **Reiter:** Heute, Aktivitäten, Training, Ernährung – vier statt fünf, weiterhin ohne „Mehr“.
+- **Aktivitäten:** „Alle“ mischt die eigenen Trainings vom Gerät (mit Link zu allen Details) und die Beiträge der
+  Freunde nach Zeit (`SocialTimeline.merge`). Ein eigenes geteiltes Training steht einmal da, darunter die Reaktionen
+  seines Beitrags; die Zuordnung Training → Beitrag liegt nur auf dem Gerät (`SharedPostStore`). Solange der Feed
+  ältere Seiten hat, enden die eigenen Trainings am ältesten geladenen Beitrag. „Meine“ ist der bisherige Verlauf
+  mit Suche und Filter, „Freunde“ nur deren Beiträge.
+- **Automatisch teilen (Standard aus):** Ein Feed lebt nur, wenn Trainings von selbst erscheinen. Der Schalter
+  (Aktivitäten › Menü, Einstellungen › Konto) teilt neue Trainings von Uhr und Gym wie beim Teilen von Hand
+  (`WorkoutShare`, ohne Körperwerte). Nur Trainings nach dem Einschalten und höchstens drei Tage alt, je Durchlauf
+  höchstens drei (`SocialTimeline.autoShareCandidates`); ein gelöschter Beitrag wird nicht erneut geteilt.
+- **Gym:** Zeile ganz oben im Reiter Training (nur mit Krafttraining im Profil). Kurzwege bleiben: Schnellaktion am
+  App-Symbol, Siri/Kurzbefehl „Training starten“, Gym-Widget – sie öffnen den Bereich und starten die nächste
+  Einheit (`AppRoute.opensArea`). Erinnerungen, Live-Aktivität und „Bildschirm an“ hängen jetzt an `RootView`, damit
+  sie auch gelten, wenn der Gym-Bereich nicht offen ist.
+- **AI:** Zeile „AI-Empfehlungen“ oben unter „Heute“ mit der Zahl neuer Empfehlungen; „KI-Analyse starten“
+  (Schnellaktion, Kurzbefehl) öffnet sie dort.
+
 ## 2026-11-10 – App heißt „AIronLudi“
 
 - **Wunsch des Nutzers:** Die iPhone-App trägt den Namen „AIronLudi“.

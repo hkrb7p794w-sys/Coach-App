@@ -12,6 +12,7 @@ struct TrainingView: View {
   @Query(sort: \GymSessionRecord.start, order: .reverse) private var gymSessions: [GymSessionRecord]
   @State private var viewModel = TrainingViewModel()
   @State private var showsHealth = false
+  @State private var showsGym = false
 
   private var refreshKey: String {
     "\(days.last?.updatedAt.timeIntervalSince1970 ?? 0)-\(activities.count)-\(model.settings.heartRate.hashValue)-"
@@ -32,6 +33,15 @@ struct TrainingView: View {
           ) {
             if settings.profile.mode == .season { PlanView() } else { MyWeekView() }
           }
+          if settings.profile.trains(.strength) {
+            // Früher eigener Reiter; „Training starten“ (App-Icon, Siri, Widget) öffnet diesen Bereich direkt.
+            Button {
+              showsGym = true
+            } label: {
+              GymHubLabel(running: GymViewModel.shared.active?.title)
+            }
+            .tint(.primary)
+          }
           HubRow(
             title: "Gesundheit", symbol: "heart.text.square.fill", color: .pink,
             value: BodyBatteryAnalysis.summary(days: days.compactMap(\.metrics), today: today).current
@@ -48,10 +58,6 @@ struct TrainingView: View {
             title: "Herzfrequenz", symbol: "heart.fill", color: .red,
             value: viewModel.zones?.run.lactateThreshold.map { "\($0) bpm" } ?? "–", caption: "Schwelle Laufen"
           ) { List { HeartRateSections(report: viewModel.zones) }.navigationTitle("Herzfrequenz") }
-          HubRow(
-            title: "Aktivitäten", symbol: "list.bullet.rectangle", color: .gray,
-            value: "\(activities.count)", caption: "alle Quellen"
-          ) { ActivityListView() }
           let gym = gymSessions.compactMap(\.session).map(ActivityFeed.GymItem.init)
           let weekMinutes = TrainingTrends.weeklyMinutes(
             activities: activities.compactMap(\.activity), gym: gym, today: today, weeks: 1
@@ -124,8 +130,15 @@ struct TrainingView: View {
       .refreshable { await model.syncNow() }
       // Schnellaktion / Kurzbefehl „Health öffnen“.
       .navigationDestination(isPresented: $showsHealth) { HealthDashboardView() }
+      .navigationDestination(isPresented: $showsGym) { GymView() }
       .onChange(of: AppRouter.shared.pending, initial: true) {
-        if AppRouter.shared.take(.health) { showsHealth = true }
+        let router = AppRouter.shared
+        if router.take(.health) { showsHealth = true }
+        // „Gym“ und „Training starten“: Bereich öffnen; die Einheit startet der Bereich selbst.
+        if router.pending?.route.opensArea == .gym {
+          if settings.profile.trains(.strength) { showsGym = true }
+          _ = router.take(.gym)
+        }
       }
       .task(id: refreshKey) {
         viewModel.update(
@@ -138,6 +151,30 @@ struct TrainingView: View {
         )
       }
     }
+  }
+}
+
+/// Zeile „Gym“: wie die übrigen Bereiche, mit Hinweis auf eine laufende Einheit.
+private struct GymHubLabel: View {
+  let running: String?
+
+  var body: some View {
+    HStack(spacing: 12) {
+      SportIcon(symbol: "dumbbell.fill", color: .green)
+      Text("Gym").font(.body.weight(.medium))
+      Spacer()
+      VStack(alignment: .trailing, spacing: 0) {
+        if let running {
+          Text("läuft").font(.subheadline.weight(.semibold)).foregroundStyle(.green)
+          Text(running).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+        } else {
+          Text("Einheit starten").font(.subheadline.weight(.semibold))
+          Text("Pläne, Übungen, Auswertung").font(.caption2).foregroundStyle(.secondary)
+        }
+      }
+      Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+    }
+    .accessibilityElement(children: .combine)
   }
 }
 

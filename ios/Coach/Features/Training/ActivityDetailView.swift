@@ -68,7 +68,9 @@ struct ActivityDetailView: View {
       }
     }
     .sheet(isPresented: $sharing) {
-      if let current { ShareWithFriendsSheet(content: .workout(WorkoutShare.activity(current))) }
+      if let current {
+        ShareWithFriendsSheet(content: .workout(WorkoutShare.activity(current)), localKeys: ["a\(current.id)"])
+      }
     }
     .task { await load() }
   }

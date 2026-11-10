@@ -38,7 +38,7 @@ final class AppRouter {
       pending = nil
       return
     }
-    tab = route.tab(trainsStrength: trainsStrength)
+    tab = route.tab
     if !route.hasAction || (route == .startWorkout && !trainsStrength) { pending = nil }
   }
 

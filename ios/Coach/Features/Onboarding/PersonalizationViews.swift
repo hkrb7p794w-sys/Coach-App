@@ -67,7 +67,7 @@ struct PrioritiesPicker: View {
       VStack(alignment: .leading, spacing: 4) {
         Text("Das ändert sich dadurch:").font(.footnote.weight(.semibold))
         Text(
-          "Reihenfolge der Empfehlungen im Reiter „AI“, Startauswahl der Gesundheits-Widgets, worauf die KI in "
+          "Reihenfolge der AI-Empfehlungen unter „Heute“, Startauswahl der Gesundheits-Widgets, worauf die KI in "
             + "Analysen achtet, und wie vorsichtig die Wochenbelastung steigen darf (Recovery/Gesundheit: 20 % "
             + "statt 30 %)."
         )

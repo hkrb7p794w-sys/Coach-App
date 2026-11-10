@@ -34,6 +34,9 @@ struct CoachApp: App {
           await appModel.syncIfDue()
           await appModel.refreshReminders()
           WidgetPublisher.publish(model: appModel)
+          // Freundschaftsanfragen (Zahl am Reiter „Aktivitäten“) und neue Trainings für den Feed.
+          await appModel.social.refresh()
+          await SocialAutoShare.run(model: appModel)
         }
       case .background:
         if !appModel.isDemo { appModel.scheduleBackgroundRefresh() }

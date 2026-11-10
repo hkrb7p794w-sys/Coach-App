@@ -2,7 +2,8 @@ import CoachCore
 import SwiftData
 import SwiftUI
 
-/// Reiter „AI“: alle Empfehlungen aus Regeln und KI an einem Ort, nach Themen, mit Bearbeitungsstand; dazu die
+/// Bereich „AI“ (über „Heute“ erreichbar, ohne eigenen Navigationsstapel):
+/// alle Empfehlungen aus Regeln und KI an einem Ort, nach Themen, mit Bearbeitungsstand; dazu die
 /// KI-Analyse auf Anfrage und alle übrigen KI-Funktionen. Gezeigt werden Erkenntnis und Empfehlung – die Grundlage
 /// bleibt intern (lange drücken › „Worauf beruht das?“).
 struct AIView: View {
@@ -23,7 +24,7 @@ struct AIView: View {
     let goals = model.settings.profile.effectiveGoals(today: CalendarDay(date: now))
     let groups = InsightInbox.groups(
       model.settings.insights, category: category, focus: Personalization.insightTopics(goals), now: now)
-    NavigationStack {
+    Group {
       ScrollViewReader { proxy in
         List {
           Section {

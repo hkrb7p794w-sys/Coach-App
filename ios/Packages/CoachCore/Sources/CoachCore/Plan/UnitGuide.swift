@@ -365,7 +365,7 @@ public enum UnitGuides {
     steps: [
       "5 Minuten aufwärmen, für die erste Übung 1–2 leichte Sätze.",
       "Sätze sauber ausführen, die letzten Wiederholungen sollen schwer sein.",
-      "Das Gewicht nach dem Hinweis der App steigern (Reiter Gym).",
+      "Das Gewicht nach dem Hinweis der App steigern (Training › Gym).",
     ],
     feel: "Anstrengend in den letzten Wiederholungen, aber mit sauberer Technik.",
     mistakes: ["Schwung statt Kontrolle.", "Am Vortag einer harten Laufeinheit schwere Beine trainieren."],

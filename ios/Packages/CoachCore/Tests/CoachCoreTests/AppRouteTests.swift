@@ -20,11 +20,17 @@ struct AppRouteTests {
     #expect(AppRoute(url: other) == nil)
   }
 
-  @Test func gymRoutesFallBackWithoutStrength() {
-    #expect(AppRoute.startWorkout.tab(trainsStrength: true) == .gym)
-    #expect(AppRoute.startWorkout.tab(trainsStrength: false) == .training)
-    #expect(AppRoute.health.tab(trainsStrength: true) == .training)
-    #expect(AppRoute.logMeal.tab(trainsStrength: false) == .nutrition)
+  @Test func gymAndAILiveInsideOtherTabs() {
+    #expect(AppRoute.startWorkout.tab == .training)
+    #expect(AppRoute.gym.tab == .training)
+    #expect(AppRoute.startWorkout.opensArea == .gym)
+    #expect(AppRoute.aiAnalysis.tab == .today)
+    #expect(AppRoute.aiAnalysis.opensArea == .ai)
+    #expect(AppRoute.health.tab == .training)
+    #expect(AppRoute.health.opensArea == nil)
+    #expect(AppRoute.logMeal.tab == .nutrition)
+    // Jede Route mit Bereich braucht eine Zielansicht, die sie übernimmt.
+    for route in AppRoute.allCases where route.opensArea != nil { #expect(route.hasAction) }
   }
 
   @Test func quickActionsOnlyOfferWorkingEntries() {
