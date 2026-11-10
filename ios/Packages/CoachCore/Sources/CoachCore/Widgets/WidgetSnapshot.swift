@@ -17,6 +17,8 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
   public var gym: Gym?
   /// Gesundheitswerte der letzten Nacht in fester Reihenfolge (nur Metriken des Morning Reports).
   public var health: [Health]
+  /// Tages-Serie (`DailyStreak`); fehlt in älteren Ständen.
+  public var streak: Streak?
 
   public init(
     createdAt: Date, day: CalendarDay, today: Today, nutrition: Nutrition?, gym: Gym?, health: [Health]
@@ -28,6 +30,26 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
     self.nutrition = nutrition
     self.gym = gym
     self.health = health
+  }
+
+  /// Tage in Folge mit Training oder Mahlzeit, für die Kopfzeile der Widgets.
+  public struct Streak: Codable, Equatable, Sendable {
+    public var days: Int
+    /// Heute ist schon etwas erfasst.
+    public var activeToday: Bool
+
+    public init(days: Int, activeToday: Bool) {
+      self.days = days
+      self.activeToday = activeToday
+    }
+
+    /// Kurzer Satz zur Serie. Kein Druck: Ohne Eintrag heute steht nur, was die Serie fortsetzt.
+    public var headline: String {
+      if days <= 0 { return "Heute starten – erster Tag!" }
+      if !activeToday { return "Heute noch etwas erfassen" }
+      if days >= 3 { return "Serie läuft – weiter so!" }
+      return "Guter Start – dranbleiben!"
+    }
   }
 
   public struct Today: Codable, Equatable, Sendable {
@@ -255,6 +277,12 @@ extension WidgetSnapshot {
     var snapshot = self
     let isCurrent = day == self.day
     if !isCurrent {
+      // Am Folgetag läuft die Serie weiter, heute ist aber noch nichts erfasst; älter ist sie unbekannt.
+      if day == self.day.adding(days: 1) {
+        snapshot.streak?.activeToday = false
+      } else {
+        snapshot.streak = nil
+      }
       snapshot.today = Today(level: nil, headline: "Neuer Tag – App öffnen")
       snapshot.nutrition = nutrition.map { _ in
         Nutrition(

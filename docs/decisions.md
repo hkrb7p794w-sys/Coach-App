@@ -2,6 +2,19 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Widgets im einheitlichen Stil (Phase 96)
+
+- **Wunsch des Nutzers** (Bildvorlage): Kopfzeile mit kurzem Satz und Serie (Flamme mit Zahl), darunter Kacheln mit
+  Fortschrittsring, Symbol in der Mitte, Plakette („+“ zum Eintragen, Haken wenn erledigt), Titel und Wert; die
+  letzte Kachel abgesetzt.
+- **Umsetzung:** Alle Homescreen-Widgets (Heute, Mahlzeiten, Ernährung, Health, Gym) nutzen dieselben Bausteine
+  (`WidgetHeader`, `RingTile`). Sperrbildschirm-Widgets bleiben wie bisher, weil iOS sie einfarbig zeichnet.
+- **Serie im Widget:** `WidgetSnapshot.streak` aus `DailyStreak` (Training oder Mahlzeit, ein Joker je Woche). Am
+  Folgetag läuft sie grau weiter („Heute noch etwas erfassen“), ältere Stände zeigen keine Serie – kein Text, der
+  mit Verlust droht.
+- Das Mahlzeiten-Widget zeigt in der Kopfzeile den Satz zur Serie; die übrigen Kalorien stehen im Ernährungs- und im
+  Heute-Widget.
+
 ## 2026-11-10 – Apple Watch: Verlauf der Workouts aus Apple Health (Phase 95)
 
 - **Wunsch des Nutzers:** nach Garmin auch die Aufzeichnungen der Apple Watch vollständig auswerten.

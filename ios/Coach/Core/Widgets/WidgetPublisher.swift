@@ -121,8 +121,16 @@ enum WidgetPublisher {
     }
 
     let battery = BodyBatteryAnalysis.summary(days: days, today: today).current
-    return WidgetSnapshot(
+    var result = WidgetSnapshot(
       createdAt: now, day: today, today: todayPart, nutrition: nutrition, gym: gymPart,
       health: WidgetSnapshot.health(from: report, bodyBattery: battery))
+    // Serie wie auf „Heute“: Tage mit Training oder Mahlzeit, ein Joker je Woche.
+    let mealDays =
+      ((try? context.fetch(FetchDescriptor<MealRecord>(predicate: #Predicate { $0.dayKey >= since }))) ?? [])
+      .compactMap { CalendarDay(iso: $0.dayKey) }
+    let active = Set(activities.compactMap(\.day)).union(gymDays).union(mealDays)
+    let streak = DailyStreak.compute(activeDays: active, today: today, lookback: 120)
+    result.streak = WidgetSnapshot.Streak(days: streak.current, activeToday: streak.activeToday)
+    return result
   }
 }
