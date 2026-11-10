@@ -20,6 +20,8 @@ nonisolated struct MealsActivityAttributes: ActivityAttributes {
     var streakActive: Bool
     /// Übrige Kalorien (negativ = darüber); `nil` ohne Ziel.
     var kcalRemaining: Int?
+    /// Kopfzeile passend zum Stand des Tages (`MealHeadline`); fehlt in Aktivitäten älterer Versionen.
+    var headline: String? = nil
   }
 
   /// iOS beendet eine Live-Aktivität nach etwa acht Stunden; die App startet sie beim Öffnen rechtzeitig neu.

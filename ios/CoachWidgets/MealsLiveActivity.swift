@@ -45,10 +45,10 @@ private struct MealsActivityView: View {
     WidgetSnapshot.Streak(days: state.streakDays, activeToday: state.streakActive && !stale)
   }
 
+  /// Der Satz stammt vom letzten Stand der App. Nach Mitternacht gilt er nicht mehr: neuer Tag, noch leer.
   private var title: String {
-    if state.streakDays > 0 { return streak.headline }
-    guard !stale, let remaining = state.kcalRemaining else { return "Mahlzeiten heute" }
-    return remaining >= 0 ? "\(remaining) kcal übrig" : "\(-remaining) kcal drüber"
+    if stale { return state.streakDays >= 2 ? "Neuer Tag – Serie fortsetzen?" : "Neuer Tag – Frühstück eintragen?" }
+    return state.headline ?? streak.headline
   }
 
   var body: some View {

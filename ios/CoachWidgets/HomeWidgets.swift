@@ -597,7 +597,10 @@ struct MealsWidgetView: View {
       switch family {
       case .accessoryRectangular: rectangular(parts, streak: snapshot.mealStreak)
       case .accessoryCircular: circular(nutrition)
-      default: medium(parts, nutrition: nutrition, streak: snapshot.mealStreak)
+      default:
+        medium(
+          parts, title: MealHeadline.text(snapshot, hour: Calendar.current.component(.hour, from: .now)),
+          streak: snapshot.mealStreak)
       }
     } else {
       NoDataView()
@@ -607,10 +610,10 @@ struct MealsWidgetView: View {
   /// Je Mahlzeit ein Ring mit „+“ (oder Haken, sobald etwas eingetragen ist); Tippen öffnet das Erfassen dieser
   /// Mahlzeit. Snacks stehen abgesetzt rechts.
   private func medium(
-    _ parts: [WidgetSnapshot.MealPart], nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?
+    _ parts: [WidgetSnapshot.MealPart], title: String, streak: WidgetSnapshot.Streak?
   ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
-      WidgetHeader(title: Self.title(nutrition, streak: streak), streak: streak)
+      WidgetHeader(title: title, streak: streak)
       Spacer(minLength: 0)
       HStack(alignment: .top, spacing: 0) {
         ForEach(parts) { part in
@@ -627,13 +630,6 @@ struct MealsWidgetView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-  }
-
-  /// Mit Serie der Satz dazu, sonst die übrigen Kalorien.
-  private static func title(_ nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?) -> String {
-    if let streak, streak.days > 0 { return streak.headline }
-    guard let remaining = nutrition.kcalRemaining else { return "Mahlzeiten" }
-    return remaining >= 0 ? "\(Style.kcal(remaining)) kcal übrig" : "\(Style.kcal(-remaining)) kcal drüber"
   }
 
   /// Sperrbildschirm im selben Aufbau wie auf dem Homescreen: Serie oben, je Mahlzeit ein Ring mit Symbol und „+“
