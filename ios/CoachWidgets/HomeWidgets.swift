@@ -372,6 +372,126 @@ private struct RingTile: View {
   }
 }
 
+// MARK: - Bausteine für den Sperrbildschirm (einfarbig)
+
+/// Kopfzeile auf dem Sperrbildschirm: kurzer Text links, Serie mit Flamme rechts.
+private struct LockHeader: View {
+  let title: String
+  let streak: WidgetSnapshot.Streak?
+
+  var body: some View {
+    HStack(spacing: 2) {
+      Text(title).lineLimit(1).minimumScaleFactor(0.7)
+      Spacer(minLength: 2)
+      if let streak, streak.days > 0 {
+        Image(systemName: streak.activeToday ? "flame.fill" : "flame")
+        Text("\(streak.days)").fontWeight(.heavy).monospacedDigit()
+      }
+    }
+    .font(.system(size: 10, weight: .semibold))
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(streak.map { "\(title), Serie: \($0.days) Tage" } ?? title)
+  }
+}
+
+/// Ring mit Symbol und optionaler Plakette; iOS zeichnet ihn auf dem Sperrbildschirm einfarbig.
+private struct LockRing: View {
+  let symbol: String
+  var fraction: Double?
+  /// SF-Symbol der Plakette unten rechts, z. B. `plus.circle.fill`.
+  var badge: String?
+  var size: CGFloat = 28
+
+  var body: some View {
+    ZStack(alignment: .bottomTrailing) {
+      ZStack {
+        Circle().stroke(Color.primary.opacity(0.25), lineWidth: size * 0.11)
+        Circle().trim(from: 0, to: min(max(fraction ?? 0, 0), 1))
+          .stroke(Color.primary, style: StrokeStyle(lineWidth: size * 0.11, lineCap: .round))
+          .rotationEffect(.degrees(-90))
+        Image(systemName: symbol).font(.system(size: size * 0.4, weight: .semibold))
+      }
+      .frame(width: size, height: size)
+      if let badge {
+        Image(systemName: badge).font(.system(size: size * 0.4, weight: .bold))
+          .offset(x: size * 0.14, y: size * 0.1)
+      }
+    }
+  }
+}
+
+/// Kachel auf dem Sperrbildschirm: Ring, darunter Titel und Wert.
+private struct LockTile: View {
+  let symbol: String
+  var fraction: Double?
+  var badge: String?
+  let title: String
+  let value: String
+  var active = true
+
+  var body: some View {
+    VStack(spacing: 1) {
+      LockRing(symbol: symbol, fraction: fraction, badge: badge)
+      Text(title).font(.system(size: 9, weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
+      Text(value).font(.system(size: 9)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+    }
+    .frame(maxWidth: .infinity)
+    .opacity(active ? 1 : 0.75)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("\(title): \(value)")
+  }
+}
+
+/// Rundes Sperrbildschirm-Widget: Ring über die ganze Fläche, innen Symbol und Wert.
+private struct LockCircle: View {
+  let symbol: String
+  var fraction: Double?
+  let value: String
+
+  var body: some View {
+    ZStack {
+      Circle().stroke(Color.primary.opacity(0.25), lineWidth: 5)
+      Circle().trim(from: 0, to: min(max(fraction ?? 0, 0), 1))
+        .stroke(Color.primary, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+        .rotationEffect(.degrees(-90))
+      VStack(spacing: 0) {
+        Image(systemName: symbol).font(.system(size: 11, weight: .semibold))
+        Text(value).font(.system(size: 14, weight: .bold)).monospacedDigit().lineLimit(1)
+          .minimumScaleFactor(0.5)
+      }
+      .padding(.horizontal, 8)
+    }
+    .padding(2.5)
+    .widgetAccentable()
+  }
+}
+
+/// Rechteckiges Sperrbildschirm-Widget mit einem Ring links und drei Zeilen rechts.
+private struct LockRow: View {
+  let symbol: String
+  var fraction: Double?
+  var badge: String?
+  let title: String
+  let value: String
+  let detail: String
+  let streak: WidgetSnapshot.Streak?
+
+  var body: some View {
+    VStack(spacing: 3) {
+      LockHeader(title: title, streak: streak)
+      HStack(spacing: 8) {
+        LockRing(symbol: symbol, fraction: fraction, badge: badge, size: 34)
+        VStack(alignment: .leading, spacing: 0) {
+          Text(value).font(.system(size: 15, weight: .bold)).lineLimit(1).minimumScaleFactor(0.6)
+          Text(detail).font(.system(size: 10)).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        Spacer(minLength: 0)
+      }
+    }
+    .widgetAccentable()
+  }
+}
+
 struct TodayWidgetView: View {
   let display: WidgetSnapshot.Display?
   let showsNutrition: Bool
@@ -522,41 +642,14 @@ struct MealsWidgetView: View {
   private func rectangular(_ parts: [WidgetSnapshot.MealPart], streak: WidgetSnapshot.Streak?) -> some View {
     VStack(spacing: 2) {
       if let streak, streak.days > 0 {
-        HStack(spacing: 2) {
-          Text(streak.activeToday ? "Weiter so!" : "Heute eintragen").lineLimit(1).minimumScaleFactor(0.7)
-          Spacer(minLength: 2)
-          Image(systemName: streak.activeToday ? "flame.fill" : "flame")
-          Text("\(streak.days)").fontWeight(.heavy).monospacedDigit()
-        }
-        .font(.system(size: 10, weight: .semibold))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Serie: \(streak.days) Tage")
+        LockHeader(title: streak.activeToday ? "Weiter so!" : "Heute eintragen", streak: streak)
       }
       HStack(alignment: .top, spacing: 0) {
         ForEach(parts) { part in
-          VStack(spacing: 1) {
-            ZStack(alignment: .bottomTrailing) {
-              ZStack {
-                Circle().stroke(Color.primary.opacity(0.25), lineWidth: 3)
-                Circle().trim(from: 0, to: min(max(part.fraction ?? 0, 0), 1))
-                  .stroke(Color.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                  .rotationEffect(.degrees(-90))
-                Image(systemName: Self.symbol(part.category)).font(.system(size: 11, weight: .semibold))
-              }
-              .frame(width: 28, height: 28)
-              Image(systemName: part.kcal > 0 ? "checkmark.circle.fill" : "plus.circle.fill")
-                .font(.system(size: 11, weight: .bold))
-                .offset(x: 4, y: 3)
-            }
-            Text(Self.short(part.category)).font(.system(size: 9, weight: .bold)).lineLimit(1)
-              .minimumScaleFactor(0.7)
-            Text(Style.kcal(part.kcal)).font(.system(size: 9)).monospacedDigit().lineLimit(1)
-              .minimumScaleFactor(0.7)
-          }
-          .frame(maxWidth: .infinity)
-          .opacity(part.kcal > 0 ? 1 : 0.75)
-          .accessibilityElement(children: .ignore)
-          .accessibilityLabel("\(part.category.label): \(Style.kcal(part.kcal)) Kilokalorien")
+          LockTile(
+            symbol: Self.symbol(part.category), fraction: part.fraction,
+            badge: part.kcal > 0 ? "checkmark.circle.fill" : "plus.circle.fill", title: Self.short(part.category),
+            value: Style.kcal(part.kcal), active: part.kcal > 0)
         }
       }
     }
@@ -564,12 +657,8 @@ struct MealsWidgetView: View {
   }
 
   private func circular(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
-    Gauge(value: nutrition.kcalFraction ?? 0) {
-      Image(systemName: "plus")
-    } currentValueLabel: {
-      Text(Style.kcal(nutrition.kcalRemaining ?? nutrition.kcal))
-    }
-    .gaugeStyle(.accessoryCircularCapacity)
+    LockCircle(
+      symbol: "plus", fraction: nutrition.kcalFraction, value: Style.kcal(nutrition.kcalRemaining ?? nutrition.kcal))
   }
 }
 
@@ -582,7 +671,7 @@ struct NutritionWidgetView: View {
     if let snapshot = display?.snapshot, let nutrition = snapshot.nutrition {
       switch family {
       case .accessoryCircular: circular(nutrition)
-      case .accessoryRectangular: rectangular(nutrition)
+      case .accessoryRectangular: rectangular(nutrition, streak: snapshot.streak)
       case .accessoryInline: Text(headline(nutrition))
       case .systemMedium: medium(nutrition, streak: snapshot.streak)
       default: small(nutrition, streak: snapshot.streak)
@@ -667,24 +756,29 @@ struct NutritionWidgetView: View {
   }
 
   private func circular(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
-    Gauge(value: fraction(nutrition) ?? 0) {
-      Image(systemName: choice == .protein ? "bolt.fill" : "fork.knife")
-    } currentValueLabel: {
-      if choice == .protein {
-        Text("\(Int(nutrition.protein.rounded()))")
-      } else {
-        Text(Style.kcal(nutrition.kcalRemaining ?? nutrition.kcal))
-      }
-    }
-    .gaugeStyle(.accessoryCircularCapacity)
+    LockCircle(
+      symbol: choice == .protein ? "bolt.fill" : "fork.knife", fraction: fraction(nutrition),
+      value: choice == .protein
+        ? "\(Int(nutrition.protein.rounded()))" : Style.kcal(nutrition.kcalRemaining ?? nutrition.kcal))
   }
 
-  private func rectangular(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(headline(nutrition)).font(.headline).lineLimit(1).minimumScaleFactor(0.7)
-      if let fraction = fraction(nutrition) { ProgressView(value: fraction) }
-      Text("Protein \(Style.grams(nutrition.protein))").font(.caption).foregroundStyle(.secondary)
+  /// Kalorien, Protein und Wasser als Ringe, darüber der gewählte Wert und die Serie.
+  private func rectangular(_ nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?) -> some View {
+    VStack(spacing: 2) {
+      LockHeader(title: headline(nutrition), streak: streak)
+      HStack(alignment: .top, spacing: 0) {
+        LockTile(
+          symbol: "fork.knife", fraction: nutrition.kcalFraction, title: "kcal", value: Style.kcal(nutrition.kcal),
+          active: nutrition.kcal > 0)
+        LockTile(
+          symbol: "bolt.fill", fraction: nutrition.proteinFraction, title: "Protein",
+          value: Style.grams(nutrition.protein), active: nutrition.protein > 0)
+        LockTile(
+          symbol: "drop.fill", fraction: nutrition.waterFraction, title: "Wasser",
+          value: Style.liters(nutrition.waterMilliliters), active: nutrition.waterMilliliters > 0)
+      }
     }
+    .widgetAccentable()
   }
 }
 
@@ -693,31 +787,25 @@ struct HealthWidgetView: View {
   let metric: HealthMetric
   @Environment(\.widgetFamily) private var family
 
+  private static func ringFraction(_ health: WidgetSnapshot.Health?) -> Double {
+    guard let gauge = health?.gauge else { return 1 }
+    return gauge / 100
+  }
+
   var body: some View {
     if let display {
       let health = display.snapshot.health(metric)
       let value = display.healthIsOld ? nil : health?.value
+      // Ring nach Wert (Body Battery) bzw. ganz gefüllt; ohne Wert leer.
+      let ring: Double? = value == nil ? nil : Self.ringFraction(health)
       switch family {
       case .accessoryCircular:
-        if metric == .bodyBattery, let gauge = display.healthIsOld ? nil : health?.gauge {
-          Gauge(value: gauge, in: 0...100) {
-            Image(systemName: metric.symbol)
-          } currentValueLabel: {
-            Text("\(Int(gauge))")
-          }
-          .gaugeStyle(.accessoryCircular)
-        } else {
-          VStack(spacing: 0) {
-            Image(systemName: metric.symbol).font(.caption)
-            Text(value ?? "–").font(.headline).minimumScaleFactor(0.5)
-          }
-        }
+        LockCircle(symbol: metric.symbol, fraction: ring, value: value ?? "–")
       case .accessoryRectangular:
-        VStack(alignment: .leading, spacing: 1) {
-          Label(metric.title, systemImage: metric.symbol).font(.caption.bold())
-          Text(value ?? "–").font(.headline)
-          Text(health.map { Style.label($0.status) } ?? "fehlt").font(.caption2).foregroundStyle(.secondary)
-        }
+        LockRow(
+          symbol: metric.symbol, fraction: ring, title: metric.title, value: value ?? "–",
+          detail: value == nil ? "kein Wert" : (health.map { Style.label($0.status) } ?? "fehlt"),
+          streak: display.snapshot.streak)
       case .accessoryInline:
         Text("\(metric.title) \(value ?? "–")")
       default:
@@ -752,11 +840,10 @@ struct GymWidgetView: View {
     if let snapshot = display?.snapshot, let gym = snapshot.gym {
       switch family {
       case .accessoryRectangular:
-        VStack(alignment: .leading, spacing: 1) {
-          Label(gym.running ? "Läuft" : "Gym", systemImage: "dumbbell").font(.caption.bold())
-          Text(gym.runningTitle ?? gym.next ?? "Kein Plan").font(.headline).lineLimit(1)
-          Text(gym.weekText).font(.caption2).foregroundStyle(.secondary)
-        }
+        LockRow(
+          symbol: "dumbbell.fill", fraction: Self.weekFraction(gym), badge: "play.circle.fill",
+          title: gym.running ? "Training läuft" : "Gym", value: gym.runningTitle ?? gym.next ?? "Kein Plan",
+          detail: gym.weekText, streak: snapshot.streak)
       case .systemMedium:
         VStack(alignment: .leading, spacing: 8) {
           WidgetHeader(title: gym.running ? "Training läuft" : "Gym", streak: snapshot.streak)
@@ -784,6 +871,12 @@ struct GymWidgetView: View {
     } else {
       NoDataView()
     }
+  }
+
+  /// Anteil der geplanten Krafteinheiten dieser Woche.
+  private static func weekFraction(_ gym: WidgetSnapshot.Gym) -> Double? {
+    guard let planned = gym.weekPlanned, planned > 0 else { return nil }
+    return min(Double(gym.weekDone) / Double(planned), 1)
   }
 
   private func tile(_ focus: GymWidgetFocus, _ gym: WidgetSnapshot.Gym, size: CGFloat) -> some View {
