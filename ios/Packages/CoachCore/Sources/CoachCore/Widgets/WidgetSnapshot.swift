@@ -55,8 +55,7 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
     }
 
     /// Erst ab drei Tagen in Folge und mit Eintrag heute ist es eine laufende Serie.
-    public var isRunning: Bool { days >= 3 && activeToday
-    }
+    public var isRunning: Bool { days >= 3 && activeToday }
   }
 
   public struct Today: Codable, Equatable, Sendable {
