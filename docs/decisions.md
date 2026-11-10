@@ -2,6 +2,24 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Apple Watch: Verlauf der Workouts aus Apple Health (Phase 95)
+
+- **Wunsch des Nutzers:** nach Garmin auch die Aufzeichnungen der Apple Watch vollständig auswerten.
+- **Weg:** HealthKit statt einer Datei. Je Workout liest die App die zum Workout gehörenden Pulswerte, Distanz,
+  Leistung (Laufen/Rad), die Strecke (`HKWorkoutRoute`) sowie Runden und Pausen aus den Workout-Ereignissen.
+  `HealthRecording.fit` legt daraus Messpunkte alle 5 s an – dasselbe Format wie die Datei einer Garmin-Uhr, also
+  gelten `ActivityReportBuilder` und `ActivityFindings` unverändert (Splits, Diagramme, Auswertung, Coach, Export).
+- **Distanz nur aus dem Workout:** Im reinen Zeitraum zählen iPhone und Uhr dieselbe Strecke doppelt; deshalb
+  `predicateForObjects(from:)`. Puls fällt auf den Zeitraum zurück, wenn eine Uhr ihn nicht verknüpft.
+- **Messwerte gelten 30 s:** Fehlt länger ein Puls, bleibt die Stelle leer statt einen alten Wert fortzuschreiben.
+- **Neue Leserechte:** Strecke, Lauf- und Radleistung. iOS fragt beim nächsten Import einmal nach; ohne Zustimmung
+  fehlen nur Karte bzw. Leistung. Höchstens 8 Workouts je Import, der Rest folgt.
+- **Grenzen:** Zonenzeiten und Trainingsbelastung liefert Apple Health nicht; Laufkadenz ist noch nicht dabei.
+  Andere Uhren, die nach Apple Health schreiben (z. B. Whoop über die Health-Freigabe), laufen über denselben Weg,
+  soweit sie Puls und Distanz dort ablegen – eine eigene Whoop-Anbindung gibt es weiterhin nicht.
+- Quelle: <https://developer.apple.com/documentation/healthkit/hkworkoutroute>,
+  <https://developer.apple.com/documentation/healthkit/hkworkoutevent>
+
 ## 2026-11-10 – Aufzeichnungen der Uhr vollständig übertragen (Phase 94)
 
 - **Wunsch des Nutzers:** Statistiken, Runden und Diagramme jeder mit der Uhr aufgezeichneten Aktivität sollen

@@ -312,15 +312,17 @@ public enum ActivityReportPlanner {
   public static let days = 42
   public static let minSeconds = 300.0
 
-  /// Aktivitäten ohne (aktuellen) Bericht, jüngste zuerst. Nur Garmin-Aktivitäten (positive IDs) haben eine Datei.
+  /// Aktivitäten ohne (aktuellen) Bericht, jüngste zuerst. Garmin-Aktivitäten (positive IDs) haben eine Datei der
+  /// Uhr; mit `health` stattdessen die Workouts aus Apple Health (negative IDs), deren Verlauf HealthKit liefert.
   public static func pending(
-    _ activities: [GarminActivity], known: [Int64: ActivityReport], failed: Set<Int64> = [], today: CalendarDay
+    _ activities: [GarminActivity], known: [Int64: ActivityReport], failed: Set<Int64> = [], today: CalendarDay,
+    health: Bool = false
   ) -> [GarminActivity] {
     let start = today.adding(days: -days)
     return
       activities
       .filter { activity in
-        guard activity.id >= 0, let day = activity.day, day >= start, day <= today else { return false }
+        guard (activity.id < 0) == health, let day = activity.day, day >= start, day <= today else { return false }
         guard (activity.durationSeconds ?? 0) >= minSeconds, !failed.contains(activity.id) else { return false }
         return known[activity.id]?.version != ActivityReport.version
       }

@@ -52,6 +52,7 @@ final class AppModel {
     sources.preferences = { current.sources }
     sync.sources = sources
     health.sources = sources
+    health.reportStore = sync.reportStore
     if !isDemo { sources.migrateIfNeeded() }
     ai.userSources = { current.userSources }
     ai.settings = { current.ai }
