@@ -171,7 +171,7 @@ hier notieren und als PR beheben.
       öffnet das Erfassen der Mahlzeit. Mahlzeit eintragen, App verlassen → Ring und Haken stimmen. Am nächsten
       Morgen vor dem Öffnen: Karte ist leer oder weg, nach dem Öffnen wieder aktuell.
 
-- [ ] **Reiter „Aktivitäten“ (PR 98):** Vier Reiter (Heute, Aktivitäten, Training, Ernährung). Aktivitäten › „Alle“
+- [ ] **Reiter „Aktivitäten“ (PR 116):** Vier Reiter (Heute, Aktivitäten, Training, Ernährung). Aktivitäten › „Alle“
       zeigt eigene Trainings und Beiträge der Freunde, neueste oben; Tippen auf ein eigenes Training öffnet die
       Details. Menü oben rechts › „Trainings automatisch teilen“ einschalten › neues Training aufzeichnen › App öffnen
       → erscheint beim Freund; Reaktion des Freundes steht bei dir unter dem Training. Training › „Gym“ öffnet den
