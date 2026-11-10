@@ -321,7 +321,7 @@ struct AccountDetailView: View {
         if let newInvite, let url = newInvite.shareURL {
           ShareLink(
             item: url,
-            message: Text("Komm zu IronLudi! Mit diesem Link legst du dein Konto an (14 Tage gültig, einmalig).")
+            message: Text("Komm zu AIronLudi! Mit diesem Link legst du dein Konto an (14 Tage gültig, einmalig).")
           ) {
             Label("Einladung \(newInvite.code) teilen", systemImage: "square.and.arrow.up")
           }

@@ -1,4 +1,4 @@
-# IronLudi auf einem anderen iPhone einrichten
+# AIronLudi auf einem anderen iPhone einrichten
 
 Schritt für Schritt, einmal mit **Windows-PC** und einmal mit **Mac**. Die App kommt nicht aus dem App Store, sondern
 über **SideStore** (kostenlose Apple-ID). Das iPhone braucht dafür einmal einen Computer; danach läuft alles am Handy.
@@ -56,22 +56,22 @@ Auf dem Mac ist **kein iTunes nötig** (der Finder erkennt das iPhone).
 4. **SideStore** öffnen und mit derselben Apple-ID anmelden.
 5. **My Apps** › bei SideStore auf **7 DAYS** tippen (erste Auffrischung). Fragt SideStore nach einem neuen
    Zertifikat: **Yes** bzw. **Refresh Now**.
-6. **IronLudi laden:** SideStore › **Sources** › **+** › den **SideStore-Link** einfügen › Quelle „IronLudi (privat)“
-   öffnen › bei **IronLudi** auf **Free** bzw. **Installieren** tippen. Warten, bis die App auf dem Homescreen liegt.
+6. **AIronLudi laden:** SideStore › **Sources** › **+** › den **SideStore-Link** einfügen › Quelle „AIronLudi (privat)“
+   öffnen › bei **AIronLudi** auf **Free** bzw. **Installieren** tippen. Warten, bis die App auf dem Homescreen liegt.
 7. **SideStore › Settings:** **Background Refresh** einschalten und Mitteilungen für SideStore erlauben.
 
-## Teil C – IronLudi einrichten
+## Teil C – AIronLudi einrichten
 
-1. **IronLudi** öffnen und das Profil einrichten (Ziel, Sportarten, Körperdaten). Bei Apple Health „Erlauben“ wählen,
+1. **AIronLudi** öffnen und das Profil einrichten (Ziel, Sportarten, Körperdaten). Bei Apple Health „Erlauben“ wählen,
    wenn die Uhr-Daten genutzt werden sollen; ohne geht die App auch.
-2. **Einladungslink** antippen (WhatsApp/iMessage) › IronLudi öffnet sich und übernimmt KI-Zugang und Rangliste.
+2. **Einladungslink** antippen (WhatsApp/iMessage) › AIronLudi öffnet sich und übernimmt KI-Zugang und Rangliste.
 3. **Konto anlegen:** Einstellungen › Konto › **Konto erstellen** (Benutzername, Anzeigename, Passwort; Wiederherstellungscode
    notieren). So finden sich Freunde und der Feed, die Wettkämpfe und die Serie funktionieren.
 4. *Optional* **Garmin:** Einstellungen › Garmin, mit dem eigenen Garmin-Konto bzw. -Key (Anleitung in
    [`einrichtung.md`](einrichtung.md), Schritt 1).
 5. *Empfohlen* **Datensicherung:** Einstellungen › Datensicherung › Ordner in iCloud Drive wählen. Nach einer
    Neuinstallation: erster Bildschirm › oben rechts **Sicherung einspielen**.
-6. *Optional* Widgets: Homescreen lange drücken › **+** › IronLudi. Sperrbildschirm-Karte für Mahlzeiten:
+6. *Optional* Widgets: Homescreen lange drücken › **+** › AIronLudi. Sperrbildschirm-Karte für Mahlzeiten:
    Einstellungen › Ernährung › „Mahlzeiten auf dem Sperrbildschirm“.
 
 ---
@@ -79,9 +79,9 @@ Auf dem Mac ist **kein iTunes nötig** (der Finder erkennt das iPhone).
 ## Laufend
 
 - Mit kostenloser Apple-ID läuft eine App **7 Tage**. **Mindestens einmal pro Woche** SideStore öffnen (LocalDevVPN
-  verbunden) und **Refresh All** tippen, sonst startet IronLudi nicht mehr. Mit Background Refresh geschieht das oft von
+  verbunden) und **Refresh All** tippen, sonst startet AIronLudi nicht mehr. Mit Background Refresh geschieht das oft von
   selbst, verlass dich aber nicht darauf.
-- Neue Versionen meldet SideStore („New Update Available“): SideStore › My Apps › bei IronLudi **Update**. Die Daten
+- Neue Versionen meldet SideStore („New Update Available“): SideStore › My Apps › bei AIronLudi **Update**. Die Daten
   bleiben erhalten.
 - Es sind höchstens **3 Apps** gleichzeitig möglich (SideStore zählt mit) und 10 neue App-IDs pro Woche.
 
@@ -93,7 +93,7 @@ Auf dem Mac ist **kein iTunes nötig** (der Finder erkennt das iPhone).
 | Anmeldung mit Apple-ID schlägt fehl | Passwort in <https://account.apple.com> prüfen; ggf. ein **App-spezifisches Passwort** erzeugen und das verwenden |
 | „Entwicklermodus“ fehlt | erst Teil A fertigstellen; der Eintrag erscheint erst nach der SideStore-Installation |
 | SideStore meldet „Pairing file“ / lässt sich nicht verbinden | LocalDevVPN verbunden? Sonst in iloader die Pairing-Datei neu erzeugen (SideStore-Doku „Pairing File“); nach einem iOS-Update nötig |
-| IronLudi öffnet nicht mehr („nicht verfügbar“) | 7 Tage abgelaufen: LocalDevVPN verbinden › SideStore › My Apps › Refresh |
+| AIronLudi öffnet nicht mehr („nicht verfügbar“) | 7 Tage abgelaufen: LocalDevVPN verbinden › SideStore › My Apps › Refresh |
 | Link des Betreibers lässt sich nicht einfügen | SideStore › Sources › **+** funktioniert nur mit dem vollständigen Link (mit `https://`) |
 
 Quellen: offizielle SideStore-Doku <https://docs.sidestore.io> (Prerequisites, Install); technische Details und Updates

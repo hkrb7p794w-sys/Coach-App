@@ -85,7 +85,7 @@ struct DataExportTests {
   @Test func emptyDataStillExports() throws {
     let all = Set(ExportCategory.allCases)
     let text = DataExport.markdown(input(empty: true), from: range.0, to: range.1, categories: all)
-    #expect(text.contains("# IronLudi"))
+    #expect(text.contains("# AIronLudi"))
     #expect(!text.contains("## Erholung"))
     let jsonText = DataExport.json(input(empty: true), from: range.0, to: range.1, categories: all)
     let json = try JSONValue(data: Data(jsonText.utf8))

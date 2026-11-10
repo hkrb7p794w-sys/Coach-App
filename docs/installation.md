@@ -3,7 +3,7 @@
 Für Personen, denen du (Betreiber:in des Workers) die App gibst. Alles läuft über deinen Cloudflare Worker und die
 dort hinterlegten Zugänge – niemand braucht ein eigenes Konto bei Cloudflare, GitHub oder einem KI-Anbieter.
 
-| | iPhone: IronLudi (volle App) | Android: IronLudi |
+| | iPhone: AIronLudi (volle App) | Android: IronLudi |
 |---|---|---|
 | Inhalt | Training, Ernährung, Gym, Garmin, KI-Coach, Widgets | Gym-Logging (Trainings, Pläne, 59 Übungen, Steigerungsvorschläge, Pausentimer) und Ernährung (Tagesziele, 7.000 Lebensmittel, KI per Foto/Text, Barcode, Favoriten); Sicherung |
 | Was du schickst | 1. SideStore-Link, 2. Einladungslink (Gastzugang für KI und Rangliste) | 1 Link: Download-Seite mit eigenem Gastzugang für die KI |
@@ -59,9 +59,9 @@ wenn in den Android-Einstellungen „Sicherung“ an ist.
 
 1. SideStore einrichten wie in [`docs/sidestore.md`](sidestore.md), Abschnitt „Einmalig: SideStore einrichten“
    (LocalDevVPN, iloader, eigene Apple-ID, Entwicklermodus).
-2. SideStore › **Sources** › „+“ › deinen SideStore-Link einfügen › „IronLudi (privat)“ › **IronLudi** installieren.
-3. IronLudi öffnen und das Profil einrichten.
-4. Deinen **Einladungslink** antippen (z. B. in WhatsApp/iMessage) › IronLudi öffnet sich, übernimmt Worker und
+2. SideStore › **Sources** › „+“ › deinen SideStore-Link einfügen › „AIronLudi (privat)“ › **AIronLudi** installieren.
+3. AIronLudi öffnen und das Profil einrichten.
+4. Deinen **Einladungslink** antippen (z. B. in WhatsApp/iMessage) › AIronLudi öffnet sich, übernimmt Worker und
    Gastzugang und tritt der Rangliste bei. Damit funktionieren KI-Coach, Fotoanalyse und Rangliste.
 5. Optional Garmin: eigener kostenloser Garmin-Key (Einstellungen › Garmin, Anleitung in `docs/einrichtung.md`,
    Schritt 1) – jeder nutzt sein eigenes Garmin-Konto.

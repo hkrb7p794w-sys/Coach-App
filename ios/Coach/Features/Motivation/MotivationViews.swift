@@ -229,7 +229,8 @@ struct MotivationSettingsView: View {
           LabeledContent("Code", value: settings.league.code)
           if let invite {
             ShareLink(
-              item: invite, subject: Text("IronLudi-Rangliste"), message: Text("Mach mit in meiner IronLudi-Rangliste!")
+              item: invite, subject: Text("AIronLudi-Rangliste"),
+              message: Text("Mach mit in meiner AIronLudi-Rangliste!")
             ) {
               Label("Einladungslink teilen", systemImage: "square.and.arrow.up")
             }
@@ -314,7 +315,7 @@ struct JoinLeagueSheet: View {
     NavigationStack {
       Form {
         Section {
-          Text("Du wurdest in eine IronLudi-Rangliste eingeladen.")
+          Text("Du wurdest in eine AIronLudi-Rangliste eingeladen.")
           LabeledContent("Server", value: invite.host ?? invite.workerURL)
           TextField("Dein Name in der Rangliste", text: $settings.league.name)
         } footer: {

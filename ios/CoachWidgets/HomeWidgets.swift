@@ -237,7 +237,7 @@ private struct NoDataView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Image(systemName: "arrow.up.forward.app").font(.title3)
-      Text(WidgetStore.isAvailable ? "IronLudi einmal öffnen" : "Widget-Daten nicht verfügbar")
+      Text(WidgetStore.isAvailable ? "AIronLudi einmal öffnen" : "Widget-Daten nicht verfügbar")
         .font(.caption.bold())
       if !WidgetStore.isAvailable {
         Text("Die App-Gruppe fehlt (Installation über SideStore prüfen).").font(.caption2)

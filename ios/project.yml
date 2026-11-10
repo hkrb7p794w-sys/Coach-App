@@ -45,7 +45,7 @@ targets:
     info:
       path: Coach/Resources/Info.plist
       properties:
-        CFBundleDisplayName: IronLudi
+        CFBundleDisplayName: AIronLudi
         CFBundleDevelopmentRegion: de
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -64,19 +64,19 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - io.github.hkrb7p794w.coach.refresh
         NSHealthShareUsageDescription: >-
-          IronLudi liest Workouts mit Verlauf und Strecke, Schlaf, Herzfrequenz, Schritte,
+          AIronLudi liest Workouts mit Verlauf und Strecke, Schlaf, Herzfrequenz, Schritte,
           Kalorien, VO2max und Gewicht aus Apple Health (z. B. von der Apple Watch), um
           Erholung, Training und Ernährung einzuordnen.
         NSHealthUpdateUsageDescription: >-
-          IronLudi speichert deine Krafttrainings als Workouts in Health.
+          AIronLudi speichert deine Krafttrainings als Workouts in Health.
         NSAlarmKitUsageDescription: >-
-          IronLudi stellt auf deinen Wunsch einen Wecker zur empfohlenen Aufstehzeit.
+          AIronLudi stellt auf deinen Wunsch einen Wecker zur empfohlenen Aufstehzeit.
         NSCameraUsageDescription: >-
-          IronLudi nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
+          AIronLudi nutzt die Kamera für Fotos von Mahlzeiten und zum Scannen von Barcodes.
         NSMicrophoneUsageDescription: >-
-          IronLudi nutzt das Mikrofon, wenn du eine Mahlzeit diktierst.
+          AIronLudi nutzt das Mikrofon, wenn du eine Mahlzeit diktierst.
         NSSpeechRecognitionUsageDescription: >-
-          IronLudi wandelt deine diktierte Mahlzeit in Text um, wenn möglich direkt auf dem iPhone.
+          AIronLudi wandelt deine diktierte Mahlzeit in Text um, wenn möglich direkt auf dem iPhone.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.hkrb7p794w.coach
@@ -104,7 +104,7 @@ targets:
     info:
       path: CoachWidgets/Info.plist
       properties:
-        CFBundleDisplayName: IronLudi
+        CFBundleDisplayName: AIronLudi
         CFBundleDevelopmentRegion: de
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)

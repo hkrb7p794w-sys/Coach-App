@@ -52,7 +52,7 @@ struct ShareMealSheet: View {
         } footer: {
           Text(
             "Geteilt werden nur Titel, Mengen und Nährwerte – kein Name, kein Datum, keine Gesundheitsdaten. "
-              + "Abrufen kann nur, wer IronLudi über denselben Zugang nutzt.")
+              + "Abrufen kann nur, wer AIronLudi über denselben Zugang nutzt.")
         }
         if model.social.isAvailable {
           Section {

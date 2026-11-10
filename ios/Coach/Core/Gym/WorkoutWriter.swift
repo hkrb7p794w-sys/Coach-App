@@ -17,7 +17,7 @@ enum WorkoutWriterError: LocalizedError {
     switch self {
     case .unavailable: "Apple Health ist auf diesem Gerät nicht verfügbar."
     case .notAuthorized:
-      "Keine Schreibberechtigung für Workouts. Einstellungen › Health › Datenzugriff › IronLudi prüfen."
+      "Keine Schreibberechtigung für Workouts. Einstellungen › Health › Datenzugriff › AIronLudi prüfen."
     }
   }
 }

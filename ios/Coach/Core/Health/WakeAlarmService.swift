@@ -10,7 +10,7 @@ import SwiftUI
 /// Wecker zur Aufstehzeit über AlarmKit (iOS 26): ein echter System-Wecker, der auch im Lautlos- und Fokus-Modus
 /// klingelt und in der Uhr-/Sperrbildschirm-Ansicht erscheint. Die App fragt einmal nach Erlaubnis; ohne sie oder
 /// unter iOS 18–25 gibt es keinen Wecker, nur den Hinweis auf die Uhr-App. Es gibt immer höchstens einen
-/// IronLudi-Wecker: ein neuer ersetzt den alten.
+/// AIronLudi-Wecker: ein neuer ersetzt den alten.
 @MainActor
 @Observable
 final class WakeAlarmService {
@@ -60,7 +60,7 @@ final class WakeAlarmService {
     state = .unsupported
   }
 
-  /// Stellt den Wecker (ersetzt einen vorhandenen IronLudi-Wecker). Fragt beim ersten Mal nach Erlaubnis.
+  /// Stellt den Wecker (ersetzt einen vorhandenen AIronLudi-Wecker). Fragt beim ersten Mal nach Erlaubnis.
   func schedule(_ time: WakePlan.Time, repeats: WakePlan.Repeat) async -> Bool {
     lastError = nil
     #if canImport(AlarmKit)
@@ -70,7 +70,7 @@ final class WakeAlarmService {
             let answer = try await AlarmManager.shared.requestAuthorization()
             guard answer == .authorized else {
               state = .denied
-              lastError = "Wecker nicht erlaubt. Du kannst das in den iOS-Einstellungen unter IronLudi ändern."
+              lastError = "Wecker nicht erlaubt. Du kannst das in den iOS-Einstellungen unter AIronLudi ändern."
               return false
             }
           }

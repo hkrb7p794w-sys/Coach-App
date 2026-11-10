@@ -70,7 +70,7 @@ struct WakeAlarmSection: View {
     } footer: {
       Text(
         alarms.state == .denied
-          ? "Wecker sind für IronLudi nicht erlaubt (iOS-Einstellungen › IronLudi)."
+          ? "Wecker sind für AIronLudi nicht erlaubt (iOS-Einstellungen › AIronLudi)."
           : "Ein echter iOS-Wecker (klingelt auch lautlos und im Fokus). iOS fragt beim ersten Mal nach Erlaubnis; "
             + "ein neuer Wecker ersetzt den alten.")
     }

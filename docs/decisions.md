@@ -2,6 +2,15 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – App heißt „AIronLudi“
+
+- **Wunsch des Nutzers:** Die iPhone-App trägt den Namen „AIronLudi“.
+- **Geändert:** Anzeigename von App und Widgets (`CFBundleDisplayName`), Texte in der App, Berechtigungstexte, Export-
+  Überschriften, Name der SideStore-Quelle und der App darin, Anleitungen.
+- **Unverändert:** Bundle-ID und Projektname (sonst wäre es eine neue App ohne Daten, SideStore ersetzt die
+  vorhandene nur bei gleicher ID), Dateinamen der Sicherungen und Exporte (`IronLudi-Sicherung.json`, damit ältere
+  Sicherungen weiter gefunden werden), interne Bezeichner. Die Android-App heißt weiter „IronLudi“ (vorerst nur iOS).
+
 ## 2026-11-10 – Anmelde-Fenster schließt sich von selbst
 
 - **Rückmeldung des Nutzers:** Beim Anmelden verschwindet das Fenster. Die Ursache ließ sich ohne Gerät nicht

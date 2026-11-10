@@ -47,9 +47,9 @@ struct BackupView: View {
         Text("Automatisch")
       } footer: {
         Text(
-          "Einmal am Tag, wenn du die App verlässt, sichert IronLudi in den Ordner – am besten in iCloud Drive "
+          "Einmal am Tag, wenn du die App verlässt, sichert AIronLudi in den Ordner – am besten in iCloud Drive "
             + "oder einen anderen Cloud-Ordner. Die Datei liegt außerhalb der App und bleibt auch erhalten, wenn "
-            + "IronLudi gelöscht wird. Die vorherige Sicherung bleibt als „…-vorher.json“ liegen."
+            + "AIronLudi gelöscht wird. Die vorherige Sicherung bleibt als „…-vorher.json“ liegen."
         )
       }
 
@@ -120,7 +120,7 @@ struct BackupView: View {
     } message: {
       Text(
         (restored?.text ?? "")
-          + " Damit die Einstellungen gelten, schließt sich IronLudi jetzt. Öffne die App danach einfach neu."
+          + " Damit die Einstellungen gelten, schließt sich AIronLudi jetzt. Öffne die App danach einfach neu."
       )
     }
     .alert(

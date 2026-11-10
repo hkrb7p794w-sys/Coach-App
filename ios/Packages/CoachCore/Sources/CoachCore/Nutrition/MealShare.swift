@@ -65,7 +65,7 @@ public enum MealShare {
 
   /// Text für Nachrichten-Apps: Link (öffnet die App) und Code zum Eintippen.
   public static func message(title: String, kilocalories: Double, link: URL?, code: String) -> String {
-    var lines = ["Mahlzeit „\(title)“ (\(Int(kilocalories.rounded())) kcal) für IronLudi:"]
+    var lines = ["Mahlzeit „\(title)“ (\(Int(kilocalories.rounded())) kcal) für AIronLudi:"]
     if let link { lines.append(link.absoluteString) }
     lines.append("Oder in der App unter Ernährung › „Geteilte Mahlzeit öffnen“ den Code \(code) eingeben.")
     lines.append("Der Code gilt 7 Tage.")
