@@ -475,7 +475,7 @@ struct MealsWidgetView: View {
       let parts =
         nutrition.meals ?? MealSplit.order.map { WidgetSnapshot.MealPart(category: $0, kcal: 0, target: nil) }
       switch family {
-      case .accessoryRectangular: rectangular(parts)
+      case .accessoryRectangular: rectangular(parts, streak: snapshot.streak)
       case .accessoryCircular: circular(nutrition)
       default: medium(parts, nutrition: nutrition, streak: snapshot.streak)
       }
@@ -516,17 +516,48 @@ struct MealsWidgetView: View {
     return remaining >= 0 ? "\(Style.kcal(remaining)) kcal übrig" : "\(Style.kcal(-remaining)) kcal drüber"
   }
 
-  /// Sperrbildschirm: vier Mini-Werte nebeneinander, Tippen öffnet das Erfassen (dort ist die Mahlzeit vorgewählt).
-  private func rectangular(_ parts: [WidgetSnapshot.MealPart]) -> some View {
-    HStack(spacing: 4) {
-      ForEach(parts) { part in
-        VStack(spacing: 1) {
-          Image(systemName: Self.symbol(part.category)).font(.caption2)
-          Text(Style.kcal(part.kcal)).font(.caption2.bold()).monospacedDigit().minimumScaleFactor(0.6)
-          Gauge(value: part.fraction ?? 0) { EmptyView() }.gaugeStyle(.accessoryLinearCapacity)
-          Text(Self.short(part.category)).font(.system(size: 9)).lineLimit(1).minimumScaleFactor(0.6)
+  /// Sperrbildschirm im selben Aufbau wie auf dem Homescreen: Serie oben, je Mahlzeit ein Ring mit Symbol und „+“
+  /// bzw. Haken. iOS zeichnet Sperrbildschirm-Widgets einfarbig, deshalb Symbole statt farbiger Emojis. Tippen
+  /// öffnet das Erfassen.
+  private func rectangular(_ parts: [WidgetSnapshot.MealPart], streak: WidgetSnapshot.Streak?) -> some View {
+    VStack(spacing: 2) {
+      if let streak, streak.days > 0 {
+        HStack(spacing: 2) {
+          Text(streak.activeToday ? "Weiter so!" : "Heute eintragen").lineLimit(1).minimumScaleFactor(0.7)
+          Spacer(minLength: 2)
+          Image(systemName: streak.activeToday ? "flame.fill" : "flame")
+          Text("\(streak.days)").fontWeight(.heavy).monospacedDigit()
         }
-        .frame(maxWidth: .infinity)
+        .font(.system(size: 10, weight: .semibold))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Serie: \(streak.days) Tage")
+      }
+      HStack(alignment: .top, spacing: 0) {
+        ForEach(parts) { part in
+          VStack(spacing: 1) {
+            ZStack(alignment: .bottomTrailing) {
+              ZStack {
+                Circle().stroke(Color.primary.opacity(0.25), lineWidth: 3)
+                Circle().trim(from: 0, to: min(max(part.fraction ?? 0, 0), 1))
+                  .stroke(Color.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                  .rotationEffect(.degrees(-90))
+                Image(systemName: Self.symbol(part.category)).font(.system(size: 11, weight: .semibold))
+              }
+              .frame(width: 28, height: 28)
+              Image(systemName: part.kcal > 0 ? "checkmark.circle.fill" : "plus.circle.fill")
+                .font(.system(size: 11, weight: .bold))
+                .offset(x: 4, y: 3)
+            }
+            Text(Self.short(part.category)).font(.system(size: 9, weight: .bold)).lineLimit(1)
+              .minimumScaleFactor(0.7)
+            Text(Style.kcal(part.kcal)).font(.system(size: 9)).monospacedDigit().lineLimit(1)
+              .minimumScaleFactor(0.7)
+          }
+          .frame(maxWidth: .infinity)
+          .opacity(part.kcal > 0 ? 1 : 0.75)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel("\(part.category.label): \(Style.kcal(part.kcal)) Kilokalorien")
+        }
       }
     }
     .widgetAccentable()
