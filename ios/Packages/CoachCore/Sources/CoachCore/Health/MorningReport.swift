@@ -384,3 +384,30 @@ public struct MorningReport: Equatable, Sendable {
     return minutes >= 60 ? "\(minutes / 60) h \(minutes % 60) min" : "\(minutes) min"
   }
 }
+
+extension ReminderPlanner {
+  public static let morningReportHour = 8
+  public static let morningReportFallback = "Schlaf, Erholung und was heute ansteht – tippen zum Öffnen."
+
+  /// Mitteilung um 8 Uhr zum Morning Report (Standard an, abwählbar). Lokale Mitteilungen brauchen ihren Text beim
+  /// Planen: Liegen die Werte der Nacht schon vor (`summary`), steht heute die Einordnung darin, sonst – und für
+  /// die folgenden Tage – ein allgemeiner Satz. Öffnet die App vorher oder läuft die Hintergrundaktualisierung,
+  /// wird der Text ersetzt.
+  public static func morningReport(
+    today: CalendarDay, minutesNow: Int, summary: String? = nil, hour: Int = morningReportHour, days: Int = 5
+  ) -> [ScheduledNote] {
+    (0..<max(days, 1)).compactMap { offset in
+      if offset == 0, minutesNow >= hour * 60 { return nil }
+      let text = offset == 0 ? summary?.trimmingCharacters(in: .whitespacesAndNewlines) : nil
+      return ScheduledNote(
+        kind: .morningReport, day: today.adding(days: offset), hour: hour, minute: 0, title: "Morning Report",
+        body: text.flatMap { $0.isEmpty ? nil : $0 } ?? morningReportFallback)
+    }
+  }
+
+  /// Text für heute: nur mit Werten der letzten Nacht, nicht mit denen von gestern.
+  public static func morningSummary(_ report: MorningReport) -> String? {
+    guard report.dataDay == report.day, report.level != nil else { return nil }
+    return report.headline
+  }
+}

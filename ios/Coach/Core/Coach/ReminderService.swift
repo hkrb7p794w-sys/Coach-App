@@ -58,19 +58,20 @@ final class ReminderService: NSObject {
   /// `loggedMeals`: schon erfasste Mahlzeiten (`ReminderPlanner.loggedKey`) – dafür gibt es keine Erinnerung.
   func refresh(
     seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), loggedMeals: Set<String> = [],
-    now: Date = .now
+    morningSummary: String? = nil, now: Date = .now
   ) async {
     let previous = lastRefresh
     let task = Task { @MainActor in
       await previous?.value
-      await self.performRefresh(seasonSchedule: seasonSchedule, log: log, loggedMeals: loggedMeals, now: now)
+      await self.performRefresh(
+        seasonSchedule: seasonSchedule, log: log, loggedMeals: loggedMeals, morningSummary: morningSummary, now: now)
     }
     lastRefresh = task
     await task.value
   }
 
   private func performRefresh(
-    seasonSchedule: SeasonSchedule?, log: TrainingLog, loggedMeals: Set<String>, now: Date
+    seasonSchedule: SeasonSchedule?, log: TrainingLog, loggedMeals: Set<String>, morningSummary: String?, now: Date
   ) async {
     guard let center else { return }
     let status = await center.notificationSettings().authorizationStatus
@@ -78,6 +79,7 @@ final class ReminderService: NSObject {
     let config = settings.reminders
     let wanted =
       config.enabled || config.equipment || config.weekPlanning || config.nutritionReview || config.meals.anyEnabled
+      || config.morningReport
     if status == .notDetermined, wanted {
       allowed = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
     }
@@ -109,7 +111,9 @@ final class ReminderService: NSObject {
     }
 
     // Ausrüstung am Vorabend und Wochenplanung am Sonntag (iOS erlaubt höchstens 64 geplante Mitteilungen).
-    for note in notes(seasonSchedule: seasonSchedule, log: log, loggedMeals: loggedMeals, now: now) {
+    let notes = notes(
+      seasonSchedule: seasonSchedule, log: log, loggedMeals: loggedMeals, morningSummary: morningSummary, now: now)
+    for note in notes {
       let content = UNMutableNotificationContent()
       content.title = note.title
       content.body = note.body
@@ -125,7 +129,8 @@ final class ReminderService: NSObject {
   }
 
   func notes(
-    seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), loggedMeals: Set<String> = [], now: Date = .now
+    seasonSchedule: SeasonSchedule?, log: TrainingLog = TrainingLog(), loggedMeals: Set<String> = [],
+    morningSummary: String? = nil, now: Date = .now
   ) -> [ScheduledNote] {
     let today = CalendarDay(date: now)
     let parts = Calendar.current.dateComponents([.hour, .minute], from: now)
@@ -146,6 +151,9 @@ final class ReminderService: NSObject {
       result += ReminderPlanner.nutritionReview(today: today, minutesNow: minutesNow)
     }
     result += ReminderPlanner.meals(config.meals, today: today, minutesNow: minutesNow, logged: loggedMeals)
+    if config.morningReport {
+      result += ReminderPlanner.morningReport(today: today, minutesNow: minutesNow, summary: morningSummary)
+    }
     return result
   }
 
@@ -184,6 +192,11 @@ final class ReminderService: NSObject {
   private func handle(action: String, dayText: String, kind: String?) {
     if kind == ScheduledNote.Kind.weekPlanning.rawValue {
       showsWeekPlanning = true
+      return
+    }
+    // Morning Report: Gesundheitsbereich mit dem Bericht öffnen.
+    if kind == ScheduledNote.Kind.morningReport.rawValue {
+      AppRouter.shared.open(.health)
       return
     }
     // Ausrüstungs-Erinnerung: nur die App öffnen.

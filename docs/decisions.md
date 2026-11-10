@@ -2,6 +2,16 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Mitteilung zum Morning Report um 8 Uhr
+
+- **Wunsch des Nutzers:** morgens um 8:00 Uhr eine Mitteilung zum Morning Report, abwählbar.
+- **Lokale Mitteilung, kein Push:** Mit kostenloser Apple-ID gibt es keine Push-Mitteilungen vom Server; die App
+  plant die Mitteilung selbst (`ReminderPlanner.morningReport`, Standard an, Schalter unter Einstellungen ›
+  Allgemein › Erinnerungen). Tippen öffnet den Gesundheitsbereich mit dem Bericht.
+- **Text:** iOS verlangt den Text beim Planen. Liegen die Werte der Nacht schon vor (App vor 8 Uhr geöffnet oder
+  Hintergrundaktualisierung gelaufen), steht die Einordnung des Berichts darin – nur der Satz, keine Messwerte auf
+  dem Sperrbildschirm. Sonst ein allgemeiner Satz. Geplant für fünf Tage im Voraus (iOS erlaubt 64 Mitteilungen).
+
 ## 2026-11-10 – Reiter „Aktivitäten“, Gym im Training, AI über „Heute“ (Phase 98)
 
 - **Wunsch des Nutzers:** ein Reiter mit den eigenen Aktivitäten (neueste oben) und denen der Freunde als Feed; Gym

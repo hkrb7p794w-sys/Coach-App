@@ -178,6 +178,10 @@ hier notieren und als PR beheben.
       Gym-Bereich; App-Symbol lange drücken › „Training starten“ startet die nächste Einheit; Live-Aktivität läuft.
       Heute › „AI-Empfehlungen“ öffnet die Empfehlungen.
 
+- [ ] **Morning Report um 8 Uhr:** Abends App öffnen, am nächsten Morgen kommt um 8:00 die Mitteilung „Morning
+      Report“; Tippen öffnet Gesundheit. App vor 8 Uhr geöffnet (Daten der Nacht da) → Text nennt die Einordnung.
+      Einstellungen › Allgemein › Erinnerungen › Schalter aus → keine Mitteilung mehr.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).
