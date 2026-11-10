@@ -35,6 +35,9 @@ public enum ChatContext {
     public var weightTrend: WeightTrend.Result?
     public var runWeek: RunPlanner.Week?
     public var mobilityLine: String?
+    /// Auswertung der letzten aufgezeichneten Einheiten (`ActivityFindings.contextLine`, schon passend zum
+    /// Datenschutzmodus).
+    public var activityFindings: [String] = []
 
     public init(profile: UserProfile, privacy: PrivacyMode) {
       self.profile = profile
@@ -108,6 +111,9 @@ public enum ChatContext {
     }
     if let mobility = facts.mobilityLine {
       lines.append(mobility)
+    }
+    for finding in facts.activityFindings.prefix(3) {
+      lines.append("Auswertung der Aufzeichnung – \(finding)")
     }
     // Die Sätze des Wochenberichts enthalten Rohwerte (Schlafstunden, Ruhepuls).
     if full {

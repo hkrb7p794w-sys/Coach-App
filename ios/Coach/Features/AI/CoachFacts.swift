@@ -32,6 +32,12 @@ enum CoachFacts {
       }
     }
     facts.mobilityLine = settings.mobility.contextLine(today: today)
+    // Die drei jüngsten vollständig übertragenen Einheiten der letzten Woche.
+    facts.activityFindings = model.sync.reportStore.load().values
+      .filter { $0.day >= today.adding(days: -7) && $0.day <= today }
+      .sorted { ($0.day, $0.id) > ($1.day, $1.id) }
+      .prefix(3)
+      .compactMap { ActivityFindings.contextLine($0, full: settings.privacy == .full) }
     facts.sleep = SleepCoach.report(days: metrics, settings: settings.sleep, goal: settings.profile.goal, today: today)
     // Dieselben Ziele wie im Reiter Ernährung und im Widget.
     facts.targets = NutritionViewModel.targets(

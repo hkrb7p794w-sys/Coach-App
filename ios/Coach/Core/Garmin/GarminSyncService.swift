@@ -9,6 +9,8 @@ struct SyncReport: Equatable {
   var activitiesUpdated = 0
   /// Per FIT-Datei ausgewertete Läufe und Fahrten (aerobe Kopplung, Pace-Check).
   var activitiesAnalyzed = 0
+  /// Aktivitäten, die mit Runden, Verlauf und allen Kennzahlen nachgeladen wurden.
+  var activitiesDetailed = 0
   /// Fehler einzelner Endpunkte; der Rest des Abrufs läuft trotzdem durch.
   var errors: [String] = []
   /// Beantwortete Abrufe je Quelle (Garmin-Konto, Personal API).
@@ -20,6 +22,7 @@ struct SyncReport: Equatable {
   var summary: String {
     var text = "\(daysUpdated) Tage, \(activitiesUpdated) Aktivitäten (\(range.start.iso) – \(range.end.iso))"
     if activitiesAnalyzed > 0 { text += ", \(activitiesAnalyzed) ausgewertet" }
+    if activitiesDetailed > 0 { text += ", \(activitiesDetailed) mit Runden und Verlauf" }
     if !errors.isEmpty { text += ", \(errors.count) Fehler" }
     if !sources.isEmpty {
       text += " · " + sources.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value)" }.joined(separator: ", ")
@@ -37,6 +40,11 @@ final class GarminSyncService {
   private let context: ModelContext
   private let defaults: UserDefaults
   let analysisStore: ActivityAnalysisStore
+  let reportStore: ActivityReportStore
+  /// Abrufe der Datei der Uhr in diesem Durchlauf (Garmin-Rate-Limit schonen; der Rest folgt beim nächsten Abruf).
+  private var fileFetches = 0
+  static let maxFileFetchesPerSync = 8
+  static let failedReportsKey = "garmin.reportFailures"
   /// Gemeinsame Ablage aller Quellen; ohne (Tests, alte Aufrufer) wie bisher direkt in `DailyMetricsRecord`.
   var sources: SourceStore?
   static let lastSyncKey = "garmin.lastSync"
@@ -48,12 +56,14 @@ final class GarminSyncService {
 
   init(
     client: GarminClient, context: ModelContext, defaults: UserDefaults = .standard,
-    analysisStore: ActivityAnalysisStore = ActivityAnalysisStore()
+    analysisStore: ActivityAnalysisStore = ActivityAnalysisStore(),
+    reportStore: ActivityReportStore = ActivityReportStore()
   ) {
     self.client = client
     self.context = context
     self.defaults = defaults
     self.analysisStore = analysisStore
+    self.reportStore = reportStore
   }
 
   var lastSync: Date? {
@@ -135,7 +145,9 @@ final class GarminSyncService {
     }
     await refreshProfileIfNeeded(today: today, report: &report)
     try context.save()
+    fileFetches = 0
     report.activitiesAnalyzed = await analyzeActivities(today: today, report: &report)
+    report.activitiesDetailed = await detailActivities(today: today, report: &report)
 
     defaults.set(now, forKey: Self.lastSyncKey)
     report.sources = Dictionary(uniqueKeysWithValues: client.sources.map { ($0.key.rawValue, $0.value) })
@@ -282,7 +294,7 @@ final class GarminSyncService {
         guard fetches < ActivityAnalysisPlanner.maxFetchesPerSync else { continue }
         fetches += 1
         do {
-          let data = try await client.data(.activityFile(id: activity.id))
+          guard let data = try await fileData(activity.id) else { continue }
           fit = try? await Self.decodeFit(data)
         } catch let error as GarminAPIError {
           report.errors.append("FIT \(activity.id): \(error.message)")
@@ -300,6 +312,59 @@ final class GarminSyncService {
       if let value = await rpe(id) { analyzed[id]?.rpe = value }
     }
     analysisStore.save(analyzed, today: today)
+    return count
+  }
+
+  /// Datei der Uhr: aus dem Zwischenspeicher, sonst von Garmin (begrenzt je Abruf). `nil` = Budget aufgebraucht.
+  private func fileData(_ id: Int64) async throws -> Data? {
+    if let cached = ActivityReportStore.cachedFile(id) { return cached }
+    guard fileFetches < Self.maxFileFetchesPerSync else { return nil }
+    fileFetches += 1
+    let data = try await client.data(.activityFile(id: id))
+    ActivityReportStore.cache(data, id: id)
+    return data
+  }
+
+  /// Jede Aktivität der letzten Wochen vollständig übertragen: alle Kennzahlen (Aktivitätsdetails) und aus der Datei
+  /// der Uhr Runden, Splits und Verlauf. Jüngste zuerst; was nicht mehr ins Budget passt, folgt beim nächsten Abruf.
+  private func detailActivities(today: CalendarDay, report: inout SyncReport) async -> Int {
+    let records = (try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []
+    var reports = reportStore.load()
+    // Aktivitäten ohne lesbare Datei (z. B. manuell eingetragen) nicht bei jedem Abruf erneut versuchen.
+    var failed = Set((defaults.array(forKey: Self.failedReportsKey) as? [Int64]) ?? [])
+    var count = 0
+    let pending = ActivityReportPlanner.pending(
+      records.compactMap(\.activity), known: reports, failed: failed, today: today)
+    for activity in pending {
+      let data: Data?
+      do {
+        data = try await fileData(activity.id)
+      } catch GarminAPIError.rejectedRequest {
+        // Keine Datei vorhanden (z. B. manuell eingetragen): nicht erneut versuchen.
+        failed.insert(activity.id)
+        continue
+      } catch {
+        // Netz, Anmeldung oder Rate-Limit: beim nächsten Abruf weiter.
+        break
+      }
+      guard let data else { break }
+      var detailed = activity
+      if let json = try? await client.json(.activity(id: activity.id)) {
+        detailed = GarminActivityParser.detail(json, base: activity)
+        if detailed != activity, let record = records.first(where: { $0.garminID == activity.id }) {
+          record.update(detailed)
+        }
+      }
+      guard let fit = try? await Self.decodeFit(data) else {
+        failed.insert(activity.id)
+        continue
+      }
+      reports[activity.id] = ActivityReportBuilder.build(detailed, fit: fit)
+      count += 1
+    }
+    try? context.save()
+    reportStore.save(reports, today: today)
+    defaults.set(Array(failed.suffix(200)), forKey: Self.failedReportsKey)
     return count
   }
 

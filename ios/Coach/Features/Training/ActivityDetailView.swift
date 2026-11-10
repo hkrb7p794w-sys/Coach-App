@@ -13,6 +13,8 @@ struct ActivityDetailView: View {
   @Environment(\.modelContext) private var context
   @State private var activity: GarminActivity?
   @State private var fit: FitActivity?
+  /// Gespeicherter Bericht vom Abruf: Runden, Splits und Verlauf ohne erneutes Laden.
+  @State private var report: ActivityReport?
   @State private var loading = false
   @State private var problem: String?
   @State private var sharing = false
@@ -26,15 +28,21 @@ struct ActivityDetailView: View {
         if current.sport == .strength {
           LinkedGymSection(activity: current)
         }
+        if let report { findingsSection(report) }
         if let fit {
           let route = ActivityDetails.route(fit)
           if route.count > 1 { mapSection(route) }
           let samples = ActivityDetails.samples(fit, sport: current.sport)
           chartsSection(samples, sport: current.sport, byDistance: fit.records.contains { ($0.distance ?? 0) > 0 })
           if fit.laps.count > 1 { lapsSection(fit.laps, sport: current.sport) }
+        } else if let report {
+          // Datei der Uhr nicht (mehr) da: Verlauf und Runden aus dem gespeicherten Bericht.
+          chartsSection(report.samples, sport: current.sport, byDistance: report.byDistance)
+          if report.laps.count > 1 { lapsSection(report.laps, sport: current.sport) }
         } else if loading {
           Section { ProgressView("Verlauf wird geladen …") }
         }
+        if let report, report.splits.count > 1 { splitsSection(report, sport: current.sport) }
         ForEach(ActivityDetails.sections(current).dropFirst()) { section in
           Section(section.title) {
             ForEach(section.rows) { row in
@@ -184,6 +192,56 @@ struct ActivityDetailView: View {
     }
   }
 
+  /// Aussagen der Regeln zu dieser Einheit (Tempo-Einteilung, Puls-Drift, Intervalle, Standzeit).
+  private func findingsSection(_ report: ActivityReport) -> some View {
+    let findings = ActivityFindings.findings(report)
+    return Section {
+      if findings.isEmpty {
+        Text("Für diese Einheit gibt es keine besonderen Auffälligkeiten.").foregroundStyle(.secondary)
+      }
+      ForEach(findings) { finding in
+        Label {
+          Text(finding.text).font(.subheadline)
+        } icon: {
+          switch finding.tone {
+          case .good: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+          case .attention: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+          case .neutral: Image(systemName: "info.circle").foregroundStyle(.secondary)
+          }
+        }
+      }
+    } header: {
+      Text("Auswertung")
+    } footer: {
+      Text("Aus der Aufzeichnung der Uhr berechnet – feste Regeln, keine KI.")
+    }
+  }
+
+  /// Abschnitte fester Länge (Laufen 1 km, Rad 5 km, Schwimmen 100 m) mit Balken für das Tempo.
+  private func splitsSection(_ report: ActivityReport, sport: GarminActivity.Sport) -> some View {
+    let fastest = report.splits.map(\.speed).max() ?? 1
+    return Section(report.splitMeters == 1_000 ? "Kilometer" : ActivityFindings.splitTitle(report.splitMeters)) {
+      ForEach(report.splits) { split in
+        HStack(spacing: 8) {
+          Text("\(split.index)").frame(width: 24, alignment: .trailing).foregroundStyle(.secondary)
+          Text(ActivityDetails.speed(split.speed, sport: sport)).frame(width: 84, alignment: .leading)
+          GeometryReader { proxy in
+            Capsule().fill(.tint.opacity(0.7))
+              .frame(width: max(4, proxy.size.width * (fastest > 0 ? split.speed / fastest : 0)))
+          }
+          .frame(height: 8)
+          Text(split.averageHeartRate.map { "\(Int($0.rounded())) ♥" } ?? "").frame(width: 56, alignment: .trailing)
+        }
+        .font(.caption)
+        .monospacedDigit()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+          "Abschnitt \(split.index): \(ActivityDetails.speed(split.speed, sport: sport))"
+            + (split.averageHeartRate.map { ", Puls \(Int($0.rounded()))" } ?? ""))
+      }
+    }
+  }
+
   private func lapsSection(_ laps: [FitLap], sport: GarminActivity.Sport) -> some View {
     Section("Runden") {
       ScrollView(.horizontal) {
@@ -235,18 +293,15 @@ struct ActivityDetailView: View {
 
   // MARK: - Laden
 
-  private static func cacheURL(_ id: Int64) -> URL? {
-    FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
-      .appendingPathComponent("fit", isDirectory: true).appendingPathComponent("\(id).fit")
-  }
-
   private func load() async {
     guard let base = record.activity else { return }
     loading = true
     defer { loading = false }
-    // Aus dem Cache sofort anzeigen.
-    if let url = Self.cacheURL(base.id), let data = try? Data(contentsOf: url) {
+    // Bericht vom letzten Abruf und Datei aus dem Cache sofort anzeigen.
+    report = model.sync.reportStore.report(base.id)
+    if let data = ActivityReportStore.cachedFile(base.id) {
       fit = try? await GarminSyncService.decodeFit(data)
+      storeReport(base)
     }
     // Workouts aus Apple Health (negative ID) haben keine Garmin-Details.
     guard model.garmin.isConfigured, !model.isDemo, base.id >= 0 else { return }
@@ -262,16 +317,21 @@ struct ActivityDetailView: View {
     do {
       let data = try await model.garmin.data(.activityFile(id: base.id))
       fit = try await GarminSyncService.decodeFit(data)
-      if let url = Self.cacheURL(base.id) {
-        try? FileManager.default.createDirectory(
-          at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? data.write(to: url)
-      }
+      ActivityReportStore.cache(data, id: base.id)
+      storeReport(activity ?? base)
     } catch {
       problem =
         "Der Verlauf (FIT-Datei) konnte gerade nicht geladen werden. Die Übersicht stammt aus der "
         + "Aktivitätsliste."
     }
+  }
+
+  /// Bericht aus der geladenen Datei erzeugen und speichern (auch für ältere Aktivitäten außerhalb des Abrufs).
+  private func storeReport(_ activity: GarminActivity) {
+    guard let fit, report?.version != ActivityReport.version else { return }
+    let built = ActivityReportBuilder.build(activity, fit: fit)
+    report = built
+    model.sync.reportStore.store(built, today: CalendarDay(date: .now))
   }
 }
 

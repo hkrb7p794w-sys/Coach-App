@@ -2,6 +2,25 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Aufzeichnungen der Uhr vollständig übertragen (Phase 94)
+
+- **Wunsch des Nutzers:** Statistiken, Runden und Diagramme jeder mit der Uhr aufgezeichneten Aktivität sollen
+  mitübertragen und ausgewertet werden – zuerst Garmin, später Apple Watch und Whoop.
+- **Bisher:** Details kamen erst beim Öffnen einer Aktivität; die Datei der Uhr (FIT) holte der Abruf nur für Läufe
+  und Fahrten, die in Kopplung und Pace-Check einfließen.
+- **Jetzt:** Der Abruf holt für jede Garmin-Aktivität der letzten 42 Tage (ab 5 Minuten) die Aktivitätsdetails und
+  die FIT-Datei, jüngste zuerst, höchstens 8 Dateien je Abruf (Rate-Limit; der Rest folgt beim nächsten Abruf).
+  Daraus entsteht ein `ActivityReport` (Runden, Splits fester Länge, Verlauf mit 150 Punkten, Hälftenvergleich,
+  Standzeit), gespeichert 180 Tage in `activity-reports.json`. Die FIT-Datei liegt im Cache und wird von Kopplung,
+  Pace-Check und Detailansicht gemeinsam genutzt (kein doppelter Abruf).
+- **Regeln entscheiden:** `ActivityFindings` macht daraus Aussagen mit festen Schwellen – zweite Hälfte ≥ 2 %
+  schneller „gut eingeteilt“, ≥ 5 % langsamer „zu schnell begonnen“; Puls-Drift ab 5 % bei gleichmäßigem Tempo
+  (Grenze wie bei der aeroben Entkopplung, `AerobicDecoupling`); bei strukturierten Einheiten erstes gegen letztes
+  Intervall (ab 4 % langsamer „Tempo am Anfang zu hoch“). Der Coach bekommt nur diese Sätze; im Datenschutzmodus
+  „reduziert“ ohne Pulswerte in Schlägen.
+- **Offen:** Apple Watch (HealthKit liefert Verlauf und Strecke je Workout) und Whoop (eigene API mit OAuth, braucht
+  einen Schlüssel im Worker) folgen als eigene Phasen. Workouts aus Apple Health haben bis dahin nur Eckdaten.
+
 ## 2026-11-09 – Spielelemente und Challenges (Phase 93)
 
 - **Wunsch des Nutzers:** „Gamification mit Suchtfaktor“, um dranzubleiben und sich gegenseitig herauszufordern.

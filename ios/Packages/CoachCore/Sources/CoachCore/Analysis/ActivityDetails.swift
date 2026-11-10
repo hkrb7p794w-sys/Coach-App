@@ -182,7 +182,7 @@ public enum ActivityDetails {
 
   // MARK: - Verlauf aus der FIT-Datei
 
-  public struct Sample: Equatable, Sendable, Identifiable {
+  public struct Sample: Codable, Equatable, Sendable, Identifiable {
     /// km seit Start (oder Minuten, wenn keine Distanz vorliegt)
     public var x: Double
     public var heartRate: Double?
