@@ -1,8 +1,9 @@
 import Foundation
 
-/// Reiter der App. Gym gibt es nur, wenn die Person Krafttraining macht.
+/// Reiter der App. Gym liegt im Reiter Training, die KI-Empfehlungen sind von „Heute“ aus erreichbar
+/// (Entscheidung vom 10.11.2026: Platz für den Reiter „Aktivitäten“).
 public enum AppTab: String, Codable, CaseIterable, Sendable {
-  case today, training, nutrition, gym, ai
+  case today, activities, training, nutrition
 }
 
 /// Ziele, die von außen angesprungen werden: Schnellaktionen am App-Icon, Kurzbefehle/Siri und (später)
@@ -47,22 +48,30 @@ public enum AppRoute: String, Codable, CaseIterable, Sendable, Identifiable {
       .first { $0.name == "mahlzeit" }?.value.flatMap(MealCategory.init(rawValue:))
   }
 
-  /// Reiter der Route. Ohne Gym-Reiter landen Gym-Ziele in „Training“ statt ins Leere.
-  public func tab(trainsStrength: Bool) -> AppTab {
+  /// Reiter der Route. Gym-Ziele öffnen den Gym-Bereich im Reiter Training, KI-Ziele die Empfehlungen über „Heute“.
+  public var tab: AppTab {
     switch self {
-    case .today: .today
-    case .health: .training
+    case .today, .ai, .aiAnalysis: .today
+    case .health, .gym, .startWorkout: .training
     case .nutrition, .logMeal: .nutrition
-    case .gym, .startWorkout: trainsStrength ? .gym : .training
-    case .ai, .aiAnalysis: .ai
     }
   }
 
   /// Aktion im Reiter, die die Zielansicht einmal ausführt (danach gilt die Route als erledigt).
   public var hasAction: Bool {
     switch self {
-    case .health, .logMeal, .startWorkout, .aiAnalysis: true
+    case .health, .logMeal, .gym, .startWorkout, .ai, .aiAnalysis: true
     default: false
+    }
+  }
+
+  /// Bereich, den der Reiter zuerst öffnen muss, bevor die Zielansicht die Aktion übernimmt
+  /// („Training starten“ öffnet erst den Gym-Bereich, „KI-Analyse“ erst die Empfehlungen).
+  public var opensArea: AppRoute? {
+    switch self {
+    case .gym, .startWorkout: .gym
+    case .ai, .aiAnalysis: .ai
+    default: nil
     }
   }
 

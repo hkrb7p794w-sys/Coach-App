@@ -73,7 +73,7 @@ struct FriendsView: View {
 
 // MARK: - Feed
 
-private struct FeedList: View {
+struct FeedList: View {
   @Environment(AppModel.self) private var model
   @State private var importing: SharedMeal?
 
@@ -106,7 +106,7 @@ private struct FeedList: View {
   }
 }
 
-private struct ImportedMeal: Identifiable {
+struct ImportedMeal: Identifiable {
   let meal: SharedMeal
   var id: String { meal.title + "\(meal.items.count)" }
 }
@@ -167,7 +167,7 @@ struct PostCard: View {
   }
 }
 
-private struct ReactionBar: View {
+struct ReactionBar: View {
   let post: SocialPost
   let openComments: () -> Void
   @Environment(AppModel.self) private var model
@@ -222,7 +222,7 @@ struct Avatar: View {
   }
 }
 
-private struct CommentsView: View {
+struct CommentsView: View {
   let post: SocialPost
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
@@ -526,6 +526,8 @@ struct ShareWithFriendsSheet: View {
   }
 
   let content: Content
+  /// Schlüssel des eigenen Trainings (`SocialTimeline.keys`), siehe `SocialService.share`.
+  var localKeys: [String] = []
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var note = ""
@@ -602,7 +604,7 @@ struct ShareWithFriendsSheet: View {
       switch content {
       case .workout(var workout):
         workout.note = trimmed.isEmpty ? nil : String(trimmed.prefix(280))
-        try await model.social.share(workout: workout)
+        try await model.social.share(workout: workout, localKeys: localKeys)
       case .meal(let meal):
         try await model.social.share(
           meal: MealPostShare(meal: meal, note: trimmed.isEmpty ? nil : String(trimmed.prefix(280))))

@@ -3,7 +3,8 @@ import CoachCore
 import SwiftData
 import SwiftUI
 
-/// Gym: Einheit von heute starten, Progression je Übung, Sätze je Muskel, Verlauf.
+/// Gym (Bereich im Reiter Training, ohne eigenen Navigationsstapel):
+/// Einheit von heute starten, Progression je Übung, Sätze je Muskel, Verlauf.
 struct GymView: View {
   @Environment(AppModel.self) private var model
   @Environment(\.modelContext) private var context
@@ -21,7 +22,7 @@ struct GymView: View {
   }
 
   var body: some View {
-    NavigationStack {
+    Group {
       List {
         if let active = viewModel.active {
           Section {
@@ -117,24 +118,17 @@ struct GymView: View {
       // Schnellaktion / Kurzbefehl „Training starten“.
       .onChange(of: AppRouter.shared.pending, initial: true) {
         guard AppRouter.shared.take(.startWorkout) else { return }
-        startFromShortcut()
+        // Kurz warten: Der Bereich wird beim Kurzbefehl gerade erst eingeblendet.
+        Task {
+          try? await Task.sleep(for: .milliseconds(400))
+          startFromShortcut()
+        }
       }
       .fullScreenCover(isPresented: $showWorkout) {
         ActiveWorkoutView(viewModel: viewModel)
       }
-      // Start oder Ende einer Einheit: Erinnerungen für heute neu planen (keine Start-Erinnerung im Training).
-      .onChange(of: viewModel.active?.id) { _, _ in
-        Task { await model.refreshReminders() }
-      }
-      // Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm.
-      .onChange(of: viewModel.liveState, initial: true) { _, state in
-        WorkoutActivityController.update(
-          state, title: viewModel.active?.title ?? "", enabled: model.settings.gym.liveActivity)
-      }
-      // Bildschirm an, solange eine Einheit läuft – auch wenn sie gerade ausgeblendet ist.
-      .onChange(of: viewModel.active != nil && model.settings.gym.keepsScreenOn, initial: true) { _, on in
-        UIApplication.shared.isIdleTimerDisabled = on
-      }
+      // Erinnerungen, Live-Aktivität und „Bildschirm an“ hängen an `RootView`: Sie gelten auch, wenn dieser
+      // Bereich gerade nicht geöffnet ist.
     }
   }
 }

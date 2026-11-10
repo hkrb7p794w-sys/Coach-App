@@ -110,6 +110,7 @@ iPhone (SwiftUI, SwiftData, Regeln in CoachCore)
 | 95 | Apple Watch: Verlauf der Workouts aus Apple Health (Puls, Distanz, Leistung, Strecke, Runden, Pausen) – gleiche Auswertung, Splits und Diagramme wie bei Garmin | fertig (PR 107) |
 | 96 | Widgets im einheitlichen Stil: Kopfzeile mit Serie (Flamme), Ring-Kacheln mit Symbol und Plakette für Heute, Mahlzeiten, Ernährung, Health und Gym | fertig (PR 108) |
 | 97 | Mahlzeiten als Live-Aktivität: farbig und in voller Breite auf dem Sperrbildschirm (Serie, Ring je Mahlzeit, „+“ zum Eintragen), Schalter unter Ernährung | fertig (PR 111) |
+| 98 | Reiter „Aktivitäten“: eigene Trainings und Feed der Freunde in einer Liste, Trainings automatisch teilen (optional); Gym im Reiter Training, AI-Empfehlungen über „Heute“ | fertig (PR 116) |
 | 74 | Schutzgrenzen in jedem Pfad: BMI, Alter, Schwangerschaft, Essstörung, Zielgewicht auch bei neuen Wägungen und Anpassungen; KI ohne gesperrte Gewichtsziele; Adipositas-Bezug für Protein (Audit) | fertig (PR 83) |
 | 75 | Paket 9 Ernährung: Erfassen zuerst, Rezeptideen ohne 502 (Woche in Teilen, nächster Anbieter bei unbrauchbarer Antwort), gemeinsam kochen mit Freigabe, Portionen oder Tage, Vorkoch-Prüfung | fertig (PR 84) |
 

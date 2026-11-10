@@ -1658,7 +1658,7 @@ private struct WorkoutResultView: View {
       .padding()
     }
     .sheet(isPresented: Binding(get: { sharing != nil }, set: { if !$0 { sharing = nil } })) {
-      if let sharing { ShareWithFriendsSheet(content: .workout(sharing)) }
+      if let sharing { ShareWithFriendsSheet(content: .workout(sharing), localKeys: finished.shareKeys) }
     }
   }
 }

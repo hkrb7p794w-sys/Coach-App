@@ -11,7 +11,7 @@ struct TodayView: View {
   @State private var viewModel = TodayViewModel()
   @State private var showSettings = false
   @State private var showChat = false
-  @State private var showFriends = false
+  @State private var showsAI = false
   @State private var clock = CalendarDay(date: .now)
 
   private var refreshKey: String {
@@ -66,6 +66,28 @@ struct TodayView: View {
     NavigationStack {
       List {
         SyncStatusSection()
+
+        // Empfehlungen aus Regeln und KI (früher eigener Reiter „AI“).
+        Section {
+          Button {
+            showsAI = true
+          } label: {
+            let unread = InsightInbox.unreadCount(model.settings.insights, now: .now)
+            HStack {
+              Label("AI-Empfehlungen", systemImage: "sparkles")
+              Spacer()
+              if unread > 0 {
+                Text("\(unread) neu")
+                  .font(.caption.weight(.semibold))
+                  .padding(.horizontal, 8)
+                  .padding(.vertical, 3)
+                  .background(Color.accentColor.opacity(0.18), in: .capsule)
+              }
+              Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+          }
+          .tint(.primary)
+        }
 
         if !model.garmin.isConfigured && !model.health.isEnabled {
           Section {
@@ -139,13 +161,6 @@ struct TodayView: View {
       .navigationTitle("Heute")
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
-          Button(
-            model.social.incomingCount > 0 ? "Freunde, \(model.social.incomingCount) neue Anfragen" : "Freunde",
-            systemImage: model.social.incomingCount > 0 ? "person.2.fill" : "person.2"
-          ) { showFriends = true }
-          .badge(model.social.incomingCount)
-        }
-        ToolbarItem(placement: .topBarTrailing) {
           Button("Coach fragen", systemImage: "bubble.left.and.text.bubble.right") { showChat = true }
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -154,7 +169,14 @@ struct TodayView: View {
       }
       .sheet(isPresented: $showSettings) { SettingsView() }
       .sheet(isPresented: $showChat) { ChatView(snapshot: viewModel.snapshot) }
-      .sheet(isPresented: $showFriends) { FriendsView() }
+      .navigationDestination(isPresented: $showsAI) { AIView() }
+      // Schnellaktion / Kurzbefehl „AI“ bzw. „KI-Analyse starten“: Empfehlungen öffnen; die Analyse stößt der
+      // Bereich selbst an.
+      .onChange(of: AppRouter.shared.pending, initial: true) {
+        guard AppRouter.shared.pending?.route.opensArea == .ai else { return }
+        showsAI = true
+        _ = AppRouter.shared.take(.ai)
+      }
       .refreshable {
         await model.syncNow()
         await viewModel.loadNote(ai: model.ai, settings: model.settings)

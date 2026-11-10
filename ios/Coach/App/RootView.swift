@@ -9,6 +9,7 @@ struct RootView: View {
   @State private var accountInvite: AccountInvite?
   @State private var showsAlreadySignedIn = false
   @State private var router = AppRouter.shared
+  @State private var gym = GymViewModel.shared
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
   private var reminderKey: Int {
@@ -26,22 +27,32 @@ struct RootView: View {
       Tab("Heute", systemImage: "sun.max", value: AppTab.today) {
         TodayView()
       }
-      // Der Plan liegt im Reiter Training (Entscheidung vom 02.11.2026: fünf Reiter ohne „Mehr“).
+      // Eigene Trainings und die der Freunde (Entscheidung vom 10.11.2026). Gym liegt im Reiter Training, die
+      // KI-Empfehlungen sind über „Heute“ erreichbar – vier Reiter ohne „Mehr“.
+      Tab("Aktivitäten", systemImage: "figure.run", value: AppTab.activities) {
+        ActivitiesView()
+      }
+      .badge(model.social.incomingCount)
+      // Plan und Gym liegen im Reiter Training.
       Tab("Training", systemImage: "heart.text.square", value: AppTab.training) {
         TrainingView()
       }
       Tab("Ernährung", systemImage: "fork.knife", value: AppTab.nutrition) {
         NutritionView()
       }
-      if profile.trains(.strength) {
-        Tab("Gym", systemImage: "dumbbell", value: AppTab.gym) {
-          GymView()
-        }
-      }
-      Tab("AI", systemImage: "sparkles", value: AppTab.ai) {
-        AIView()
-      }
-      .badge(InsightInbox.unreadCount(model.settings.insights, now: .now))
+    }
+    // Laufende Krafteinheit – unabhängig davon, ob der Gym-Bereich gerade offen ist.
+    // Start oder Ende: Erinnerungen für heute neu planen (keine Start-Erinnerung im Training).
+    .onChange(of: gym.active?.id) { _, _ in
+      Task { await model.refreshReminders() }
+    }
+    // Live-Aktivität: Pause und nächster Satz auf dem Sperrbildschirm.
+    .onChange(of: gym.liveState, initial: true) { _, state in
+      WorkoutActivityController.update(state, title: gym.active?.title ?? "", enabled: model.settings.gym.liveActivity)
+    }
+    // Bildschirm an, solange eine Einheit läuft – auch wenn sie gerade ausgeblendet ist.
+    .onChange(of: gym.active != nil && model.settings.gym.keepsScreenOn, initial: true) { _, on in
+      UIApplication.shared.isIdleTimerDisabled = on
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       if CoachSchema.isTemporary && !model.isDemo { StorageWarningBanner() }
@@ -50,10 +61,6 @@ struct RootView: View {
     // Schnellaktion, Kurzbefehl oder Link: Reiter wählen; die Aktion übernimmt die Zielansicht.
     .onChange(of: router.pending, initial: true) {
       router.resolve(trainsStrength: profile.trains(.strength), ready: profile.onboardingDone)
-    }
-    // Gym-Reiter entfällt (kein Krafttraining mehr): nicht auf einem leeren Reiter stehen bleiben.
-    .onChange(of: profile.trains(.strength)) { _, strength in
-      if !strength && router.tab == .gym { router.tab = .today }
     }
     .task(id: reminderKey) {
       guard profile.onboardingDone else { return }

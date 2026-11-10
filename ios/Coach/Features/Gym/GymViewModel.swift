@@ -663,7 +663,7 @@ final class GymViewModel {
       muscles: MuscleLoad.session(session, custom: gym.customExercises),
       volumeChange: SessionComparison.volumeChangePercent(
         session, previous: SessionComparison.previous(of: session, in: sessions)),
-      share: WorkoutShare.gym(session, records: records, now: now))
+      share: WorkoutShare.gym(session, records: records, now: now), shareKeys: ["g\(session.id.uuidString)"])
     setActive(nil)
     resetFlow()
     RestAlarm.schedule(at: nil)
@@ -752,6 +752,8 @@ struct FinishedWorkout: Equatable {
   var volumeChange: Int?
   /// Was „Mit Freunden teilen“ senden würde (ohne Körperwerte).
   var share: WorkoutShare?
+  /// Schlüssel der Einheit im Reiter „Aktivitäten“ (`SocialTimeline.keys`).
+  var shareKeys: [String] = []
 }
 
 extension Array {

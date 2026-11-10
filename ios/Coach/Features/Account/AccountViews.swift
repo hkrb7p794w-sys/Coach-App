@@ -291,6 +291,7 @@ struct AccountDetailView: View {
   @State private var deleting = false
   @State private var deletePassword = ""
   @State private var isWorking = false
+  @AppStorage(SocialAutoShare.enabledKey) private var autoShare = false
 
   private var account: AccountService { model.account }
 
@@ -308,6 +309,16 @@ struct AccountDetailView: View {
           Text("Profil")
         } footer: {
           Text("Freunde sehen Benutzernamen und Anzeigenamen.")
+        }
+        Section {
+          Toggle(
+            "Trainings automatisch teilen",
+            isOn: Binding(get: { autoShare }, set: { SocialAutoShare.setEnabled($0) }))
+        } footer: {
+          Text(
+            "Neue Trainings von Uhr und Gym erscheinen von selbst bei deinen Freunden im Reiter „Aktivitäten“ – "
+              + "Sportart, Dauer, Strecke, Höhenmeter, Sätze. Puls, Kalorien, Gewicht und Schlaf bleiben auf deinem "
+              + "iPhone. Ältere Trainings werden nicht nachträglich geteilt.")
         }
       }
 

@@ -118,9 +118,15 @@ final class SocialService {
 
   // MARK: - Beiträge
 
-  func share(workout: WorkoutShare) async throws {
+  /// `localKeys`: Schlüssel des eigenen Trainings (`SocialTimeline.keys`), damit es im Reiter „Aktivitäten“ nur
+  /// einmal erscheint und nicht erneut automatisch geteilt wird.
+  @discardableResult
+  func share(workout: WorkoutShare, localKeys: [String] = []) async throws -> SocialPost {
     let data = try await send("posts", method: "POST", body: workout)
-    insert(try JSONDecoder().decode(Created.self, from: data).post)
+    let post = try JSONDecoder().decode(Created.self, from: data).post
+    insert(post)
+    SharedPostStore.remember(localKeys, post: post.id)
+    return post
   }
 
   func share(meal: MealPostShare) async throws {
@@ -136,6 +142,7 @@ final class SocialService {
   func delete(_ post: SocialPost) async throws {
     try await send("posts/\(post.id)", method: "DELETE")
     feed.removeAll { $0.id == post.id }
+    // Die Zuordnung bleibt: Ein gelöschter Beitrag soll nicht automatisch erneut geteilt werden.
   }
 
   /// Gleiche Reaktion nochmals: zurücknehmen. Der Feed zeigt die Änderung sofort.
