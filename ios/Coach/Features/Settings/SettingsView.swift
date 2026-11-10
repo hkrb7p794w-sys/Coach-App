@@ -14,6 +14,7 @@ private struct SettingsForm: View {
   @Environment(AppModel.self) private var model
   @Environment(\.dismiss) private var dismiss
   @State private var profileEditor: ProfileEditor?
+  @State private var authMode: AccountAuthView.Mode?
 
   private enum ProfileEditor: Identifiable {
     case edit, switchToPersonal
@@ -23,7 +24,7 @@ private struct SettingsForm: View {
   var body: some View {
     NavigationStack {
       Form {
-        AccountSettingsSection()
+        AccountSettingsSection(authMode: $authMode)
         profileSection
         if model.settings.profile.mode == .personal {
           InputIssuesSection(issues: profileIssues)
@@ -105,6 +106,7 @@ private struct SettingsForm: View {
           isEditing: true,
           initial: editor == .edit ? model.settings.profile : UserProfile.personalDraft(from: model.settings.season))
       }
+      .sheet(item: $authMode) { mode in AccountAuthView(initialMode: mode, invite: nil) }
       .disabled(viewModel.isBusy)
       .overlay {
         if viewModel.isBusy { ProgressView() }

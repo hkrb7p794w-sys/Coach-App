@@ -7,6 +7,7 @@ struct RootView: View {
   @State private var sharedMeal: SharedMealLink?
   @State private var cookLink: CookLink?
   @State private var accountInvite: AccountInvite?
+  @State private var showsAlreadySignedIn = false
   @State private var router = AppRouter.shared
 
   /// Erinnerungen neu planen, sobald sich Plan, Ausnahmen oder Uhrzeit ändern.
@@ -74,19 +75,16 @@ struct RootView: View {
       } else if let link = SharedMealLink(url: url) {
         sharedMeal = link
       } else if let link = AccountInvite(url: url) {
-        accountInvite = link
+        // Vorher entscheiden: Meldet sich die Person im Fenster an, darf es nicht mitten im Ablauf (vor dem
+        // Wiederherstellungscode) zu „Schon angemeldet“ wechseln.
+        if model.account.isSignedIn { showsAlreadySignedIn = true } else { accountInvite = link }
       } else {
         invite = LeagueInvite(url: url)
       }
     }
     .sheet(item: $sharedMeal) { link in ReceivedMealSheet(code: link.code) }
-    .sheet(item: $accountInvite) { link in
-      if model.account.isSignedIn {
-        AlreadySignedInSheet()
-      } else {
-        AccountAuthView(initialMode: .register, invite: link)
-      }
-    }
+    .sheet(item: $accountInvite) { link in AccountAuthView(initialMode: .register, invite: link) }
+    .sheet(isPresented: $showsAlreadySignedIn) { AlreadySignedInSheet() }
     .sheet(item: $cookLink) { link in
       NavigationStack {
         switch link {
