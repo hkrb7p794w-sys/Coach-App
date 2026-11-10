@@ -2,6 +2,16 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Kopfzeile der Mahlzeiten-Anzeigen passt sich dem Tag an
+
+- **Rückmeldung des Nutzers:** „Guter Start – dranbleiben!“ stand den ganzen Tag da.
+- **Regel (`MealHeadline`, ohne KI):** vor dem ersten Eintrag nach Tageszeit („Guten Morgen – Frühstück
+  eintragen?“), danach die nächste offene Hauptmahlzeit („Guter Start – Mittagessen steht an“, „Noch 640 kcal –
+  Abendessen fehlt“), am Ende die Tagesbilanz („Tagesziel getroffen – stark!“, „… noch 420 kcal frei“, „… über
+  Ziel“). Mit laufender Serie nennt der Satz den Tag der Serie. Ohne Kalorienziel keine Kalorien im Satz.
+- **Wann er wechselt:** mit jedem neuen Stand der App (Mahlzeit eingetragen, App geöffnet oder verlassen). Die Karte
+  auf dem Sperrbildschirm kann sich nicht selbst nach der Uhr ändern; nach Mitternacht zeigt sie „Neuer Tag …“.
+
 ## 2026-11-10 – Mitteilung zum Morning Report um 8 Uhr
 
 - **Wunsch des Nutzers:** morgens um 8:00 Uhr eine Mitteilung zum Morning Report, abwählbar.
