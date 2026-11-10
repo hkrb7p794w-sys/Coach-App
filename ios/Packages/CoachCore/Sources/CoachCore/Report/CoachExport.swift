@@ -67,7 +67,7 @@ public enum CoachExport {
   public static func markdown(_ input: Input, from start: CalendarDay, to end: CalendarDay) -> String {
     let inRange = { (day: CalendarDay?) -> Bool in day.map { start <= $0 && $0 <= end } ?? false }
     var lines: [String] = []
-    lines.append("# IronLudi – Trainingsdaten \(start.iso) bis \(end.iso)")
+    lines.append("# AIronLudi – Trainingsdaten \(start.iso) bis \(end.iso)")
     lines.append("")
     lines += instructions(input)
     lines += profile(input)

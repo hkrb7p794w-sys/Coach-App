@@ -47,13 +47,13 @@ function isReleaseInfo(value: unknown): value is ReleaseInfo {
 export function sourceJSON(base: string, info: ReleaseInfo): unknown {
   const icon = `${base}/icon.png`;
   return {
-    name: "IronLudi (privat)",
+    name: "AIronLudi (privat)",
     identifier: `${BUNDLE_ID}.source`,
     sourceURL: `${base}/source.json`,
     iconURL: icon,
     apps: [
       {
-        name: "IronLudi",
+        name: "AIronLudi",
         bundleIdentifier: BUNDLE_ID,
         developerName: "Alex",
         subtitle: "Triathlon, Ernährung, Gym",

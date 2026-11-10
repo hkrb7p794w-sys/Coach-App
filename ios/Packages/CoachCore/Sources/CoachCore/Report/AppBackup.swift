@@ -119,7 +119,7 @@ public struct AppBackup: Codable, Equatable, Sendable {
       switch self {
       case .unreadable: "Die Datei ist keine IronLudi-Sicherung oder beschädigt."
       case .newerVersion(let version):
-        "Die Sicherung stammt aus einer neueren App-Version (Format \(version)). Bitte erst IronLudi aktualisieren."
+        "Die Sicherung stammt aus einer neueren App-Version (Format \(version)). Bitte erst AIronLudi aktualisieren."
       }
     }
   }

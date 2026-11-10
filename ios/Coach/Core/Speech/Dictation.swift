@@ -27,7 +27,7 @@ final class Dictation {
   func start() async {
     error = nil
     guard await AudioCapture.authorize() else {
-      error = "Mikrofon oder Spracherkennung nicht erlaubt – in den iOS-Einstellungen › IronLudi einschalten."
+      error = "Mikrofon oder Spracherkennung nicht erlaubt – in den iOS-Einstellungen › AIronLudi einschalten."
       return
     }
     guard let recognizer = SFSpeechRecognizer(locale: Self.locale), recognizer.isAvailable else {

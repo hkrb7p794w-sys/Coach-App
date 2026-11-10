@@ -96,7 +96,7 @@ struct GymSettingsView: View {
         Text(
           "Während einer Einheit sperrt sich das iPhone nicht – kein Entsperren mit verschwitzten Händen. Auf dem "
             + "Sperrbildschirm und in der Dynamic Island stehen Pause und nächster Satz, mit „Satz erledigt“ zum "
-            + "Antippen (Live-Aktivität; in den iOS-Einstellungen unter IronLudi abschaltbar).")
+            + "Antippen (Live-Aktivität; in den iOS-Einstellungen unter AIronLudi abschaltbar).")
       }
       Section {
         Toggle("Mit Garmin Connect abgleichen", isOn: $settings.gym.uploadsToGarmin)
@@ -105,7 +105,7 @@ struct GymSettingsView: View {
         }
       } footer: {
         Text(
-          "Zeichnest du die Einheit auch mit der Uhr auf, schreibt IronLudi die Übungen, Wiederholungen und Gewichte "
+          "Zeichnest du die Einheit auch mit der Uhr auf, schreibt AIronLudi die Übungen, Wiederholungen und Gewichte "
             + "in diese Aufzeichnung – eine Aktivität mit Kalorien und Puls der Uhr, nichts doppelt. Die ursprünglichen "
             + "Sätze der Uhr werden vorher gesichert. Ohne Aufzeichnung der Uhr wird die Einheit nach "
             + "\(Int(GarminStrengthSync.fallbackDelay / 3_600)) Stunden als eigenes Krafttraining hochgeladen "

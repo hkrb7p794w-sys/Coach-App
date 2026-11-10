@@ -81,7 +81,7 @@ public enum DataExport {
     withImportFormat: Bool = false
   ) -> String {
     let data = Slice(input, from: start, to: end)
-    var lines = ["# IronLudi – Daten \(start.iso) bis \(end.iso)", ""]
+    var lines = ["# AIronLudi – Daten \(start.iso) bis \(end.iso)", ""]
     let included = ExportCategory.allCases.filter(categories.contains).map(\.label)
     lines.append("Enthalten: " + included.joined(separator: ", "))
     lines.append("Fehlende Werte stehen als „–“ da und bedeuten: nicht gemessen.")
@@ -149,7 +149,7 @@ public enum DataExport {
     let data = Slice(input, from: start, to: end)
     var root: [String: JSONValue] = [
       "export": .object([
-        "app": .string("IronLudi"), "von": .string(start.iso), "bis": .string(end.iso),
+        "app": .string("AIronLudi"), "von": .string(start.iso), "bis": .string(end.iso),
         "kategorien": .array(ExportCategory.allCases.filter(categories.contains).map { .string($0.rawValue) }),
         "hinweis": .string("null = nicht gemessen. Gewicht in kg, Zeiten in Minuten, Distanz in km."),
       ]),

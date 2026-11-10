@@ -50,7 +50,7 @@ darin, die gibt jeder in seiner App selbst ein).
 
 ## Gut zu wissen
 
-- **Datensicherung einrichten** (Einstellungen › Datensicherung › Ordner in iCloud Drive wählen). Muss IronLudi oder
+- **Datensicherung einrichten** (Einstellungen › Datensicherung › Ordner in iCloud Drive wählen). Muss AIronLudi oder
   SideStore neu installiert werden, auf dem ersten Bildschirm oben rechts „Sicherung einspielen“ tippen. Ohne
   Sicherung sind Krafteinheiten, Mahlzeiten und Einstellungen nach dem Löschen der App weg.
 
