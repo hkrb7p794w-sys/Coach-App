@@ -205,7 +205,7 @@ struct RecipeInputTests {
     #expect(first?["wochentag"]?.stringValue == "Montag")
     #expect(first?["training"]?.stringValue == "Lockerer Lauf")
     #expect(first?["kcal"]?.doubleValue == 2000)
-    #expect(input["days"]?.arrayValue?.last?["training"]?.stringValue == "frei")
+    #expect(input["days"]?.arrayValue?.last?["training"]?.stringValue == "nicht berücksichtigt")
     #expect(input["diet"]?.stringValue == "vegetarisch")
     #expect(input["allergens"]?.arrayValue?.first?.stringValue == "Erdnüsse")
     #expect(input["snacks"] == .bool(false))
