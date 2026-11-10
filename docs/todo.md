@@ -152,6 +152,11 @@ hier notieren und als PR beheben.
       (Trainingsminuten, diese Woche, Freund einladen) → Freund sieht die Einladung, tippt „Mitmachen“. Nach einem
       Training und dem Öffnen von Heute steigen Minuten und Rangliste; 3 Stunden Training zählen als 90 Minuten.
 
+- [ ] **Aufzeichnungen vollständig (PR 94):** Nach dem Abruf steht in der Meldung „… mit Runden und Verlauf“. Eine
+      Aktivität im Flugmodus öffnen → Auswertung, Diagramme, Runden und Kilometer-Splits sind da. Coach fragen „Wie
+      war mein letzter Lauf?“ → Antwort nennt Tempo-Einteilung bzw. Puls-Drift. Mit Garmin Connect vergleichen:
+      Rundenzeiten und Kilometer-Splits stimmen überein.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

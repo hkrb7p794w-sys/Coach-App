@@ -96,7 +96,9 @@ extension StubbedNetworkTests {
       let container = CoachSchema.makeContainer(inMemory: true)
       let defaults = try #require(UserDefaults(suiteName: "test-\(UUID().uuidString)"))
       let client = GarminClient(secrets: InMemorySecretStore([.garminAPIKey: "k"]), session: StubURLProtocol.session())
-      let service = GarminSyncService(client: client, context: container.mainContext, defaults: defaults)
+      let service = GarminSyncService(
+        client: client, context: container.mainContext, defaults: defaults,
+        reportStore: ActivityReportStore(inMemory: true))
 
       let report = try await service.sync(now: now)
 

@@ -161,7 +161,7 @@ enum ExportInput {
   ) -> CoachExport.Input {
     let settings = model.settings
     let today = CalendarDay(date: .now)
-    return CoachExport.Input(
+    var input = CoachExport.Input(
       profile: settings.coachingProfile, schedule: settings.schedule(inWeekOf: today), routines: settings.gym.routines,
       custom: settings.gym.customExercises, equipment: settings.gym.equipment, metrics: days.compactMap(\.metrics),
       activities: activities.compactMap(\.activity), gym: gymSessions.compactMap(\.session),
@@ -170,6 +170,8 @@ enum ExportInput {
           CoachExport.Meal(day: $0, category: record.category.label, title: record.title, items: record.items)
         }
       }, weights: model.allWeights, userSources: settings.userSources)
+    input.reports = Array(model.sync.reportStore.load().values)
+    return input
   }
 
   /// Schreibt die Dateien in einen eigenen temporären Ordner (alte Exporte werden ersetzt).

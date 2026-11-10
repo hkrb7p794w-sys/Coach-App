@@ -42,6 +42,8 @@ public enum CoachExport {
     public var meals: [Meal]
     public var weights: [WeightEntry]
     public var userSources: [UserSource]
+    /// Vollständige Berichte aus den Aufzeichnungen der Uhr (Runden, Auswertung), soweit übertragen.
+    public var reports: [ActivityReport] = []
 
     public init(
       profile: UserProfile, schedule: WeekSchedule, routines: [Routine], custom: [ExerciseInfo],
@@ -72,6 +74,7 @@ public enum CoachExport {
     lines += metrics(input.metrics.filter { inRange($0.day) }.sorted { $0.day < $1.day })
     let activities = input.activities.filter { inRange($0.day) }
     lines += Self.activities(activities.sorted { ($0.startLocal ?? "") < ($1.startLocal ?? "") })
+    lines += Self.reports(input.reports.filter { inRange($0.day) }.sorted { ($0.day, $0.id) < ($1.day, $1.id) })
     lines += gym(input.gym.filter { inRange($0.day) }.sorted { $0.start < $1.start })
     lines += meals(input.meals.filter { inRange($0.day) })
     lines += weights(input.weights.filter { inRange($0.day) }.sorted { $0.day < $1.day })
@@ -219,6 +222,39 @@ public enum CoachExport {
       lines.append("| " + cells.map { $0.replacingOccurrences(of: "|", with: "/") }.joined(separator: " | ") + " |")
     }
     lines.append("")
+    return lines
+  }
+
+  /// Je Aktivität die Aussagen der Regeln und die Runden der Uhr (höchstens 30 je Einheit).
+  static func reports(_ reports: [ActivityReport]) -> [String] {
+    guard !reports.isEmpty else { return [] }
+    var lines = ["## Auswertung und Runden der Aufzeichnungen", ""]
+    for report in reports {
+      lines.append("### \(report.name ?? "Aktivität") (\(report.day.iso))")
+      lines += ActivityFindings.findings(report).map { "- \($0.text)" }
+      let laps = report.laps.prefix(30)
+      if laps.count > 1 {
+        lines += ["", "| Runde | Art | Zeit (s) | Distanz (m) | Ø Tempo | Ø HF | Max HF |"]
+        lines.append("|---|---|---|---|---|---|---|")
+        for (index, lap) in laps.enumerated() {
+          var speed = lap.averageSpeed
+          if speed == nil, let seconds = lap.timerSeconds, let meters = lap.distanceMeters, seconds > 0, meters > 0 {
+            speed = meters / seconds
+          }
+          var kind = "–"
+          if let intensity = lap.intensity {
+            kind = lap.isWork ? "Belastung" : intensity == .warmup ? "Einlaufen" : "Pause"
+          }
+          let cells: [String] = [
+            "\(index + 1)", kind, lap.timerSeconds.map(number) ?? "–", lap.distanceMeters.map(number) ?? "–",
+            speed.map { ActivityDetails.speed($0, sport: report.sport) } ?? "–",
+            lap.averageHeartRate.map(number) ?? "–", lap.maxHeartRate.map(number) ?? "–",
+          ]
+          lines.append("| " + cells.joined(separator: " | ") + " |")
+        }
+      }
+      lines.append("")
+    }
     return lines
   }
 
