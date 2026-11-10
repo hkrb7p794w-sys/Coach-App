@@ -162,6 +162,10 @@ hier notieren und als PR beheben.
       Kilometer-Splits und Auswertung sind da; Splits mit der Fitness-App vergleichen. Workout mit Pause → Standzeit
       stimmt.
 
+- [ ] **Widgets im neuen Stil (PR 96):** Mahlzeiten-Widget (mittel) hinzufügen → Kopfzeile mit Flamme und Serie,
+      vier Ringe mit „+“ bzw. Haken, Snacks abgesetzt; „+“ öffnet das Erfassen der Mahlzeit. Heute-, Ernährungs-,
+      Health- und Gym-Widget sehen gleich aus; in Hell und Dunkel und mit getöntem Homescreen lesbar.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

@@ -276,9 +276,100 @@ private enum Style {
     }
   }
 
+  /// Farbe der Ringe und Plaketten.
+  static let accent = Color.blue
+  /// Flamme der Serie.
+  static let flame = Color(red: 1, green: 0.27, blue: 0.23)
+
   static func kcal(_ value: Double) -> String { "\(Int(value.rounded()))" }
   static func grams(_ value: Double) -> String { "\(Int(value.rounded())) g" }
   static func liters(_ milliliters: Double) -> String { "\(GermanFormat.decimal(milliliters / 1_000)) l" }
+}
+
+// MARK: - Bausteine im gemeinsamen Stil
+
+/// Kopfzeile aller Widgets: kurzer Satz links, Serie mit Flamme rechts.
+private struct WidgetHeader: View {
+  let title: String
+  let streak: WidgetSnapshot.Streak?
+  var dot: Color?
+
+  var body: some View {
+    HStack(spacing: 6) {
+      if let dot { Circle().fill(dot).frame(width: 9, height: 9) }
+      Text(title).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.65)
+      Spacer(minLength: 4)
+      if let streak, streak.days > 0 {
+        HStack(spacing: 3) {
+          Image(systemName: "flame.fill")
+          Text("\(streak.days)").fontWeight(.heavy).monospacedDigit()
+        }
+        .font(.subheadline)
+        .foregroundStyle(streak.activeToday ? Style.flame : Color.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Serie: \(streak.days) Tage")
+      }
+    }
+  }
+}
+
+/// Kachel: Fortschrittsring mit Symbol in der Mitte, Plakette unten rechts, darunter Titel und Wert.
+private struct RingTile: View {
+  enum Badge { case hidden, plus, check, play }
+
+  var emoji: String?
+  var symbol: String?
+  var fraction: Double?
+  var badge: Badge = .hidden
+  let title: String
+  let value: String
+  /// Ausgegraut, solange nichts erfasst ist.
+  var active = true
+  var tint: Color = Style.accent
+  var size: CGFloat = 46
+
+  private var badgeSymbol: String {
+    switch badge {
+    case .plus: "plus"
+    case .check: "checkmark"
+    case .play: "play.fill"
+    case .hidden: ""
+    }
+  }
+
+  var body: some View {
+    VStack(spacing: 3) {
+      ZStack(alignment: .bottomTrailing) {
+        ZStack {
+          Circle().stroke(Color.primary.opacity(0.12), lineWidth: size * 0.11)
+          Circle().trim(from: 0, to: min(max(fraction ?? 0, 0), 1))
+            .stroke(tint, style: StrokeStyle(lineWidth: size * 0.11, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+          if let emoji {
+            Text(emoji).font(.system(size: size * 0.42))
+          } else if let symbol {
+            Image(systemName: symbol).font(.system(size: size * 0.36, weight: .semibold))
+          }
+        }
+        .frame(width: size, height: size)
+        if badge != .hidden {
+          Image(systemName: badgeSymbol)
+            .font(.system(size: size * 0.2, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: size * 0.4, height: size * 0.4)
+            .background(Style.accent, in: Circle())
+            .offset(x: size * 0.1, y: size * 0.1)
+        }
+      }
+      Text(title).font(.caption2.weight(.bold)).lineLimit(1).minimumScaleFactor(0.7)
+        .foregroundStyle(active ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
+      Text(value).font(.caption2).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+        .foregroundStyle(active ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.secondary)
+    }
+    .frame(maxWidth: .infinity)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("\(title): \(value)")
+  }
 }
 
 struct TodayWidgetView: View {
@@ -290,40 +381,43 @@ struct TodayWidgetView: View {
   var body: some View {
     if let snapshot = display?.snapshot {
       let today = snapshot.today
-      HStack(alignment: .top, spacing: 12) {
-        VStack(alignment: .leading, spacing: 4) {
-          HStack(spacing: 6) {
-            Circle().fill(Style.color(today.level)).frame(width: 10, height: 10)
-            Text("Heute").font(.caption.bold()).foregroundStyle(.secondary)
-          }
-          Text(today.headline).font(.subheadline.bold()).lineLimit(2).minimumScaleFactor(0.8)
+      VStack(alignment: .leading, spacing: 8) {
+        WidgetHeader(
+          title: family == .systemSmall ? "Heute" : today.headline, streak: snapshot.streak,
+          dot: Style.color(today.level))
+        if family == .systemSmall {
+          Text(today.headline).font(.footnote.weight(.semibold)).lineLimit(2).minimumScaleFactor(0.8)
           Spacer(minLength: 0)
-          if let next = today.nextSession {
-            Label(next.title, systemImage: next.symbol).font(.caption).lineLimit(1)
-          } else if !today.sessions.isEmpty {
-            Label("Alles erledigt", systemImage: "checkmark.circle").font(.caption)
-          }
-          if family == .systemSmall, showsNutrition, let remaining = snapshot.nutrition?.kcalRemaining {
-            Text("\(Style.kcal(remaining)) kcal übrig").font(.caption2).foregroundStyle(.secondary)
-          }
-        }
-        if family == .systemMedium {
-          VStack(alignment: .leading, spacing: 6) {
+          HStack(alignment: .top, spacing: 0) {
+            trainingTile(today, size: 40)
             if showsNutrition, let nutrition = snapshot.nutrition, let remaining = nutrition.kcalRemaining {
-              MetricLine(
-                symbol: "fork.knife", text: "\(Style.kcal(remaining)) kcal übrig", fraction: nutrition.kcalFraction)
+              RingTile(
+                emoji: "🍽️", fraction: nutrition.kcalFraction, title: "Kalorien",
+                value: "\(Style.kcal(remaining)) übrig", size: 40)
+            }
+          }
+        } else {
+          Spacer(minLength: 0)
+          HStack(alignment: .top, spacing: 0) {
+            trainingTile(today, size: 46)
+            if showsNutrition, let nutrition = snapshot.nutrition, let remaining = nutrition.kcalRemaining {
+              RingTile(
+                emoji: "🍽️", fraction: nutrition.kcalFraction, title: "Kalorien",
+                value: "\(Style.kcal(remaining)) übrig")
             }
             if showsBodyBattery, !(display?.healthIsOld ?? true), let battery = snapshot.health(.bodyBattery),
               let value = battery.value
             {
-              MetricLine(
-                symbol: "battery.75percent", text: "Body Battery \(value)", fraction: battery.gauge.map { $0 / 100 })
+              RingTile(
+                symbol: "bolt.fill", fraction: battery.gauge.map { $0 / 100 }, title: "Battery", value: value,
+                tint: Style.color(battery.status))
             }
             if let week = today.week {
-              MetricLine(symbol: "calendar", text: week, fraction: today.weekFraction)
+              RingTile(
+                symbol: "calendar", fraction: today.weekFraction, title: "Woche",
+                value: String(week.split(separator: "·").first ?? "").trimmingCharacters(in: .whitespaces))
             }
           }
-          .frame(maxWidth: .infinity, alignment: .leading)
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -331,18 +425,17 @@ struct TodayWidgetView: View {
       NoDataView()
     }
   }
-}
 
-private struct MetricLine: View {
-  let symbol: String
-  let text: String
-  let fraction: Double?
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Label(text, systemImage: symbol).font(.caption).lineLimit(1).minimumScaleFactor(0.8)
-      if let fraction { ProgressView(value: fraction).tint(.accentColor) }
-    }
+  /// Nächste Einheit mit Anteil der erledigten Einheiten des Tages.
+  private func trainingTile(_ today: WidgetSnapshot.Today, size: CGFloat) -> some View {
+    let done = today.sessions.filter(\.done).count
+    let total = today.sessions.count
+    let next = today.nextSession
+    return RingTile(
+      symbol: next?.symbol ?? (total > 0 ? "checkmark" : "moon.zzz.fill"),
+      fraction: total > 0 ? Double(done) / Double(total) : nil,
+      badge: total > 0 && next == nil ? .check : .hidden, title: "Training",
+      value: next?.title ?? (total > 0 ? "erledigt" : "frei"), active: total > 0, size: size)
   }
 }
 
@@ -359,6 +452,15 @@ struct MealsWidgetView: View {
     }
   }
 
+  private static func emoji(_ category: MealCategory) -> String {
+    switch category {
+    case .breakfast: "☕️"
+    case .lunch: "🍲"
+    case .dinner: "🥗"
+    case .snack, .other: "🍎"
+    }
+  }
+
   private static func short(_ category: MealCategory) -> String {
     switch category {
     case .breakfast: "Früh"
@@ -369,52 +471,49 @@ struct MealsWidgetView: View {
   }
 
   var body: some View {
-    if let nutrition = display?.snapshot.nutrition {
+    if let snapshot = display?.snapshot, let nutrition = snapshot.nutrition {
       let parts =
         nutrition.meals ?? MealSplit.order.map { WidgetSnapshot.MealPart(category: $0, kcal: 0, target: nil) }
       switch family {
       case .accessoryRectangular: rectangular(parts)
       case .accessoryCircular: circular(nutrition)
-      default: medium(parts, nutrition: nutrition)
+      default: medium(parts, nutrition: nutrition, streak: snapshot.streak)
       }
     } else {
       NoDataView()
     }
   }
 
-  /// Ring mit Symbol, kcal und „+“ je Mahlzeit (Links funktionieren auf dem Homescreen in mittleren Widgets).
-  private func medium(_ parts: [WidgetSnapshot.MealPart], nutrition: WidgetSnapshot.Nutrition) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      HStack {
-        Label("Mahlzeiten", systemImage: "fork.knife").font(.caption.bold()).foregroundStyle(.secondary)
-        Spacer()
-        if let remaining = nutrition.kcalRemaining {
-          Text(remaining >= 0 ? "\(Style.kcal(remaining)) kcal übrig" : "\(Style.kcal(-remaining)) kcal drüber")
-            .font(.caption.bold()).foregroundStyle(remaining >= 0 ? Color.secondary : Color.red)
-        }
-      }
-      HStack(spacing: 0) {
+  /// Je Mahlzeit ein Ring mit „+“ (oder Haken, sobald etwas eingetragen ist); Tippen öffnet das Erfassen dieser
+  /// Mahlzeit. Snacks stehen abgesetzt rechts.
+  private func medium(
+    _ parts: [WidgetSnapshot.MealPart], nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      WidgetHeader(title: Self.title(nutrition, streak: streak), streak: streak)
+      Spacer(minLength: 0)
+      HStack(alignment: .top, spacing: 0) {
         ForEach(parts) { part in
+          if part.category == .snack, parts.count > 1 {
+            Rectangle().fill(Color.primary.opacity(0.15)).frame(width: 1, height: 70)
+          }
           Link(destination: AppRoute.logMealURL(part.category)) {
-            VStack(spacing: 4) {
-              ZStack {
-                Circle().stroke(.quaternary, lineWidth: 4)
-                Circle().trim(from: 0, to: part.fraction ?? 0)
-                  .stroke(.tint, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                  .rotationEffect(.degrees(-90))
-                Image(systemName: Self.symbol(part.category)).font(.caption)
-              }
-              .frame(width: 38, height: 38)
-              Text("\(Style.kcal(part.kcal)) kcal").font(.caption2).monospacedDigit().lineLimit(1)
-                .minimumScaleFactor(0.7)
-              Image(systemName: "plus.circle.fill").font(.title3).foregroundStyle(.tint)
-            }
-            .frame(maxWidth: .infinity)
+            RingTile(
+              emoji: Self.emoji(part.category), fraction: part.fraction, badge: part.kcal > 0 ? .check : .plus,
+              title: part.category.label, value: "\(Style.kcal(part.kcal)) kcal", active: part.kcal > 0)
           }
           .accessibilityLabel("\(part.category.label) eintragen, bisher \(Style.kcal(part.kcal)) kcal")
         }
       }
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  }
+
+  /// Mit Serie der Satz dazu, sonst die übrigen Kalorien.
+  private static func title(_ nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?) -> String {
+    if let streak, streak.days > 0 { return streak.headline }
+    guard let remaining = nutrition.kcalRemaining else { return "Mahlzeiten" }
+    return remaining >= 0 ? "\(Style.kcal(remaining)) kcal übrig" : "\(Style.kcal(-remaining)) kcal drüber"
   }
 
   /// Sperrbildschirm: vier Mini-Werte nebeneinander, Tippen öffnet das Erfassen (dort ist die Mahlzeit vorgewählt).
@@ -449,13 +548,13 @@ struct NutritionWidgetView: View {
   @Environment(\.widgetFamily) private var family
 
   var body: some View {
-    if let nutrition = display?.snapshot.nutrition {
+    if let snapshot = display?.snapshot, let nutrition = snapshot.nutrition {
       switch family {
       case .accessoryCircular: circular(nutrition)
       case .accessoryRectangular: rectangular(nutrition)
       case .accessoryInline: Text(headline(nutrition))
-      case .systemMedium: medium(nutrition)
-      default: small(nutrition)
+      case .systemMedium: medium(nutrition, streak: snapshot.streak)
+      default: small(nutrition, streak: snapshot.streak)
       }
     } else {
       NoDataView()
@@ -483,46 +582,57 @@ struct NutritionWidgetView: View {
     choice == .protein ? nutrition.proteinFraction : nutrition.kcalFraction
   }
 
-  private func small(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Label("Ernährung", systemImage: "fork.knife").font(.caption.bold()).foregroundStyle(.secondary)
+  /// Ein großer Ring für den gewählten Wert.
+  private func small(_ nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?) -> some View {
+    VStack(spacing: 6) {
+      WidgetHeader(title: "Ernährung", streak: streak)
       Spacer(minLength: 0)
       if choice == .lastMeal, let meal = nutrition.lastMeal {
-        Text(meal.title).font(.headline).lineLimit(2)
-        Text("\(meal.at.formatted(date: .omitted, time: .shortened)) · \(Style.kcal(meal.kcal)) kcal")
-          .font(.caption).foregroundStyle(.secondary)
+        RingTile(
+          emoji: "🍽️", fraction: nutrition.kcalFraction, badge: .check, title: meal.title,
+          value: "\(meal.at.formatted(date: .omitted, time: .shortened)) · \(Style.kcal(meal.kcal)) kcal", size: 64)
       } else {
-        Text(headline(nutrition)).font(.headline).lineLimit(2).minimumScaleFactor(0.7)
-        if let fraction = fraction(nutrition) { ProgressView(value: fraction) }
+        RingTile(
+          emoji: choice == .protein ? "💪" : "🍽️", fraction: fraction(nutrition),
+          title: choice == .protein ? "Protein" : "Kalorien", value: headline(nutrition),
+          active: nutrition.kcal > 0, size: 64)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+  }
+
+  /// Kalorien, Protein, Wasser (Tippen: +250 ml) und Erfassen.
+  private func medium(_ nutrition: WidgetSnapshot.Nutrition, streak: WidgetSnapshot.Streak?) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      WidgetHeader(title: headline(nutrition), streak: streak)
+      Spacer(minLength: 0)
+      HStack(alignment: .top, spacing: 0) {
+        RingTile(
+          emoji: "🍽️", fraction: nutrition.kcalFraction, title: "Kalorien", value: "\(Style.kcal(nutrition.kcal)) kcal",
+          active: nutrition.kcal > 0)
+        RingTile(
+          emoji: "💪", fraction: nutrition.proteinFraction, title: "Protein", value: Style.grams(nutrition.protein),
+          active: nutrition.protein > 0)
+        if WidgetStore.isAvailable {
+          Button(intent: AddWaterIntent()) { waterTile(nutrition, badge: .plus) }
+            .buttonStyle(.plain)
+            .accessibilityLabel("250 Milliliter Wasser eintragen")
+        } else {
+          waterTile(nutrition, badge: .hidden)
+        }
+        Rectangle().fill(Color.primary.opacity(0.15)).frame(width: 1, height: 70)
+        Link(destination: AppRoute.logMeal.url) {
+          RingTile(symbol: "camera.fill", badge: .plus, title: "Erfassen", value: "Foto, Text")
+        }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 
-  private func medium(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
-    HStack(alignment: .top, spacing: 12) {
-      small(nutrition)
-      VStack(alignment: .leading, spacing: 6) {
-        MetricLine(
-          symbol: "bolt.fill",
-          text: nutrition.proteinTarget.map { "Protein \(Style.grams(nutrition.protein))/\(Style.grams($0))" }
-            ?? "Protein \(Style.grams(nutrition.protein))", fraction: nutrition.proteinFraction)
-        MetricLine(
-          symbol: "drop.fill",
-          text: nutrition.waterTarget.map { "Wasser \(Style.liters(nutrition.waterMilliliters))/\(Style.liters($0))" }
-            ?? "Wasser \(Style.liters(nutrition.waterMilliliters))", fraction: nutrition.waterFraction)
-        HStack(spacing: 6) {
-          if WidgetStore.isAvailable {
-            Button(intent: AddWaterIntent()) { Label("250 ml", systemImage: "plus") }
-              .font(.caption.bold())
-          }
-          Link(destination: AppRoute.logMeal.url) { Label("Erfassen", systemImage: "camera") }
-            .font(.caption.bold())
-        }
-        .buttonStyle(.bordered)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-    }
+  private func waterTile(_ nutrition: WidgetSnapshot.Nutrition, badge: RingTile.Badge) -> some View {
+    RingTile(
+      emoji: "💧", fraction: nutrition.waterFraction, badge: badge, title: "Wasser",
+      value: Style.liters(nutrition.waterMilliliters), active: nutrition.waterMilliliters > 0)
   }
 
   private func circular(_ nutrition: WidgetSnapshot.Nutrition) -> some View {
@@ -580,19 +690,21 @@ struct HealthWidgetView: View {
       case .accessoryInline:
         Text("\(metric.title) \(value ?? "–")")
       default:
-        VStack(alignment: .leading, spacing: 4) {
-          Label(metric.title, systemImage: metric.symbol).font(.caption.bold()).foregroundStyle(.secondary)
+        // Ring in der Farbe der Einordnung; gefüllt nach Wert (Body Battery) bzw. ganz.
+        VStack(spacing: 6) {
+          WidgetHeader(title: metric.title, streak: display.snapshot.streak)
           Spacer(minLength: 0)
-          Text(value ?? "–").font(.title.bold()).minimumScaleFactor(0.6).lineLimit(1)
-          if let health, value != nil {
-            Text(Style.label(health.status)).font(.caption.bold()).foregroundStyle(Style.color(health.status))
-            Text(health.note).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+          if let health, let value {
+            RingTile(
+              symbol: metric.symbol, fraction: health.gauge.map { $0 / 100 } ?? 1, title: value,
+              value: Style.label(health.status), tint: Style.color(health.status), size: 64)
           } else {
-            Text(display.healthIsOld ? "Kein Wert von letzter Nacht" : "Kein Wert").font(.caption2)
-              .foregroundStyle(.secondary)
+            RingTile(
+              symbol: metric.symbol, fraction: nil, title: "–",
+              value: display.healthIsOld ? "noch kein Wert" : "kein Wert", active: false, size: 64)
           }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
       }
     } else {
       NoDataView()
@@ -606,7 +718,7 @@ struct GymWidgetView: View {
   @Environment(\.widgetFamily) private var family
 
   var body: some View {
-    if let gym = display?.snapshot.gym {
+    if let snapshot = display?.snapshot, let gym = snapshot.gym {
       switch family {
       case .accessoryRectangular:
         VStack(alignment: .leading, spacing: 1) {
@@ -615,27 +727,23 @@ struct GymWidgetView: View {
           Text(gym.weekText).font(.caption2).foregroundStyle(.secondary)
         }
       case .systemMedium:
-        HStack(alignment: .top, spacing: 12) {
-          VStack(alignment: .leading, spacing: 4) {
-            section(.next, gym)
-            Spacer(minLength: 0)
-            Link(destination: AppRoute.startWorkout.url) {
-              Label(gym.running ? "Fortsetzen" : "Starten", systemImage: "play.fill").font(.caption.bold())
-            }
-          }
-          VStack(alignment: .leading, spacing: 8) {
-            section(.last, gym)
-            section(.week, gym)
+        VStack(alignment: .leading, spacing: 8) {
+          WidgetHeader(title: gym.running ? "Training läuft" : "Gym", streak: snapshot.streak)
+          Spacer(minLength: 0)
+          HStack(alignment: .top, spacing: 0) {
+            Link(destination: AppRoute.startWorkout.url) { tile(.next, gym, size: 46) }
+            tile(.last, gym, size: 46)
+            tile(.week, gym, size: 46)
           }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       default:
-        VStack(alignment: .leading, spacing: 4) {
-          Label("Gym", systemImage: "dumbbell").font(.caption.bold()).foregroundStyle(.secondary)
+        VStack(spacing: 6) {
+          WidgetHeader(title: "Gym", streak: snapshot.streak)
           Spacer(minLength: 0)
-          section(gym.running ? .next : focus, gym)
+          tile(gym.running ? .next : focus, gym, size: 64)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
       }
     } else if display != nil {
       VStack(alignment: .leading, spacing: 4) {
@@ -647,31 +755,28 @@ struct GymWidgetView: View {
     }
   }
 
-  @ViewBuilder private func section(_ focus: GymWidgetFocus, _ gym: WidgetSnapshot.Gym) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
-      switch focus {
-      case .next:
-        Text(gym.running ? "Läuft gerade" : "Nächstes Training").font(.caption2).foregroundStyle(.secondary)
-        Text(gym.runningTitle ?? gym.next ?? "Kein Plan").font(.headline).lineLimit(2).minimumScaleFactor(0.7)
-        if !gym.running, let detail = gym.nextDetail {
-          Text(detail).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-        }
-      case .last:
-        Text("Letzte Einheit").font(.caption2).foregroundStyle(.secondary)
-        if let last = gym.last {
-          Text(last.title).font(.subheadline.bold()).lineLimit(1)
-          Text("\(GermanFormat.date(last.day).prefix(6)) · \(last.sets) Sätze").font(.caption2)
-            .foregroundStyle(.secondary)
-        } else {
-          Text("Noch keine").font(.subheadline)
-        }
-      case .week:
-        Text("Woche").font(.caption2).foregroundStyle(.secondary)
-        Text(gym.weekText).font(.subheadline.bold()).lineLimit(1).minimumScaleFactor(0.7)
-        if let planned = gym.weekPlanned, planned > 0 {
-          ProgressView(value: min(Double(gym.weekDone) / Double(planned), 1))
-        }
+  private func tile(_ focus: GymWidgetFocus, _ gym: WidgetSnapshot.Gym, size: CGFloat) -> some View {
+    switch focus {
+    case .next:
+      return RingTile(
+        symbol: "dumbbell.fill", fraction: gym.running ? 1 : nil, badge: .play,
+        title: gym.runningTitle ?? gym.next ?? "Kein Plan",
+        value: gym.running ? "läuft" : (gym.nextDetail ?? "starten"), size: size)
+    case .last:
+      if let last = gym.last {
+        return RingTile(
+          symbol: "clock.arrow.circlepath", fraction: 1, badge: .check, title: last.title,
+          value: "\(GermanFormat.date(last.day).prefix(6)) · \(last.sets) Sätze", size: size)
       }
+      return RingTile(
+        symbol: "clock.arrow.circlepath", fraction: nil, title: "Letzte", value: "noch keine", active: false,
+        size: size)
+    case .week:
+      var fraction: Double?
+      if let planned = gym.weekPlanned, planned > 0 { fraction = min(Double(gym.weekDone) / Double(planned), 1) }
+      return RingTile(
+        symbol: "calendar", fraction: fraction, badge: fraction == 1 ? .check : .hidden, title: "Woche",
+        value: gym.weekText, size: size)
     }
   }
 }
@@ -700,5 +805,15 @@ enum SampleSnapshot {
       .init(metric: .bodyBattery, value: "72", gauge: 72, status: .normal, note: "Im üblichen Bereich"),
       .init(metric: .sleep, value: "7,4 h", gauge: nil, status: .good, note: "Über deinem Bedarf"),
       .init(metric: .hrv, value: "58 ms", gauge: nil, status: .normal, note: "Im Bereich der Baseline"),
-    ])
+    ]
+  ).withStreak()
+}
+
+extension WidgetSnapshot {
+  /// Beispiel-Serie für die Vorschau in der Widget-Galerie.
+  fileprivate func withStreak() -> WidgetSnapshot {
+    var copy = self
+    copy.streak = Streak(days: 34, activeToday: true)
+    return copy
+  }
 }

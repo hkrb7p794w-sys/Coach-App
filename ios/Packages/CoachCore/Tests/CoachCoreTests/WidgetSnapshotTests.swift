@@ -129,4 +129,25 @@ struct WidgetSnapshotTests {
     #expect(AppGroupProfile.candidates(profileGroups: []) == ["group.io.github.hkrb7p794w.coach"])
     #expect(AppGroupProfile.candidates(profileGroups: ["group.io.github.hkrb7p794w.coachX"]).count == 1)
   }
+
+  @Test func streakHeadlineAndDayChange() throws {
+    typealias Streak = WidgetSnapshot.Streak
+    #expect(Streak(days: 34, activeToday: true).headline == "Serie läuft – weiter so!")
+    #expect(Streak(days: 1, activeToday: true).headline == "Guter Start – dranbleiben!")
+    #expect(Streak(days: 5, activeToday: false).headline == "Heute noch etwas erfassen")
+    #expect(Streak(days: 0, activeToday: false).headline == "Heute starten – erster Tag!")
+
+    var value = snapshot()
+    value.streak = Streak(days: 12, activeToday: true)
+    let day = value.day
+    #expect(value.display(on: day).snapshot.streak == Streak(days: 12, activeToday: true))
+    #expect(value.display(on: day.adding(days: 1)).snapshot.streak == Streak(days: 12, activeToday: false))
+    #expect(value.display(on: day.adding(days: 3)).snapshot.streak == nil)
+    // Ältere Stände ohne Serie bleiben lesbar.
+    var old = try #require(
+      JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as? [String: Any])
+    old["streak"] = nil
+    let decoded = try JSONDecoder().decode(WidgetSnapshot.self, from: JSONSerialization.data(withJSONObject: old))
+    #expect(decoded.streak == nil)
+  }
 }
