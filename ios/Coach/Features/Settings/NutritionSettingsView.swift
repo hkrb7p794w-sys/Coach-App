@@ -5,6 +5,7 @@ import SwiftUI
 struct NutritionSettingsView: View {
   @Environment(AppModel.self) private var model
   @State private var showsRecipePreferences = false
+  @AppStorage(MealsActivityController.settingKey) private var mealsLiveActivity = false
 
   var body: some View {
     @Bindable var settings = model.settings
@@ -71,6 +72,16 @@ struct NutritionSettingsView: View {
         Button("Rezept-Vorlieben …") { showsRecipePreferences = true }
       } header: {
         Text("Erinnerung und Rezepte")
+      }
+
+      Section {
+        Toggle("Mahlzeiten auf dem Sperrbildschirm", isOn: $mealsLiveActivity)
+          .onChange(of: mealsLiveActivity) { WidgetPublisher.publish(model: model) }
+      } footer: {
+        Text(
+          "Farbig und in voller Breite: Serie und je Mahlzeit ein Ring mit „+“ zum Eintragen (Live-Aktivität). "
+            + "iOS blendet sie nach einigen Stunden aus; beim nächsten Öffnen der App ist sie wieder da. Die kleinen "
+            + "Sperrbildschirm-Widgets zeichnet iOS immer einfarbig und höchstens halb so breit.")
       }
 
       Section {

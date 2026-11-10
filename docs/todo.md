@@ -166,6 +166,11 @@ hier notieren und als PR beheben.
       vier Ringe mit „+“ bzw. Haken, Snacks abgesetzt; „+“ öffnet das Erfassen der Mahlzeit. Heute-, Ernährungs-,
       Health- und Gym-Widget sehen gleich aus; in Hell und Dunkel und mit getöntem Homescreen lesbar.
 
+- [ ] **Mahlzeiten auf dem Sperrbildschirm (PR 97):** Einstellungen › Ernährung › „Mahlzeiten auf dem
+      Sperrbildschirm“ einschalten › iPhone sperren → farbige Karte in voller Breite mit Flamme und vier Ringen; „+“
+      öffnet das Erfassen der Mahlzeit. Mahlzeit eintragen, App verlassen → Ring und Haken stimmen. Am nächsten
+      Morgen vor dem Öffnen: Karte ist leer oder weg, nach dem Öffnen wieder aktuell.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).
