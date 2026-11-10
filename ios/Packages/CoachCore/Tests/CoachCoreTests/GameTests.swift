@@ -29,6 +29,18 @@ struct GameTests {
     #expect(bridged.jokerDays == [9, 7].map { CalendarDay(year: 2026, month: 11, day: $0) })
   }
 
+  @Test func withoutJokersOnlyGaplessDaysCount() {
+    // Di 10. und Mo 09. aktiv, So 08. fehlt: ohne Joker endet die Serie dort.
+    let days = Set([10, 9, 7, 6].map { CalendarDay(year: 2026, month: 11, day: $0) })
+    let strict = DailyStreak.compute(activeDays: days, today: today, jokers: 0)
+    #expect(strict.current == 2)
+    #expect(strict.jokerDays.isEmpty)
+    #expect(DailyStreak.compute(activeDays: days, today: today).current == 5)
+    // Vorgestern zuletzt eingetragen: keine Serie mehr.
+    let stale = DailyStreak.compute(activeDays: [today.adding(days: -2)], today: today, jokers: 0)
+    #expect(stale.current == 0)
+  }
+
   @Test func noStreakWithoutActivity() {
     let streak = DailyStreak.compute(activeDays: [], today: today)
     #expect(streak.current == 0)

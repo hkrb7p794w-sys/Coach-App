@@ -2,6 +2,16 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-10 – Serie der Mahlzeiten zählt nur eingetragene Mahlzeiten
+
+- **Rückmeldung des Nutzers:** „Serie läuft – 28 Tage“, obwohl er an mehreren Tagen nichts eingetragen hatte. Grund:
+  Die gemeinsame Serie zählt auch Tage mit Training von der Uhr und überbrückt je Woche einen Tag (Joker).
+- **Regel:** Mahlzeiten-Widget, Ernährungs-Widget und die Live-Aktivität zeigen `WidgetSnapshot.mealStreak`: nur Tage
+  mit eingetragenem Essen (Wasser allein zählt nicht), lückenlos (`DailyStreak.compute(jokers: 0)`). „Serie läuft“
+  bzw. „Weiter so!“ steht erst ab drei Tagen in Folge mit Eintrag heute (`Streak.isRunning`).
+- Heute-, Health- und Gym-Widget sowie „Heute“ in der App behalten die gemeinsame Serie (Training oder Mahlzeit, ein
+  Joker je Woche) – dieselbe Zahl wie in Rangliste und Abzeichen.
+
 ## 2026-11-10 – Mahlzeiten als Live-Aktivität auf dem Sperrbildschirm (Phase 97)
 
 - **Wunsch des Nutzers:** Die Mahlzeiten sollen auf dem Sperrbildschirm farbig und in voller Breite stehen wie in der

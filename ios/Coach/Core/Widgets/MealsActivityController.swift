@@ -20,7 +20,7 @@ enum MealsActivityController {
       meals: parts.map {
         .init(id: $0.category.rawValue, title: $0.category.label, kcal: Int($0.kcal.rounded()), fraction: $0.fraction)
       },
-      streakDays: snapshot.streak?.days ?? 0, streakActive: snapshot.streak?.activeToday ?? false,
+      streakDays: snapshot.mealStreak?.days ?? 0, streakActive: snapshot.mealStreak?.activeToday ?? false,
       kcalRemaining: nutrition.kcalRemaining.map { Int($0.rounded()) })
   }
 

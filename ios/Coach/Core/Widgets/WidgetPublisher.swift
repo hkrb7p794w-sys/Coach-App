@@ -134,9 +134,13 @@ enum WidgetPublisher {
       createdAt: now, day: today, today: todayPart, nutrition: nutrition, gym: gymPart,
       health: WidgetSnapshot.health(from: report, bodyBattery: battery))
     // Serie wie auf „Heute“: Tage mit Training oder Mahlzeit, ein Joker je Woche.
-    let mealDays =
-      ((try? context.fetch(FetchDescriptor<MealRecord>(predicate: #Predicate { $0.dayKey >= since }))) ?? [])
-      .compactMap { CalendarDay(iso: $0.dayKey) }
+    let recentMeals =
+      (try? context.fetch(FetchDescriptor<MealRecord>(predicate: #Predicate { $0.dayKey >= since }))) ?? []
+    let mealDays = recentMeals.compactMap { CalendarDay(iso: $0.dayKey) }
+    // Mahlzeiten-Anzeigen: nur Tage mit eingetragenem Essen (Wasser allein zählt nicht), lückenlos.
+    let foodDays = Set(recentMeals.filter { !$0.isWater }.compactMap { CalendarDay(iso: $0.dayKey) })
+    let foodStreak = DailyStreak.compute(activeDays: foodDays, today: today, lookback: 120, jokers: 0)
+    result.mealStreak = WidgetSnapshot.Streak(days: foodStreak.current, activeToday: foodStreak.activeToday)
     let active = Set(activities.compactMap(\.day)).union(gymDays).union(mealDays)
     let streak = DailyStreak.compute(activeDays: active, today: today, lookback: 120)
     result.streak = WidgetSnapshot.Streak(days: streak.current, activeToday: streak.activeToday)

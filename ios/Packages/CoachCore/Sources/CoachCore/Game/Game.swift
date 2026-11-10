@@ -13,21 +13,25 @@ public struct DailyStreak: Equatable, Sendable {
 
   public static let jokersPerWeek = 1
 
-  public static func compute(activeDays: Set<CalendarDay>, today: CalendarDay, lookback: Int = 400) -> DailyStreak {
+  /// `jokers`: fehlende Tage, die je Woche überbrückt werden; 0 zählt nur lückenlose Tage.
+  public static func compute(
+    activeDays: Set<CalendarDay>, today: CalendarDay, lookback: Int = 400, jokers: Int = jokersPerWeek
+  ) -> DailyStreak {
     let activeToday = activeDays.contains(today)
-    let current = run(from: activeToday ? today : today.adding(days: -1), activeDays: activeDays, limit: lookback)
+    let current = run(
+      from: activeToday ? today : today.adding(days: -1), activeDays: activeDays, limit: lookback, jokers: jokers)
     // Beste Serie: jede Serie, die an einem aktiven Tag endet (vorwärts betrachtet).
     var best = current.length
     let sorted = activeDays.filter { $0 <= today && $0 >= today.adding(days: -lookback) }.sorted()
     for day in sorted where !activeDays.contains(day.adding(days: 1)) {
-      best = max(best, run(from: day, activeDays: activeDays, limit: lookback).length)
+      best = max(best, run(from: day, activeDays: activeDays, limit: lookback, jokers: jokers).length)
     }
     return DailyStreak(current: current.length, best: best, jokerDays: current.jokers, activeToday: activeToday)
   }
 
   /// Rückwärts ab `start`: aktive Tage zählen, je Woche (Montag bis Sonntag) ein fehlender Tag per Joker.
   /// Ein Joker gilt nur zwischen zwei aktiven Tagen; die Serie beginnt und endet mit einem aktiven Tag.
-  private static func run(from start: CalendarDay, activeDays: Set<CalendarDay>, limit: Int) -> (
+  private static func run(from start: CalendarDay, activeDays: Set<CalendarDay>, limit: Int, jokers allowed: Int) -> (
     length: Int, jokers: [CalendarDay]
   ) {
     var day = start
@@ -42,7 +46,7 @@ public struct DailyStreak: Equatable, Sendable {
       } else {
         let monday = PlanAdjustments.monday(of: day)
         let used = usedInWeek[monday, default: 0]
-        guard length > 0, used < jokersPerWeek, activeDays.contains(day.adding(days: -1)) else { break }
+        guard length > 0, used < allowed, activeDays.contains(day.adding(days: -1)) else { break }
         usedInWeek[monday] = used + 1
         jokers.append(day)
         length += 1
