@@ -157,6 +157,11 @@ hier notieren und als PR beheben.
       war mein letzter Lauf?“ → Antwort nennt Tempo-Einteilung bzw. Puls-Drift. Mit Garmin Connect vergleichen:
       Rundenzeiten und Kilometer-Splits stimmen überein.
 
+- [ ] **Apple Watch (PR 95):** Mit der Apple Watch ein Outdoor-Training aufzeichnen › App öffnen › iOS fragt einmal
+      nach „Trainingsrouten“ und Leistung › erlauben. Aktivität öffnen → Karte, Diagramme (Puls, Tempo, Höhe),
+      Kilometer-Splits und Auswertung sind da; Splits mit der Fitness-App vergleichen. Workout mit Pause → Standzeit
+      stimmt.
+
 ## Gestrichen
 
 - Watch-App fürs Gym (Entscheidung von Alex, 27.10.2026).

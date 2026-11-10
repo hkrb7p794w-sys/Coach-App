@@ -64,9 +64,9 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - io.github.hkrb7p794w.coach.refresh
         NSHealthShareUsageDescription: >-
-          IronLudi liest Workouts, Schlaf, Herzfrequenz, Schritte, Kalorien, VO2max und
-          Gewicht aus Apple Health (z. B. von der Apple Watch), um Erholung, Training
-          und Ernährung einzuordnen.
+          IronLudi liest Workouts mit Verlauf und Strecke, Schlaf, Herzfrequenz, Schritte,
+          Kalorien, VO2max und Gewicht aus Apple Health (z. B. von der Apple Watch), um
+          Erholung, Training und Ernährung einzuordnen.
         NSHealthUpdateUsageDescription: >-
           IronLudi speichert deine Krafttrainings als Workouts in Health.
         NSAlarmKitUsageDescription: >-

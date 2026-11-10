@@ -303,8 +303,15 @@ struct ActivityDetailView: View {
       fit = try? await GarminSyncService.decodeFit(data)
       storeReport(base)
     }
-    // Workouts aus Apple Health (negative ID) haben keine Garmin-Details.
-    guard model.garmin.isConfigured, !model.isDemo, base.id >= 0 else { return }
+    // Workouts aus Apple Health (negative ID): Verlauf und Strecke direkt aus HealthKit.
+    if base.id < 0 {
+      if !model.isDemo, let recording = await model.health.recording(for: base.id, around: base.day) {
+        fit = recording
+        storeReport(base)
+      }
+      return
+    }
+    guard model.garmin.isConfigured, !model.isDemo else { return }
     if let json = try? await model.garmin.json(.activity(id: base.id)) {
       let detailed = GarminActivityParser.detail(json, base: base)
       activity = detailed

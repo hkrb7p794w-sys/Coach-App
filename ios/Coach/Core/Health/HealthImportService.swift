@@ -1,4 +1,5 @@
 import CoachCore
+import CoreLocation
 import Foundation
 import HealthKit
 import Observation
@@ -19,6 +20,11 @@ final class HealthImportService {
   @ObservationIgnored private let defaults: UserDefaults
   /// Gemeinsame Ablage aller Quellen (Herkunft, Vorrang je Datenart).
   @ObservationIgnored var sources: SourceStore?
+  /// Ablage der vollständigen Aktivitätsberichte (gemeinsam mit dem Garmin-Abruf).
+  @ObservationIgnored var reportStore: ActivityReportStore?
+  static let failedRecordingsKey = "health.recordingFailures"
+  /// Workouts je Import, deren Verlauf nachgeladen wird (der Rest folgt beim nächsten Import).
+  static let maxRecordingsPerImport = 8
 
   private(set) var isImporting = false
   private(set) var lastResult: String?
@@ -55,9 +61,14 @@ final class HealthImportService {
     .distanceCycling, .distanceSwimming,
   ]
 
+  /// Für den Verlauf eines Workouts: Strecke und Leistung (Puls und Distanz stehen schon oben).
+  static let recordingTypes: [HKQuantityTypeIdentifier] = [.runningPower, .cyclingPower]
+
   static var readTypes: Set<HKObjectType> {
-    var types: Set<HKObjectType> = [HKObjectType.workoutType(), HKCategoryType(.sleepAnalysis)]
-    for identifier in quantityTypes { types.insert(HKQuantityType(identifier)) }
+    var types: Set<HKObjectType> = [
+      HKObjectType.workoutType(), HKCategoryType(.sleepAnalysis), HKSeriesType.workoutRoute(),
+    ]
+    for identifier in quantityTypes + recordingTypes { types.insert(HKQuantityType(identifier)) }
     return types
   }
 
@@ -168,8 +179,10 @@ final class HealthImportService {
     }
 
     try? context.save()
+    let detailed = await detailWorkouts(now: now)
     defaults.set(now, forKey: Self.lastImportKey)
     var text = "\(daysUpdated) Tage, \(added) neue Workouts aus Apple Health"
+    if detailed > 0 { text += ", \(detailed) mit Verlauf" }
     if !problems.isEmpty { text += " · nicht lesbar: \(problems.joined(separator: ", "))" }
     lastResult = text
     lastProblem = problems.isEmpty ? nil : "Nicht lesbar: \(problems.joined(separator: ", "))"
@@ -287,6 +300,154 @@ final class HealthImportService {
     return try await query.result(for: store).map {
       (date: $0.startDate, kilograms: $0.quantity.doubleValue(for: .gramUnit(with: .kilo)))
     }
+  }
+
+  // MARK: - Verlauf je Workout (Apple Watch)
+
+  /// Für Workouts der letzten Wochen den Verlauf lesen und als Bericht speichern (Runden, Splits, Diagramme,
+  /// Auswertung) – wie beim Garmin-Abruf, nur aus HealthKit statt aus der Datei der Uhr.
+  private func detailWorkouts(now: Date) async -> Int {
+    guard let reportStore else { return 0 }
+    let today = CalendarDay(date: now)
+    let activities = ((try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []).compactMap(\.activity)
+    var reports = reportStore.load()
+    var failed = Set((defaults.array(forKey: Self.failedRecordingsKey) as? [Int64]) ?? [])
+    let pending = ActivityReportPlanner.pending(
+      activities, known: reports, failed: failed, today: today, health: true)
+    guard !pending.isEmpty else { return 0 }
+    let start = Calendar.current.date(byAdding: .day, value: -(ActivityReportPlanner.days + 1), to: now) ?? now
+    guard let workouts = try? await rawWorkouts(from: start, to: now) else { return 0 }
+    let byID = Dictionary(
+      workouts.map { (HealthImport.activityID($0.uuid), $0) }, uniquingKeysWith: { first, _ in first })
+    var count = 0
+    for activity in pending {
+      guard count < Self.maxRecordingsPerImport else { break }
+      // Nicht in Health (von Hand nachgetragen oder dort gelöscht): nicht erneut versuchen.
+      guard let workout = byID[activity.id] else {
+        failed.insert(activity.id)
+        continue
+      }
+      guard let input = try? await recordingInput(workout) else { continue }
+      // Ohne Puls und ohne Distanz (z. B. von Hand eingetragen) gibt es nichts auszuwerten.
+      guard !input.heartRate.isEmpty || !input.distance.isEmpty else {
+        failed.insert(activity.id)
+        continue
+      }
+      reports[activity.id] = ActivityReportBuilder.build(activity, fit: HealthRecording.fit(input))
+      count += 1
+    }
+    reportStore.save(reports, today: today)
+    defaults.set(Array(failed.suffix(200)), forKey: Self.failedRecordingsKey)
+    return count
+  }
+
+  /// Aufzeichnung eines Workouts für die Detailansicht (mit Strecke für die Karte); `nil`, wenn nicht lesbar.
+  func recording(for activityID: Int64, around day: CalendarDay?) async -> FitActivity? {
+    guard isEnabled, isAvailable, activityID < 0 else { return nil }
+    let center = day?.referenceDate ?? .now
+    let start = center.addingTimeInterval(-2 * 86_400)
+    let end = center.addingTimeInterval(2 * 86_400)
+    guard let workouts = try? await rawWorkouts(from: start, to: end),
+      let workout = workouts.first(where: { HealthImport.activityID($0.uuid) == activityID }),
+      let input = try? await recordingInput(workout)
+    else { return nil }
+    let fit = HealthRecording.fit(input)
+    return fit.records.isEmpty ? nil : fit
+  }
+
+  private func rawWorkouts(from start: Date, to end: Date) async throws -> [HKWorkout] {
+    let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+    return try await HKSampleQueryDescriptor(predicates: [.workout(predicate)], sortDescriptors: [])
+      .result(for: store)
+  }
+
+  /// Puls, Distanz, Leistung, Strecke, Runden und Pausen eines Workouts.
+  private func recordingInput(_ workout: HKWorkout) async throws -> HealthRecording.Input {
+    func seconds(_ date: Date) -> Double { date.timeIntervalSinceReferenceDate }
+    var input = HealthRecording.Input(start: seconds(workout.startDate), end: seconds(workout.endDate))
+    let attached = HKQuery.predicateForObjects(from: workout)
+    let range = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate)
+    let perMinute = HKUnit.count().unitDivided(by: .minute())
+
+    // Puls: zum Workout gehörende Werte, sonst alle im Zeitraum (manche Uhren verknüpfen sie nicht).
+    var heartRate = try await quantities(.heartRate, predicate: attached)
+    if heartRate.isEmpty { heartRate = try await quantities(.heartRate, predicate: range) }
+    input.heartRate = heartRate.map {
+      HealthRecording.Sample(time: seconds($0.startDate), value: $0.quantity.doubleValue(for: perMinute))
+    }
+
+    // Distanz nur aus dem Workout selbst: Im Zeitraum zählen iPhone und Uhr sonst doppelt.
+    let distanceType: HKQuantityTypeIdentifier =
+      switch workout.workoutActivityType {
+      case .cycling, .handCycling: .distanceCycling
+      case .swimming: .distanceSwimming
+      default: .distanceWalkingRunning
+      }
+    input.distance = try await quantities(distanceType, predicate: attached).map {
+      HealthRecording.Amount(
+        start: seconds($0.startDate), end: seconds($0.endDate), value: $0.quantity.doubleValue(for: .meter()))
+    }
+
+    let powerType: HKQuantityTypeIdentifier =
+      workout.workoutActivityType == .cycling ? .cyclingPower : .runningPower
+    input.power = ((try? await quantities(powerType, predicate: attached)) ?? []).map {
+      HealthRecording.Sample(time: seconds($0.startDate), value: $0.quantity.doubleValue(for: .watt()))
+    }
+
+    // Strecke: fehlt die Berechtigung oder gibt es keine (Halle), bleibt sie leer.
+    let routes =
+      (try? await HKSampleQueryDescriptor(predicates: [.workoutRoute(attached)], sortDescriptors: [])
+        .result(for: store)) ?? []
+    for route in routes {
+      guard let locations = try? await routeLocations(route) else { continue }
+      input.locations += locations
+    }
+
+    var pauseStart: Date?
+    for event in workout.workoutEvents ?? [] {
+      switch event.type {
+      case .lap:
+        let interval = event.dateInterval
+        if interval.duration > 0 {
+          input.laps.append(HealthRecording.Interval(start: seconds(interval.start), end: seconds(interval.end)))
+        }
+      case .pause, .motionPaused:
+        pauseStart = pauseStart ?? event.dateInterval.start
+      case .resume, .motionResumed:
+        if let begin = pauseStart {
+          input.pauses.append(
+            HealthRecording.Interval(start: seconds(begin), end: seconds(event.dateInterval.start)))
+          pauseStart = nil
+        }
+      default: break
+      }
+    }
+    return input
+  }
+
+  private func quantities(_ identifier: HKQuantityTypeIdentifier, predicate: NSPredicate) async throws
+    -> [HKQuantitySample]
+  {
+    try await HKSampleQueryDescriptor(
+      predicates: [.quantitySample(type: HKQuantityType(identifier), predicate: predicate)],
+      sortDescriptors: [SortDescriptor(\.startDate)]
+    ).result(for: store)
+  }
+
+  /// Punkte einer Strecke, auf etwa einen je 5 s ausgedünnt.
+  private func routeLocations(_ route: HKWorkoutRoute) async throws -> [HealthRecording.Location] {
+    var result: [HealthRecording.Location] = []
+    var last = -Double.infinity
+    for try await location in HKWorkoutRouteQueryDescriptor(route).results(for: store) {
+      let time = location.timestamp.timeIntervalSinceReferenceDate
+      guard time - last >= HealthRecording.step else { continue }
+      last = time
+      result.append(
+        HealthRecording.Location(
+          time: time, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
+          altitude: location.verticalAccuracy >= 0 ? location.altitude : nil))
+    }
+    return result
   }
 
   /// Apple-Sportart als Garmin-Schlüssel, damit Wochen-Soll/Ist, Belastung und Ernährung gleich rechnen.

@@ -129,5 +129,7 @@ struct ActivityReportTests {
     let known = [Int64(1): ActivityReportBuilder.build(run(), fit: FitActivity())]
     #expect(ActivityReportPlanner.pending(all, known: known, today: today).map(\.id) == [4])
     #expect(ActivityReportPlanner.pending(all, known: known, failed: [4], today: today).isEmpty)
+    // Workouts aus Apple Health laufen getrennt (Verlauf aus HealthKit statt aus einer Datei).
+    #expect(ActivityReportPlanner.pending(all, known: [:], today: today, health: true).map(\.id) == [-5])
   }
 }
