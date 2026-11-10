@@ -86,7 +86,8 @@ struct ActivityReportTests {
 
   @Test func intervalsCompareFirstAndLast() {
     func lap(_ speed: Double, _ intensity: FitLap.Intensity, heartRate: Double) -> FitLap {
-      var lap = FitLap(timerSeconds: 240, distanceMeters: speed * 240, averageHeartRate: heartRate, intensity: intensity)
+      var lap = FitLap(
+        timerSeconds: 240, distanceMeters: speed * 240, averageHeartRate: heartRate, intensity: intensity)
       lap.averageSpeed = speed
       return lap
     }
