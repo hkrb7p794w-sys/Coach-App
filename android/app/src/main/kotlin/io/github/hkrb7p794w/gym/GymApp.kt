@@ -64,12 +64,6 @@ fun GymApp(viewModel: GymViewModel) {
 
     BackHandler(enabled = pages.isNotEmpty()) { back() }
 
-    // Serie und Punkte nach jeder Änderung neu berechnen und (mit Konto) melden.
-    val friendCount by viewModel.social.friends.collectAsStateWithLifecycle()
-    LaunchedEffect(data.sessions.size, data.meals.size, friendCount.size) {
-        viewModel.game.report(data, friendCount.size)
-    }
-
     // Einladungslink geöffnet: Kontobildschirm zeigen.
     LaunchedEffect(invite) {
         if (invite != null && pages.lastOrNull() != Page.Account) pages = pages + Page.Account

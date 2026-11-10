@@ -54,16 +54,12 @@ import java.util.Locale
 
 /** Freunde: Feed mit geteilten Trainings und Mahlzeiten, Freundesliste mit Suche und Anfragen. */
 @Composable
-fun FriendsScreen(viewModel: GymViewModel, onBack: () -> Unit, openAccount: () -> Unit, initialTab: Int = 0) {
+fun FriendsScreen(viewModel: GymViewModel, onBack: () -> Unit, openAccount: () -> Unit) {
     val social = viewModel.social
-    var tab by rememberSaveable { mutableStateOf(initialTab) }
-    val invitations by viewModel.game.challenges.collectAsState()
+    var tab by rememberSaveable { mutableStateOf(0) }
     val incoming by social.incoming.collectAsState()
     val message by social.message.collectAsState()
-    LaunchedEffect(Unit) {
-        social.refresh()
-        viewModel.game.refresh()
-    }
+    LaunchedEffect(Unit) { social.refresh() }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -87,17 +83,11 @@ fun FriendsScreen(viewModel: GymViewModel, onBack: () -> Unit, openAccount: () -
             Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("Feed") })
                 FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text(if (incoming.isEmpty()) "Freunde" else "Freunde (${incoming.size})") })
-                val open = invitations.count { it.status == "invited" && !it.finished }
-                FilterChip(selected = tab == 2, onClick = { tab = 2 }, label = { Text(if (open == 0) "Wettkampf" else "Wettkampf ($open)") })
             }
             message?.let {
                 Text(it, Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             }
-            when (tab) {
-                0 -> FeedList(viewModel)
-                1 -> FriendList(viewModel, openAccount)
-                else -> GameTab(viewModel)
-            }
+            if (tab == 0) FeedList(viewModel) else FriendList(viewModel, openAccount)
         }
     }
 }
@@ -332,159 +322,5 @@ fun ShareWithFriendsDialog(title: String, preview: String, onShare: (String) -> 
         },
         confirmButton = { TextButton(onClick = { onShare(note) }) { Text("Teilen") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } },
-    )
-}
-
-/** Wettkampf: Serie und Stufe, Rangliste der Woche, Challenges, Abzeichen. */
-@Composable
-private fun GameTab(viewModel: GymViewModel) {
-    val game = viewModel.game
-    val state by game.state.collectAsState()
-    val board by game.leaderboard.collectAsState()
-    val challenges by game.challenges.collectAsState()
-    val friends by viewModel.social.friends.collectAsState()
-    val gameMessage by game.message.collectAsState()
-    var creating by rememberSaveable { mutableStateOf(false) }
-    LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        state?.let { current ->
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Stat("🔥 ${current.streak}", "Tage in Folge", Modifier.weight(1f))
-                        Stat("${current.stats.level}", "Stufe", Modifier.weight(1f))
-                        Stat("${current.weekPoints}", "Punkte diese Woche", Modifier.weight(1f))
-                    }
-                }
-                Text(
-                    "25 Punkte je Trainingstag, höchstens 100 – mehr Training bringt nichts. Ein freier Tag pro Woche unterbricht die Serie nicht.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        val invited = challenges.filter { it.status == "invited" && !it.finished }
-        if (invited.isNotEmpty()) {
-            item { SectionTitle("Einladungen") }
-            items(invited, key = { "inv-${it.id}" }) { challenge ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(challenge.title, style = MaterialTheme.typography.titleMedium)
-                        Text("${challenge.metricTitle} · Woche ab ${challenge.week}", style = MaterialTheme.typography.bodySmall)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { game.join(challenge) }) { Text("Mitmachen") }
-                            TextButton(onClick = { game.leave(challenge) }) { Text("Ablehnen") }
-                        }
-                    }
-                }
-            }
-        }
-        item { SectionTitle("Rangliste diese Woche") }
-        if (board.size <= 1) item { Text("Füge Freunde hinzu, um euch zu vergleichen.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        items(board, key = { "lb-${it.username}" }) { entry ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (entry.rank <= 3) listOf("🥇", "🥈", "🥉")[entry.rank - 1] else "${entry.rank}.", Modifier.padding(end = 8.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(if (entry.me) "Du" else entry.displayName, style = MaterialTheme.typography.titleSmall)
-                    Text("Stufe ${maxOf(entry.level, 1)} · 🔥 ${entry.dayStreak}", style = MaterialTheme.typography.bodySmall)
-                }
-                Text(if (entry.reported) "${entry.weekPoints}" else "–", style = MaterialTheme.typography.titleMedium)
-            }
-        }
-        item {
-            SectionTitle("Challenges")
-            OutlinedButton(onClick = { creating = true }, enabled = friends.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text("Neue Challenge") }
-        }
-        items(challenges.filter { it.status == "joined" }, key = { "ch-${it.id}" }) { challenge ->
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(challenge.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        if (challenge.finished) Text(if (challenge.iWon) "🏆 Gewonnen" else "Beendet", style = MaterialTheme.typography.labelLarge)
-                    }
-                    Text(io.github.hkrb7p794w.gym.core.Game.Metric.of(challenge.metric)?.rule ?: challenge.metricTitle, style = MaterialTheme.typography.bodySmall)
-                    challenge.members.filter { it.status == "joined" }.forEach { member ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text((if (member.winner) "🏆 " else "") + (if (member.me) "Du" else member.displayName), Modifier.weight(1f))
-                            androidx.compose.material3.LinearProgressIndicator(
-                                progress = { (member.progress / maxOf(challenge.max, 1)).toFloat().coerceIn(0f, 1f) },
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(" ${member.progress.toInt()}", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    TextButton(onClick = { game.leave(challenge) }) { Text(if (challenge.mineCreated) "Für alle löschen" else "Verlassen") }
-                }
-            }
-        }
-        state?.let { current ->
-            item { SectionTitle("Abzeichen (${io.github.hkrb7p794w.gym.core.Game.earned(current.stats).size}/${io.github.hkrb7p794w.gym.core.Game.BADGES.size})") }
-            items(io.github.hkrb7p794w.gym.core.Game.BADGES, key = { "b-${it.id}" }) { badge ->
-                val done = badge.isEarned(current.stats)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (done) "🏅" else "⚪", Modifier.padding(end = 8.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(badge.title, style = MaterialTheme.typography.titleSmall)
-                        Text(if (done) badge.detail else "${badge.detail} · ${badge.progress(current.stats)}/${badge.target}", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-            item {
-                Text(
-                    "Abzeichen gibt es für Beständigkeit – nie für mehr Training als geplant oder für weniger Essen.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        gameMessage?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
-    }
-    if (creating) NewChallengeDialog(viewModel, friends) { creating = false }
-}
-
-@Composable
-private fun Stat(value: String, label: String, modifier: Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.headlineSmall)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun NewChallengeDialog(viewModel: GymViewModel, friends: List<SocialPerson>, onClose: () -> Unit) {
-    val metrics = io.github.hkrb7p794w.gym.core.Game.Metric.entries.filter { it != io.github.hkrb7p794w.gym.core.Game.Metric.PLAN }
-    var metric by remember { mutableStateOf(metrics.first()) }
-    var nextWeek by rememberSaveable { mutableStateOf(false) }
-    var title by rememberSaveable { mutableStateOf("") }
-    var invited by remember { mutableStateOf(setOf<String>()) }
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text("Neue Challenge") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                metrics.forEach { option ->
-                    FilterChip(selected = metric == option, onClick = { metric = option }, label = { Text(option.title) })
-                }
-                Text(metric.rule, style = MaterialTheme.typography.bodySmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChip(selected = !nextWeek, onClick = { nextWeek = false }, label = { Text("Diese Woche") })
-                    FilterChip(selected = nextWeek, onClick = { nextWeek = true }, label = { Text("Nächste Woche") })
-                }
-                OutlinedTextField(title, { title = it.take(60) }, label = { Text("Name (optional)") }, singleLine = true)
-                Text("Freunde einladen", style = MaterialTheme.typography.labelLarge)
-                friends.forEach { friend ->
-                    FilterChip(
-                        selected = friend.username in invited,
-                        onClick = { invited = if (friend.username in invited) invited - friend.username else invited + friend.username },
-                        label = { Text(friend.displayName) },
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { viewModel.game.create(metric, nextWeek, title, invited.toList(), onClose) }, enabled = invited.isNotEmpty()) {
-                Text("Starten")
-            }
-        },
-        dismissButton = { TextButton(onClick = onClose) { Text("Abbrechen") } },
     )
 }

@@ -17,8 +17,8 @@ Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
   Verlustanzeigen. Die Rangliste zeigt nur Freunde.
 - **Vertrauen statt Kontrolle:** Die App rechnet die Werte selbst und meldet nur Zahlen; der Worker begrenzt sie
   (`worker/src/game.ts`). Unter Freunden reicht das.
-- **Android ohne Wochenplan:** 25 Punkte je Trainingstag, höchstens 100 (vier Tage reichen); die Challenge „Plan
-  erfüllt“ gibt es nur auf dem iPhone.
+- **Nur iPhone:** Spielelemente gibt es vorerst nur in der iPhone-App (Wunsch des Nutzers vom 10.11.2026: Arbeit nur
+  noch für iOS). Android-Konten sehen Rangliste und Challenges nicht.
 
 ## 2026-11-09 – Freunde und Feed (Phase 92)
 
