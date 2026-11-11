@@ -2,6 +2,15 @@
 
 Jede Entscheidung mit Datum, Begründung und Quelle. Neueste oben.
 
+## 2026-11-11 – Gym-Karte auf dem Sperrbildschirm übersichtlicher
+
+- **Rückmeldung des Nutzers** (Screenshot): Überschrift und Unterzeile abgeschnitten („Weiter mit Satz 2 · Arm…“),
+  der Satz stand doppelt da, sechs gleich aussehende Knöpfe.
+- **Aufbau jetzt:** oben Zustand in einem Wort („Jetzt“ grün, „Pause – gleich“ orange), der Name der Übung allein in
+  einer Zeile, darunter „Satz 2 von 2“, rechts die Pausenuhr groß; in der Mitte zwei Regler, je Wert mit − und + in
+  einer gemeinsamen Fläche; unten „Satz erledigt“ als einziger gefüllter Knopf, „Pause aus“ klein daneben.
+  „Danach: …“ entfällt auf dem Sperrbildschirm (kein Platz bei 160 Punkten Höhe); in der App steht es weiter.
+
 ## 2026-11-10 – Rezeptideen für einen frei gewählten Zeitraum
 
 - **Rückmeldung des Nutzers:** Für manche Tage entstanden keine Rezepte; die Rezepte sollen nicht vom Trainingsplan

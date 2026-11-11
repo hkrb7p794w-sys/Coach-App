@@ -530,8 +530,9 @@ final class GymViewModel {
     let weight = ExerciseUnits.weightText(set.weightKg, info: info)
     let reps = isTime ? "\(set.reps) s" : "\(set.reps) Wdh."
     let step = ExerciseLibrary.rule(exercise.exerciseID, name: exercise.name, custom: gym.customExercises).step
-    // Während der Pause steht, was danach kommt („Weiter mit Schulterdrücken“).
-    let heading = restEndsAt != nil ? (nextText ?? exercise.name) : exercise.name
+    // Immer nur der Name der Übung: „Pause“ bzw. „Jetzt“ und der Satz stehen in eigenen Zeilen der Karte, sonst
+    // wird die Überschrift auf dem Sperrbildschirm abgeschnitten („Weiter mit Satz 2 · Arm…“).
+    let heading = exercise.name
     let following = WorkoutFlow.nextExercise(after: position.exercise, in: session).map {
       "Danach: \(session.exercises[$0].name)"
     }
