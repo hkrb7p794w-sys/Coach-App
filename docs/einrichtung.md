@@ -95,6 +95,7 @@ Im Repo **Settings › Secrets and variables › Actions › New repository secr
 | `MISTRAL_API_KEY` | Mistral-Key aus Schritt 2 (optional) |
 | `GH_MODELS_TOKEN` | GitHub-Models-Token aus Schritt 2 (optional) |
 | `COACH_APP_TOKEN` | App-Token aus Schritt 4 |
+| `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET` | WHOOP-Anbindung (optional, siehe [whoop.md](whoop.md)) |
 
 ## 6. Worker bereitstellen
 

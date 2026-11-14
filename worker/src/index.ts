@@ -12,6 +12,8 @@
  * GET  /v1/usage/all     – nur Haupt-Token: Nutzung und geschätzte Kosten je Person
  * /v1/game/…            – Rangliste und Challenges unter Freunden (siehe game.ts), nur mit Sitzung
  * /v1/social/…          – Freunde und Feed zwischen Konten (siehe social.ts), nur mit Sitzung
+ * /v1/whoop/…          – WHOOP-Anmeldung: Code bzw. Refresh-Token tauschen (siehe whoop.ts); GET /w/whoop ohne
+ *                         Anmeldung leitet nach der Freigabe bei WHOOP in die App zurück
  * /v1/account/…         – Konten: Registrieren mit Einladung, Anmelden, Sitzungen (siehe accounts.ts). Überall, wo ein
  *                         Gast-Token gilt, gilt auch das Sitzungs-Token eines Kontos.
  *      { "task": "ping", "input": { … }, "images": [{ "mimeType": "image/jpeg", "data": "<base64>" }] }
@@ -40,6 +42,7 @@ import {
   recordUsage,
   type UsageStore,
 } from "./usage";
+import { handleWhoop, whoopCallbackPage, whoopConfigured } from "./whoop";
 
 export const VERSION = "0.4.0";
 export const MAX_BODY_BYTES = 8 * 1024 * 1024;
@@ -92,12 +95,26 @@ export async function handle(request: Request, env: Env, deps: Deps = defaultDep
       },
       providerList: providerInfo(env),
       configured: Boolean(env.COACH_APP_TOKEN),
+      whoop: whoopConfigured(env),
     });
   }
 
   if (request.method === "GET") {
-    const page = sharePage(pathname) ?? invitePage(pathname, new URL(request.url).origin);
+    const url = new URL(request.url);
+    const page =
+      sharePage(pathname) ??
+      invitePage(pathname, url.origin) ??
+      whoopCallbackPage(pathname, url.searchParams);
     if (page) return page;
+  }
+
+  if (pathname.startsWith("/v1/whoop/")) {
+    if (!env.COACH_APP_TOKEN)
+      return json(503, { error: "Worker ist nicht konfiguriert (COACH_APP_TOKEN fehlt)" });
+    // Wer die App nutzen darf (Haupt-, Gast- oder Sitzungs-Token), darf auch WHOOP verbinden.
+    const principal = await authenticate(request.headers.get("authorization") ?? "", env, deps.now());
+    if (!principal) return json(401, { error: "Nicht autorisiert", code: "unauthorized" });
+    return (await handleWhoop(request, env, deps)) ?? json(404, { error: "Nicht gefunden" });
   }
 
   if (pathname.startsWith("/v1/account/")) {
