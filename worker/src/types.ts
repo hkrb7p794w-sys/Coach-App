@@ -43,6 +43,9 @@ export interface Env {
   AI_OWNER_DAILY_LIMIT?: string;
   /** Optionales Tagesbudget je Gast in US-Dollar (Listenpreis, 0 = aus). */
   AI_GUEST_DAILY_BUDGET_USD?: string;
+  /** WHOOP-App aus dem Developer-Dashboard (siehe whoop.ts); das Secret bleibt im Worker. */
+  WHOOP_CLIENT_ID?: string;
+  WHOOP_CLIENT_SECRET?: string;
 }
 
 /** Ausschnitt des Workers-AI-Bindings, den der Worker nutzt (Tests ersetzen ihn). */

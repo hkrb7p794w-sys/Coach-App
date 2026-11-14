@@ -1633,3 +1633,19 @@ als zusätzliche Stufe dazu.
   still (Erfahrung aus dem Add-on), der Plantext bleibt so immer lesbar.
 - **Risiko:** inoffizielle Schnittstelle (Anmeldung über das Garmin-Konto); die offizielle Training-API verlangt eine
   Partner-Freigabe. Ändert Garmin die Schnittstelle, meldet die App „Senden hat nicht geklappt“.
+
+## WHOOP (14.11.2026)
+
+- **Entscheidung:** WHOOP über die offizielle API v2 mit OAuth 2.0 (Authorization Code). WHOOP verlangt für Token-
+  Tausch und Refresh das Client-Secret und bietet kein PKCE an, deshalb tauscht der Worker (`worker/src/whoop.ts`):
+  `POST /v1/whoop/authorize`, `POST /v1/whoop/token`, Rücksprung `GET /w/whoop` → `coach://whoop?code&state`. Die
+  Daten ruft die App selbst bei `api.prod.whoop.com/developer/v2` ab; Tokens liegen nur im sicheren Speicher.
+- Scopes: `offline` (sonst kein Refresh-Token), `read:recovery`, `read:cycles`, `read:workout`, `read:sleep`,
+  `read:profile`, `read:body_measurement`. Jeder Refresh macht das alte Refresh-Token ungültig (Rotation) – die App
+  speichert das neue sofort und refresht nie parallel.
+- Grenzen: 100 Anfragen/Minute, 10 000/Tag; Seiten zu höchstens 25 Einträgen über `nextToken`.
+- Quellen: <https://developer.whoop.com/docs/developing/oauth>, <https://developer.whoop.com/docs/developing/rate-limiting>,
+  OpenAPI <https://api.prod.whoop.com/developer/doc/openapi.json>.
+- Die App-Seite steht in der Flutter-App (`hkrb7p794w-sys/AIronLudi`), die die Swift-App ablöst; die Swift-App bekommt
+  keine WHOOP-Anbindung mehr.
+
